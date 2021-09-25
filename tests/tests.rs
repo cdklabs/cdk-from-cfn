@@ -147,18 +147,6 @@ fn test_parse_tree_sub_list() {
     assert_resource_equal(a, resource);
 }
 
-#[test]
-fn testy() {
-    let subs = sub_parse_tree("arn:${pew}:role").unwrap();
-    assert_eq!(
-        vec![
-            SubValue::String("arn:".to_string()),
-            SubValue::Variable("pew".to_string()),
-            SubValue::String(":role".to_string())
-        ],
-        subs
-    );
-}
 
 fn assert_resource_equal(val: Value, resource: ResourceParseTree) {
     let obj = val.as_object().unwrap();
