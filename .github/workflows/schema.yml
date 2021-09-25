@@ -4,6 +4,11 @@ name: "Schema"
 on:
   schedule:
     - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "hello"
+        required: false
 
 jobs:
   schema:
