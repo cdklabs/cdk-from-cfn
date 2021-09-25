@@ -24,7 +24,7 @@ jobs:
         run: "wget --output-document=src/specification/spec.json.gz https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json"
 
       - name: "Unzip spec"
-        run: "gunzip src/specification/spec.json.gz"
+        run: "gunzip -f src/specification/spec.json.gz"
 
       - name: "Show diff"
         run: "git diff src/specification/spec.json"
