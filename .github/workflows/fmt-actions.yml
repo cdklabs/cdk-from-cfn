@@ -4,7 +4,7 @@ name: Lints
 
 jobs:
   clippy:
-    name: Clippy
+    name: tests-and-correctness
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -22,3 +22,12 @@ jobs:
         with:
           command: clippy
           args: --manifest-path ./Cargo.toml -- -Adead-code -D warnings
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
