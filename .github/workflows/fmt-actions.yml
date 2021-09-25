@@ -17,8 +17,8 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --manifest-path sel-server/Cargo.toml --all -- --check
+          args: --manifest-path ./Cargo.toml --all -- --check
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --manifest-path sel-server/Cargo.toml -- -Adead-code -D warnings
+          args: --manifest-path ./Cargo.toml -- -Adead-code -D warnings
