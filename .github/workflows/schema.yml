@@ -1,5 +1,5 @@
 
-name = "Schema"
+name: "Schema"
 
 on:
   schedule:
