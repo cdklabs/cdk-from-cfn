@@ -147,7 +147,6 @@ fn test_parse_tree_sub_list() {
     assert_resource_equal(a, resource);
 }
 
-
 fn assert_resource_equal(val: Value, resource: ResourceParseTree) {
     let obj = val.as_object().unwrap();
     let resources = build_resources(obj).unwrap();

@@ -1,7 +1,6 @@
 use crate::parser::resource::ResourceValue;
 use crate::parser::sub::{sub_parse_tree, SubValue};
 use crate::semantic::reference::ReferenceTable;
-use crate::TransmuteError;
 
 pub mod reference;
 
@@ -10,7 +9,7 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
         ResourceValue::Null => Option::None,
         ResourceValue::Bool(b) => Option::Some(b.to_string()),
         ResourceValue::Number(n) => Option::Some(n.to_string()),
-        ResourceValue::String(s) => Option::Some(String::from(format!("\"{}\"", s))),
+        ResourceValue::String(s) => Option::Some(format!("\"{}\"", s)),
         ResourceValue::Array(arr) => {
             let mut v = Vec::new();
             for a in arr {
@@ -55,14 +54,14 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
                         "AWS::Region" => String::from("${this.region}"),
                         "AWS::Partition" => String::from("${this.partition}"),
                         "AWS::AccountId" => String::from("${this.account}"),
-                        x => String::from(format!("${{props.{}}}", x)),
+                        x => format!("${{props.{}}}", x),
                     },
                 })
                 .collect();
 
-            Option::Some(String::from(format!("`{}`", r.join(""))))
+            Option::Some(format!("`{}`", r.join("")))
         }
-        ResourceValue::FindInMap(mapper, first, second) => {
+        ResourceValue::FindInMap(mapper, first, _second) => {
             let mapper_str = to_string(mapper, ref_table).unwrap();
             let first_str = to_string(first, ref_table).unwrap();
             let second_str = to_string(first, ref_table).unwrap();
@@ -73,9 +72,9 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
         ResourceValue::If(bool_expr, true_expr, false_expr) => {
             let bool_expr = to_string(bool_expr, ref_table).unwrap();
             let bool_expr = bool_expr
-                .strip_suffix("\"")
+                .strip_suffix('\"')
                 .unwrap()
-                .strip_prefix("\"")
+                .strip_prefix('\"')
                 .unwrap();
             let true_expr = to_string(true_expr, ref_table).unwrap();
             let false_expr = match to_string(false_expr, ref_table) {
@@ -93,7 +92,7 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
                 _ => panic!("Can't happen"),
             };
 
-            let mut iterator = x.iter().skip(1);
+            let iterator = x.iter().skip(1);
 
             let mut strs = Vec::new();
             for rv in iterator {
@@ -103,17 +102,13 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
                 }
             }
 
-            Option::Some(String::from(format!(
-                "{}.join(\"{}\")",
-                strs.join(","),
-                sep
-            )))
+            Option::Some(format!("{}.join(\"{}\")", strs.join(","), sep))
         }
         ResourceValue::Ref(x) => match x.as_str() {
             "AWS::Region" => Option::Some(String::from("this.region")),
             "AWS::Partition" => Option::Some(String::from("this.partition")),
             "AWS::AccountId" => Option::Some(String::from("this.account")),
-            x => Option::Some(String::from(format!("props.{}", x))),
+            x => Option::Some(format!("props.{}", x)),
         },
     }
 }
