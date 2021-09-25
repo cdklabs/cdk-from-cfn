@@ -24,7 +24,7 @@ jobs:
         run: "wget --output-document=src/specification/spec.json https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json"
 
       - name: "Show diff"
-        run: "git diff src/specification/schema.json"
+        run: "git diff src/specification/spec.json"
 
       - name: "Open pull request updating schema"
         uses: "gr2m/create-or-update-pull-request-action@v1.2.9"
