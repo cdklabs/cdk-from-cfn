@@ -39,7 +39,7 @@ fn main() {
     for (_, cond) in cfn_tree.conditions.conditions.iter() {
         println!("{}", cond.synthesize());
     }
-d
+
     for reference in cfn_tree.resources.resources.iter() {
         let mut split_ref = reference.resource_type.split("::");
         split_ref.next();
