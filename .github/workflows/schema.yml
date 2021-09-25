@@ -1,0 +1,36 @@
+
+name: "Schema"
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+
+jobs:
+  schema:
+    name: "Schema"
+
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v2.0.0"
+
+      - name: "Download schema"
+        run: "wget --output-document=src/specification/spec.json https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json"
+
+      - name: "Show diff"
+        run: "git diff resource/schema.json"
+
+      - name: "Open pull request updating schema"
+        uses: "gr2m/create-or-update-pull-request-action@v1.2.9"
+        with:
+          author: "Sean Myers <seanmyers608@gmail.com>"
+          branch: "feature/schema"
+          body: |
+            This PR
+            * [x] updates `spec.json`
+          commit-message: "Enhancement: Update spec.json"
+          path: "src/specification/spec.json"
+          title: "Enhancement: Update spec.json"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
