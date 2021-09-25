@@ -1,10 +1,10 @@
-on: [push, pull_request]
+on: [pull_request]
 
-name: Lints
+name: Checks
 
 jobs:
-  clippy:
-    name: tests-and-correctness
+  correctness:
+    name: correctness
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
