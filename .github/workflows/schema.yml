@@ -21,7 +21,7 @@ jobs:
         uses: "actions/checkout@v2.0.0"
 
       - name: "Download schema"
-        run: "wget --output-document=src/specification/spec.json https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json"
+        run: "wget -S --header=\"accept-encoding: gzip\" --output-document=src/specification/spec.json https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json"
 
       - name: "Show diff"
         run: "git diff src/specification/spec.json"
