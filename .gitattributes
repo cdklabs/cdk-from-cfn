@@ -1,2 +1,0 @@
-specification/*.json filter=lfs diff=lfs merge=lfs -text
-src/specification/*.json filter=lfs diff=lfs merge=lfs -text
