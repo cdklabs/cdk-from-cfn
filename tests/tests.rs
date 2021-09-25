@@ -1,6 +1,5 @@
 use noctilucent::parser::condition::{ConditionParseTree, ConditionValue};
 use noctilucent::parser::resource::{build_resources, ResourceParseTree, ResourceValue};
-use noctilucent::parser::sub::{sub_parse_tree, SubValue};
 use serde_json::Value;
 
 macro_rules! map(

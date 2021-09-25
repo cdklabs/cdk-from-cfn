@@ -15,8 +15,14 @@ pub enum SubValue {
 
 pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, TransmuteError> {
     let mut full_resolver = many1(inner_resolver);
-    let str = str.strip_prefix('\"').unwrap();
-    let str = str.strip_suffix('\"').unwrap();
+    let str = match str.strip_prefix('\"') {
+        None => str,
+        Some(x) => x,
+    };
+    let str = match str.strip_suffix('\"') {
+        None => str,
+        Some(x) => x,
+    };
     match full_resolver(str) {
         Ok((remaining, built_subs)) => {
             let mut subs = built_subs;
