@@ -15,10 +15,10 @@ All Mappings will be in a Lookup Table area that are just giant hashmaps.
 If you have a large mappings like...
 
 ```
-    "AardvarkFlowLogAccessRoleMappingProd": {
+    "LogAccessRoleMappingProd": {
       "ARN": {
-        "PrincipalArn": "118920060295:role/AardvarkFlowLogAccessRole",
-        "ResourceArnPrefix": "915915706018:role/AardvarkLambdaReadOnly"
+        "PrincipalArn": "111111111111:role/LogAccessRole",
+        "ResourceArnPrefix": "222233334444:role/LambdaReadOnly"
       },
       ...
     }
@@ -27,10 +27,10 @@ If you have a large mappings like...
 then this gets translated to
 
 ```
-const AardvarkFlowLogAccessRoleMappingProd Map<String, Map<String, String>> {
+const LogAccessRoleMappingProd Map<String, Map<String, String>> {
    "ARN" : {
-        "PrincipalArn": "118920060295:role/AardvarkFlowLogAccessRole",
-        "ResourceArnPrefix": "915915706018:role/AardvarkLambdaReadOnly"
+        "PrincipalArn": "111111111111:role/LogAccessRole",
+        "ResourceArnPrefix": "222233334444:role/LambdaReadOnly"
    }
 }
 ```
@@ -48,10 +48,10 @@ CDK typescript that can be used in the rest of the CDK document.
 Let's start with some basic terminology. Using the below example:
 
 ```
-"AardvarkFlowLogAccessRoleMappingProd [1]": {
+"LogAccessRoleMappingProd [1]": {
       "ARN [2]": {
-        "PrincipalArn [3]": "118920060295:role/AardvarkFlowLogAccessRole [4]",
-        "ResourceArnPrefix": "915915706018:role/AardvarkLambdaReadOnly"
+        "PrincipalArn [3]": "111111111111:role/LogAccessRole [4]",
+        "ResourceArnPrefix": "222233334444:role/LambdaReadOnly"
       }[5],
 }[6],
 ...
@@ -59,25 +59,25 @@ Let's start with some basic terminology. Using the below example:
 
 we define the following terms:
 
-1. `AardvarkFlowLogAccessRoleMappingProd` as **OuterMappingName**
+1. `LogAccessRoleMappingProd` as **OuterMappingName**
 2. `ARN` as **OuterMappingKey**
 3. `PrincipalArn` as **InnerMappingKey**
-4. `118920060295:role/AardvarkFlowLogAccessRole` as **InnerMappingValue**
+4. `111111111111:role/LogAccessRole` as **InnerMappingValue**
 5. 
 ```
 {
-  "PrincipalArn": "118920060295:role/AardvarkFlowLogAccessRole",
-  "ResourceArnPrefix": "915915706018:role/AardvarkLambdaReadOnly"
+  "PrincipalArn": "111111111111:role/LogAccessRole",
+  "ResourceArnPrefix": "222233334444:role/LambdaReadOnly"
 }
 ``` 
    as **InnerMapping**
 ```
-"AardvarkFlowLogAccessRoleMappingProd [1]": {
-      "ARN [2]": {
-        "PrincipalArn [3]": "118920060295:role/AardvarkFlowLogAccessRole [4]",
-        "ResourceArnPrefix": "915915706018:role/AardvarkLambdaReadOnly"
-      }[5],
-}[6]
+"LogAccessRoleMappingProd": {
+      "ARN": {
+        "PrincipalArn": "111111111111:role/LogAccessRole",
+        "ResourceArnPrefix": "222233334444:role/LambdaReadOnly"
+      },
+}
 ```
    as **OuterMapping**
 

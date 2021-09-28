@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 
 use crate::parser::condition::{build_conditions, ConditionsParseTree};
+use crate::parser::lookup_table::{build_mappings, MappingsParseTree};
 use crate::parser::parameters::{build_parameters, Parameters};
 use crate::parser::resource::{build_resources, ResourceValue, ResourcesParseTree};
 use serde_json::Value;
-use crate::parser::lookup_table::{MappingsParseTree, build_mappings};
 
 pub mod integrations;
 pub mod parser;
@@ -53,7 +53,8 @@ impl CloudformationParseTree {
         };
         let conditions = build_conditions(json_obj["Conditions"].as_object().unwrap())?;
         let resources = build_resources(json_obj["Resources"].as_object().unwrap())?;
-        let mappings: MappingsParseTree = build_mappings(json_obj["Mappings"].as_object().unwrap())?;
+        let mappings: MappingsParseTree =
+            build_mappings(json_obj["Mappings"].as_object().unwrap())?;
 
         Ok(CloudformationParseTree {
             parameters,
