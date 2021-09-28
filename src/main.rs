@@ -26,6 +26,8 @@ fn main() {
     let reference_table = ReferenceTable::new(&cfn_tree);
 
     println!("Amount of parameters: {}", cfn_tree.parameters.params.len());
+    println!("Amount of mappings: {}", cfn_tree.mappings.mappings.len());
+
     println!(
         "Amount of conditions: {}",
         cfn_tree.conditions.conditions.len()
@@ -34,6 +36,9 @@ fn main() {
         "Amount of resources:  {}",
         cfn_tree.resources.resources.len()
     );
+
+    println!("====================================");
+    println!("{}", cfn_tree.mappings.synthesize());
 
     println!("====================================");
     for (_, cond) in cfn_tree.conditions.conditions.iter() {
