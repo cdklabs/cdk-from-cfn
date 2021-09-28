@@ -117,7 +117,7 @@ impl Display for MappingInnerValue {
                     list_val.iter().map(|val| format!("\"{}\"", val)).collect();
                 write!(f, "[{}]", quoted_list_values.join(","))
             }
-        }
+        };
     }
 }
 
@@ -180,10 +180,7 @@ fn convert_to_string_vector(
     Ok(string_vector)
 }
 
-fn ensure_object<'a>(
-    name: &str,
-    obj: &'a Value,
-) -> Result<&'a Map<String, Value>, TransmuteError> {
+fn ensure_object<'a>(name: &str, obj: &'a Value) -> Result<&'a Map<String, Value>, TransmuteError> {
     return match obj {
         Value::Object(x) => Ok(x),
         _ => Err(TransmuteError {
@@ -192,10 +189,7 @@ fn ensure_object<'a>(
     };
 }
 
-fn ensure_mapping_value_type(
-    name: &str,
-    obj: &Value,
-) -> Result<MappingInnerValue, TransmuteError> {
+fn ensure_mapping_value_type(name: &str, obj: &Value) -> Result<MappingInnerValue, TransmuteError> {
     return match obj {
         Value::String(x) => Ok(MappingInnerValue::String(x.to_string())),
         Value::Number(x) => Ok(MappingInnerValue::String(x.to_string())),
