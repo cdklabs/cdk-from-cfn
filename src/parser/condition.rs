@@ -45,10 +45,7 @@ impl ConditionParseTree {
 fn synthesize_condition_recursive(val: &ConditionValue) -> String {
     match val {
         ConditionValue::And(x) => {
-            let a: Vec<String> = x
-                .iter()
-                .map(|x| synthesize_condition_recursive(x))
-                .collect();
+            let a: Vec<String> = x.iter().map(synthesize_condition_recursive).collect();
 
             let inner = a.join(" && ");
             format!("({})", inner)
@@ -68,10 +65,7 @@ fn synthesize_condition_recursive(val: &ConditionValue) -> String {
             }
         }
         ConditionValue::Or(x) => {
-            let a: Vec<String> = x
-                .iter()
-                .map(|x| synthesize_condition_recursive(x))
-                .collect();
+            let a: Vec<String> = x.iter().map(synthesize_condition_recursive).collect();
 
             let inner = a.join(" || ");
             format!("({})", inner)

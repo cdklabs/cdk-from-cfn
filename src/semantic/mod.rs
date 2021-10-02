@@ -1,7 +1,9 @@
 use crate::parser::resource::ResourceValue;
 use crate::parser::sub::{sub_parse_tree, SubValue};
 use crate::semantic::reference::ReferenceTable;
+use std::collections::HashMap;
 
+pub mod importer;
 pub mod reference;
 
 pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> Option<String> {
@@ -45,6 +47,26 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
             // just resolve the objects.
             let val = to_string(&arr[0], ref_table).unwrap();
 
+            let mut excess_map = HashMap::new();
+            if arr.len() > 1 {
+                let mut iter = arr.iter();
+                iter.next();
+
+                for obj in iter {
+                    match obj {
+                        ResourceValue::Object(obj) => {
+                            for (key, val) in obj.iter() {
+                                let val_str = to_string(val, ref_table).unwrap();
+                                excess_map.insert(key.to_string(), val_str);
+                            }
+                        }
+                        _ => {
+                            // these aren't possible, so panic
+                            panic!("Isn't possible condition")
+                        }
+                    }
+                }
+            }
             let vars = sub_parse_tree(val.as_str()).unwrap();
             let r: Vec<String> = vars
                 .iter()
@@ -54,17 +76,28 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
                         "AWS::Region" => String::from("${this.region}"),
                         "AWS::Partition" => String::from("${this.partition}"),
                         "AWS::AccountId" => String::from("${this.account}"),
-                        x => format!("${{props.{}}}", x),
+                        x => match excess_map.get(x) {
+                            None => {
+                                format!("${{props.{}}}", x)
+                            }
+                            Some(x) => {
+                                format!("${{{}}}", x)
+                            }
+                        },
                     },
                 })
                 .collect();
 
             Option::Some(format!("`{}`", r.join("")))
         }
-        ResourceValue::FindInMap(mapper, first, _second) => {
-            let mapper_str = to_string(mapper, ref_table).unwrap();
+        ResourceValue::FindInMap(mapper, first, second) => {
+            let a: &ResourceValue = mapper.as_ref();
+            let mapper_str = match a {
+                ResourceValue::String(x) => x.to_string(),
+                &_ => to_string(mapper, ref_table).unwrap(),
+            };
             let first_str = to_string(first, ref_table).unwrap();
-            let second_str = to_string(first, ref_table).unwrap();
+            let second_str = to_string(second, ref_table).unwrap();
 
             Option::Some(format!("{}[{}][{}]", mapper_str, first_str, second_str))
         }
@@ -78,7 +111,7 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
                 .unwrap();
             let true_expr = to_string(true_expr, ref_table).unwrap();
             let false_expr = match to_string(false_expr, ref_table) {
-                None => String::from("NOPE_WTF"),
+                None => String::from("{}"),
                 Some(x) => x,
             };
 
