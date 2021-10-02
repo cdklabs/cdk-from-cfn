@@ -1,9 +1,11 @@
 use clap::{App, Arg};
+use noctilucent::semantic::importer::Importer;
 use noctilucent::semantic::reference::ReferenceTable;
 use noctilucent::semantic::to_string;
 use noctilucent::CloudformationParseTree;
 use serde_json::Value;
 use std::fs;
+use voca_rs::case::camel_case;
 
 fn main() {
     let matches = App::new("Transmutes cfn templates to cdk")
@@ -25,22 +27,11 @@ fn main() {
     let cfn_tree = CloudformationParseTree::build(&value).unwrap();
     let reference_table = ReferenceTable::new(&cfn_tree);
 
-    println!("Amount of parameters: {}", cfn_tree.parameters.params.len());
-    println!("Amount of mappings: {}", cfn_tree.mappings.mappings.len());
+    let import = Importer::new(&cfn_tree);
 
-    println!(
-        "Amount of conditions: {}",
-        cfn_tree.conditions.conditions.len()
-    );
-    println!(
-        "Amount of resources:  {}",
-        cfn_tree.resources.resources.len()
-    );
-
-    println!("====================================");
+    println!("{}", import.synthesize().join("\n"));
     println!("{}", cfn_tree.mappings.synthesize());
 
-    println!("====================================");
     for (_, cond) in cfn_tree.conditions.conditions.iter() {
         println!("{}", cond.synthesize());
     }
@@ -58,7 +49,7 @@ fn main() {
             match to_string(prop, &reference_table) {
                 None => {}
                 Some(x) => {
-                    println!("\t{}:{},", name, x);
+                    println!("\t{}:{},", camel_case(name), x);
                 }
             }
         }

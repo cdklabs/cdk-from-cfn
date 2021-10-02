@@ -28,9 +28,14 @@ impl MappingsParseTree {
     pub fn synthesize(&self) -> String {
         let mut mappings_ts_str = String::new();
         for (mapping_name, mapping) in self.mappings.iter() {
+            let record_type = match mapping.find_first_type() {
+                MappingInnerValue::String(_) => "Record<string, Record<string, string>>",
+                MappingInnerValue::List(_) => "Record<string, Record<string, Array<string>>",
+            };
             mappings_ts_str.push_str(&format!(
-                "const {} = {}",
+                "const {}: {} = {}",
                 mapping_name,
+                record_type,
                 mapping.synthesize()
             ));
         }
@@ -59,40 +64,40 @@ impl MappingParseTree {
     }
 
     fn synthesize(&self) -> String {
-        let mut mapping_parse_tree_ts = String::from("new Map(\n");
+        let mut mapping_parse_tree_ts = String::from("{\n");
+        let mut outer_records = Vec::new();
         for (outer_mapping_key, inner_mapping) in self.mappings.iter() {
-            mapping_parse_tree_ts.push_str(&format!(
-                "\t[{}\t],\n",
-                synthesize_outer_mapping(outer_mapping_key, inner_mapping)
+            outer_records.push(format!(
+                "\t\"{}\": {}",
+                outer_mapping_key,
+                synthesize_inner_mapping(inner_mapping)
             ));
         }
-        mapping_parse_tree_ts.push_str(")\n");
+
+        let outer = outer_records.join(",\n");
+        mapping_parse_tree_ts.push_str(&outer);
+        mapping_parse_tree_ts.push_str("\n};\n");
         mapping_parse_tree_ts
+    }
+
+    fn find_first_type(&self) -> &MappingInnerValue {
+        let value = self.mappings.values().next().unwrap();
+        let inner_value = value.values().next().unwrap();
+        inner_value
     }
 }
 
-fn synthesize_outer_mapping(
-    outer_mapping_entry: &str,
-    inner_mapping: &HashMap<String, MappingInnerValue>,
-) -> String {
-    format!(
-        "\"{}\", {}",
-        outer_mapping_entry,
-        synthesize_inner_mapping(inner_mapping)
-    )
-}
-
 fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) -> String {
-    let mut inner_mapping_ts_str = String::from("new Map(\n");
+    let mut inner_mapping_ts_str = String::from("{\n");
     let mut inner_mapping_entries = Vec::new();
     for (inner_mapping_key, inner_mapping_value) in inner_mapping {
         inner_mapping_entries.push(format!(
-            "\t\t[\"{}\", {}]",
+            "\t\t\"{}\": {}",
             inner_mapping_key, inner_mapping_value
         ));
     }
     inner_mapping_ts_str.push_str(&inner_mapping_entries.join(",\n"));
-    inner_mapping_ts_str.push_str(")\n");
+    inner_mapping_ts_str.push_str("\n\t}");
     inner_mapping_ts_str
 }
 
