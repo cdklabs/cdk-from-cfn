@@ -26,10 +26,22 @@ fn main() {
 
     let cfn_tree = CloudformationParseTree::build(&value).unwrap();
     let reference_table = ReferenceTable::new(&cfn_tree);
-
     let import = Importer::new(&cfn_tree);
 
     println!("{}", import.synthesize().join("\n"));
+    println!("import * as cdk from 'aws-cdk';");
+    println!("export interface NoctStackProps extends cdk.StackProps {{");
+    for (name, parameter) in cfn_tree.parameters.params {
+        println!(
+            "\treadonly {}: {}",
+            name,
+            camel_case(&parameter.parameter_type)
+        )
+    }
+    println!("}}");
+    println!("export class NoctStack extends cdk.Stack {{");
+    println!("\tconstructor(scope: cdk.App, id: string, props: NoctStackProps){{");
+    println!("\t\tsuper(scope, id, props);");
     println!("{}", cfn_tree.mappings.synthesize());
 
     for (_, cond) in cfn_tree.conditions.conditions.iter() {
@@ -55,5 +67,7 @@ fn main() {
         }
         println!("}});");
     }
-    println!("====================================");
+
+    println!("\t}}");
+    println!("}}");
 }
