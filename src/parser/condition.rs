@@ -2,7 +2,7 @@ use crate::TransmuteError;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ConditionValue {
     And(Vec<ConditionValue>),
     Equals(Box<ConditionValue>, Box<ConditionValue>),
@@ -29,7 +29,7 @@ impl ConditionValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConditionParseTree {
     pub name: String,
     pub val: ConditionValue,
@@ -39,6 +39,12 @@ impl ConditionParseTree {
     pub fn synthesize(&self) -> String {
         let synthed = synthesize_condition_recursive(&self.val);
         format!("const {} = {};", self.name, synthed)
+    }
+}
+
+impl PartialEq for ConditionParseTree {
+    fn eq(&self, other: &ConditionParseTree) -> bool {
+        self.name == other.name
     }
 }
 
@@ -246,4 +252,125 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
     Err(TransmuteError {
         details: String::from("Nothing found?"),
     })
+}
+
+/**
+ * Provides an ordering of conditions contained in the tree based on relative dependencies.
+ */
+pub fn determine_order(conditions_parse_tree: ConditionsParseTree) -> Vec<ConditionParseTree> {
+    let mut condition_dependency_tracker: HashMap<String, ConditionNode> = HashMap::new();
+    // Create a ConditionNode for each ConditionParseTree
+    for (condition_name, condition_parts) in conditions_parse_tree.conditions.iter() {
+        let node = ConditionNode::new(condition_name.clone(), condition_parts.clone());
+        condition_dependency_tracker.insert(condition_name.clone(), node);
+    }
+
+    // Identify condition dependencies
+    for (condition_name, condition_parts) in conditions_parse_tree.conditions.iter() {
+        find_dependencies(
+            condition_name,
+            &condition_parts.val,
+            &mut condition_dependency_tracker,
+        );
+    }
+
+    // Identify leaf conditions, i.e. conditions with no dependencies
+    let mut root_nodes = Vec::new();
+    for (_, condition_node) in condition_dependency_tracker.iter() {
+        if condition_node.uses.is_empty() {
+            root_nodes.push(condition_node.clone());
+        }
+    }
+
+    // Determine an ordering of conditions that ensures all dependent conditions are defined
+    // before a condition that uses it
+    let mut node_order: Vec<ConditionParseTree> = Vec::new();
+    root_nodes.sort_by(|a, b| a.name.cmp(&b.name.to_string()));
+    root_nodes.iter().for_each(|node| {
+        resolve_order(node, &mut node_order, &condition_dependency_tracker);
+    });
+
+    node_order
+}
+
+/**
+ * Derive an ordering of conditions that ensure all dependency conditions are declared before
+ * conditions that use them.
+ */
+fn resolve_order(
+    condition_node: &ConditionNode,
+    node_order: &mut Vec<ConditionParseTree>,
+    condition_tracker: &HashMap<String, ConditionNode>,
+) {
+    if !node_order.contains(&condition_node.condition) {
+        condition_node.uses.iter().for_each(|node_id| {
+            let node = condition_tracker.get(node_id).unwrap();
+            resolve_order(node, node_order, condition_tracker);
+        });
+        if !node_order.contains(&condition_node.condition) {
+            node_order.push(condition_node.condition.clone());
+        }
+        condition_node.used_by.iter().for_each(|node_id| {
+            let node = condition_tracker.get(node_id).unwrap();
+            resolve_order(node, node_order, condition_tracker);
+        });
+    }
+}
+
+/**
+ * Recursively identify the dependency conditions of a CloudFormation condition.
+ */
+fn find_dependencies(
+    root_condition_name: &str,
+    condition_val: &ConditionValue,
+    condition_dependency_tracker: &mut HashMap<String, ConditionNode>,
+) {
+    match condition_val {
+        ConditionValue::And(x) | ConditionValue::Or(x) => x.iter().for_each(|cond| {
+            find_dependencies(root_condition_name, cond, condition_dependency_tracker)
+        }),
+        ConditionValue::Equals(a, b) => {
+            find_dependencies(root_condition_name, a, condition_dependency_tracker);
+            find_dependencies(root_condition_name, b, condition_dependency_tracker);
+        }
+        ConditionValue::Not(a) => {
+            find_dependencies(root_condition_name, a, condition_dependency_tracker);
+        }
+        ConditionValue::Ref(_x) | ConditionValue::Str(_x) => {}
+        ConditionValue::Condition(x) => {
+            let mut root_condition_node = condition_dependency_tracker
+                .remove(root_condition_name)
+                .unwrap();
+            let mut used_by_condition_node = condition_dependency_tracker.remove(x).unwrap();
+            // Associate root condition with its dependency and vice-versa
+            root_condition_node.uses.push(x.clone());
+            used_by_condition_node
+                .used_by
+                .push(root_condition_node.name.clone());
+
+            condition_dependency_tracker
+                .insert(root_condition_name.to_string(), root_condition_node);
+            condition_dependency_tracker.insert(x.clone(), used_by_condition_node);
+        }
+        _ => panic!("Unexpected condition value"),
+    };
+}
+
+#[derive(Clone)]
+struct ConditionNode {
+    name: String,
+    condition: ConditionParseTree,
+    used_by: Vec<String>,
+    uses: Vec<String>,
+}
+
+impl ConditionNode {
+    fn new(name: String, condition: ConditionParseTree) -> ConditionNode {
+        ConditionNode {
+            name,
+            condition,
+            used_by: Vec::new(),
+            uses: Vec::new(),
+        }
+    }
 }

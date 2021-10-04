@@ -1,4 +1,5 @@
 use clap::{App, Arg};
+use noctilucent::parser::condition::determine_order;
 use noctilucent::semantic::reference::ReferenceTable;
 use noctilucent::semantic::to_string;
 use noctilucent::CloudformationParseTree;
@@ -41,7 +42,7 @@ fn main() {
     println!("{}", cfn_tree.mappings.synthesize());
 
     println!("====================================");
-    for (_, cond) in cfn_tree.conditions.conditions.iter() {
+    for cond in determine_order(cfn_tree.conditions) {
         println!("{}", cond.synthesize());
     }
 
