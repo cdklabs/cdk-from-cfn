@@ -30,7 +30,7 @@ impl MappingsParseTree {
         for (mapping_name, mapping) in self.mappings.iter() {
             let record_type = match mapping.find_first_type() {
                 MappingInnerValue::String(_) => "Record<string, Record<string, string>>",
-                MappingInnerValue::List(_) => "Record<string, Record<string, Array<string>>",
+                MappingInnerValue::List(_) => "Record<string, Record<string, Array<string>>>",
             };
             mappings_ts_str.push_str(&format!(
                 "const {}: {} = {}",
