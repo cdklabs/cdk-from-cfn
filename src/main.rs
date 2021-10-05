@@ -1,4 +1,5 @@
 use clap::{App, Arg};
+use noctilucent::parser::condition::determine_order;
 use noctilucent::semantic::importer::Importer;
 use noctilucent::semantic::reference::ReferenceTable;
 use noctilucent::semantic::to_string;
@@ -32,7 +33,7 @@ fn main() {
     println!("{}", import.synthesize().join("\n"));
     println!("{}", cfn_tree.mappings.synthesize());
 
-    for (_, cond) in cfn_tree.conditions.conditions.iter() {
+    for cond in determine_order(cfn_tree.conditions) {
         println!("{}", cond.synthesize());
     }
 
