@@ -101,4 +101,18 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn subby() -> Result<(), TransmuteError> {
+        let v = sub_parse_tree("${Tag}-Concatenated")?;
+        assert_eq!(
+            v,
+            vec![
+                SubValue::Variable("Tag".to_string()),
+                SubValue::String(String::from("-Concatenated"))
+            ]
+        );
+
+        Ok(())
+    }
 }

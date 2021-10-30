@@ -8,9 +8,11 @@ pub enum ConditionValue {
     Equals(Box<ConditionValue>, Box<ConditionValue>),
     Not(Box<ConditionValue>),
     Or(Vec<ConditionValue>),
-    // First item in sub
-    Sub(Vec<ConditionValue>),
-    FindInMap(Vec<ConditionValue>),
+    FindInMap(
+        Box<ConditionValue>,
+        Box<ConditionValue>,
+        Box<ConditionValue>,
+    ),
     // Recursion ending
     Str(String),
     Ref(String),
@@ -87,8 +89,13 @@ fn synthesize_condition_recursive(val: &ConditionValue) -> String {
             }
         },
         ConditionValue::Condition(x) => x.clone(),
-        _ => {
-            panic!("boom");
+        ConditionValue::FindInMap(named_resource, l1, l2) => {
+            format!(
+                "{}[{}][{}]",
+                synthesize_condition_recursive(named_resource.as_ref()),
+                synthesize_condition_recursive(l1.as_ref()),
+                synthesize_condition_recursive(l2.as_ref())
+            )
         }
     }
 }
@@ -120,6 +127,7 @@ pub fn build_conditions(vals: &Map<String, Value>) -> Result<ConditionsParseTree
 fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue, TransmuteError> {
     let val = match obj {
         Value::String(x) => return Ok(ConditionValue::Str(x.to_string())),
+        Value::Number(x) => return Ok(ConditionValue::Str(x.to_string())),
         Value::Object(x) => x,
         _ => {
             return Err(TransmuteError {
@@ -237,6 +245,21 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 };
                 ConditionValue::Ref(ref_name.to_string())
             }
+            "Fn::FindInMap" => {
+                let arr = match condition_object.as_array() {
+                    None => {
+                        return Err(TransmuteError {
+                            details: format!("Condition must be an array {}", name),
+                        })
+                    }
+                    Some(x) => x,
+                };
+
+                let m1 = build_condition_recursively(name, arr.get(0).unwrap())?;
+                let m2 = build_condition_recursively(name, arr.get(1).unwrap())?;
+                let m3 = build_condition_recursively(name, arr.get(2).unwrap())?;
+                ConditionValue::FindInMap(Box::new(m1), Box::new(m2), Box::new(m3))
+            }
             v => ConditionValue::Str(v.to_string()),
         };
 
@@ -346,7 +369,11 @@ fn find_dependencies(
                 .insert(root_condition_name.to_string(), root_condition_node);
             condition_dependency_tracker.insert(x.clone(), used_by_condition_node);
         }
-        _ => panic!("Unexpected condition value"),
+        ConditionValue::FindInMap(name, l1, l2) => {
+            find_dependencies(root_condition_name, name, condition_dependency_tracker);
+            find_dependencies(root_condition_name, l1, condition_dependency_tracker);
+            find_dependencies(root_condition_name, l2, condition_dependency_tracker);
+        }
     };
 }
 

@@ -183,7 +183,44 @@ fn build_resources_recursively(name: &str, obj: &Value) -> Result<ResourceValue,
                         Box::new(third_obj),
                     )
                 }
-                "Fn::GetAtt" => ResourceValue::Null,
+                "Fn::GetAtt" => {
+                    let v = match resource_object.as_array() {
+                        None => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::Map is supposed to be an array entry {}",
+                                    name
+                                ),
+                            })
+                        }
+                        Some(x) => x,
+                    };
+
+                    let first_obj = match v.get(0) {
+                        None => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::Map is supposed to have 3 values in array, has 0 {}",
+                                    name
+                                ),
+                            })
+                        }
+                        Some(x) => build_resources_recursively(name, x),
+                    }?;
+                    let second_obj = match v.get(1) {
+                        None => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::Map is supposed to have 3 values in array, has 1 {}",
+                                    name
+                                ),
+                            })
+                        }
+                        Some(x) => build_resources_recursively(name, x),
+                    }?;
+
+                    ResourceValue::GetAtt(Box::new(first_obj), Box::new(second_obj))
+                }
                 "Fn::If" => {
                     let v = match resource_object.as_array() {
                         None => {

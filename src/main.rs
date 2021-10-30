@@ -55,8 +55,8 @@ fn main() {
         let service = split_ref.next().unwrap().to_ascii_lowercase();
         let rtype = split_ref.next().unwrap();
         println!(
-            "new {}.Cfn{}(this, '{}', {{",
-            service, rtype, reference.name
+            "let {} = new {}.Cfn{}(this, '{}', {{",
+            &reference.name, service, rtype, reference.name
         );
         for (name, prop) in reference.properties.iter() {
             match to_string(prop, &reference_table) {
