@@ -40,6 +40,9 @@ struct PropertyRule {
 struct Specification {
     #[serde(alias = "PropertyTypes")]
     property_types: HashMap<String, Rule>,
+
+    #[serde(alias = "ResourceTypes")]
+    resource_types: HashMap<String, Rule>,
 }
 
 fn read_specification() -> String {

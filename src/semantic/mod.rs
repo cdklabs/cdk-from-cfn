@@ -101,7 +101,20 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
 
             Option::Some(format!("{}[{}][{}]", mapper_str, first_str, second_str))
         }
-        ResourceValue::GetAtt(_, _) => Option::None,
+        ResourceValue::GetAtt(name, attribute) => {
+            let name: &ResourceValue = name.as_ref();
+            let attribute: &ResourceValue = attribute.as_ref();
+            let resource_name = match name {
+                ResourceValue::String(x) => x,
+                _ => panic!("Can't happen"),
+            };
+            let attr_name = match attribute {
+                ResourceValue::String(x) => x,
+                _ => panic!("Can't happen"),
+            };
+
+            Option::Some(format!("{}.attr{}", resource_name, attr_name))
+        }
         ResourceValue::If(bool_expr, true_expr, false_expr) => {
             let bool_expr = to_string(bool_expr, ref_table).unwrap();
             let bool_expr = bool_expr
@@ -109,7 +122,11 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
                 .unwrap()
                 .strip_prefix('\"')
                 .unwrap();
-            let true_expr = to_string(true_expr, ref_table).unwrap();
+            let true_expr = match to_string(true_expr, ref_table) {
+                None => String::from("{}"),
+                Some(x) => x,
+            };
+
             let false_expr = match to_string(false_expr, ref_table) {
                 None => String::from("{}"),
                 Some(x) => x,

@@ -72,18 +72,17 @@ pub struct Reference {
 
 impl Reference {
     fn synthesize(&self) -> String {
-        match self.origin {
+        match &self.origin {
             Origin::Parameter => {
                 format!("props.{}", self.name)
             }
             Origin::LogicalId => self.name.to_string(),
-            Origin::Intrinsic => match self.name.as_str() {
-                "AWS::Region" => String::from("this.region"),
-                "AWS::Partition" => String::from("this.partition"),
-                "AWS::AccountId" => String::from("this.accountId"),
-                _ => {
-                    panic!("There are no other patterns")
-                }
+            Origin::PseudoParameter(x) => match x {
+                PseudoParameter::Partition => String::from("this.partition"),
+                PseudoParameter::Region => String::from("this.region"),
+                PseudoParameter::StackId => String::from("this.stackId"),
+                PseudoParameter::StackName => String::from("this.stackName"),
+                PseudoParameter::URLSuffix => String::from("this.urlSuffix"),
             },
         }
     }
@@ -94,7 +93,16 @@ impl Reference {
 pub enum Origin {
     Parameter,
     LogicalId,
-    Intrinsic,
+    PseudoParameter(PseudoParameter),
+}
+
+#[derive(Debug)]
+pub enum PseudoParameter {
+    Partition,
+    Region,
+    StackId,
+    StackName,
+    URLSuffix,
 }
 
 fn populate_condition_references(rt: &mut ReferenceTable, conditions: &ConditionsParseTree) {
@@ -127,15 +135,15 @@ fn populate_traversal(rt: &mut ReferenceTable, name: &str, condition: &Condition
                 populate_traversal(rt, name, cv);
             }
         }
-        ConditionValue::Sub(v) => {
+        /*ConditionValue::Sub(v) => {
             for cv in v.iter() {
                 populate_traversal(rt, name, cv);
             }
-        }
-        ConditionValue::FindInMap(v) => {
-            for cv in v.iter() {
-                populate_traversal(rt, name, cv);
-            }
+        }*/
+        ConditionValue::FindInMap(map_name, l1, l2) => {
+            populate_traversal(rt, name, map_name.as_ref());
+            populate_traversal(rt, name, l1.as_ref());
+            populate_traversal(rt, name, l2.as_ref());
         }
         ConditionValue::Str(_) => {}
         ConditionValue::Ref(r) => {
