@@ -1,7 +1,6 @@
 use clap::{App, Arg};
 use noctilucent::parser::condition::determine_order;
 use noctilucent::semantic::importer::Importer;
-use noctilucent::semantic::reference::ReferenceTable;
 use noctilucent::semantic::to_string;
 use noctilucent::CloudformationParseTree;
 use serde_json::Value;
@@ -26,7 +25,6 @@ fn main() {
     let value: Value = serde_json::from_str(contents.as_str()).unwrap();
 
     let cfn_tree = CloudformationParseTree::build(&value).unwrap();
-    let reference_table = ReferenceTable::new(&cfn_tree);
     let import = Importer::new(&cfn_tree);
 
     println!("{}", import.synthesize().join("\n"));
@@ -59,7 +57,7 @@ fn main() {
             &reference.name, service, rtype, reference.name
         );
         for (name, prop) in reference.properties.iter() {
-            match to_string(prop, &reference_table) {
+            match to_string(prop) {
                 None => {}
                 Some(x) => {
                     println!("\t{}:{},", camel_case(name), x);
