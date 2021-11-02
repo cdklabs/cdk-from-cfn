@@ -45,7 +45,7 @@ fn main() {
     println!("\t\tsuper(scope, id, props);");
     println!("{}", cfn_tree.mappings.synthesize());
 
-    for cond in determine_order(cfn_tree.conditions) {
+    for cond in determine_order(&cfn_tree.conditions) {
         println!("{}", cond.synthesize());
     }
 
