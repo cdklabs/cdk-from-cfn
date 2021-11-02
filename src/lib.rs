@@ -7,6 +7,7 @@ use crate::parser::resource::{build_resources, ResourceValue, ResourcesParseTree
 use serde_json::Value;
 
 pub mod integrations;
+pub mod ir;
 pub mod parser;
 pub mod semantic;
 pub mod specification;

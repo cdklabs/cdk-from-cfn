@@ -4,16 +4,20 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum ConditionValue {
+    // Higher level boolean operators
     And(Vec<ConditionValue>),
     Equals(Box<ConditionValue>, Box<ConditionValue>),
     Not(Box<ConditionValue>),
     Or(Vec<ConditionValue>),
+
+    // Cloudformation meta-functions
     FindInMap(
         Box<ConditionValue>,
         Box<ConditionValue>,
         Box<ConditionValue>,
     ),
-    // Recursion ending
+
+    // End of recursion, the base primitives to work with
     Str(String),
     Ref(String),
     Condition(String),
@@ -274,7 +278,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
 /**
  * Provides an ordering of conditions contained in the tree based on relative dependencies.
  */
-pub fn determine_order(conditions_parse_tree: ConditionsParseTree) -> Vec<ConditionParseTree> {
+pub fn determine_order(conditions_parse_tree: &ConditionsParseTree) -> Vec<ConditionParseTree> {
     let mut condition_dependency_tracker: HashMap<String, ConditionNode> = HashMap::new();
     // Create a ConditionNode for each ConditionParseTree
     for (condition_name, condition_parts) in conditions_parse_tree.conditions.iter() {
