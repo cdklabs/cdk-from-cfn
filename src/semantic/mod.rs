@@ -1,12 +1,10 @@
 use crate::parser::resource::ResourceValue;
 use crate::parser::sub::{sub_parse_tree, SubValue};
-use crate::semantic::reference::ReferenceTable;
 use std::collections::HashMap;
 
 pub mod importer;
-pub mod reference;
 
-pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> Option<String> {
+pub fn to_string(resource_value: &ResourceValue) -> Option<String> {
     match resource_value {
         ResourceValue::Null => Option::None,
         ResourceValue::Bool(b) => Option::Some(b.to_string()),
@@ -15,7 +13,7 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
         ResourceValue::Array(arr) => {
             let mut v = Vec::new();
             for a in arr {
-                match to_string(a, ref_table) {
+                match to_string(a) {
                     None => {}
                     Some(s) => v.push(s),
                 }
@@ -27,7 +25,7 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
             // We are transforming to typescript-json which will not have quotes.
             let mut v = Vec::new();
             for (s, rv) in o {
-                match to_string(rv, ref_table) {
+                match to_string(rv) {
                     None => {}
                     Some(r) => {
                         if s.chars().all(char::is_alphanumeric) {
@@ -45,7 +43,7 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
             // Sub has two ways of being built: Either resolution via a bunch of objects
             // or everything is in the first sub element, and that's it.
             // just resolve the objects.
-            let val = to_string(&arr[0], ref_table).unwrap();
+            let val = to_string(&arr[0]).unwrap();
 
             let mut excess_map = HashMap::new();
             if arr.len() > 1 {
@@ -56,7 +54,7 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
                     match obj {
                         ResourceValue::Object(obj) => {
                             for (key, val) in obj.iter() {
-                                let val_str = to_string(val, ref_table).unwrap();
+                                let val_str = to_string(val).unwrap();
                                 excess_map.insert(key.to_string(), val_str);
                             }
                         }
@@ -94,10 +92,10 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
             let a: &ResourceValue = mapper.as_ref();
             let mapper_str = match a {
                 ResourceValue::String(x) => x.to_string(),
-                &_ => to_string(mapper, ref_table).unwrap(),
+                &_ => to_string(mapper).unwrap(),
             };
-            let first_str = to_string(first, ref_table).unwrap();
-            let second_str = to_string(second, ref_table).unwrap();
+            let first_str = to_string(first).unwrap();
+            let second_str = to_string(second).unwrap();
 
             Option::Some(format!("{}[{}][{}]", mapper_str, first_str, second_str))
         }
@@ -116,18 +114,18 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
             Option::Some(format!("{}.attr{}", resource_name, attr_name))
         }
         ResourceValue::If(bool_expr, true_expr, false_expr) => {
-            let bool_expr = to_string(bool_expr, ref_table).unwrap();
+            let bool_expr = to_string(bool_expr).unwrap();
             let bool_expr = bool_expr
                 .strip_suffix('\"')
                 .unwrap()
                 .strip_prefix('\"')
                 .unwrap();
-            let true_expr = match to_string(true_expr, ref_table) {
+            let true_expr = match to_string(true_expr) {
                 None => String::from("{}"),
                 Some(x) => x,
             };
 
-            let false_expr = match to_string(false_expr, ref_table) {
+            let false_expr = match to_string(false_expr) {
                 None => String::from("{}"),
                 Some(x) => x,
             };
@@ -146,7 +144,7 @@ pub fn to_string(resource_value: &ResourceValue, ref_table: &ReferenceTable) -> 
 
             let mut strs = Vec::new();
             for rv in iterator {
-                match to_string(rv, ref_table) {
+                match to_string(rv) {
                     None => {}
                     Some(x_str) => strs.push(x_str),
                 }
