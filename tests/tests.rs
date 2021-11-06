@@ -15,48 +15,6 @@ macro_rules! map(
 );
 
 #[test]
-fn test_eq_synthesis() {
-    let condition_structure: ConditionValue = ConditionValue::Equals(
-        Box::new(ConditionValue::Str("us-west-2".into())),
-        Box::new(ConditionValue::Ref("AWS::Region".into())),
-    );
-
-    let condition = ConditionParseTree {
-        name: "test".into(),
-        val: condition_structure,
-    };
-    assert_eq!(condition.val.is_simple(), false);
-    assert_eq!(
-        condition.synthesize(),
-        "const test = \"us-west-2\" == this.region;"
-    )
-}
-
-#[test]
-fn test_eq_recursive_synthesis() {
-    let condition_structure: ConditionValue = ConditionValue::Equals(
-        Box::new(ConditionValue::Str("true".into())),
-        Box::new(ConditionValue::And(vec![
-            ConditionValue::Condition("TestCondition".into()),
-            ConditionValue::Equals(
-                Box::new(ConditionValue::Str("us-west-2".into())),
-                Box::new(ConditionValue::Ref("AWS::Region".into())),
-            ),
-        ])),
-    );
-
-    let condition = ConditionParseTree {
-        name: "test".into(),
-        val: condition_structure,
-    };
-    assert_eq!(condition.val.is_simple(), false);
-    assert_eq!(
-        condition.synthesize(),
-        "const test = \"true\" == (TestCondition && \"us-west-2\" == this.region);"
-    )
-}
-
-#[test]
 fn test_parse_tree_basics() {
     let a = serde_json::json!({
         "LogicalResource": {

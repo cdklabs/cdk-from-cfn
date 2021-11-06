@@ -24,28 +24,11 @@ impl MappingsParseTree {
     pub fn insert(&mut self, mapping_name: String, mapping: MappingParseTree) {
         self.mappings.insert(mapping_name, mapping);
     }
-
-    pub fn synthesize(&self) -> String {
-        let mut mappings_ts_str = String::new();
-        for (mapping_name, mapping) in self.mappings.iter() {
-            let record_type = match mapping.find_first_type() {
-                MappingInnerValue::String(_) => "Record<string, Record<string, string>>",
-                MappingInnerValue::List(_) => "Record<string, Record<string, Array<string>>>",
-            };
-            mappings_ts_str.push_str(&format!(
-                "const {}: {} = {}",
-                mapping_name,
-                record_type,
-                mapping.synthesize()
-            ));
-        }
-        mappings_ts_str
-    }
 }
 
 #[derive(Debug)]
 pub struct MappingParseTree {
-    mappings: HashMap<String, HashMap<String, MappingInnerValue>>,
+    pub mappings: HashMap<String, HashMap<String, MappingInnerValue>>,
 }
 
 impl MappingParseTree {
@@ -62,43 +45,6 @@ impl MappingParseTree {
     ) {
         self.mappings.insert(outer_mapping_key, inner_mapping);
     }
-
-    fn synthesize(&self) -> String {
-        let mut mapping_parse_tree_ts = String::from("{\n");
-        let mut outer_records = Vec::new();
-        for (outer_mapping_key, inner_mapping) in self.mappings.iter() {
-            outer_records.push(format!(
-                "\t\"{}\": {}",
-                outer_mapping_key,
-                synthesize_inner_mapping(inner_mapping)
-            ));
-        }
-
-        let outer = outer_records.join(",\n");
-        mapping_parse_tree_ts.push_str(&outer);
-        mapping_parse_tree_ts.push_str("\n};\n");
-        mapping_parse_tree_ts
-    }
-
-    fn find_first_type(&self) -> &MappingInnerValue {
-        let value = self.mappings.values().next().unwrap();
-        let inner_value = value.values().next().unwrap();
-        inner_value
-    }
-}
-
-fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) -> String {
-    let mut inner_mapping_ts_str = String::from("{\n");
-    let mut inner_mapping_entries = Vec::new();
-    for (inner_mapping_key, inner_mapping_value) in inner_mapping {
-        inner_mapping_entries.push(format!(
-            "\t\t\"{}\": {}",
-            inner_mapping_key, inner_mapping_value
-        ));
-    }
-    inner_mapping_ts_str.push_str(&inner_mapping_entries.join(",\n"));
-    inner_mapping_ts_str.push_str("\n\t}");
-    inner_mapping_ts_str
 }
 
 /**
@@ -107,8 +53,8 @@ fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) 
  *
  * https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/mappings-section-structure.html#mappings-section-structure-syntax
  */
-#[derive(Debug)]
-enum MappingInnerValue {
+#[derive(Debug, Clone)]
+pub enum MappingInnerValue {
     String(String),
     List(Vec<String>),
 }
