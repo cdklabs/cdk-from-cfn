@@ -10,7 +10,6 @@ use crate::CloudformationParseTree;
 use std::collections::HashMap;
 use voca_rs::case::camel_case;
 
-
 pub struct TypescriptSynthesizer {
     // TODO: Put options in here for different outputs in typescript
 }

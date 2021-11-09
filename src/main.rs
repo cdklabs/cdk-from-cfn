@@ -1,9 +1,9 @@
 use clap::{App, Arg};
 use noctilucent::ir::CloudformationProgramIr;
+use noctilucent::synthesizer::typescript_synthesizer::TypescriptSynthesizer;
 use noctilucent::CloudformationParseTree;
 use serde_json::Value;
 use std::fs;
-use noctilucent::synthesizer::typescript_synthesizer::TypescriptSynthesizer;
 
 fn main() {
     let matches = App::new("Transmutes cfn templates to cdk")
