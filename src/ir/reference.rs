@@ -1,10 +1,16 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Reference {
     pub origin: Origin,
     pub name: String,
 }
 
 impl Reference {
+    pub fn new(name: &str, origin: Origin) -> Reference {
+        Reference {
+            name: name.to_string(),
+            origin,
+        }
+    }
     fn synthesize(&self) -> String {
         match &self.origin {
             Origin::Parameter => {
@@ -27,7 +33,7 @@ impl Reference {
             "AWS::Region" => PseudoParameter::Region,
             "AWS::Partition" => PseudoParameter::Partition,
             "AWS::StackName" => PseudoParameter::StackName,
-            "AWS::UrlSuffix" => PseudoParameter::URLSuffix,
+            "AWS::URLSuffix" => PseudoParameter::URLSuffix,
             "AWS::StackId" => PseudoParameter::StackId,
             &_ => return Option::None,
         };
@@ -37,7 +43,7 @@ impl Reference {
 }
 
 // Origin for the ReferenceTable
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Origin {
     Parameter,
     LogicalId,
@@ -45,11 +51,39 @@ pub enum Origin {
     PseudoParameter(PseudoParameter),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PseudoParameter {
     Partition,
     Region,
     StackId,
     StackName,
     URLSuffix,
+}
+
+#[test]
+fn test_match_pseudo_parameters() {
+    assert_eq!(
+        Reference::match_pseudo_parameter("AWS::Region"),
+        Option::Some(PseudoParameter::Region)
+    );
+    assert_eq!(
+        Reference::match_pseudo_parameter("AWS::Partition"),
+        Option::Some(PseudoParameter::Partition)
+    );
+    assert_eq!(
+        Reference::match_pseudo_parameter("AWS::StackName"),
+        Option::Some(PseudoParameter::StackName)
+    );
+    assert_eq!(
+        Reference::match_pseudo_parameter("AWS::StackId"),
+        Option::Some(PseudoParameter::StackId)
+    );
+    assert_eq!(
+        Reference::match_pseudo_parameter("AWS::URLSuffix"),
+        Option::Some(PseudoParameter::URLSuffix)
+    );
+    assert_eq!(
+        Reference::match_pseudo_parameter("hello_world"),
+        Option::None
+    );
 }

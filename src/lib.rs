@@ -9,8 +9,8 @@ use serde_json::Value;
 pub mod integrations;
 pub mod ir;
 pub mod parser;
-pub mod semantic;
 pub mod specification;
+pub mod synthesizer;
 
 pub trait CustomIntegration {
     fn is_type(resource_type: &str) -> bool;
