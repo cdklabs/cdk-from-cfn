@@ -1,3 +1,5 @@
+use voca_rs::case::camel_case;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Reference {
     pub origin: Origin,
@@ -11,19 +13,21 @@ impl Reference {
             origin,
         }
     }
-    fn synthesize(&self) -> String {
+    pub fn synthesize(&self) -> String {
         match &self.origin {
             Origin::Parameter => {
-                format!("props.{}", self.name)
+                format!("props.{}", camel_case(&self.name))
             }
-            Origin::LogicalId => self.name.to_string(),
-            Origin::Condition => self.name.to_string(),
+            Origin::LogicalId => camel_case(&self.name),
+            Origin::Condition => camel_case(&self.name),
             Origin::PseudoParameter(x) => match x {
                 PseudoParameter::Partition => String::from("this.partition"),
                 PseudoParameter::Region => String::from("this.region"),
                 PseudoParameter::StackId => String::from("this.stackId"),
                 PseudoParameter::StackName => String::from("this.stackName"),
                 PseudoParameter::URLSuffix => String::from("this.urlSuffix"),
+                PseudoParameter::AccountId => String::from("this.account"),
+                PseudoParameter::NotificationArns => String::from("this.notificationArns"),
             },
         }
     }
@@ -35,6 +39,8 @@ impl Reference {
             "AWS::StackName" => PseudoParameter::StackName,
             "AWS::URLSuffix" => PseudoParameter::URLSuffix,
             "AWS::StackId" => PseudoParameter::StackId,
+            "AWS::AccountId" => PseudoParameter::AccountId,
+            "AWS::NotificationARNs" => PseudoParameter::NotificationArns,
             &_ => return Option::None,
         };
 
@@ -58,6 +64,8 @@ pub enum PseudoParameter {
     StackId,
     StackName,
     URLSuffix,
+    AccountId,
+    NotificationArns,
 }
 
 #[test]

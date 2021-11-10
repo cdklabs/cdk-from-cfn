@@ -40,6 +40,7 @@ pub struct CdkBuilder {
     imports: Vec<Import>,
 }
 
+#[derive(Debug)]
 pub struct CloudformationParseTree {
     pub parameters: Parameters,
     pub mappings: MappingsParseTree,

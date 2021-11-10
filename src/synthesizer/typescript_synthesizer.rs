@@ -2,11 +2,10 @@ use crate::ir::conditions::ConditionIr;
 use crate::ir::mappings::MappingInstruction;
 use crate::ir::reference::Origin;
 use crate::ir::reference::PseudoParameter;
+use crate::ir::resources::ResourceIr;
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::parser::resource::ResourceValue;
-use crate::parser::sub::{sub_parse_tree, SubValue};
-use crate::CloudformationParseTree;
+use crate::specification::Complexity;
 use std::collections::HashMap;
 use voca_rs::case::camel_case;
 
@@ -16,7 +15,7 @@ pub struct TypescriptSynthesizer {
 
 impl TypescriptSynthesizer {
     // TODO - remove parse_tree
-    pub fn output(parse_tree: CloudformationParseTree, ir: CloudformationProgramIr) {
+    pub fn output(ir: CloudformationProgramIr) {
         for import in ir.imports {
             println!(
                 "import * as {} from '{}';",
@@ -54,7 +53,7 @@ impl TypescriptSynthesizer {
             let synthed = synthesize_condition_recursive(&cond.value);
             println!("const {} = {};", camel_case(&cond.name), synthed)
         }
-        for reference in parse_tree.resources.resources.iter() {
+        for reference in ir.resources.iter() {
             let mut split_ref = reference.resource_type.split("::");
             split_ref.next();
             let service = split_ref.next().unwrap().to_ascii_lowercase();
@@ -67,7 +66,7 @@ impl TypescriptSynthesizer {
                 reference.name
             );
             for (name, prop) in reference.properties.iter() {
-                match to_string(prop) {
+                match to_string_ir(prop) {
                     None => {}
                     Some(x) => {
                         println!("\t{}:{},", camel_case(name), x);
@@ -81,16 +80,17 @@ impl TypescriptSynthesizer {
         println!("}}");
     }
 }
-pub fn to_string(resource_value: &ResourceValue) -> Option<String> {
+
+pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
     match resource_value {
-        ResourceValue::Null => Option::None,
-        ResourceValue::Bool(b) => Option::Some(b.to_string()),
-        ResourceValue::Number(n) => Option::Some(n.to_string()),
-        ResourceValue::String(s) => Option::Some(format!("\"{}\"", s)),
-        ResourceValue::Array(arr) => {
+        ResourceIr::Null => Option::None,
+        ResourceIr::Bool(b) => Option::Some(b.to_string()),
+        ResourceIr::Number(n) => Option::Some(n.to_string()),
+        ResourceIr::String(s) => Option::Some(format!("\"{}\"", s)),
+        ResourceIr::Array(_, arr) => {
             let mut v = Vec::new();
             for a in arr {
-                match to_string(a) {
+                match to_string_ir(a) {
                     None => {}
                     Some(s) => v.push(s),
                 }
@@ -98,13 +98,19 @@ pub fn to_string(resource_value: &ResourceValue) -> Option<String> {
 
             Option::Some(format!("[{}]", v.join(",\n")))
         }
-        ResourceValue::Object(o) => {
+        ResourceIr::Object(complexity, o) => {
             // We are transforming to typescript-json which will not have quotes.
             let mut v = Vec::new();
             for (s, rv) in o {
-                match to_string(rv) {
+                match to_string_ir(rv) {
                     None => {}
                     Some(r) => {
+                        // If a type is complex, all it's properties will be camel-case in cdk-ts.
+                        // simple types, even nested json, will have all characters preserved.
+                        let s = match complexity {
+                            Complexity::Simple(_) => s.to_string(),
+                            Complexity::Complex(_) => camel_case(s),
+                        };
                         if s.chars().all(char::is_alphanumeric) {
                             v.push(format!("{}: {}", s, r));
                         } else {
@@ -116,118 +122,51 @@ pub fn to_string(resource_value: &ResourceValue) -> Option<String> {
 
             Option::Some(format!("{{{}}}", v.join(",\n")))
         }
-        ResourceValue::Sub(arr) => {
+        ResourceIr::Sub(arr) => {
             // Sub has two ways of being built: Either resolution via a bunch of objects
             // or everything is in the first sub element, and that's it.
             // just resolve the objects.
-            let val = to_string(&arr[0]).unwrap();
-
-            let mut excess_map = HashMap::new();
-            if arr.len() > 1 {
-                let mut iter = arr.iter();
-                iter.next();
-
-                for obj in iter {
-                    match obj {
-                        ResourceValue::Object(obj) => {
-                            for (key, val) in obj.iter() {
-                                let val_str = to_string(val).unwrap();
-                                excess_map.insert(key.to_string(), val_str);
-                            }
-                        }
-                        _ => {
-                            // these aren't possible, so panic
-                            panic!("Isn't possible condition")
-                        }
-                    }
-                }
+            let mut r = Vec::new();
+            for i in arr.iter() {
+                match i {
+                    ResourceIr::String(s) => r.push(s.to_string()),
+                    &_ => r.push(format!("${{ {} }}", to_string_ir(i).unwrap())),
+                };
             }
-            let vars = sub_parse_tree(val.as_str()).unwrap();
-            let r: Vec<String> = vars
-                .iter()
-                .map(|x| match x {
-                    SubValue::String(x) => x.to_string(),
-                    SubValue::Variable(x) => match x.as_str() {
-                        "AWS::Region" => String::from("${this.region}"),
-                        "AWS::Partition" => String::from("${this.partition}"),
-                        "AWS::AccountId" => String::from("${this.account}"),
-                        "AWS::StackId" => String::from("${this.stackId}"),
-                        "AWS::StackName" => String::from("${this.stackName}"),
-                        "AWS::URLSuffix" => String::from("${this.urlSuffix}"),
-
-                        x => match excess_map.get(x) {
-                            None => {
-                                format!("${{props.{}}}", camel_case(x))
-                            }
-                            Some(x) => {
-                                format!("${{{}}}", x)
-                            }
-                        },
-                    },
-                })
-                .collect();
-
             Option::Some(format!("`{}`", r.join("")))
         }
-        ResourceValue::FindInMap(mapper, first, second) => {
-            let a: &ResourceValue = mapper.as_ref();
+        ResourceIr::Map(mapper, first, second) => {
+            let a: &ResourceIr = mapper.as_ref();
             let mapper_str = match a {
-                ResourceValue::String(x) => camel_case(x),
-                &_ => to_string(mapper).unwrap(),
+                ResourceIr::String(x) => camel_case(x),
+                &_ => to_string_ir(mapper).unwrap(),
             };
-            let first_str = to_string(first).unwrap();
-            let second_str = to_string(second).unwrap();
+            let first_str = to_string_ir(first).unwrap();
+            let second_str = to_string_ir(second).unwrap();
 
             Option::Some(format!("{}[{}][{}]", mapper_str, first_str, second_str))
         }
-        ResourceValue::GetAtt(name, attribute) => {
-            let name: &ResourceValue = name.as_ref();
-            let attribute: &ResourceValue = attribute.as_ref();
-            let resource_name = match name {
-                ResourceValue::String(x) => x,
-                _ => panic!("Can't happen"),
-            };
-            let attr_name = match attribute {
-                ResourceValue::String(x) => x,
-                _ => panic!("Can't happen"),
-            };
-
-            Option::Some(format!("{}.attr{}", camel_case(resource_name), attr_name))
+        ResourceIr::GetAtt(name, attribute) => {
+            Option::Some(format!("{}.attr{}", camel_case(name), attribute))
         }
-        ResourceValue::If(bool_expr, true_expr, false_expr) => {
-            let bool_expr = to_string(bool_expr).unwrap();
-            let bool_expr = bool_expr
-                .strip_suffix('\"')
-                .unwrap()
-                .strip_prefix('\"')
-                .unwrap();
-
+        ResourceIr::If(bool_expr, true_expr, false_expr) => {
             let bool_expr = camel_case(bool_expr);
-            let true_expr = match to_string(true_expr) {
+            let true_expr = match to_string_ir(true_expr) {
                 None => String::from("{}"),
                 Some(x) => x,
             };
 
-            let false_expr = match to_string(false_expr) {
+            let false_expr = match to_string_ir(false_expr) {
                 None => String::from("{}"),
                 Some(x) => x,
             };
 
             Option::Some(format!("({})?{}:{}", bool_expr, true_expr, false_expr))
         }
-        ResourceValue::Join(x) => {
-            let sep = x.get(0).unwrap();
-
-            let sep = match sep {
-                ResourceValue::String(x) => x,
-                _ => panic!("Can't happen"),
-            };
-
-            let iterator = x.iter().skip(1);
-
+        ResourceIr::Join(sep, join_obj) => {
             let mut strs = Vec::new();
-            for rv in iterator {
-                match to_string(rv) {
+            for rv in join_obj.iter() {
+                match to_string_ir(rv) {
                     None => {}
                     Some(x_str) => strs.push(x_str),
                 }
@@ -235,15 +174,7 @@ pub fn to_string(resource_value: &ResourceValue) -> Option<String> {
 
             Option::Some(format!("{}.join(\"{}\")", strs.join(","), sep))
         }
-        ResourceValue::Ref(x) => match x.as_str() {
-            "AWS::Region" => Option::Some(String::from("this.region")),
-            "AWS::Partition" => Option::Some(String::from("this.partition")),
-            "AWS::AccountId" => Option::Some(String::from("this.account")),
-            "AWS::StackId" => Option::Some(String::from("this.stackId")),
-            "AWS::StackName" => Option::Some(String::from("this.stackName")),
-            "AWS::URLSuffix" => Option::Some(String::from("this.urlSuffix")),
-            x => Option::Some(format!("props.{}", camel_case(x))),
-        },
+        ResourceIr::Ref(x) => Option::Some(x.synthesize()),
     }
 }
 
@@ -290,6 +221,8 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
                 PseudoParameter::StackId => String::from("this.stackId"),
                 PseudoParameter::StackName => String::from("this.stackName"),
                 PseudoParameter::URLSuffix => String::from("this.urlSuffix"),
+                PseudoParameter::AccountId => String::from("this.accountId"),
+                PseudoParameter::NotificationArns => String::from("this.notificationArns"),
             },
         },
         ConditionIr::Map(named_resource, l1, l2) => {

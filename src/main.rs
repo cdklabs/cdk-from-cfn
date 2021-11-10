@@ -24,5 +24,5 @@ fn main() {
 
     let cfn_tree = CloudformationParseTree::build(&value).unwrap();
     let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree).unwrap();
-    TypescriptSynthesizer::output(cfn_tree, ir);
+    TypescriptSynthesizer::output(ir);
 }
