@@ -35,6 +35,7 @@ pub struct ResourceParseTree {
     pub properties: HashMap<String, ResourceValue>,
 }
 
+#[derive(Debug)]
 pub struct ResourcesParseTree {
     pub resources: Vec<ResourceParseTree>,
 }

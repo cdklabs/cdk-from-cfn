@@ -1,8 +1,9 @@
+use crate::specification::Complexity::{Complex, Simple};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Rule {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Rule {
     #[serde(alias = "PrimitiveType")]
     primitive_type: Option<SimpleType>,
     #[serde(alias = "ItemType")]
@@ -10,11 +11,30 @@ struct Rule {
     #[serde(alias = "Type")]
     property_type: Option<String>,
     #[serde(alias = "Properties")]
-    properties: Option<HashMap<String, PropertyRule>>,
+    pub properties: Option<HashMap<String, PropertyRule>>,
 }
 
+// Complexity is used in the overarching program.
+// CDK uses anything that is not a "SimpleType" (defined below)
+// to camel_case their interfaces. We have to manipulate
+// that same structure backwards, in order to emit
+// the correct output.
+//
+// Simple is essentially "primitive" -- leave it alone.
+// Complex means there are deeper structures, and CDK
+// has enough information to actually camel case, so
+// you have to camelcase as well.
+#[derive(Debug, Clone)]
+pub enum Complexity {
+    Simple(SimpleType),
+    Complex(String),
+}
+
+// SimpleType is the primitives in the CloudFormation specification.
+// They are when CFN just "doesn't care anymore" and doesn't do anything
+// outside of parse-classification-errors.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone)]
-enum SimpleType {
+pub enum SimpleType {
     Boolean,
     Integer,
     String,
@@ -24,32 +44,69 @@ enum SimpleType {
     Json,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct PropertyRule {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PropertyRule {
     #[serde(alias = "Required")]
     required: bool,
     #[serde(alias = "PrimitiveType")]
     primitive_type: Option<SimpleType>,
+    #[serde(alias = "PrimitiveItemType")]
+    primitive_item_type: Option<SimpleType>,
     #[serde(alias = "ItemType")]
     item_type: Option<String>,
     #[serde(alias = "Type")]
-    property_type: Option<String>,
+    pub property_type: Option<String>,
+}
+
+impl PropertyRule {
+    // get_complexity will take a look at the current property and return the complexity of it's
+    // structure, as well as the type.
+    //
+    // The branching paths are as follows:
+    //
+    // A List or Map will have a "Type" field (which is deserialized in property_type).
+    //    - If you have a list/map, and if the PrimitiveItemType field exists, it is that primitive type.
+    //    - If you have a list/map and it does not have PrimitiveItemType, "ItemType" will store
+    //      it's complex type name
+    //   <enough about lists / maps>
+    //    - If a "Type" exists, it is a Complex type.
+    //    - Otherwise, it is simple and will always have a "PrimitiveType" (different from "PrimitiveItemType")
+    pub fn get_complexity(&self) -> Complexity {
+        if let Some(x) = &self.property_type {
+            let simple_map_type = match x.as_str() {
+                "List" | "Map" => &self.primitive_item_type,
+                &_ => return Complex(x.to_string()),
+            };
+
+            return match simple_map_type {
+                None => {
+                    let complex_item = self.item_type.as_ref().unwrap();
+                    Complex(complex_item.to_string())
+                }
+                Some(x) => Complexity::Simple(*x),
+            };
+        }
+
+        Simple(self.primitive_type.unwrap())
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Specification {
+pub struct Specification {
     #[serde(alias = "PropertyTypes")]
-    property_types: HashMap<String, Rule>,
+    pub property_types: HashMap<String, Rule>,
 
     #[serde(alias = "ResourceTypes")]
-    resource_types: HashMap<String, Rule>,
+    pub resource_types: HashMap<String, Rule>,
 }
 
 fn read_specification() -> String {
     let str = include_str!("spec.json");
     str.to_string()
 }
-fn spec() -> Specification {
+
+// Fully reads the specification from the stored json file
+pub fn spec() -> Specification {
     let str = read_specification();
     let res = serde_json::from_str::<Specification>(str.as_str()).unwrap();
 
