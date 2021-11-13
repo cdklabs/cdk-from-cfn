@@ -63,21 +63,8 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
         for (name, prop) in resource.properties.iter() {
             let property_rule = resource_spec.unwrap().get(name).unwrap();
             let complexity = property_rule.get_complexity();
-            let property_type = match complexity {
-                Complexity::Simple(_) => Option::None,
-                Complexity::Complex(x) => {
-                    let mut full_rule_name = format!("{}.{}", resource.resource_type, x);
-                    // Every type in CloudFormation has the form: {resource}.{resource_type}
-                    // e.g. AWS::Iam::Role.Policy . Tag's lookup name in the specification is "Tag".
-                    // no one can explain why. Thanks CFN.
-                    if x == "Tag" {
-                        full_rule_name = "Tag".to_string();
-                    }
-
-                    Option::Some(full_rule_name)
-                }
-            };
-
+            let property_type =
+                Specification::full_property_name(&complexity, &resource.resource_type);
             let property_type = property_type.as_deref();
             let rt = ResourceTranslationInputs {
                 parse_tree,
@@ -138,18 +125,10 @@ fn translate_resource(
                         let properties = rule.properties.as_ref().unwrap();
                         let property_rule = properties.get(s).unwrap();
                         new_rt.complexity = property_rule.get_complexity();
-
-                        let opt = match property_rule.get_complexity() {
-                            Complexity::Simple(_) => Option::None,
-                            Complexity::Complex(x) => {
-                                let mut ret =
-                                    format!("{}.{}", resource_translator.resource_type, x);
-                                if x == "Tag" {
-                                    ret = "Tag".to_string();
-                                }
-                                Option::Some(ret)
-                            }
-                        };
+                        let opt = Specification::full_property_name(
+                            &property_rule.get_complexity(),
+                            resource_translator.resource_type,
+                        );
                         new_rt.property_type = opt.as_deref();
                         translate_resource(rv, &new_rt)?
                     }
