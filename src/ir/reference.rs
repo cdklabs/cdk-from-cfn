@@ -1,4 +1,4 @@
-use voca_rs::case::camel_case;
+use voca_rs::case::{camel_case, pascal_case};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Reference {
@@ -18,7 +18,7 @@ impl Reference {
             Origin::Parameter => {
                 format!("props.{}", camel_case(&self.name))
             }
-            Origin::LogicalId => camel_case(&self.name),
+            Origin::LogicalId => format!("{}.ref", camel_case(&self.name)),
             Origin::Condition => camel_case(&self.name),
             Origin::PseudoParameter(x) => match x {
                 PseudoParameter::Partition => String::from("this.partition"),
@@ -29,7 +29,7 @@ impl Reference {
                 PseudoParameter::AccountId => String::from("this.account"),
                 PseudoParameter::NotificationArns => String::from("this.notificationArns"),
             },
-            Origin::GetAttribute(x) => format!("{}.{}", camel_case(&self.name), camel_case(x)),
+            Origin::GetAttribute(x) => format!("{}.attr{}", camel_case(&self.name), pascal_case(x)),
         }
     }
 
