@@ -21,6 +21,8 @@ impl TypescriptSynthesizer {
                 import.path.join("/")
             )
         }
+        // Static imports with base assumptions (e.g. using base 64)
+        println!("import {{Buffer}} from 'buffer';");
 
         println!("export interface NoctStackProps extends cdk.StackProps {{");
         for param in ir.constructor.inputs {
@@ -84,7 +86,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::Null => Option::None,
         ResourceIr::Bool(b) => Option::Some(b.to_string()),
         ResourceIr::Number(n) => Option::Some(n.to_string()),
-        ResourceIr::String(s) => Option::Some(format!("\"{}\"", s)),
+        ResourceIr::String(s) => Option::Some(format!("\'{}\'", s)),
         ResourceIr::Array(_, arr) => {
             let mut v = Vec::new();
             for a in arr {
@@ -170,6 +172,10 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             Option::Some(format!("{}.join(\"{}\")", strs.join(","), sep))
         }
         ResourceIr::Ref(x) => Option::Some(x.synthesize()),
+        ResourceIr::Base64(x) => {
+            let str = to_string_ir(x.as_ref()).unwrap();
+            Option::Some(format!("Buffer.from({}).toString('base64')", str))
+        }
     }
 }
 

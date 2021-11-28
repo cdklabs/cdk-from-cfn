@@ -18,11 +18,11 @@ about. These are those features:
 - [x] Fn::Not
 - [x] Fn::Or
 - [x] Fn::GetAtt
-- [ ] Fn::Base64 support
+- [x] Fn::Base64 support
 - [ ] Fn::Select support
+- [ ] Fn::ImportValue support
 - [ ] Fn::GetAZs support
 - [ ] Fn::Cidr support
-- [ ] Fn::ImportValue support
 - [ ] Fn::Transform (do we even want it?)
 
 ## Remaining implementation fixes
@@ -32,7 +32,7 @@ about. These are those features:
 - [ ] Adding depends-on, and ordering based on it too.
 - [ ] Emission of outputs / exports
 - [ ] Metadata emission for updates to asgs / lambda functions.
-- [ ] Rules (is this a thing in CDK?)
-- [ ] Metadata section
 - [ ] ssm metadata references
 - [ ] secretsmanager references
+- [ ] Rules (is this a thing in CDK?)
+- [ ] Metadata section
