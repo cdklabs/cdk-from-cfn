@@ -20,9 +20,9 @@ about. These are those features:
 - [x] Fn::GetAtt
 - [x] Fn::Base64 support
 - [x] Fn::ImportValue support
-- [ ] Fn::Select support
-- [ ] Fn::GetAZs support
+- [x] Fn::Select support
 - [ ] Fn::Cidr support
+- [ ] Fn::GetAZs support
 - [ ] Fn::Transform (do we even want it?)
 
 ## Remaining implementation fixes

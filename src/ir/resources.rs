@@ -31,6 +31,7 @@ pub enum ResourceIr {
     Map(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
     Base64(Box<ResourceIr>),
     ImportValue(Box<ResourceIr>),
+    Select(i64, Box<ResourceIr>),
 }
 
 /// ResourceTranslationInputs is a place to store all the intermediate recursion
@@ -170,6 +171,9 @@ fn find_dependencies(
             find_dependencies(resource_name, x.deref(), topo);
         }
         ResourceIr::ImportValue(x) => {
+            find_dependencies(resource_name, x.deref(), topo);
+        }
+        ResourceIr::Select(_, x) => {
             find_dependencies(resource_name, x.deref(), topo);
         }
     }
@@ -353,6 +357,19 @@ fn translate_resource(
         ResourceValue::ImportValue(x) => {
             let ir = translate_resource(x, resource_translator)?;
             Ok(ResourceIr::ImportValue(Box::new(ir)))
+        }
+        ResourceValue::Select(index, x) => {
+            let index = match index.deref() {
+                ResourceValue::String(x) => match x.parse::<i64>() {
+                    Ok(x) => x,
+                    Err(_) => return Err(TransmuteError::new("index must be int for Select")),
+                },
+                ResourceValue::Number(x) => *x,
+                _ => return Err(TransmuteError::new("Separator for join must be a string")),
+            };
+
+            let obj = translate_resource(x.deref(), resource_translator)?;
+            Ok(ResourceIr::Select(index, Box::new(obj)))
         }
     }
 }

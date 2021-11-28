@@ -179,6 +179,10 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             let str = to_string_ir(x.as_ref()).unwrap();
             Option::Some(format!("cdk.Fn.importValue({})", str))
         }
+        ResourceIr::Select(index, obj) => {
+            let str = to_string_ir(obj.as_ref()).unwrap();
+            Option::Some(format!("{}[{}]", str, *index))
+        }
     }
 }
 
