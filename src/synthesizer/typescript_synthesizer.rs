@@ -12,7 +12,6 @@ pub struct TypescriptSynthesizer {
 }
 
 impl TypescriptSynthesizer {
-    // TODO - remove parse_tree
     pub fn output(ir: CloudformationProgramIr) {
         for import in ir.imports {
             println!(
@@ -175,6 +174,10 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::Base64(x) => {
             let str = to_string_ir(x.as_ref()).unwrap();
             Option::Some(format!("Buffer.from({}).toString('base64')", str))
+        }
+        ResourceIr::ImportValue(x) => {
+            let str = to_string_ir(x.as_ref()).unwrap();
+            Option::Some(format!("cdk.Fn.importValue({})", str))
         }
     }
 }

@@ -19,8 +19,8 @@ about. These are those features:
 - [x] Fn::Or
 - [x] Fn::GetAtt
 - [x] Fn::Base64 support
+- [x] Fn::ImportValue support
 - [ ] Fn::Select support
-- [ ] Fn::ImportValue support
 - [ ] Fn::GetAZs support
 - [ ] Fn::Cidr support
 - [ ] Fn::Transform (do we even want it?)
@@ -28,9 +28,9 @@ about. These are those features:
 ## Remaining implementation fixes
 
 - [x] Resource ordering based on dependencies
-- [ ] Conditions are emitted in ts but not attached to resources
-- [ ] Adding depends-on, and ordering based on it too.
+- [ ] Conditions are emitted in ts but not attached to resource conditions
 - [ ] Emission of outputs / exports
+- [ ] Adding depends-on, and ordering based on it too.
 - [ ] Metadata emission for updates to asgs / lambda functions.
 - [ ] ssm metadata references
 - [ ] secretsmanager references

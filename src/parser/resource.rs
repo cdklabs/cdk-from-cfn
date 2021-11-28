@@ -20,9 +20,9 @@ pub enum ResourceValue {
     If(Box<ResourceValue>, Box<ResourceValue>, Box<ResourceValue>),
     Join(Vec<ResourceValue>),
     Ref(String),
-    Base64(Box<ResourceValue>)
-    // Select
-    // GetAZs
+    Base64(Box<ResourceValue>),
+    ImportValue(Box<ResourceValue>), // Select
+                                     // GetAZs
 }
 
 impl ResourceValue {}
@@ -226,7 +226,10 @@ fn build_resources_recursively(name: &str, obj: &Value) -> Result<ResourceValue,
                     let resolved_obj = build_resources_recursively(name, resource_object)?;
                     ResourceValue::Base64(Box::new(resolved_obj))
                 }
-
+                "Fn::ImportValue" => {
+                    let resolved_obj = build_resources_recursively(name, resource_object)?;
+                    ResourceValue::ImportValue(Box::new(resolved_obj))
+                }
                 "Fn::If" => {
                     let v = match resource_object.as_array() {
                         None => {

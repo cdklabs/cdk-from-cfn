@@ -29,7 +29,8 @@ pub enum ResourceIr {
     Ref(Reference),
     Sub(Vec<ResourceIr>),
     Map(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
-    Base64(Box<ResourceIr>)
+    Base64(Box<ResourceIr>),
+    ImportValue(Box<ResourceIr>),
 }
 
 /// ResourceTranslationInputs is a place to store all the intermediate recursion
@@ -166,6 +167,9 @@ fn find_dependencies(
             find_dependencies(resource_name, z.deref(), topo);
         }
         ResourceIr::Base64(x) => {
+            find_dependencies(resource_name, x.deref(), topo);
+        }
+        ResourceIr::ImportValue(x) => {
             find_dependencies(resource_name, x.deref(), topo);
         }
     }
@@ -345,6 +349,10 @@ fn translate_resource(
         ResourceValue::Base64(x) => {
             let ir = translate_resource(x, resource_translator)?;
             Ok(ResourceIr::Base64(Box::new(ir)))
+        }
+        ResourceValue::ImportValue(x) => {
+            let ir = translate_resource(x, resource_translator)?;
+            Ok(ResourceIr::ImportValue(Box::new(ir)))
         }
     }
 }
