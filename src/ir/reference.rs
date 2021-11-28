@@ -29,6 +29,7 @@ impl Reference {
                 PseudoParameter::AccountId => String::from("this.account"),
                 PseudoParameter::NotificationArns => String::from("this.notificationArns"),
             },
+            Origin::GetAttribute(x) => format!("{}.{}", camel_case(&self.name), camel_case(x)),
         }
     }
 
@@ -54,6 +55,8 @@ pub enum Origin {
     Parameter,
     LogicalId,
     Condition,
+    // String here is the attribute
+    GetAttribute(String),
     PseudoParameter(PseudoParameter),
 }
 

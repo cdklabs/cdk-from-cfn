@@ -1,7 +1,5 @@
 use crate::ir::conditions::ConditionIr;
 use crate::ir::mappings::MappingInstruction;
-use crate::ir::reference::Origin;
-use crate::ir::reference::PseudoParameter;
 use crate::ir::resources::ResourceIr;
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
@@ -146,9 +144,6 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
 
             Option::Some(format!("{}[{}][{}]", mapper_str, first_str, second_str))
         }
-        ResourceIr::GetAtt(name, attribute) => {
-            Option::Some(format!("{}.attr{}", camel_case(name), attribute))
-        }
         ResourceIr::If(bool_expr, true_expr, false_expr) => {
             let bool_expr = camel_case(bool_expr);
             let true_expr = match to_string_ir(true_expr) {
@@ -209,22 +204,7 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         ConditionIr::Str(x) => {
             format!("\"{}\"", x)
         }
-        ConditionIr::Ref(x) => match &x.origin {
-            Origin::Parameter => {
-                format!("props.{}", camel_case(&x.name))
-            }
-            Origin::LogicalId => camel_case(&x.name),
-            Origin::Condition => camel_case(&x.name),
-            Origin::PseudoParameter(x) => match x {
-                PseudoParameter::Partition => String::from("this.partition"),
-                PseudoParameter::Region => String::from("this.region"),
-                PseudoParameter::StackId => String::from("this.stackId"),
-                PseudoParameter::StackName => String::from("this.stackName"),
-                PseudoParameter::URLSuffix => String::from("this.urlSuffix"),
-                PseudoParameter::AccountId => String::from("this.accountId"),
-                PseudoParameter::NotificationArns => String::from("this.notificationArns"),
-            },
-        },
+        ConditionIr::Ref(x) => x.synthesize(),
         ConditionIr::Map(named_resource, l1, l2) => {
             let name = match named_resource.as_ref() {
                 ConditionIr::Str(x) => camel_case(x),

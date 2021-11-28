@@ -24,7 +24,7 @@ pub struct Rule {
 // Complex means there are deeper structures, and CDK
 // has enough information to actually camel case, so
 // you have to camelcase as well.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Complexity {
     Simple(SimpleType),
     Complex(String),

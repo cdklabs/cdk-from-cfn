@@ -27,8 +27,8 @@ about. These are those features:
 
 ## Remaining implementation fixes
 
+- [x] Resource ordering based on dependencies
 - [ ] Conditions are emitted in ts but not attached to resources
-- [ ] Resource ordering based on dependencies not yet supported
 - [ ] Adding depends-on, and ordering based on it too.
 - [ ] Emission of outputs / exports
 - [ ] Metadata emission for updates to asgs / lambda functions.
