@@ -57,13 +57,29 @@ impl TypescriptSynthesizer {
             split_ref.next();
             let service = split_ref.next().unwrap().to_ascii_lowercase();
             let rtype = split_ref.next().unwrap();
-            println!(
-                "let {} = new {}.Cfn{}(this, '{}', {{",
-                camel_case(&reference.name),
-                service,
-                rtype,
-                reference.name
-            );
+
+            match &reference.condition {
+                None => {
+                    println!(
+                        "let {} = new {}.Cfn{}(this, '{}', {{",
+                        camel_case(&reference.name),
+                        service,
+                        rtype,
+                        reference.name
+                    );
+                }
+                Some(x) => {
+                    println!(
+                        "let {} = ({}) ? new {}.Cfn{}(this, '{}', {{",
+                        camel_case(&reference.name),
+                        camel_case(x),
+                        service,
+                        rtype,
+                        reference.name
+                    );
+                }
+            }
+
             for (name, prop) in reference.properties.iter() {
                 match to_string_ir(prop) {
                     None => {}
@@ -72,7 +88,15 @@ impl TypescriptSynthesizer {
                     }
                 }
             }
-            println!("}});");
+
+            match &reference.condition {
+                None => {
+                    println!("}});");
+                }
+                Some(_) => {
+                    println!("}}) : undefined;");
+                }
+            }
         }
 
         println!("\t}}");
