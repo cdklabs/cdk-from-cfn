@@ -4,12 +4,14 @@ use crate::parser::sub::{sub_parse_tree, SubValue};
 use crate::specification::{spec, Complexity, Specification};
 use crate::{CloudformationParseTree, TransmuteError};
 use std::collections::HashMap;
+use std::ops::Deref;
+use topological_sort::TopologicalSort;
 
 // ResourceIr is the intermediate representation of a nested stack resource.
 // It is slightly more refined than the ResourceValue, in some cases always resolving
 // known types. It also decorates objects with the necessary information for a separate
 // system to output all the necessary internal structures appropriately.
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ResourceIr {
     Null,
     Bool(bool),
@@ -25,9 +27,11 @@ pub enum ResourceIr {
     If(String, Box<ResourceIr>, Box<ResourceIr>),
     Join(String, Vec<ResourceIr>),
     Ref(Reference),
-    GetAtt(String, String),
     Sub(Vec<ResourceIr>),
     Map(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
+    Base64(Box<ResourceIr>),
+    ImportValue(Box<ResourceIr>),
+    Select(i64, Box<ResourceIr>),
 }
 
 /// ResourceTranslationInputs is a place to store all the intermediate recursion
@@ -42,6 +46,7 @@ pub struct ResourceTranslationInputs<'t> {
 }
 
 // ResourceInstruction is all the information needed to output a resource assignment.
+#[derive(Clone, Debug, PartialEq)]
 pub struct ResourceInstruction {
     pub name: String,
     pub condition: Option<String>,
@@ -85,7 +90,93 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
             properties: props,
         });
     }
-    resource_instructions
+    order(resource_instructions)
+}
+
+fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruction> {
+    //resource_instructions
+    let mut topo = TopologicalSort::new();
+    let mut hash = HashMap::new();
+    for resource_instruction in resource_instructions {
+        topo.insert(resource_instruction.name.to_string());
+
+        for (_, property) in resource_instruction.properties.iter() {
+            find_dependencies(&resource_instruction.name, property, &mut topo)
+        }
+        hash.insert(resource_instruction.name.to_string(), resource_instruction);
+    }
+
+    let mut sorted_instructions = Vec::new();
+    while !topo.is_empty() {
+        match topo.pop() {
+            None => {
+                panic!("Cyclic dependency in your resources ")
+            }
+            Some(x) => {
+                let rs = hash.remove(&x).unwrap();
+                sorted_instructions.push(rs);
+            }
+        }
+    }
+    sorted_instructions
+}
+
+fn find_dependencies(
+    resource_name: &str,
+    resource: &ResourceIr,
+    topo: &mut TopologicalSort<String>,
+) {
+    match resource {
+        ResourceIr::Null | ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::String(_) => {}
+
+        ResourceIr::Array(_, arr) => {
+            for x in arr {
+                find_dependencies(resource_name, x, topo);
+            }
+        }
+        ResourceIr::Object(_, hash) => {
+            for x in hash.values() {
+                find_dependencies(resource_name, x, topo);
+            }
+        }
+        ResourceIr::If(_, x, y) => {
+            find_dependencies(resource_name, x.deref(), topo);
+            find_dependencies(resource_name, y.deref(), topo);
+        }
+        ResourceIr::Join(_, arr) => {
+            for x in arr {
+                find_dependencies(resource_name, x, topo);
+            }
+        }
+        ResourceIr::Ref(x) => match x.origin {
+            Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => {}
+            Origin::LogicalId => {
+                topo.add_dependency(x.name.to_string(), resource_name.to_string());
+            }
+            Origin::GetAttribute(_) => {
+                topo.add_dependency(x.name.to_string(), resource_name.to_string());
+            }
+        },
+        ResourceIr::Sub(arr) => {
+            for x in arr {
+                find_dependencies(resource_name, x, topo);
+            }
+        }
+        ResourceIr::Map(x, y, z) => {
+            find_dependencies(resource_name, x.deref(), topo);
+            find_dependencies(resource_name, y.deref(), topo);
+            find_dependencies(resource_name, z.deref(), topo);
+        }
+        ResourceIr::Base64(x) => {
+            find_dependencies(resource_name, x.deref(), topo);
+        }
+        ResourceIr::ImportValue(x) => {
+            find_dependencies(resource_name, x.deref(), topo);
+        }
+        ResourceIr::Select(_, x) => {
+            find_dependencies(resource_name, x.deref(), topo);
+        }
+    }
 }
 
 fn translate_resource(
@@ -178,7 +269,10 @@ fn translate_resource(
                 .map(|x| match x {
                     SubValue::String(x) => ResourceIr::String(x.to_string()),
                     SubValue::Variable(x) => match excess_map.get(x) {
-                        None => ResourceIr::Ref(find_ref(x, resource_translator.parse_tree)),
+                        None => {
+                            // if x has a period, it is actually a get-attr
+                            ResourceIr::Ref(find_ref(x, resource_translator.parse_tree))
+                        }
                         Some(x) => x.clone(),
                     },
                 })
@@ -214,10 +308,10 @@ fn translate_resource(
                     ))
                 }
             };
-            Ok(ResourceIr::GetAtt(
-                resource_name.to_string(),
-                attr_name.to_string(),
-            ))
+            Ok(ResourceIr::Ref(Reference::new(
+                resource_name,
+                Origin::GetAttribute(attr_name.to_string()),
+            )))
         }
         ResourceValue::If(bool_expr, true_expr, false_expr) => {
             let bool_expr = match bool_expr.as_ref() {
@@ -256,6 +350,27 @@ fn translate_resource(
             Ok(ResourceIr::Join(sep.to_string(), irs))
         }
         ResourceValue::Ref(x) => Ok(ResourceIr::Ref(find_ref(x, resource_translator.parse_tree))),
+        ResourceValue::Base64(x) => {
+            let ir = translate_resource(x, resource_translator)?;
+            Ok(ResourceIr::Base64(Box::new(ir)))
+        }
+        ResourceValue::ImportValue(x) => {
+            let ir = translate_resource(x, resource_translator)?;
+            Ok(ResourceIr::ImportValue(Box::new(ir)))
+        }
+        ResourceValue::Select(index, x) => {
+            let index = match index.deref() {
+                ResourceValue::String(x) => match x.parse::<i64>() {
+                    Ok(x) => x,
+                    Err(_) => return Err(TransmuteError::new("index must be int for Select")),
+                },
+                ResourceValue::Number(x) => *x,
+                _ => return Err(TransmuteError::new("Separator for join must be a string")),
+            };
+
+            let obj = translate_resource(x.deref(), resource_translator)?;
+            Ok(ResourceIr::Select(index, Box::new(obj)))
+        }
     }
 }
 
@@ -272,5 +387,51 @@ fn find_ref(x: &str, parse_tree: &CloudformationParseTree) -> Reference {
         }
     }
 
+    if x.contains('.') {
+        let splits = x.split('.');
+        let sp: Vec<&str> = splits.collect();
+        let name = sp[0];
+        let attr = sp[1];
+
+        return Reference::new(name, Origin::GetAttribute(attr.to_string()));
+    }
     Reference::new(x, Origin::LogicalId)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::ir::reference::{Origin, Reference};
+    use crate::ir::resources::{order, ResourceInstruction, ResourceIr};
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_ir_ordering() {
+        let ir_instruction = ResourceInstruction {
+            name: "A".to_string(),
+            condition: None,
+            resource_type: "".to_string(),
+            properties: HashMap::new(),
+        };
+
+        let later = ResourceInstruction {
+            name: "B".to_string(),
+            condition: None,
+            resource_type: "".to_string(),
+            properties: create_property(
+                "something",
+                ResourceIr::Ref(Reference::new("A", Origin::LogicalId)),
+            ),
+        };
+
+        let misordered = vec![later.clone(), ir_instruction.clone()];
+
+        let actual = order(misordered);
+        assert_eq!(actual, vec![ir_instruction, later]);
+    }
+
+    fn create_property(name: &str, resource: ResourceIr) -> HashMap<String, ResourceIr> {
+        let mut hash = HashMap::new();
+        hash.insert(name.to_string(), resource);
+        hash
+    }
 }

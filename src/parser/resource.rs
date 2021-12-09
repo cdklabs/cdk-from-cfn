@@ -20,9 +20,10 @@ pub enum ResourceValue {
     If(Box<ResourceValue>, Box<ResourceValue>, Box<ResourceValue>),
     Join(Vec<ResourceValue>),
     Ref(String),
-    // Select
-    // GetAZs
-    // Base64
+    Base64(Box<ResourceValue>),
+    ImportValue(Box<ResourceValue>),
+    Select(Box<ResourceValue>, Box<ResourceValue>), // GetAZs
+                                                    // Cidr
 }
 
 impl ResourceValue {}
@@ -221,6 +222,42 @@ fn build_resources_recursively(name: &str, obj: &Value) -> Result<ResourceValue,
                     }?;
 
                     ResourceValue::GetAtt(Box::new(first_obj), Box::new(second_obj))
+                }
+                "Fn::Base64" => {
+                    let resolved_obj = build_resources_recursively(name, resource_object)?;
+                    ResourceValue::Base64(Box::new(resolved_obj))
+                }
+                "Fn::ImportValue" => {
+                    let resolved_obj = build_resources_recursively(name, resource_object)?;
+                    ResourceValue::ImportValue(Box::new(resolved_obj))
+                }
+                "Fn::Select" => {
+                    let arr = resource_object.as_array().unwrap();
+
+                    let index = match arr.get(0) {
+                        None => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::Select is supposed to have 2 values in array, has 0 {}",
+                                    name
+                                ),
+                            })
+                        }
+                        Some(x) => build_resources_recursively(name, x),
+                    }?;
+                    let obj = match arr.get(1) {
+                        None => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::Select is supposed to have 2 values in array, has 1 {}",
+                                    name
+                                ),
+                            })
+                        }
+                        Some(x) => build_resources_recursively(name, x),
+                    }?;
+
+                    ResourceValue::Select(Box::new(index), Box::new(obj))
                 }
                 "Fn::If" => {
                     let v = match resource_object.as_array() {

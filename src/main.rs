@@ -6,7 +6,7 @@ use serde_json::Value;
 use std::fs;
 
 fn main() {
-    let matches = App::new("Transmutes cfn templates to cdk")
+    let matches = App::new("Translates cfn templates to cdk typescript")
         .version("1.0")
         .author("Sean Tyler Myers <seanmyers0608@gmail.com>")
         .about("Reads cfn templates and translates them to typescript")

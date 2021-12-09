@@ -1,7 +1,5 @@
 use crate::ir::conditions::ConditionIr;
 use crate::ir::mappings::MappingInstruction;
-use crate::ir::reference::Origin;
-use crate::ir::reference::PseudoParameter;
 use crate::ir::resources::ResourceIr;
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
@@ -14,7 +12,6 @@ pub struct TypescriptSynthesizer {
 }
 
 impl TypescriptSynthesizer {
-    // TODO - remove parse_tree
     pub fn output(ir: CloudformationProgramIr) {
         for import in ir.imports {
             println!(
@@ -23,6 +20,8 @@ impl TypescriptSynthesizer {
                 import.path.join("/")
             )
         }
+        // Static imports with base assumptions (e.g. using base 64)
+        println!("import {{Buffer}} from 'buffer';");
 
         println!("export interface NoctStackProps extends cdk.StackProps {{");
         for param in ir.constructor.inputs {
@@ -58,13 +57,29 @@ impl TypescriptSynthesizer {
             split_ref.next();
             let service = split_ref.next().unwrap().to_ascii_lowercase();
             let rtype = split_ref.next().unwrap();
-            println!(
-                "let {} = new {}.Cfn{}(this, '{}', {{",
-                camel_case(&reference.name),
-                service,
-                rtype,
-                reference.name
-            );
+
+            match &reference.condition {
+                None => {
+                    println!(
+                        "let {} = new {}.Cfn{}(this, '{}', {{",
+                        camel_case(&reference.name),
+                        service,
+                        rtype,
+                        reference.name
+                    );
+                }
+                Some(x) => {
+                    println!(
+                        "let {} = ({}) ? new {}.Cfn{}(this, '{}', {{",
+                        camel_case(&reference.name),
+                        camel_case(x),
+                        service,
+                        rtype,
+                        reference.name
+                    );
+                }
+            }
+
             for (name, prop) in reference.properties.iter() {
                 match to_string_ir(prop) {
                     None => {}
@@ -73,7 +88,15 @@ impl TypescriptSynthesizer {
                     }
                 }
             }
-            println!("}});");
+
+            match &reference.condition {
+                None => {
+                    println!("}});");
+                }
+                Some(_) => {
+                    println!("}}) : undefined;");
+                }
+            }
         }
 
         println!("\t}}");
@@ -86,7 +109,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::Null => Option::None,
         ResourceIr::Bool(b) => Option::Some(b.to_string()),
         ResourceIr::Number(n) => Option::Some(n.to_string()),
-        ResourceIr::String(s) => Option::Some(format!("\"{}\"", s)),
+        ResourceIr::String(s) => Option::Some(format!("\'{}\'", s)),
         ResourceIr::Array(_, arr) => {
             let mut v = Vec::new();
             for a in arr {
@@ -146,9 +169,6 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
 
             Option::Some(format!("{}[{}][{}]", mapper_str, first_str, second_str))
         }
-        ResourceIr::GetAtt(name, attribute) => {
-            Option::Some(format!("{}.attr{}", camel_case(name), attribute))
-        }
         ResourceIr::If(bool_expr, true_expr, false_expr) => {
             let bool_expr = camel_case(bool_expr);
             let true_expr = match to_string_ir(true_expr) {
@@ -175,6 +195,18 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             Option::Some(format!("{}.join(\"{}\")", strs.join(","), sep))
         }
         ResourceIr::Ref(x) => Option::Some(x.synthesize()),
+        ResourceIr::Base64(x) => {
+            let str = to_string_ir(x.as_ref()).unwrap();
+            Option::Some(format!("Buffer.from({}).toString('base64')", str))
+        }
+        ResourceIr::ImportValue(x) => {
+            let str = to_string_ir(x.as_ref()).unwrap();
+            Option::Some(format!("cdk.Fn.importValue({})", str))
+        }
+        ResourceIr::Select(index, obj) => {
+            let str = to_string_ir(obj.as_ref()).unwrap();
+            Option::Some(format!("{}[{}]", str, *index))
+        }
     }
 }
 
@@ -209,22 +241,7 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         ConditionIr::Str(x) => {
             format!("\"{}\"", x)
         }
-        ConditionIr::Ref(x) => match &x.origin {
-            Origin::Parameter => {
-                format!("props.{}", camel_case(&x.name))
-            }
-            Origin::LogicalId => camel_case(&x.name),
-            Origin::Condition => camel_case(&x.name),
-            Origin::PseudoParameter(x) => match x {
-                PseudoParameter::Partition => String::from("this.partition"),
-                PseudoParameter::Region => String::from("this.region"),
-                PseudoParameter::StackId => String::from("this.stackId"),
-                PseudoParameter::StackName => String::from("this.stackName"),
-                PseudoParameter::URLSuffix => String::from("this.urlSuffix"),
-                PseudoParameter::AccountId => String::from("this.accountId"),
-                PseudoParameter::NotificationArns => String::from("this.notificationArns"),
-            },
-        },
+        ConditionIr::Ref(x) => x.synthesize(),
         ConditionIr::Map(named_resource, l1, l2) => {
             let name = match named_resource.as_ref() {
                 ConditionIr::Str(x) => camel_case(x),

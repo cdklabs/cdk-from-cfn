@@ -18,21 +18,21 @@ about. These are those features:
 - [x] Fn::Not
 - [x] Fn::Or
 - [x] Fn::GetAtt
-- [ ] Fn::Base64 support
-- [ ] Fn::Select support
-- [ ] Fn::GetAZs support
+- [x] Fn::Base64 support
+- [x] Fn::ImportValue support
+- [x] Fn::Select support
 - [ ] Fn::Cidr support
-- [ ] Fn::ImportValue support
+- [ ] Fn::GetAZs support
 - [ ] Fn::Transform (do we even want it?)
 
 ## Remaining implementation fixes
 
-- [ ] Conditions are emitted in ts but not attached to resources
-- [ ] Resource ordering based on dependencies not yet supported
-- [ ] Adding depends-on, and ordering based on it too.
+- [x] Resource ordering based on dependencies
+- [x] Conditions are emitted in ts but not attached to resource conditions
 - [ ] Emission of outputs / exports
+- [ ] Adding depends-on, and ordering based on it too.
 - [ ] Metadata emission for updates to asgs / lambda functions.
-- [ ] Rules (is this a thing in CDK?)
-- [ ] Metadata section
 - [ ] ssm metadata references
 - [ ] secretsmanager references
+- [ ] Rules (is this a thing in CDK?)
+- [ ] Metadata section
