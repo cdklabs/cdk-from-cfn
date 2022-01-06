@@ -12,7 +12,7 @@ fn main() {
         .about("Reads cfn templates and translates them to typescript")
         .arg(
             Arg::new("INPUT")
-                .about("Sets the input file to use")
+                .help("Sets the input file to use")
                 .required(true)
                 .index(1),
         )
