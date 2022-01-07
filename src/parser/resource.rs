@@ -56,15 +56,13 @@ pub fn build_resources(
             .to_owned();
         let condition = resource_object
             .get("Condition")
-            .map(|t| t.as_str())
-            .flatten()
+            .and_then(|t| t.as_str())
             .map(|t| t.to_string());
 
         let mut properties = HashMap::new();
         for (prop_name, prop_value) in resource_object
             .get("Properties")
-            .map(|x| x.as_object())
-            .flatten()
+            .and_then(|x| x.as_object())
             .unwrap()
         {
             let result = build_resources_recursively(name, prop_value)?;
