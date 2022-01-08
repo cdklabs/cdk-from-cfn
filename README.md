@@ -29,10 +29,8 @@ about. These are those features:
 
 - [x] Resource ordering based on dependencies
 - [x] Conditions are emitted in ts but not attached to resource conditions
+- [x] Metadata emission for updates to asgs / lambda functions.
 - [ ] Emission of outputs / exports
 - [ ] Adding depends-on, and ordering based on it too.
-- [ ] Metadata emission for updates to asgs / lambda functions.
 - [ ] ssm metadata references
 - [ ] secretsmanager references
-- [ ] Rules (is this a thing in CDK?)
-- [ ] Metadata section

@@ -1,7 +1,7 @@
 use crate::ir::reference::{Origin, Reference};
 use crate::parser::resource::ResourceValue;
 use crate::parser::sub::{sub_parse_tree, SubValue};
-use crate::specification::{spec, Complexity, Specification};
+use crate::specification::{spec, Complexity, SimpleType, Specification};
 use crate::{CloudformationParseTree, TransmuteError};
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -50,6 +50,7 @@ pub struct ResourceTranslationInputs<'t> {
 pub struct ResourceInstruction {
     pub name: String,
     pub condition: Option<String>,
+    pub metadata: Option<HashMap<String, ResourceIr>>,
     pub resource_type: String,
     pub properties: HashMap<String, ResourceIr>,
 }
@@ -83,9 +84,34 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
             props.insert(name.to_string(), ir);
         }
 
+        let mut metadata = HashMap::new();
+
+        if let Some(x) = &resource.metadata {
+            for (name, prop) in x.iter() {
+                // from the getgo, metadata is always a json type to not be fiddled with.
+                let complexity = Complexity::Simple(SimpleType::Json);
+                let property_type = Option::None;
+                let rt = ResourceTranslationInputs {
+                    parse_tree,
+                    complexity,
+                    specification: &spec,
+                    property_type,
+                    resource_type: &resource.resource_type,
+                };
+
+                let ir = translate_resource(prop, &rt).unwrap();
+                metadata.insert(name.to_string(), ir);
+            }
+        }
+
+        let metadata = match metadata.len() {
+            0 => Option::None,
+            _ => Option::Some(metadata),
+        };
         resource_instructions.push(ResourceInstruction {
             name: resource.name.to_string(),
             resource_type: resource.resource_type.to_string(),
+            metadata,
             condition: resource.condition.clone(),
             properties: props,
         });
