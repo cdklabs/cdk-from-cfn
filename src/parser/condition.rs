@@ -44,10 +44,23 @@ pub struct ConditionsParseTree {
     pub conditions: HashMap<String, ConditionParseTree>,
 }
 
+impl ConditionsParseTree {
+    pub fn new() -> ConditionsParseTree {
+        ConditionsParseTree {
+            conditions: HashMap::new(),
+        }
+    }
+}
+
+impl Default for ConditionsParseTree {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub fn build_conditions(vals: &Map<String, Value>) -> Result<ConditionsParseTree, TransmuteError> {
-    let mut conditions = ConditionsParseTree {
-        conditions: HashMap::new(),
-    };
+    let mut conditions = ConditionsParseTree::new();
+
     for (name, obj) in vals {
         let cond = build_condition_recursively(name, obj)?;
         let condition = ConditionParseTree {

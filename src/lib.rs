@@ -2,6 +2,7 @@
 
 use crate::parser::condition::{build_conditions, ConditionsParseTree};
 use crate::parser::lookup_table::{build_mappings, MappingsParseTree};
+use crate::parser::output::{build_outputs, OutputsParseTree};
 use crate::parser::parameters::{build_parameters, Parameters};
 use crate::parser::resource::{build_resources, ResourceValue, ResourcesParseTree};
 use serde_json::Value;
@@ -46,6 +47,7 @@ pub struct CloudformationParseTree {
     pub mappings: MappingsParseTree,
     pub conditions: ConditionsParseTree,
     pub resources: ResourcesParseTree,
+    pub outputs: OutputsParseTree,
 }
 
 impl CloudformationParseTree {
@@ -54,16 +56,30 @@ impl CloudformationParseTree {
             None => Parameters::new(),
             Some(params) => build_parameters(params)?,
         };
-        let conditions = build_conditions(json_obj["Conditions"].as_object().unwrap())?;
+
+        let conditions = match json_obj["Conditions"].as_object() {
+            None => ConditionsParseTree::new(),
+            Some(x) => build_conditions(x)?,
+        };
+
+        // All stacks must have resources, so no checking.
         let resources = build_resources(json_obj["Resources"].as_object().unwrap())?;
-        let mappings: MappingsParseTree =
-            build_mappings(json_obj["Mappings"].as_object().unwrap())?;
+
+        let mappings = match json_obj["Mappings"].as_object() {
+            None => MappingsParseTree::new(),
+            Some(x) => build_mappings(x)?,
+        };
+        let outputs = match json_obj["Outputs"].as_object() {
+            None => OutputsParseTree::new(),
+            Some(x) => build_outputs(x)?,
+        };
 
         Ok(CloudformationParseTree {
             parameters,
             conditions,
             resources,
             mappings,
+            outputs,
         })
     }
 }

@@ -52,6 +52,7 @@ impl TypescriptSynthesizer {
             let synthed = synthesize_condition_recursive(&cond.value);
             println!("const {} = {};", camel_case(&cond.name), synthed)
         }
+
         for reference in ir.resources.iter() {
             let mut split_ref = reference.resource_type.split("::");
             split_ref.next();
@@ -81,7 +82,7 @@ impl TypescriptSynthesizer {
             println!("}});");
 
             if let Some(metadata) = &reference.metadata {
-                println!("{}.addOverride('Metadata', {{", camel_case(&reference.name));
+                println!("{}.addOverride('Metadata', ", camel_case(&reference.name));
                 match to_string_ir(metadata) {
                     None => panic!("This should never fail"),
                     Some(x) => {
@@ -89,7 +90,7 @@ impl TypescriptSynthesizer {
                     }
                 };
 
-                println!("}});");
+                println!(");");
             }
             if let Some(update_policy) = &reference.update_policy {
                 println!(
@@ -108,6 +109,25 @@ impl TypescriptSynthesizer {
             if let Some(_x) = &reference.condition {
                 println!("}}")
             }
+        }
+
+        for output in ir.outputs {
+            println!("new cdk.CfnOutput(this, '{}', {{", output.name);
+
+            let export_str = output.export.and_then(|x| to_string_ir(&x));
+            if let Some(export) = export_str {
+                println!("\texportName: {},", export);
+            }
+            match to_string_ir(&output.value) {
+                None => {
+                    panic!("Can't happen")
+                }
+                Some(x) => {
+                    println!("\tvalue: {}", x);
+                }
+            }
+
+            println!("}});");
         }
 
         println!("\t}}");
