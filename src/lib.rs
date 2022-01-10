@@ -2,10 +2,10 @@
 
 use crate::parser::condition::{build_conditions, ConditionsParseTree};
 use crate::parser::lookup_table::{build_mappings, MappingsParseTree};
+use crate::parser::output::{build_outputs, OutputsParseTree};
 use crate::parser::parameters::{build_parameters, Parameters};
 use crate::parser::resource::{build_resources, ResourceValue, ResourcesParseTree};
 use serde_json::Value;
-use crate::parser::output::{build_outputs, OutputsParseTree};
 
 pub mod integrations;
 pub mod ir;
@@ -79,7 +79,7 @@ impl CloudformationParseTree {
             conditions,
             resources,
             mappings,
-            outputs
+            outputs,
         })
     }
 }

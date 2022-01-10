@@ -111,7 +111,6 @@ impl TypescriptSynthesizer {
             }
         }
 
-
         for output in ir.outputs {
             println!("new cdk.CfnOutput(this, '{}', {{", output.name);
 
@@ -120,7 +119,9 @@ impl TypescriptSynthesizer {
                 println!("\texportName: {},", export);
             }
             match to_string_ir(&output.value) {
-                None => {panic!("Can't happen")}
+                None => {
+                    panic!("Can't happen")
+                }
                 Some(x) => {
                     println!("\tvalue: {}", x);
                 }

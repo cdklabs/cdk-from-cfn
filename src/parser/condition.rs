@@ -58,7 +58,6 @@ impl Default for ConditionsParseTree {
     }
 }
 
-
 pub fn build_conditions(vals: &Map<String, Value>) -> Result<ConditionsParseTree, TransmuteError> {
     let mut conditions = ConditionsParseTree::new();
 

@@ -81,11 +81,11 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
             let rt = ResourceTranslationInputs {
                 parse_tree,
                 complexity: property_rule.get_complexity(),
-                resource_metadata: Option::Some(ResourceMetadata{
+                resource_metadata: Option::Some(ResourceMetadata {
                     specification: &spec,
                     property_type,
                     resource_type: &resource.resource_type,
-                })
+                }),
             };
 
             let ir = translate_resource(prop, &rt).unwrap();
@@ -143,7 +143,7 @@ fn optional_ir_json(
         let rt = ResourceTranslationInputs {
             parse_tree,
             complexity,
-            resource_metadata: Option::None
+            resource_metadata: Option::None,
         };
 
         let ir = translate_resource(x, &rt).unwrap();
@@ -240,12 +240,20 @@ pub fn translate_resource(
                     Complexity::Complex(_) => {
                         // Update the rule with it's underlying property rule.
                         let mut new_rt = resource_translator.clone();
-                        let resource_metadata = resource_translator.resource_metadata.as_ref()
-                            .unwrap();
+                        let resource_metadata =
+                            resource_translator.resource_metadata.as_ref().unwrap();
                         let rule = resource_metadata
                             .specification
                             .property_types
-                            .get(&resource_translator.resource_metadata.as_ref().unwrap().property_type.unwrap().to_string())
+                            .get(
+                                &resource_translator
+                                    .resource_metadata
+                                    .as_ref()
+                                    .unwrap()
+                                    .property_type
+                                    .unwrap()
+                                    .to_string(),
+                            )
                             .unwrap();
                         let properties = rule.properties.as_ref().unwrap();
                         let property_rule = properties.get(s).unwrap();

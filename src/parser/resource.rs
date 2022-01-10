@@ -95,7 +95,10 @@ pub fn build_resources(
     Ok(ResourcesParseTree { resources })
 }
 
-pub fn build_resources_recursively(name: &str, obj: &Value) -> Result<ResourceValue, TransmuteError> {
+pub fn build_resources_recursively(
+    name: &str,
+    obj: &Value,
+) -> Result<ResourceValue, TransmuteError> {
     let val = match obj {
         Value::String(x) => return Ok(ResourceValue::String(x.to_string())),
         Value::Object(x) => x,

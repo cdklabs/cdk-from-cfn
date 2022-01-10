@@ -2,17 +2,17 @@ use crate::ir::conditions::ConditionInstruction;
 use crate::ir::constructor::Constructor;
 use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::MappingInstruction;
+use crate::ir::outputs::OutputInstruction;
 use crate::ir::resources::ResourceInstruction;
 use crate::{CloudformationParseTree, TransmuteError};
-use crate::ir::outputs::OutputInstruction;
 
 pub mod conditions;
 pub mod constructor;
 pub mod importer;
 pub mod mappings;
+pub mod outputs;
 pub mod reference;
 pub mod resources;
-pub mod outputs;
 
 pub struct CloudformationProgramIr {
     pub imports: Vec<ImportInstruction>,
@@ -31,7 +31,7 @@ impl CloudformationProgramIr {
             conditions: Vec::new(),
             mappings: Vec::new(),
             resources: Vec::new(),
-            outputs: Vec::new()
+            outputs: Vec::new(),
         }
     }
 
@@ -53,7 +53,7 @@ impl CloudformationProgramIr {
             conditions,
             mappings,
             resources,
-            outputs
+            outputs,
         })
     }
 }
