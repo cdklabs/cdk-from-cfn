@@ -58,27 +58,17 @@ impl TypescriptSynthesizer {
             let service = split_ref.next().unwrap().to_ascii_lowercase();
             let rtype = split_ref.next().unwrap();
 
-            match &reference.condition {
-                None => {
-                    println!(
-                        "let {} = new {}.Cfn{}(this, '{}', {{",
-                        camel_case(&reference.name),
-                        service,
-                        rtype,
-                        reference.name
-                    );
-                }
-                Some(x) => {
-                    println!(
-                        "let {} = ({}) ? new {}.Cfn{}(this, '{}', {{",
-                        camel_case(&reference.name),
-                        camel_case(x),
-                        service,
-                        rtype,
-                        reference.name
-                    );
-                }
+            if let Some(x) = &reference.condition {
+                println!("if ({}){{", camel_case(x));
             }
+
+            println!(
+                "let {} = new {}.Cfn{}(this, '{}', {{",
+                camel_case(&reference.name),
+                service,
+                rtype,
+                reference.name
+            );
 
             for (name, prop) in reference.properties.iter() {
                 match to_string_ir(prop) {
@@ -88,14 +78,35 @@ impl TypescriptSynthesizer {
                     }
                 }
             }
+            println!("}});");
 
-            match &reference.condition {
-                None => {
-                    println!("}});");
-                }
-                Some(_) => {
-                    println!("}}) : undefined;");
-                }
+            if let Some(metadata) = &reference.metadata {
+                println!("{}.addOverride('Metadata', {{", camel_case(&reference.name));
+                match to_string_ir(metadata) {
+                    None => panic!("This should never fail"),
+                    Some(x) => {
+                        println!("{}", x);
+                    }
+                };
+
+                println!("}});");
+            }
+            if let Some(update_policy) = &reference.update_policy {
+                println!(
+                    "{}.addOverride('UpdatePolicy', ",
+                    camel_case(&reference.name)
+                );
+                match to_string_ir(update_policy) {
+                    None => panic!("This should never fail"),
+                    Some(x) => {
+                        println!("{}", x);
+                    }
+                };
+                println!(");");
+            }
+
+            if let Some(_x) = &reference.condition {
+                println!("}}")
             }
         }
 

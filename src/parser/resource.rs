@@ -22,8 +22,7 @@ pub enum ResourceValue {
     Ref(String),
     Base64(Box<ResourceValue>),
     ImportValue(Box<ResourceValue>),
-    Select(Box<ResourceValue>, Box<ResourceValue>), // GetAZs
-                                                    // Cidr
+    Select(Box<ResourceValue>, Box<ResourceValue>),
 }
 
 impl ResourceValue {}
@@ -33,6 +32,8 @@ pub struct ResourceParseTree {
     pub name: String,
     pub resource_type: String,
     pub condition: Option<String>,
+    pub metadata: Option<ResourceValue>,
+    pub update_policy: Option<ResourceValue>,
     pub properties: HashMap<String, ResourceValue>,
 }
 
@@ -68,8 +69,23 @@ pub fn build_resources(
             let result = build_resources_recursively(name, prop_value)?;
             properties.insert(prop_name.to_owned(), result);
         }
+
+        let metadata_obj = resource_object.get("Metadata");
+        let mut metadata = Option::None;
+        if let Some(x) = metadata_obj {
+            metadata = Option::Some(build_resources_recursively(name, x)?);
+        }
+
+        let update_policy_obj = resource_object.get("UpdatePolicy");
+        let mut update_policy = Option::None;
+        if let Some(x) = update_policy_obj {
+            update_policy = Option::Some(build_resources_recursively(name, x)?);
+        }
+
         resources.push(ResourceParseTree {
             name: name.to_owned(),
+            metadata,
+            update_policy,
             resource_type,
             condition,
             properties,

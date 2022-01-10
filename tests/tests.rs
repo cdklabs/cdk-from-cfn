@@ -32,6 +32,8 @@ fn test_parse_tree_basics() {
     let resource = ResourceParseTree {
         name: "LogicalResource".into(),
         condition: Option::None,
+        metadata: Option::None,
+        update_policy: Option::None,
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => ResourceValue::String("bob".into()),
@@ -60,6 +62,8 @@ fn test_parse_tree_sub_str() {
     let resource = ResourceParseTree {
         name: "LogicalResource".into(),
         condition: Option::None,
+        metadata: Option::None,
+        update_policy: Option::None,
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => ResourceValue::Sub(vec![ResourceValue::String("bobs-role-${AWS::Region}".into())])
@@ -92,6 +96,8 @@ fn test_parse_tree_sub_list() {
         name: "LogicalResource".into(),
         condition: Option::None,
         resource_type: "AWS::IAM::Role".into(),
+        metadata: Option::None,
+        update_policy: Option::None,
         properties: map! {
             "RoleName" => ResourceValue::Sub(vec![
                 ResourceValue::String("bobs-role-${Region}".into()),
