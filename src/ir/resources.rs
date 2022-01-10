@@ -50,7 +50,8 @@ pub struct ResourceTranslationInputs<'t> {
 pub struct ResourceInstruction {
     pub name: String,
     pub condition: Option<String>,
-    pub metadata: Option<HashMap<String, ResourceIr>>,
+    pub metadata: Option<ResourceIr>,
+    pub update_policy: Option<ResourceIr>,
     pub resource_type: String,
     pub properties: HashMap<String, ResourceIr>,
 }
@@ -83,35 +84,29 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
             let ir = translate_resource(prop, &rt).unwrap();
             props.insert(name.to_string(), ir);
         }
+        let metadata = optional_ir_json(&spec, parse_tree, &resource.metadata).unwrap();
 
-        let mut metadata = HashMap::new();
+        let mut update_policy: Option<ResourceIr> = Option::None;
+        if let Some(x) = &resource.update_policy {
+            let complexity = Complexity::Simple(SimpleType::Json);
+            let property_type = Option::None;
+            let rt = ResourceTranslationInputs {
+                parse_tree,
+                complexity,
+                specification: &spec,
+                property_type,
+                resource_type: "",
+            };
 
-        if let Some(x) = &resource.metadata {
-            for (name, prop) in x.iter() {
-                // from the getgo, metadata is always a json type to not be fiddled with.
-                let complexity = Complexity::Simple(SimpleType::Json);
-                let property_type = Option::None;
-                let rt = ResourceTranslationInputs {
-                    parse_tree,
-                    complexity,
-                    specification: &spec,
-                    property_type,
-                    resource_type: &resource.resource_type,
-                };
-
-                let ir = translate_resource(prop, &rt).unwrap();
-                metadata.insert(name.to_string(), ir);
-            }
+            let ir = translate_resource(x, &rt).unwrap();
+            update_policy = Option::Some(ir);
         }
 
-        let metadata = match metadata.len() {
-            0 => Option::None,
-            _ => Option::Some(metadata),
-        };
         resource_instructions.push(ResourceInstruction {
             name: resource.name.to_string(),
             resource_type: resource.resource_type.to_string(),
             metadata,
+            update_policy,
             condition: resource.condition.clone(),
             properties: props,
         });
@@ -145,6 +140,30 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruc
         }
     }
     sorted_instructions
+}
+
+fn optional_ir_json(
+    spec: &Specification,
+    parse_tree: &CloudformationParseTree,
+    input: &Option<ResourceValue>,
+) -> Result<Option<ResourceIr>, TransmuteError> {
+    let mut policy: Option<ResourceIr> = Option::None;
+    if let Some(x) = input {
+        let complexity = Complexity::Simple(SimpleType::Json);
+        let property_type = Option::None;
+        let rt = ResourceTranslationInputs {
+            parse_tree,
+            complexity,
+            specification: spec,
+            property_type,
+            resource_type: "",
+        };
+
+        let ir = translate_resource(x, &rt).unwrap();
+        policy = Option::Some(ir);
+    }
+
+    Ok(policy)
 }
 
 fn find_dependencies(
@@ -435,6 +454,8 @@ mod tests {
         let ir_instruction = ResourceInstruction {
             name: "A".to_string(),
             condition: None,
+            metadata: Option::None,
+            update_policy: Option::None,
             resource_type: "".to_string(),
             properties: HashMap::new(),
         };
@@ -442,6 +463,8 @@ mod tests {
         let later = ResourceInstruction {
             name: "B".to_string(),
             condition: None,
+            metadata: Option::None,
+            update_policy: Option::None,
             resource_type: "".to_string(),
             properties: create_property(
                 "something",

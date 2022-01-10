@@ -32,7 +32,8 @@ pub struct ResourceParseTree {
     pub name: String,
     pub resource_type: String,
     pub condition: Option<String>,
-    pub metadata: Option<HashMap<String, ResourceValue>>,
+    pub metadata: Option<ResourceValue>,
+    pub update_policy: Option<ResourceValue>,
     pub properties: HashMap<String, ResourceValue>,
 }
 
@@ -69,24 +70,22 @@ pub fn build_resources(
             properties.insert(prop_name.to_owned(), result);
         }
 
-        let mut metadata = HashMap::new();
-        let metadata_obj = resource_object.get("Metadata").and_then(|x| x.as_object());
-
+        let metadata_obj = resource_object.get("Metadata");
+        let mut metadata = Option::None;
         if let Some(x) = metadata_obj {
-            for (metadata_name, metadata_value) in x {
-                let result = build_resources_recursively(metadata_name, metadata_value)?;
-                metadata.insert(metadata_name.to_owned(), result);
-            }
+            metadata = Option::Some(build_resources_recursively(name, x)?);
         }
 
-        let metadata = match metadata.len() {
-            0 => Option::None,
-            _ => Option::Some(metadata),
-        };
+        let update_policy_obj = resource_object.get("UpdatePolicy");
+        let mut update_policy = Option::None;
+        if let Some(x) = update_policy_obj {
+            update_policy = Option::Some(build_resources_recursively(name, x)?);
+        }
 
         resources.push(ResourceParseTree {
             name: name.to_owned(),
             metadata,
+            update_policy,
             resource_type,
             condition,
             properties,

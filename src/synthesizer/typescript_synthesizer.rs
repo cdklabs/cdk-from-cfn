@@ -82,15 +82,27 @@ impl TypescriptSynthesizer {
 
             if let Some(metadata) = &reference.metadata {
                 println!("{}.addOverride('Metadata', {{", camel_case(&reference.name));
-                for (name, prop) in metadata.iter() {
-                    match to_string_ir(prop) {
-                        None => panic!("This should never fail"),
-                        Some(x) => {
-                            println!("\t'{}':{}", name, x);
-                        }
+                match to_string_ir(metadata) {
+                    None => panic!("This should never fail"),
+                    Some(x) => {
+                        println!("{}", x);
                     }
-                }
+                };
+
                 println!("}});");
+            }
+            if let Some(update_policy) = &reference.update_policy {
+                println!(
+                    "{}.addOverride('UpdatePolicy', ",
+                    camel_case(&reference.name)
+                );
+                match to_string_ir(update_policy) {
+                    None => panic!("This should never fail"),
+                    Some(x) => {
+                        println!("{}", x);
+                    }
+                };
+                println!(");");
             }
 
             if let Some(_x) = &reference.condition {
