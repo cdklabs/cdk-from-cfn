@@ -38,9 +38,14 @@ pub enum ResourceIr {
 /// for resource types.
 #[derive(Clone, Debug)]
 pub struct ResourceTranslationInputs<'t> {
-    parse_tree: &'t CloudformationParseTree,
+    pub parse_tree: &'t CloudformationParseTree,
+    pub complexity: Complexity,
+    pub resource_metadata: Option<ResourceMetadata<'t>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ResourceMetadata<'t> {
     specification: &'t Specification,
-    complexity: Complexity,
     property_type: Option<&'t str>,
     resource_type: &'t str,
 }
@@ -75,33 +80,19 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
             let property_type = property_type.as_deref();
             let rt = ResourceTranslationInputs {
                 parse_tree,
-                specification: &spec,
                 complexity: property_rule.get_complexity(),
-                property_type,
-                resource_type: &resource.resource_type,
+                resource_metadata: Option::Some(ResourceMetadata{
+                    specification: &spec,
+                    property_type,
+                    resource_type: &resource.resource_type,
+                })
             };
 
             let ir = translate_resource(prop, &rt).unwrap();
             props.insert(name.to_string(), ir);
         }
-        let metadata = optional_ir_json(&spec, parse_tree, &resource.metadata).unwrap();
-
-        let mut update_policy: Option<ResourceIr> = Option::None;
-        if let Some(x) = &resource.update_policy {
-            let complexity = Complexity::Simple(SimpleType::Json);
-            let property_type = Option::None;
-            let rt = ResourceTranslationInputs {
-                parse_tree,
-                complexity,
-                specification: &spec,
-                property_type,
-                resource_type: "",
-            };
-
-            let ir = translate_resource(x, &rt).unwrap();
-            update_policy = Option::Some(ir);
-        }
-
+        let metadata = optional_ir_json(parse_tree, &resource.metadata).unwrap();
+        let update_policy = optional_ir_json(parse_tree, &resource.update_policy).unwrap();
         resource_instructions.push(ResourceInstruction {
             name: resource.name.to_string(),
             resource_type: resource.resource_type.to_string(),
@@ -143,20 +134,16 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruc
 }
 
 fn optional_ir_json(
-    spec: &Specification,
     parse_tree: &CloudformationParseTree,
     input: &Option<ResourceValue>,
 ) -> Result<Option<ResourceIr>, TransmuteError> {
     let mut policy: Option<ResourceIr> = Option::None;
     if let Some(x) = input {
         let complexity = Complexity::Simple(SimpleType::Json);
-        let property_type = Option::None;
         let rt = ResourceTranslationInputs {
             parse_tree,
             complexity,
-            specification: spec,
-            property_type,
-            resource_type: "",
+            resource_metadata: Option::None
         };
 
         let ir = translate_resource(x, &rt).unwrap();
@@ -224,7 +211,7 @@ fn find_dependencies(
     }
 }
 
-fn translate_resource(
+pub fn translate_resource(
     resource_value: &ResourceValue,
     resource_translator: &ResourceTranslationInputs,
 ) -> Result<ResourceIr, TransmuteError> {
@@ -253,19 +240,23 @@ fn translate_resource(
                     Complexity::Complex(_) => {
                         // Update the rule with it's underlying property rule.
                         let mut new_rt = resource_translator.clone();
-                        let rule = resource_translator
+                        let resource_metadata = resource_translator.resource_metadata.as_ref()
+                            .unwrap();
+                        let rule = resource_metadata
                             .specification
                             .property_types
-                            .get(&resource_translator.property_type.unwrap().to_string())
+                            .get(&resource_translator.resource_metadata.as_ref().unwrap().property_type.unwrap().to_string())
                             .unwrap();
                         let properties = rule.properties.as_ref().unwrap();
                         let property_rule = properties.get(s).unwrap();
                         new_rt.complexity = property_rule.get_complexity();
                         let opt = Specification::full_property_name(
                             &property_rule.get_complexity(),
-                            resource_translator.resource_type,
+                            resource_metadata.resource_type,
                         );
-                        new_rt.property_type = opt.as_deref();
+                        let mut new_metadata = resource_metadata.clone();
+                        new_metadata.property_type = opt.as_deref();
+                        new_rt.resource_metadata.replace(new_metadata);
                         translate_resource(rv, &new_rt)?
                     }
                 };
