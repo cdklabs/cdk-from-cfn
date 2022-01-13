@@ -76,6 +76,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
     let val = match obj {
         Value::String(x) => return Ok(ConditionValue::Str(x.to_string())),
         Value::Number(x) => return Ok(ConditionValue::Str(x.to_string())),
+        Value::Bool(x) => return Ok(ConditionValue::Str(x.to_string())),
         Value::Object(x) => x,
         _ => {
             return Err(TransmuteError {
@@ -84,7 +85,8 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
         }
     };
 
-    // there should only be one key, but for now iterate over all keys
+    // At this point, we have an object-json, and need to iterate over all
+    // the keys
     #[allow(clippy::never_loop)]
     for (condition_name, condition_object) in val {
         let cond: ConditionValue = match condition_name.as_str() {
@@ -215,6 +217,6 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
     }
 
     Err(TransmuteError {
-        details: String::from("Nothing found?"),
+        details: format!("Could not match the pattern for {}, {:?}", name, obj),
     })
 }

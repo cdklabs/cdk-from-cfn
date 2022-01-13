@@ -140,7 +140,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::Null => Option::None,
         ResourceIr::Bool(b) => Option::Some(b.to_string()),
         ResourceIr::Number(n) => Option::Some(n.to_string()),
-        ResourceIr::String(s) => Option::Some(format!("\'{}\'", s)),
+        ResourceIr::String(s) => Option::Some(format!("\'{}\'", s.replace("'", "\\'").replace("\n","\\n"))),
         ResourceIr::Array(_, arr) => {
             let mut v = Vec::new();
             for a in arr {
@@ -165,7 +165,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
                             Complexity::Simple(_) => s.to_string(),
                             Complexity::Complex(_) => camel_case(s),
                         };
-                        if s.chars().all(char::is_alphanumeric) {
+                        if s.chars().all(char::is_alphanumeric) && !s.starts_with(char::is_numeric) {
                             v.push(format!("{}: {}", s, r));
                         } else {
                             v.push(format!("\"{}\": {}", s, r));
@@ -184,7 +184,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             for i in arr.iter() {
                 match i {
                     ResourceIr::String(s) => r.push(s.to_string()),
-                    &_ => r.push(format!("${{ {} }}", to_string_ir(i).unwrap())),
+                    &_ => r.push(format!("${{{}}}", to_string_ir(i).unwrap())),
                 };
             }
             Option::Some(format!("`{}`", r.join("")))

@@ -4,10 +4,8 @@ json into beautiful typescript...until now.
 
 Noctilucent will take your json and output the equivalent typescript.
 
-## Progress on Intrinsic Functions
+## Implemented
 
-There are known unsupported features that require some thinking
-about. These are those features:
 - [x] Fn::FindInMap
 - [x] Fn::Join
 - [x] Fn::Sub
@@ -21,16 +19,17 @@ about. These are those features:
 - [x] Fn::Base64 support
 - [x] Fn::ImportValue support
 - [x] Fn::Select support
-- [ ] Fn::Cidr support
-- [ ] Fn::GetAZs support
-- [ ] Fn::Transform (do we even want it?)
-
-## Remaining implementation fixes
-
 - [x] Resource ordering based on dependencies
 - [x] Conditions are emitted in ts but not attached to resource conditions
 - [x] Metadata emission for updates to asgs / lambda functions.
-- [ ] Emission of outputs / exports
+- [x] Emission of outputs / exports
+
+## Remaining
+
+There are known unsupported features. Working on them in priority order:
+
+- [ ] Fn::GetAZs support
 - [ ] Adding depends-on, and ordering based on it too.
+- [ ] Fn::Cidr support
 - [ ] ssm metadata references
 - [ ] secretsmanager references

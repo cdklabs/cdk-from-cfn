@@ -61,13 +61,11 @@ pub fn build_resources(
             .map(|t| t.to_string());
 
         let mut properties = HashMap::new();
-        for (prop_name, prop_value) in resource_object
-            .get("Properties")
-            .and_then(|x| x.as_object())
-            .unwrap()
-        {
-            let result = build_resources_recursively(name, prop_value)?;
-            properties.insert(prop_name.to_owned(), result);
+        if let Some(x) = resource_object.get("Properties").and_then(|x| x.as_object()){
+            for (prop_name, prop_value) in x {
+                let result = build_resources_recursively(name, prop_value)?;
+                properties.insert(prop_name.to_owned(), result);
+            }
         }
 
         let metadata_obj = resource_object.get("Metadata");
@@ -101,7 +99,6 @@ pub fn build_resources_recursively(
 ) -> Result<ResourceValue, TransmuteError> {
     let val = match obj {
         Value::String(x) => return Ok(ResourceValue::String(x.to_string())),
-        Value::Object(x) => x,
         Value::Null => return Ok(ResourceValue::Null),
         Value::Bool(b) => return Ok(ResourceValue::Bool(b.to_owned())),
         Value::Number(n) => return Ok(ResourceValue::Number(n.as_i64().unwrap())),
@@ -114,9 +111,11 @@ pub fn build_resources_recursively(
 
             return Ok(ResourceValue::Array(v));
         }
+        // Only real follow-up object
+        Value::Object(x) => x,
     };
 
-    if val.len() > 1 {
+    if val.len() > 1 || val.len() == 0 {
         let mut hm = HashMap::new();
         for (name, obj) in val {
             hm.insert(name.to_owned(), build_resources_recursively(name, obj)?);
@@ -378,11 +377,12 @@ pub fn build_resources_recursively(
                 }
             };
 
+
             return Ok(cond);
         }
     }
 
     Err(TransmuteError {
-        details: String::from("Nothing found?"),
+        details: format!("Could not find a parsable path for resource {}, {:?}", name, obj),
     })
 }
