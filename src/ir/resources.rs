@@ -31,6 +31,7 @@ pub enum ResourceIr {
     Map(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
     Base64(Box<ResourceIr>),
     ImportValue(Box<ResourceIr>),
+    GetAZs(Box<ResourceIr>),
     Select(i64, Box<ResourceIr>),
 }
 
@@ -57,6 +58,8 @@ pub struct ResourceInstruction {
     pub condition: Option<String>,
     pub metadata: Option<ResourceIr>,
     pub update_policy: Option<ResourceIr>,
+    pub deletion_policy: Option<String>,
+    pub dependencies: Vec<String>,
     pub resource_type: String,
     pub properties: HashMap<String, ResourceIr>,
 }
@@ -96,22 +99,26 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
         resource_instructions.push(ResourceInstruction {
             name: resource.name.to_string(),
             resource_type: resource.resource_type.to_string(),
-            metadata,
-            update_policy,
+            dependencies: resource.dependencies.clone(),
+            deletion_policy: resource.deletion_policy.clone(),
             condition: resource.condition.clone(),
             properties: props,
+            metadata,
+            update_policy,
         });
     }
     order(resource_instructions)
 }
 
 fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruction> {
-    //resource_instructions
     let mut topo = TopologicalSort::new();
     let mut hash = HashMap::new();
     for resource_instruction in resource_instructions {
         topo.insert(resource_instruction.name.to_string());
 
+        for dep in resource_instruction.dependencies.iter() {
+            topo.add_dependency(dep, resource_instruction.name.to_string());
+        }
         for (_, property) in resource_instruction.properties.iter() {
             find_dependencies(&resource_instruction.name, property, &mut topo)
         }
@@ -206,6 +213,9 @@ fn find_dependencies(
             find_dependencies(resource_name, x.deref(), topo);
         }
         ResourceIr::Select(_, x) => {
+            find_dependencies(resource_name, x.deref(), topo);
+        }
+        ResourceIr::GetAZs(x) => {
             find_dependencies(resource_name, x.deref(), topo);
         }
     }
@@ -415,6 +425,10 @@ pub fn translate_resource(
             let obj = translate_resource(x.deref(), resource_translator)?;
             Ok(ResourceIr::Select(index, Box::new(obj)))
         }
+        ResourceValue::GetAZs(x) => {
+            let ir = translate_resource(x, resource_translator)?;
+            Ok(ResourceIr::GetAZs(Box::new(ir)))
+        }
     }
 }
 
@@ -454,7 +468,9 @@ mod tests {
             name: "A".to_string(),
             condition: None,
             metadata: Option::None,
+            deletion_policy: Option::None,
             update_policy: Option::None,
+            dependencies: Vec::new(),
             resource_type: "".to_string(),
             properties: HashMap::new(),
         };
@@ -462,7 +478,9 @@ mod tests {
         let later = ResourceInstruction {
             name: "B".to_string(),
             condition: None,
+            dependencies: Vec::new(),
             metadata: Option::None,
+            deletion_policy: Option::None,
             update_policy: Option::None,
             resource_type: "".to_string(),
             properties: create_property(

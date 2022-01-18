@@ -17,6 +17,7 @@ pub enum ResourceValue {
     Sub(Vec<ResourceValue>),
     FindInMap(Box<ResourceValue>, Box<ResourceValue>, Box<ResourceValue>),
     GetAtt(Box<ResourceValue>, Box<ResourceValue>),
+    GetAZs(Box<ResourceValue>),
     If(Box<ResourceValue>, Box<ResourceValue>, Box<ResourceValue>),
     Join(Vec<ResourceValue>),
     Ref(String),
@@ -33,7 +34,9 @@ pub struct ResourceParseTree {
     pub resource_type: String,
     pub condition: Option<String>,
     pub metadata: Option<ResourceValue>,
+    pub dependencies: Vec<String>,
     pub update_policy: Option<ResourceValue>,
+    pub deletion_policy: Option<String>,
     pub properties: HashMap<String, ResourceValue>,
 }
 
@@ -61,7 +64,10 @@ pub fn build_resources(
             .map(|t| t.to_string());
 
         let mut properties = HashMap::new();
-        if let Some(x) = resource_object.get("Properties").and_then(|x| x.as_object()){
+        if let Some(x) = resource_object
+            .get("Properties")
+            .and_then(|x| x.as_object())
+        {
             for (prop_name, prop_value) in x {
                 let result = build_resources_recursively(name, prop_value)?;
                 properties.insert(prop_name.to_owned(), result);
@@ -80,10 +86,52 @@ pub fn build_resources(
             update_policy = Option::Some(build_resources_recursively(name, x)?);
         }
 
+        let deletion_policy = resource_object
+            .get("UpdatePolicy")
+            .and_then(|x| x.as_str())
+            .map(|x| x.to_string());
+
+        let depends_on = resource_object.get("DependsOn");
+        let mut dependencies = Vec::new();
+
+        if let Some(x) = depends_on {
+            match x {
+                Value::String(x) => {
+                    dependencies.push(x.to_string());
+                }
+                Value::Array(x) => {
+                    for dep in x.iter() {
+                        match dep.as_str() {
+                            None => {
+                                return Err(TransmuteError {
+                                    details: format!(
+                                        "DependsOn attribute has an array of non-strings, which isn't allowed {}", name
+                                    ),
+                                })
+                            }
+                            Some(x) => {
+                                dependencies.push(x.to_string());
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    return Err(TransmuteError {
+                        details: format!(
+                            "DependsOn attribute can only be a string or an array {}",
+                            name
+                        ),
+                    })
+                }
+            }
+        }
+
         resources.push(ResourceParseTree {
             name: name.to_owned(),
             metadata,
+            dependencies,
             update_policy,
+            deletion_policy,
             resource_type,
             condition,
             properties,
@@ -115,7 +163,7 @@ pub fn build_resources_recursively(
         Value::Object(x) => x,
     };
 
-    if val.len() > 1 || val.len() == 0 {
+    if val.len() > 1 || val.is_empty() {
         let mut hm = HashMap::new();
         for (name, obj) in val {
             hm.insert(name.to_owned(), build_resources_recursively(name, obj)?);
@@ -239,6 +287,28 @@ pub fn build_resources_recursively(
 
                     ResourceValue::GetAtt(Box::new(first_obj), Box::new(second_obj))
                 }
+                "Fn::GetAZs" => {
+                    let v = match resource_object {
+                        Value::String(_) => {
+                            build_resources_recursively(name, resource_object)
+                        }
+                        Value::Object(_) => {
+                            build_resources_recursively(name, resource_object)
+                        }
+                        x => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::GetAZs only takes a string as input for resource {} value: {:?}",
+                                    name, x
+                                ),
+                            })
+
+                        }
+                    }?;
+
+                    ResourceValue::GetAZs(Box::new(v))
+                }
+
                 "Fn::Base64" => {
                     let resolved_obj = build_resources_recursively(name, resource_object)?;
                     ResourceValue::Base64(Box::new(resolved_obj))
@@ -377,12 +447,14 @@ pub fn build_resources_recursively(
                 }
             };
 
-
             return Ok(cond);
         }
     }
 
     Err(TransmuteError {
-        details: format!("Could not find a parsable path for resource {}, {:?}", name, obj),
+        details: format!(
+            "Could not find a parsable path for resource {}, {:?}",
+            name, obj
+        ),
     })
 }

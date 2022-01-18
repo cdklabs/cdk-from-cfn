@@ -106,6 +106,25 @@ impl TypescriptSynthesizer {
                 println!(");");
             }
 
+            if let Some(deletion_policy) = &reference.deletion_policy {
+                println!(
+                    "{}.addOverride('DeletionPolicy', '{}');",
+                    camel_case(&reference.name),
+                    deletion_policy
+                );
+            }
+            if !reference.dependencies.is_empty() {
+                println!("{}.addOverride('DependsOn', [", camel_case(&reference.name));
+
+                let x: Vec<String> = reference
+                    .dependencies
+                    .iter()
+                    .map(|x| format!("'{}'", x))
+                    .collect();
+                println!("{}", x.join(","));
+
+                println!("]);");
+            }
             if let Some(_x) = &reference.condition {
                 println!("}}")
             }
@@ -140,7 +159,10 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::Null => Option::None,
         ResourceIr::Bool(b) => Option::Some(b.to_string()),
         ResourceIr::Number(n) => Option::Some(n.to_string()),
-        ResourceIr::String(s) => Option::Some(format!("\'{}\'", s.replace("'", "\\'").replace("\n","\\n"))),
+        ResourceIr::String(s) => Option::Some(format!(
+            "\'{}\'",
+            s.replace('\'', "\\'").replace('\n', "\\n")
+        )),
         ResourceIr::Array(_, arr) => {
             let mut v = Vec::new();
             for a in arr {
@@ -165,7 +187,8 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
                             Complexity::Simple(_) => s.to_string(),
                             Complexity::Complex(_) => camel_case(s),
                         };
-                        if s.chars().all(char::is_alphanumeric) && !s.starts_with(char::is_numeric) {
+                        if s.chars().all(char::is_alphanumeric) && !s.starts_with(char::is_numeric)
+                        {
                             v.push(format!("{}: {}", s, r));
                         } else {
                             v.push(format!("\"{}\": {}", s, r));
@@ -233,6 +256,14 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::ImportValue(x) => {
             let str = to_string_ir(x.as_ref()).unwrap();
             Option::Some(format!("cdk.Fn.importValue({})", str))
+        }
+        ResourceIr::GetAZs(x) => {
+            let str = to_string_ir(x.as_ref()).unwrap();
+            // This means it's just a ""
+            if str.len() == 2 {
+                return Option::Some("cdk.Fn.getAZs()".to_string());
+            }
+            Option::Some(format!("cdk.Fn.getAZs({})", str))
         }
         ResourceIr::Select(index, obj) => {
             let str = to_string_ir(obj.as_ref()).unwrap();

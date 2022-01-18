@@ -23,13 +23,17 @@ Noctilucent will take your json and output the equivalent typescript.
 - [x] Conditions are emitted in ts but not attached to resource conditions
 - [x] Metadata emission for updates to asgs / lambda functions.
 - [x] Emission of outputs / exports
-
+- [x] Fn::GetAZs support
+- [x] Adding depends-on, and ordering based on it too.
+- [x] Deletion policy
+ 
 ## Remaining
 
 There are known unsupported features. Working on them in priority order:
 
-- [ ] Fn::GetAZs support
-- [ ] Adding depends-on, and ordering based on it too.
+
+
 - [ ] Fn::Cidr support
+- [ ] Create policy
 - [ ] ssm metadata references
 - [ ] secretsmanager references
