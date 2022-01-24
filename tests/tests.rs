@@ -1,4 +1,3 @@
-use noctilucent::parser::condition::{ConditionParseTree, ConditionValue};
 use noctilucent::parser::resource::{build_resources, ResourceParseTree, ResourceValue};
 use serde_json::Value;
 
@@ -34,6 +33,8 @@ fn test_parse_tree_basics() {
         condition: Option::None,
         metadata: Option::None,
         update_policy: Option::None,
+        deletion_policy: Option::None,
+        dependencies: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => ResourceValue::String("bob".into()),
@@ -64,6 +65,8 @@ fn test_parse_tree_sub_str() {
         condition: Option::None,
         metadata: Option::None,
         update_policy: Option::None,
+        deletion_policy: Option::None,
+        dependencies: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => ResourceValue::Sub(vec![ResourceValue::String("bobs-role-${AWS::Region}".into())])
@@ -98,6 +101,8 @@ fn test_parse_tree_sub_list() {
         resource_type: "AWS::IAM::Role".into(),
         metadata: Option::None,
         update_policy: Option::None,
+        deletion_policy: Option::None,
+        dependencies: vec![],
         properties: map! {
             "RoleName" => ResourceValue::Sub(vec![
                 ResourceValue::String("bobs-role-${Region}".into()),
