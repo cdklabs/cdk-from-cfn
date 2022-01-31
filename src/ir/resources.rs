@@ -229,7 +229,16 @@ pub fn translate_resource(
         ResourceValue::Null => Ok(ResourceIr::Null),
         ResourceValue::Bool(b) => Ok(ResourceIr::Bool(*b)),
         ResourceValue::Number(n) => Ok(ResourceIr::Number(*n)),
-        ResourceValue::String(s) => Ok(ResourceIr::String(s.to_string())),
+        ResourceValue::String(s) => {
+            if let Complexity::Simple(simple_type) = &resource_translator.complexity {
+                return match simple_type {
+                    SimpleType::Boolean => Ok(ResourceIr::Bool(s.parse().unwrap())),
+                    SimpleType::Integer => Ok(ResourceIr::Number(s.parse().unwrap())),
+                    &_ => Ok(ResourceIr::String(s.to_string())),
+                };
+            }
+            Ok(ResourceIr::String(s.to_string()))
+        }
         ResourceValue::Array(parse_resource_vec) => {
             let mut array_ir = Vec::new();
             for parse_resource in parse_resource_vec {
@@ -320,7 +329,7 @@ pub fn translate_resource(
             let vars = sub_parse_tree(val.as_str())?;
             let r = vars
                 .iter()
-                .map(|x| match x {
+                .map(|x| match &x {
                     SubValue::String(x) => ResourceIr::String(x.to_string()),
                     SubValue::Variable(x) => match excess_map.get(x) {
                         None => {
