@@ -1,4 +1,4 @@
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use noctilucent::ir::CloudformationProgramIr;
 use noctilucent::synthesizer::typescript_synthesizer::TypescriptSynthesizer;
 use noctilucent::CloudformationParseTree;
@@ -6,7 +6,7 @@ use serde_json::Value;
 use std::fs;
 
 fn main() {
-    let matches = App::new("Translates cfn templates to cdk typescript")
+    let matches = Command::new("Translates cfn templates to cdk typescript")
         .version("1.0")
         .author("Sean Tyler Myers <seanmyers0608@gmail.com>")
         .about("Reads cfn templates and translates them to typescript")
