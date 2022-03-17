@@ -62,10 +62,10 @@ pub enum MappingInnerValue {
 impl Display for MappingInnerValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         return match self {
-            MappingInnerValue::String(string_val) => write!(f, "\"{}\"", string_val),
+            MappingInnerValue::String(string_val) => write!(f, "'{}'", string_val),
             MappingInnerValue::List(list_val) => {
                 let quoted_list_values: Vec<String> =
-                    list_val.iter().map(|val| format!("\"{}\"", val)).collect();
+                    list_val.iter().map(|val| format!("'{}'", val)).collect();
                 write!(f, "[{}]", quoted_list_values.join(","))
             }
         };
@@ -123,7 +123,7 @@ fn convert_to_string_vector(
                         "List values for mappings must be a string. Found {:?}, for key {}",
                         inner_key, vector_val
                     ),
-                })
+                });
             }
         };
         string_vector.push(converted_val);
