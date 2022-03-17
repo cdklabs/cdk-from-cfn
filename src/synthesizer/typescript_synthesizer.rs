@@ -16,31 +16,43 @@ impl TypescriptSynthesizer {
         let output = &mut String::new();
 
         for import in ir.imports {
-            append_str_with_linebreak(output, &format!(
-                "import * as {} from '{}';",
-                import.name,
-                import.path.join("/")
-            ));
+            append_with_newline(
+                output,
+                &format!(
+                    "import * as {} from '{}';",
+                    import.name,
+                    import.path.join("/")
+                ),
+            );
         }
         // Static imports with base assumptions (e.g. using base 64)
-        append_str_with_linebreak(output, "import {Buffer} from 'buffer';");
-        append_str_with_linebreak(output, "\n// Interfaces");
-        append_str_with_linebreak(output, "export interface NoctStackProps extends cdk.StackProps {");
+        append_with_newline(output, "import {Buffer} from 'buffer';");
+        append_with_newline(output, "\n// Interfaces");
+        append_with_newline(
+            output,
+            "export interface NoctStackProps extends cdk.StackProps {",
+        );
 
         for param in ir.constructor.inputs {
-            append_str_with_linebreak(output, &format!(
-                "\treadonly {}: {};",
-                camel_case(&param.name),
-                camel_case(&param.constructor_type)
-            ));
+            append_with_newline(
+                output,
+                &format!(
+                    "\treadonly {}: {};",
+                    camel_case(&param.name),
+                    camel_case(&param.constructor_type)
+                ),
+            );
         }
 
-        append_str_with_linebreak(output, "}");
-        append_str_with_linebreak(output, "\n// Stack");
-        append_str_with_linebreak(output, "export class NoctStack extends cdk.Stack {");
-        append_str_with_linebreak(output, "\tconstructor(scope: cdk.App, id: string, props: NoctStackProps) {");
-        append_str_with_linebreak(output, "\t\tsuper(scope, id, props);");
-        append_str_with_linebreak(output, "\n\t\t// Mappings");
+        append_with_newline(output, "}");
+        append_with_newline(output, "\n// Stack");
+        append_with_newline(output, "export class NoctStack extends cdk.Stack {");
+        append_with_newline(
+            output,
+            "\tconstructor(scope: cdk.App, id: string, props: NoctStackProps) {",
+        );
+        append_with_newline(output, "\t\tsuper(scope, id, props);");
+        append_with_newline(output, "\n\t\t// Mappings");
 
         for mapping in ir.mappings.iter() {
             let record_type = match mapping.find_first_type() {
@@ -48,27 +60,29 @@ impl TypescriptSynthesizer {
                 MappingInnerValue::List(_) => "Record<string, Record<string, Array<string>>>",
             };
 
-            append_str_with_linebreak(output, &format!(
-                "\t\tconst {}: {} = {};",
-                camel_case(&mapping.name),
-                record_type,
-                synthesize_mapping_instruction(mapping),
-            ));
+            append_with_newline(
+                output,
+                &format!(
+                    "\t\tconst {}: {} = {};",
+                    camel_case(&mapping.name),
+                    record_type,
+                    synthesize_mapping_instruction(mapping),
+                ),
+            );
         }
 
-        append_str_with_linebreak(output, "\n\t\t// Conditions");
+        append_with_newline(output, "\n\t\t// Conditions");
 
         for cond in ir.conditions {
             let synthed = synthesize_condition_recursive(&cond.value);
 
-            append_str_with_linebreak(output, &format!(
-                "\t\tconst {} = {};",
-                camel_case(&cond.name),
-                synthed
-            ));
+            append_with_newline(
+                output,
+                &format!("\t\tconst {} = {};", camel_case(&cond.name), synthed),
+            );
         }
 
-        append_str_with_linebreak(output, "\n\t\t// Resources");
+        append_with_newline(output, "\n\t\t// Resources");
 
         for reference in ir.resources.iter() {
             let mut split_ref = reference.resource_type.split("::");
@@ -77,73 +91,95 @@ impl TypescriptSynthesizer {
             let rtype = split_ref.next().unwrap();
 
             if let Some(x) = &reference.condition {
-                append_str_with_linebreak(output, &format!("\t\tif ({}) {{", camel_case(x)));
+                append_with_newline(output, &format!("\t\tif ({}) {{", camel_case(x)));
             }
 
-            append_str_with_linebreak(output, &format!(
-                "\t\tconst {} = new {}.Cfn{}(this, '{}', {{",
-                camel_case(&reference.name),
-                service,
-                rtype,
-                reference.name,
-            ));
+            append_with_newline(
+                output,
+                &format!(
+                    "\t\tconst {} = new {}.Cfn{}(this, '{}', {{",
+                    camel_case(&reference.name),
+                    service,
+                    rtype,
+                    reference.name,
+                ),
+            );
 
             for (i, (name, prop)) in reference.properties.iter().enumerate() {
                 match to_string_ir(prop) {
                     None => {}
                     Some(x) => {
-                        append_str_with_linebreak(output, &format!(
-                            "{}: {}{}",
-                            camel_case(name),
-                            x,
-                            // Remove trailing comma.
-                            if i == reference.properties.len() - 1 { "" } else { "," }
-                        ));
+                        append_with_newline(
+                            output,
+                            &format!(
+                                "{}: {}{}",
+                                camel_case(name),
+                                x,
+                                // Remove trailing comma.
+                                if i == reference.properties.len() - 1 {
+                                    ""
+                                } else {
+                                    ","
+                                }
+                            ),
+                        );
                     }
                 }
             }
 
-            append_str_with_linebreak(output, "\t\t});");
+            append_with_newline(output, "\t\t});");
 
             if let Some(metadata) = &reference.metadata {
-                append_str_with_linebreak(output, &format!("{}.addOverride('Metadata', ", camel_case(&reference.name)));
+                append_with_newline(
+                    output,
+                    &format!("{}.addOverride('Metadata', ", camel_case(&reference.name)),
+                );
 
                 match to_string_ir(metadata) {
                     None => panic!("This should never fail"),
                     Some(x) => {
-                        append_str_with_linebreak(output, &format!("{}", x));
+                        append_with_newline(output, &x.to_string());
                     }
                 };
 
-                append_str_with_linebreak(output, ");");
+                append_with_newline(output, ");");
             }
 
             if let Some(update_policy) = &reference.update_policy {
-                append_str_with_linebreak(output, &format!(
-                    "{}.addOverride('UpdatePolicy', ",
-                    camel_case(&reference.name),
-                ));
+                append_with_newline(
+                    output,
+                    &format!(
+                        "{}.addOverride('UpdatePolicy', ",
+                        camel_case(&reference.name),
+                    ),
+                );
 
                 match to_string_ir(update_policy) {
                     None => panic!("This should never fail"),
                     Some(x) => {
-                        append_str_with_linebreak(output, &format!("{}", x));
+                        append_with_newline(output, &x.to_string());
                     }
                 };
 
-                append_str_with_linebreak(output, ");");
+                append_with_newline(output, ");");
             }
 
             if let Some(deletion_policy) = &reference.deletion_policy {
-                append_str_with_linebreak(output, &format!(
-                    "{}.addOverride('DeletionPolicy', '{}');",
-                    camel_case(&reference.name),
-                    deletion_policy,
-                ));
+                append_with_newline(
+                    output,
+                    &format!(
+                        "{}.addOverride('DeletionPolicy', '{}');",
+                        camel_case(&reference.name),
+                        deletion_policy,
+                    ),
+                );
             }
 
             if !reference.dependencies.is_empty() {
-                append_str_with_linebreak(output, &format!("{}.addOverride('DependsOn', [", camel_case(&reference.name)));
+                append_with_newline(
+                    output,
+                    &format!("{}.addOverride('DependsOn', [", camel_case(&reference.name)),
+                );
 
                 let x: Vec<String> = reference
                     .dependencies
@@ -151,24 +187,27 @@ impl TypescriptSynthesizer {
                     .map(|x| format!("'{}'", x))
                     .collect();
 
-                append_str_with_linebreak(output, &format!("{}", x.join(",")));
-                append_str_with_linebreak(output, "]);");
+                append_with_newline(output, &x.join(",").to_string());
+                append_with_newline(output, "]);");
             }
 
             if let Some(_x) = &reference.condition {
-                append_str_with_linebreak(output, "}")
+                append_with_newline(output, "}")
             }
         }
 
-        append_str_with_linebreak(output, "\n\t\t// Outputs");
+        append_with_newline(output, "\n\t\t// Outputs");
 
         for op in ir.outputs {
-            append_str_with_linebreak(output, &format!("new cdk.CfnOutput(this, '{}', {{", op.name));
+            append_with_newline(
+                output,
+                &format!("new cdk.CfnOutput(this, '{}', {{", op.name),
+            );
 
             let export_str = op.export.and_then(|x| to_string_ir(&x));
 
             if let Some(export) = export_str {
-                append_str_with_linebreak(output, &format!("\texportName: {},", export));
+                append_with_newline(output, &format!("\texportName: {},", export));
             }
 
             match to_string_ir(&op.value) {
@@ -176,17 +215,17 @@ impl TypescriptSynthesizer {
                     panic!("Can't happen")
                 }
                 Some(x) => {
-                    append_str_with_linebreak(output, &format!("\tvalue: {}", x));
+                    append_with_newline(output, &format!("\tvalue: {}", x));
                 }
             }
 
-            append_str_with_linebreak(output, "});");
+            append_with_newline(output, "});");
         }
 
-        append_str_with_linebreak(output, "\t}");
-        append_str_with_linebreak(output, "}");
+        append_with_newline(output, "\t}");
+        append_with_newline(output, "}");
 
-        return output.to_string();
+        output.to_string()
     }
 }
 
@@ -197,10 +236,9 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::Null => Option::None,
         ResourceIr::Bool(b) => Option::Some(b.to_string()),
         ResourceIr::Number(n) => Option::Some(n.to_string()),
-        ResourceIr::String(s) => Option::Some(format!(
-            "'{}'",
-            s.replace('\'', "\\'").replace('\n', "\\n")
-        )),
+        ResourceIr::String(s) => {
+            Option::Some(format!("'{}'", s.replace('\'', "\\'").replace('\n', "\\n")))
+        }
         ResourceIr::Array(_, arr) => {
             let mut v = Vec::new();
             for a in arr {
@@ -272,12 +310,19 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
                 Some(x) => x,
             };
 
-            if false_expr == "{}" || false_expr == "[]" {
-                // false_expr here ("{}" or "[]") might give a type mismatch error so we remove it.
-                Option::Some(format!("{}", true_expr))
-            } else {
-                Option::Some(format!("{} ? {} : {}", bool_expr, true_expr, false_expr))
-            }
+            Option::Some(format!(
+                "{} ? {} : {}",
+                bool_expr,
+                true_expr,
+                // Convert "{}" to undefined to avoid type mismatch errors. This works for most cases
+                // but not all, e.g., Type 'undefined' is not assignable to type 'IResolvable | PolicyProperty'.
+                // As of now, the user should manually fix when still seeing type mismatch errors.
+                if false_expr == "{}" {
+                    "undefined".to_string()
+                } else {
+                    false_expr
+                }
+            ))
         }
         ResourceIr::Join(sep, join_obj) => {
             let mut strs = Vec::new();
@@ -385,8 +430,7 @@ fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) 
     for (inner_mapping_key, inner_mapping_value) in inner_mapping {
         inner_mapping_entries.push(format!(
             "\t\t\t\t'{}': {}",
-            inner_mapping_key,
-            inner_mapping_value
+            inner_mapping_key, inner_mapping_value
         ));
     }
     inner_mapping_ts_str.push_str(&inner_mapping_entries.join(",\n"));
@@ -394,6 +438,6 @@ fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) 
     inner_mapping_ts_str
 }
 
-fn append_str_with_linebreak(result: &mut String, string: &str) {
+fn append_with_newline(result: &mut String, string: &str) {
     result.push_str(&format!("{}\n", string));
 }

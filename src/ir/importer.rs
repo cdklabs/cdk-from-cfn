@@ -27,7 +27,7 @@ impl Importer {
             // We will always include the cdk, as it's used to build the stack.
             ImportInstruction {
                 name: "cdk".to_string(),
-                path: vec!["monocdk".to_string()],
+                path: vec!["aws-cdk-lib".to_string()],
             },
         ];
 
@@ -35,7 +35,7 @@ impl Importer {
             import_instructions.push(ImportInstruction {
                 name: type_name.service.to_string(),
                 path: vec![
-                    "monocdk".to_string(),
+                    "aws-cdk-lib".to_string(),
                     format!("{}-{}", type_name.organization, type_name.service).to_string(),
                 ],
             })
