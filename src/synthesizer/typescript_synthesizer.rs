@@ -115,11 +115,10 @@ impl TypescriptSynthesizer {
                                 "{}: {}{}",
                                 camel_case(name),
                                 x,
-                                // Remove trailing comma.
-                                if i == reference.properties.len() - 1 {
-                                    ""
-                                } else {
-                                    ","
+                                match i {
+                                    // Remove trailing comma.
+                                    x if x == reference.properties.len() - 1 => "",
+                                    _ => ",",
                                 }
                             ),
                         );
@@ -306,23 +305,14 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
                 Some(x) => x,
             };
             let false_expr = match to_string_ir(false_expr) {
-                None => String::from("{}"),
+                // Convert to undefined to avoid type mismatch errors. This works for most cases but
+                // not all, e.g., Type 'undefined' is not assignable to type 'IResolvable | PolicyProperty'.
+                // As of now, the user should manually fix when still seeing type mismatch errors.
+                None => String::from("undefined"),
                 Some(x) => x,
             };
 
-            Option::Some(format!(
-                "{} ? {} : {}",
-                bool_expr,
-                true_expr,
-                // Convert "{}" to undefined to avoid type mismatch errors. This works for most cases
-                // but not all, e.g., Type 'undefined' is not assignable to type 'IResolvable | PolicyProperty'.
-                // As of now, the user should manually fix when still seeing type mismatch errors.
-                if false_expr == "{}" {
-                    "undefined".to_string()
-                } else {
-                    false_expr
-                }
-            ))
+            Option::Some(format!("{} ? {} : {}", bool_expr, true_expr, false_expr))
         }
         ResourceIr::Join(sep, join_obj) => {
             let mut strs = Vec::new();
