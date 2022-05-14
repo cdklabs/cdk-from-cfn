@@ -76,6 +76,34 @@ fn test_parse_tree_sub_str() {
 }
 
 #[test]
+fn test_parse_get_attr_shorthand() {
+    let a = serde_json::json!({
+        "LogicalResource": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": {
+                    "Fn::GetAtt": "Foo.Bar"
+                }
+            }
+        }
+    });
+
+    let resource = ResourceParseTree {
+        name: "LogicalResource".into(),
+        condition: Option::None,
+        metadata: Option::None,
+        update_policy: Option::None,
+        deletion_policy: Option::None,
+        dependencies: vec![],
+        resource_type: "AWS::IAM::Role".into(),
+        properties: map! {
+            "RoleName" => ResourceValue::GetAtt(Box::new(ResourceValue::String("Foo".to_string())), Box::new(ResourceValue::String("Bar".to_string())))
+        },
+    };
+    assert_resource_equal(a, resource);
+}
+
+#[test]
 fn test_parse_tree_sub_list() {
     let a = serde_json::json!({
         "LogicalResource": {

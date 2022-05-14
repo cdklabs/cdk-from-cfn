@@ -250,8 +250,45 @@ pub fn build_resources_recursively(
                     )
                 }
                 "Fn::GetAtt" => {
-                    let v = match resource_object.as_array() {
-                        None => {
+                    match resource_object {
+                        // Short form: "Fn::GetAttr": "blah.blah"
+                        Value::String(x) => {
+                            let split_str: Vec<&str> = x.splitn(2, '.').collect();
+                            let resource_ref = split_str.get(0).unwrap();
+                            let attribute_ref = split_str.get(1).unwrap();
+
+                            ResourceValue::GetAtt(
+                                Box::new(ResourceValue::String(resource_ref.to_string())),
+                                Box::new(ResourceValue::String(attribute_ref.to_string())),
+                            )
+                        }
+                        Value::Array(v) => {
+                            let first_obj = match v.get(0) {
+                                None => {
+                                    return Err(TransmuteError {
+                                        details: format!(
+                                            "Fn::GetAtt is supposed to have 3 values in array, has 0 {}",
+                                            name
+                                        ),
+                                    })
+                                }
+                                Some(x) => build_resources_recursively(name, x),
+                            }?;
+                            let second_obj = match v.get(1) {
+                                None => {
+                                    return Err(TransmuteError {
+                                        details: format!(
+                                            "Fn::GetAtt is supposed to have 3 values in array, has 1 {}",
+                                            name
+                                        ),
+                                    })
+                                }
+                                Some(x) => build_resources_recursively(name, x),
+                            }?;
+
+                            ResourceValue::GetAtt(Box::new(first_obj), Box::new(second_obj))
+                        }
+                        &_ => {
                             return Err(TransmuteError {
                                 details: format!(
                                     "Fn::GetAtt is supposed to be an array entry {}",
@@ -259,33 +296,7 @@ pub fn build_resources_recursively(
                                 ),
                             })
                         }
-                        Some(x) => x,
-                    };
-
-                    let first_obj = match v.get(0) {
-                        None => {
-                            return Err(TransmuteError {
-                                details: format!(
-                                    "Fn::GetAtt is supposed to have 3 values in array, has 0 {}",
-                                    name
-                                ),
-                            })
-                        }
-                        Some(x) => build_resources_recursively(name, x),
-                    }?;
-                    let second_obj = match v.get(1) {
-                        None => {
-                            return Err(TransmuteError {
-                                details: format!(
-                                    "Fn::GetAtt is supposed to have 3 values in array, has 1 {}",
-                                    name
-                                ),
-                            })
-                        }
-                        Some(x) => build_resources_recursively(name, x),
-                    }?;
-
-                    ResourceValue::GetAtt(Box::new(first_obj), Box::new(second_obj))
+                    }
                 }
                 "Fn::GetAZs" => {
                     let v = match resource_object {
