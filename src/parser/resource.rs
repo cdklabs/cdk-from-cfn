@@ -202,7 +202,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to be an array entry {}",
+                                    "Fn::FindInMap is supposed to be an array entry {}",
                                     name
                                 ),
                             })
@@ -214,7 +214,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to have 3 values in array, has 0 {}",
+                                    "Fn::FindInMap is supposed to have 3 values in array, has 0 {}",
                                     name
                                 ),
                             })
@@ -225,7 +225,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to have 3 values in array, has 1 {}",
+                                    "Fn::FindInMap is supposed to have 3 values in array, has 1 {}",
                                     name
                                 ),
                             })
@@ -236,7 +236,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to have 3 values in array, has 2 {}",
+                                    "Fn::FindInMap is supposed to have 3 values in array, has 2 {}",
                                     name
                                 ),
                             })
@@ -254,7 +254,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to be an array entry {}",
+                                    "Fn::GetAtt is supposed to be an array entry {}",
                                     name
                                 ),
                             })
@@ -266,7 +266,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to have 3 values in array, has 0 {}",
+                                    "Fn::GetAtt is supposed to have 3 values in array, has 0 {}",
                                     name
                                 ),
                             })
@@ -277,7 +277,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to have 3 values in array, has 1 {}",
+                                    "Fn::GetAtt is supposed to have 3 values in array, has 1 {}",
                                     name
                                 ),
                             })
@@ -402,7 +402,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to be an array entry {}",
+                                    "Fn::Join is supposed to be an array entry {}",
                                     name
                                 ),
                             })
