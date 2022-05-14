@@ -68,22 +68,17 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
     let spec = spec();
     let mut resource_instructions = Vec::new();
     for resource in parse_tree.resources.resources.iter() {
-        let resource_spec = spec
-            .resource_types
-            .get(&resource.resource_type)
-            .unwrap()
-            .properties
-            .as_ref();
         let mut props = HashMap::new();
+        let resource_spec = spec.get_resource(&resource.resource_type).unwrap();
         for (name, prop) in resource.properties.iter() {
-            let property_rule = resource_spec.unwrap().get(name).unwrap();
-            let complexity = property_rule.get_complexity();
+            let complexity = resource_spec.property_complexity(name).unwrap();
+
             let property_type =
                 Specification::full_property_name(&complexity, &resource.resource_type);
             let property_type = property_type.as_deref();
             let rt = ResourceTranslationInputs {
                 parse_tree,
-                complexity: property_rule.get_complexity(),
+                complexity,
                 resource_metadata: Option::Some(ResourceMetadata {
                     specification: &spec,
                     property_type,
@@ -132,7 +127,12 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruc
                 panic!("Cyclic dependency in your resources ")
             }
             Some(x) => {
-                let rs = hash.remove(&x).unwrap();
+                let rs = match hash.remove(&x) {
+                    None => {
+                        panic!("Attempted to reference or depend on a resource not defined in the CloudFormation template. Resource: {}", x);
+                    }
+                    Some(x) => x,
+                };
                 sorted_instructions.push(rs);
             }
         }
