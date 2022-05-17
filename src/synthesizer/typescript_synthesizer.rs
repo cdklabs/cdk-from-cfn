@@ -86,9 +86,16 @@ impl TypescriptSynthesizer {
 
         for reference in ir.resources.iter() {
             let mut split_ref = reference.resource_type.split("::");
-            split_ref.next();
-            let service = split_ref.next().unwrap().to_ascii_lowercase();
-            let rtype = split_ref.next().unwrap();
+            let base_type = split_ref.next().unwrap();
+            let service: String;
+            let rtype: String;
+            if base_type.starts_with("Custom") {
+                service = String::from("CloudFormation").to_ascii_lowercase();
+                rtype = String::from("CustomResource");
+            } else {
+                service = split_ref.next().unwrap().to_ascii_lowercase();
+                rtype = String::from(split_ref.next().unwrap());
+            }
 
             if let Some(x) = &reference.condition {
                 append_with_newline(output, &format!("\t\tif ({}) {{", camel_case(x)));
