@@ -143,6 +143,50 @@ fn test_parse_tree_sub_list() {
     assert_resource_equal(a, resource);
 }
 
+#[test]
+fn test_parse_tree_resource_with_floats() {
+    let a = serde_json::json!({
+        "Alarm": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+                "AlarmName": {
+                    "Fn::Sub": [
+                        "${Tag}-FrontendDistributedCacheTrafficImbalanceAlarm",
+                        {
+                            "Tag": {
+                               "Ref": "AWS::Region"
+                            }
+                        }
+                    ]
+                },
+                "Threshold": 3.5
+            }
+        }
+    });
+
+    let resource = ResourceParseTree {
+        name: "Alarm".into(),
+        condition: Option::None,
+        resource_type: "AWS::CloudWatch::Alarm".into(),
+        metadata: Option::None,
+        update_policy: Option::None,
+        deletion_policy: Option::None,
+        dependencies: vec![],
+        properties: map! {
+            "AlarmName" => ResourceValue::Sub(vec![
+                ResourceValue::String("${Tag}-FrontendDistributedCacheTrafficImbalanceAlarm".into()),
+                ResourceValue::Object(map!{
+                    "Tag" =>  ResourceValue::Ref("AWS::Region".into())
+                })
+            ]),
+            "ComparisonOperator" => ResourceValue::String("GreaterThanOrEqualToThreshold"),
+            "Threshold" => ResourceValue::Double(3.5)
+        },
+    };
+    assert_resource_equal(a, resource);
+}
+
 fn assert_resource_equal(val: Value, resource: ResourceParseTree) {
     let obj = val.as_object().unwrap();
     let resources = build_resources(obj).unwrap();
