@@ -167,7 +167,11 @@ fn find_dependencies(
     topo: &mut TopologicalSort<String>,
 ) {
     match resource {
-        ResourceIr::Null | ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::Double(_) | ResourceIr::String(_) => {}
+        ResourceIr::Null
+        | ResourceIr::Bool(_)
+        | ResourceIr::Number(_)
+        | ResourceIr::Double(_)
+        | ResourceIr::String(_) => {}
 
         ResourceIr::Array(_, arr) => {
             for x in arr {

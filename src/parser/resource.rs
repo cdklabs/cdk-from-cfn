@@ -1,6 +1,6 @@
 use crate::TransmuteError;
-use serde_json::{Map, Value};
 use numberkit::is_digit;
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::{f64, fmt};
 
@@ -34,6 +34,12 @@ impl ResourceValue {}
 #[derive(Debug, Clone, Copy)]
 pub struct WrapperF64 {
     num: f64,
+}
+
+impl WrapperF64 {
+    pub fn new(num: f64) -> WrapperF64 {
+        WrapperF64 { num }
+    }
 }
 
 impl PartialEq for WrapperF64 {
@@ -176,9 +182,11 @@ pub fn build_resources_recursively(
             if is_digit(n.to_string(), false) {
                 return Ok(ResourceValue::Number(n.as_i64().unwrap()));
             }
-            let val = WrapperF64 { num: n.as_f64().unwrap() };
+            let val = WrapperF64 {
+                num: n.as_f64().unwrap(),
+            };
             return Ok(ResourceValue::Double(val));
-        },
+        }
         Value::Array(arr) => {
             let mut v = Vec::new();
             for item in arr.iter() {
@@ -283,7 +291,7 @@ pub fn build_resources_recursively(
                         // Short form: "Fn::GetAttr": "blah.blah"
                         Value::String(x) => {
                             let split_str: Vec<&str> = x.splitn(2, '.').collect();
-                            let resource_ref = split_str.get(0).unwrap();
+                            let resource_ref = split_str.first().unwrap();
                             let attribute_ref = split_str.get(1).unwrap();
 
                             ResourceValue::GetAtt(

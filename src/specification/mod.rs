@@ -24,7 +24,7 @@ pub struct Rule {
 // Complex means there are deeper structures, and CDK
 // has enough information to actually camel case, so
 // you have to camelcase as well.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Complexity {
     Simple(SimpleType),
     Complex(String),
@@ -33,7 +33,7 @@ pub enum Complexity {
 // SimpleType is the primitives in the CloudFormation specification.
 // They are when CFN just "doesn't care anymore" and doesn't do anything
 // outside of parse-classification-errors.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
 pub enum SimpleType {
     Boolean,
     Integer,

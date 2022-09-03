@@ -7,7 +7,7 @@ use nom::sequence::delimited;
 use nom::Err;
 use nom::IResult;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SubValue {
     String(String),
     Variable(String),

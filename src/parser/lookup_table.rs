@@ -132,16 +132,16 @@ fn convert_to_string_vector(
 }
 
 fn ensure_object<'a>(name: &str, obj: &'a Value) -> Result<&'a Map<String, Value>, TransmuteError> {
-    return match obj {
+    match obj {
         Value::Object(x) => Ok(x),
         _ => Err(TransmuteError {
             details: format!("Mapping must be an object {}, {:?}", name, obj),
         }),
-    };
+    }
 }
 
 fn ensure_mapping_value_type(name: &str, obj: &Value) -> Result<MappingInnerValue, TransmuteError> {
-    return match obj {
+    match obj {
         Value::String(x) => Ok(MappingInnerValue::String(x.to_string())),
         Value::Number(x) => Ok(MappingInnerValue::String(x.to_string())),
         Value::Array(x) => Ok(MappingInnerValue::List(convert_to_string_vector(x, name)?)),
@@ -151,5 +151,5 @@ fn ensure_mapping_value_type(name: &str, obj: &Value) -> Result<MappingInnerValu
                 name, obj
             ),
         }),
-    };
+    }
 }

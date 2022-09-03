@@ -1,4 +1,6 @@
-use noctilucent::parser::resource::{build_resources, ResourceParseTree, ResourceValue};
+use noctilucent::parser::resource::{
+    build_resources, ResourceParseTree, ResourceValue, WrapperF64,
+};
 use serde_json::Value;
 
 macro_rules! map(
@@ -180,8 +182,8 @@ fn test_parse_tree_resource_with_floats() {
                     "Tag" =>  ResourceValue::Ref("AWS::Region".into())
                 })
             ]),
-            "ComparisonOperator" => ResourceValue::String("GreaterThanOrEqualToThreshold"),
-            "Threshold" => ResourceValue::Double(3.5)
+            "ComparisonOperator" => ResourceValue::String("GreaterThanOrEqualToThreshold".to_string()),
+            "Threshold" => ResourceValue::Double(WrapperF64::new(3.5))
         },
     };
     assert_resource_equal(a, resource);

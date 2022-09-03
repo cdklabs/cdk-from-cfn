@@ -437,5 +437,5 @@ fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) 
 }
 
 fn append_with_newline(result: &mut String, string: &str) {
-    result.push_str(&format!("{}\n", string));
+    String::push_str(result, &format!("{}\n", string));
 }
