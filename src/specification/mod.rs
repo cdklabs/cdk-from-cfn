@@ -93,7 +93,7 @@ impl PropertyRule {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Specification {
-    #[serde(alias = "PropertyTypes")]
+    #[serde(alias = "PropertyTypes", with = "::serde_with::rust::maps_first_key_wins")]
     pub property_types: HashMap<String, Rule>,
 
     #[serde(alias = "ResourceTypes")]
