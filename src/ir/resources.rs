@@ -1,5 +1,5 @@
 use crate::ir::reference::{Origin, Reference};
-use crate::parser::resource::ResourceValue;
+use crate::parser::resource::{ResourceValue, WrapperF64};
 use crate::parser::sub::{sub_parse_tree, SubValue};
 use crate::specification::{spec, Complexity, SimpleType, Specification};
 use crate::{CloudformationParseTree, TransmuteError};
@@ -16,6 +16,7 @@ pub enum ResourceIr {
     Null,
     Bool(bool),
     Number(i64),
+    Double(WrapperF64),
     String(String),
 
     // Higher level resolutions
@@ -166,7 +167,7 @@ fn find_dependencies(
     topo: &mut TopologicalSort<String>,
 ) {
     match resource {
-        ResourceIr::Null | ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::String(_) => {}
+        ResourceIr::Null | ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::Double(_) | ResourceIr::String(_) => {}
 
         ResourceIr::Array(_, arr) => {
             for x in arr {
@@ -229,6 +230,7 @@ pub fn translate_resource(
         ResourceValue::Null => Ok(ResourceIr::Null),
         ResourceValue::Bool(b) => Ok(ResourceIr::Bool(*b)),
         ResourceValue::Number(n) => Ok(ResourceIr::Number(*n)),
+        ResourceValue::Double(d) => Ok(ResourceIr::Double(*d)),
         ResourceValue::String(s) => {
             if let Complexity::Simple(simple_type) = &resource_translator.complexity {
                 return match simple_type {

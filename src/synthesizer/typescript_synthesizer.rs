@@ -242,6 +242,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::Null => Option::None,
         ResourceIr::Bool(b) => Option::Some(b.to_string()),
         ResourceIr::Number(n) => Option::Some(n.to_string()),
+        ResourceIr::Double(d) => Option::Some(d.to_string()),
         ResourceIr::String(s) => {
             Option::Some(format!("'{}'", s.replace('\'', "\\'").replace('\n', "\\n")))
         }

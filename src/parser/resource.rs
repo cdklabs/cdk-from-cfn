@@ -1,6 +1,8 @@
 use crate::TransmuteError;
 use serde_json::{Map, Value};
+use numberkit::is_digit;
 use std::collections::HashMap;
+use std::{f64, fmt};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ResourceValue {
@@ -8,6 +10,7 @@ pub enum ResourceValue {
     Null,
     Bool(bool),
     Number(i64),
+    Double(WrapperF64),
     String(String),
     Array(Vec<ResourceValue>),
     Object(HashMap<String, ResourceValue>),
@@ -27,6 +30,26 @@ pub enum ResourceValue {
 }
 
 impl ResourceValue {}
+
+#[derive(Debug, Clone, Copy)]
+pub struct WrapperF64 {
+    num: f64,
+}
+
+impl PartialEq for WrapperF64 {
+    fn eq(&self, other: &Self) -> bool {
+        // It's equal if the diff is very small
+        (self.num - other.num).abs() < 0.0000001
+    }
+}
+
+impl fmt::Display for WrapperF64 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.num)
+    }
+}
+
+impl Eq for WrapperF64 {}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ResourceParseTree {
@@ -149,7 +172,13 @@ pub fn build_resources_recursively(
         Value::String(x) => return Ok(ResourceValue::String(x.to_string())),
         Value::Null => return Ok(ResourceValue::Null),
         Value::Bool(b) => return Ok(ResourceValue::Bool(b.to_owned())),
-        Value::Number(n) => return Ok(ResourceValue::Number(n.as_i64().unwrap())),
+        Value::Number(n) => {
+            if is_digit(n.to_string(), false) {
+                return Ok(ResourceValue::Number(n.as_i64().unwrap()));
+            }
+            let val = WrapperF64 { num: n.as_f64().unwrap() };
+            return Ok(ResourceValue::Double(val));
+        },
         Value::Array(arr) => {
             let mut v = Vec::new();
             for item in arr.iter() {
