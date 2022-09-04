@@ -3,7 +3,7 @@ use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct MappingsParseTree {
     pub mappings: HashMap<String, MappingParseTree>,
 }
@@ -26,19 +26,25 @@ impl MappingsParseTree {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct MappingParseTree {
     pub mappings: HashMap<String, HashMap<String, MappingInnerValue>>,
 }
 
+impl Default for MappingParseTree {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MappingParseTree {
-    fn new() -> MappingParseTree {
+    pub fn new() -> MappingParseTree {
         MappingParseTree {
             mappings: HashMap::new(),
         }
     }
 
-    fn insert(
+    pub fn insert(
         &mut self,
         outer_mapping_key: String,
         inner_mapping: HashMap<String, MappingInnerValue>,
@@ -53,9 +59,10 @@ impl MappingParseTree {
  *
  * https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/mappings-section-structure.html#mappings-section-structure-syntax
  */
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum MappingInnerValue {
     String(String),
+    Number(i64),
     List(Vec<String>),
 }
 
@@ -63,6 +70,7 @@ impl Display for MappingInnerValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         return match self {
             MappingInnerValue::String(string_val) => write!(f, "'{}'", string_val),
+            MappingInnerValue::Number(number_val) => write!(f, "{}", number_val),
             MappingInnerValue::List(list_val) => {
                 let quoted_list_values: Vec<String> =
                     list_val.iter().map(|val| format!("'{}'", val)).collect();
@@ -143,7 +151,7 @@ fn ensure_object<'a>(name: &str, obj: &'a Value) -> Result<&'a Map<String, Value
 fn ensure_mapping_value_type(name: &str, obj: &Value) -> Result<MappingInnerValue, TransmuteError> {
     match obj {
         Value::String(x) => Ok(MappingInnerValue::String(x.to_string())),
-        Value::Number(x) => Ok(MappingInnerValue::String(x.to_string())),
+        Value::Number(x) => Ok(MappingInnerValue::Number(x.as_i64().unwrap())),
         Value::Array(x) => Ok(MappingInnerValue::List(convert_to_string_vector(x, name)?)),
         _ => Err(TransmuteError {
             details: format!(

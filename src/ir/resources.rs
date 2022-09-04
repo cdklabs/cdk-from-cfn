@@ -239,7 +239,6 @@ pub fn translate_resource(
             if let Complexity::Simple(simple_type) = &resource_translator.complexity {
                 return match simple_type {
                     SimpleType::Boolean => Ok(ResourceIr::Bool(s.parse().unwrap())),
-                    SimpleType::Integer => Ok(ResourceIr::Number(s.parse().unwrap())),
                     &_ => Ok(ResourceIr::String(s.to_string())),
                 };
             }

@@ -1,7 +1,11 @@
+use noctilucent::parser::lookup_table::{
+    build_mappings, MappingInnerValue, MappingParseTree, MappingsParseTree,
+};
 use noctilucent::parser::resource::{
     build_resources, ResourceParseTree, ResourceValue, WrapperF64,
 };
 use serde_json::Value;
+use std::collections::HashMap;
 
 macro_rules! map(
     { $($key:expr => $value:expr),+ } => {
@@ -189,8 +193,38 @@ fn test_parse_tree_resource_with_floats() {
     assert_resource_equal(a, resource);
 }
 
+#[test]
+fn test_parse_mapping_tree_with_numbers() {
+    let mapping = serde_json::json!({
+        "FooMap": {
+            "BarOuterKey": {
+                "innerKey1": 1,
+                "innerKey2": 2,
+                "innerKey3": 3
+            }
+        }
+    });
+
+    let mut mapping_parsed = MappingsParseTree::new();
+    let mut outer_mapping = MappingParseTree::new();
+    let mut key_value_pairs: HashMap<String, MappingInnerValue> = HashMap::new();
+    key_value_pairs.insert("innerKey1".to_string(), MappingInnerValue::Number(1));
+    key_value_pairs.insert("innerKey2".to_string(), MappingInnerValue::Number(2));
+    key_value_pairs.insert("innerKey3".to_string(), MappingInnerValue::Number(3));
+    outer_mapping.insert("BarOuterKey".to_string(), key_value_pairs);
+    mapping_parsed.insert("FooMap".to_string(), outer_mapping);
+
+    assert_mapping_equal(mapping, mapping_parsed)
+}
+
 fn assert_resource_equal(val: Value, resource: ResourceParseTree) {
     let obj = val.as_object().unwrap();
     let resources = build_resources(obj).unwrap();
     assert_eq!(resources.resources[0], resource)
+}
+
+fn assert_mapping_equal(val: Value, mapping: MappingsParseTree) {
+    let obj = val.as_object().unwrap();
+    let mappings = build_mappings(obj).unwrap();
+    assert_eq!(mappings, mapping);
 }

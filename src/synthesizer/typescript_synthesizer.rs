@@ -57,6 +57,7 @@ impl TypescriptSynthesizer {
         for mapping in ir.mappings.iter() {
             let record_type = match mapping.find_first_type() {
                 MappingInnerValue::String(_) => "Record<string, Record<string, string>>",
+                MappingInnerValue::Number(_) => "Record<string, Record<string, number>>",
                 MappingInnerValue::List(_) => "Record<string, Record<string, Array<string>>>",
             };
 
