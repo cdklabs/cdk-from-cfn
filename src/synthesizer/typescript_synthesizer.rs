@@ -346,9 +346,9 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             let str = to_string_ir(x.as_ref()).unwrap();
             // This means it's just a ""
             if str.len() == 2 {
-                return Option::Some("cdk.Fn.getAZs()".to_string());
+                return Option::Some("cdk.Fn.getAzs()".to_string());
             }
-            Option::Some(format!("cdk.Fn.getAZs({})", str))
+            Option::Some(format!("cdk.Fn.getAzs({})", str))
         }
         ResourceIr::Select(index, obj) => {
             let str = to_string_ir(obj.as_ref()).unwrap();
