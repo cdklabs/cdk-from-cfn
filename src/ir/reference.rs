@@ -1,6 +1,6 @@
 use voca_rs::case::{camel_case, pascal_case};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Reference {
     pub origin: Origin,
     pub name: String,
@@ -50,7 +50,7 @@ impl Reference {
 }
 
 // Origin for the ReferenceTable
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Origin {
     Parameter,
     LogicalId,
@@ -60,7 +60,7 @@ pub enum Origin {
     PseudoParameter(PseudoParameter),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PseudoParameter {
     Partition,
     Region,

@@ -24,7 +24,7 @@ pub struct Rule {
 // Complex means there are deeper structures, and CDK
 // has enough information to actually camel case, so
 // you have to camelcase as well.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Complexity {
     Simple(SimpleType),
     Complex(String),
@@ -33,7 +33,7 @@ pub enum Complexity {
 // SimpleType is the primitives in the CloudFormation specification.
 // They are when CFN just "doesn't care anymore" and doesn't do anything
 // outside of parse-classification-errors.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
 pub enum SimpleType {
     Boolean,
     Integer,
@@ -93,7 +93,10 @@ impl PropertyRule {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Specification {
-    #[serde(alias = "PropertyTypes")]
+    #[serde(
+        alias = "PropertyTypes",
+        with = "::serde_with::rust::maps_first_key_wins"
+    )]
     pub property_types: HashMap<String, Rule>,
 
     #[serde(alias = "ResourceTypes")]
@@ -118,6 +121,60 @@ impl Specification {
                 }
 
                 Option::Some(full_rule_name)
+            }
+        }
+    }
+
+    pub fn get_resource(&self, resource_type: &str) -> Option<ResourceSpecification> {
+        if resource_type.starts_with("Custom::") {
+            let rules = self
+                .resource_types
+                .get("AWS::CloudFormation::CustomResource")
+                .and_then(|t| t.properties.as_ref());
+            return rules.map(|x| ResourceSpecification::new(x, ResourceType::Custom));
+        }
+        let rules = self
+            .resource_types
+            .get(resource_type)
+            .and_then(|t| t.properties.as_ref());
+        rules.map(|x| ResourceSpecification::new(x, ResourceType::Normal))
+    }
+}
+
+// Custom Resources have no specification to them, so we will not have them.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+enum ResourceType {
+    Normal,
+    Custom,
+}
+
+#[derive(Debug, Clone)]
+pub struct ResourceSpecification<'a> {
+    properties: &'a HashMap<String, PropertyRule>,
+    resource_type: ResourceType,
+}
+
+impl<'a> ResourceSpecification<'a> {
+    fn new(
+        props: &HashMap<String, PropertyRule>,
+        resource_type: ResourceType,
+    ) -> ResourceSpecification {
+        ResourceSpecification {
+            properties: props,
+            resource_type,
+        }
+    }
+    pub fn property_complexity(&self, property_name: &str) -> Option<Complexity> {
+        match self.resource_type {
+            ResourceType::Normal => {
+                let property_rule = self.properties.get(property_name);
+                property_rule.map(PropertyRule::get_complexity)
+            }
+            ResourceType::Custom => {
+                if property_name == "ServiceToken" {
+                    return Option::Some(Complexity::Simple(SimpleType::String));
+                }
+                Option::Some(Complexity::Simple(SimpleType::Json))
             }
         }
     }

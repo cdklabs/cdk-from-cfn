@@ -1,4 +1,6 @@
-use noctilucent::parser::resource::{build_resources, ResourceParseTree, ResourceValue};
+use noctilucent::parser::resource::{
+    build_resources, ResourceParseTree, ResourceValue, WrapperF64,
+};
 use serde_json::Value;
 
 macro_rules! map(
@@ -76,6 +78,34 @@ fn test_parse_tree_sub_str() {
 }
 
 #[test]
+fn test_parse_get_attr_shorthand() {
+    let a = serde_json::json!({
+        "LogicalResource": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": {
+                    "Fn::GetAtt": "Foo.Bar"
+                }
+            }
+        }
+    });
+
+    let resource = ResourceParseTree {
+        name: "LogicalResource".into(),
+        condition: Option::None,
+        metadata: Option::None,
+        update_policy: Option::None,
+        deletion_policy: Option::None,
+        dependencies: vec![],
+        resource_type: "AWS::IAM::Role".into(),
+        properties: map! {
+            "RoleName" => ResourceValue::GetAtt(Box::new(ResourceValue::String("Foo".to_string())), Box::new(ResourceValue::String("Bar".to_string())))
+        },
+    };
+    assert_resource_equal(a, resource);
+}
+
+#[test]
 fn test_parse_tree_sub_list() {
     let a = serde_json::json!({
         "LogicalResource": {
@@ -110,6 +140,50 @@ fn test_parse_tree_sub_list() {
                     "Region" =>  ResourceValue::Ref("AWS::Region".into())
                 })
             ])
+        },
+    };
+    assert_resource_equal(a, resource);
+}
+
+#[test]
+fn test_parse_tree_resource_with_floats() {
+    let a = serde_json::json!({
+        "Alarm": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+                "AlarmName": {
+                    "Fn::Sub": [
+                        "${Tag}-FrontendDistributedCacheTrafficImbalanceAlarm",
+                        {
+                            "Tag": {
+                               "Ref": "AWS::Region"
+                            }
+                        }
+                    ]
+                },
+                "Threshold": 3.5
+            }
+        }
+    });
+
+    let resource = ResourceParseTree {
+        name: "Alarm".into(),
+        condition: Option::None,
+        resource_type: "AWS::CloudWatch::Alarm".into(),
+        metadata: Option::None,
+        update_policy: Option::None,
+        deletion_policy: Option::None,
+        dependencies: vec![],
+        properties: map! {
+            "AlarmName" => ResourceValue::Sub(vec![
+                ResourceValue::String("${Tag}-FrontendDistributedCacheTrafficImbalanceAlarm".into()),
+                ResourceValue::Object(map!{
+                    "Tag" =>  ResourceValue::Ref("AWS::Region".into())
+                })
+            ]),
+            "ComparisonOperator" => ResourceValue::String("GreaterThanOrEqualToThreshold".to_string()),
+            "Threshold" => ResourceValue::Double(WrapperF64::new(3.5))
         },
     };
     assert_resource_equal(a, resource);

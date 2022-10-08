@@ -1,13 +1,14 @@
 use crate::TransmuteError;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take, take_until};
-use nom::combinator::map;
+use nom::combinator::{map, rest};
+use nom::error::{Error, ErrorKind};
 use nom::multi::many1;
 use nom::sequence::delimited;
 use nom::Err;
 use nom::IResult;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SubValue {
     String(String),
     Variable(String),
@@ -15,6 +16,8 @@ pub enum SubValue {
 
 pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, TransmuteError> {
     let mut full_resolver = many1(inner_resolver);
+    // Remove the beginning and ending quotations, as they are annoying to add to the parse tree.
+    // TODO - just add them to the parse grammar to simplify this.
     let str = match str.strip_prefix('\"') {
         None => str,
         Some(x) => x,
@@ -23,6 +26,7 @@ pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, TransmuteError> {
         None => str,
         Some(x) => x,
     };
+
     match full_resolver(str) {
         Ok((remaining, built_subs)) => {
             let mut subs = built_subs;
@@ -43,13 +47,28 @@ pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, TransmuteError> {
 /// inner_resolver will do one of the following:
 /// * take until you see a ${ which is the start of the variable bits.
 /// * take something like ${ ... }
+/// TODO -- there are some Sub strings that will escape the $, that are not captured yet.
+///         Will need to rewrite the parse tree to handle character escapes.
 fn inner_resolver(str: &str) -> IResult<&str, SubValue> {
+    // Due to the caller being many1, we will need to create out own EOF error to
+    // stop the call pattern.
+    if str.is_empty() {
+        return IResult::Err(Err::Error(Error::new(str, ErrorKind::Eof)));
+    }
+
     let ir = alt((
+        // Attempt to find ${...} and eat those tokens.
         map(
             delimited(tag("${"), take_until("}"), take(1usize)),
             |var: &str| SubValue::Variable(var.to_string()),
         ),
+        // Attempt to eat anything before ${
         map(take_until("${"), |static_str: &str| {
+            SubValue::String(static_str.to_string())
+        }),
+        // Anything else is probably "the remaining tokens", consume the remaining tokens as no
+        // other values were found.
+        map(rest, |static_str: &str| {
             SubValue::String(static_str.to_string())
         }),
     ))(str);
@@ -64,11 +83,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() -> Result<(), TransmuteError> {
+    fn substitute_arn() -> Result<(), TransmuteError> {
         let prefix = String::from("arn:");
         let var = String::from("some_value");
         let postfix = String::from(":constant");
-
+        // for those who don't want to read: arn:${some_value}:constant
         let v = sub_parse_tree(format!("{}${{{}}}{}", prefix, var, postfix).as_str())?;
         assert_eq!(
             v,
@@ -103,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn subby() -> Result<(), TransmuteError> {
+    fn test_suffix_substitution() -> Result<(), TransmuteError> {
         let v = sub_parse_tree("${Tag}-Concatenated")?;
         assert_eq!(
             v,
@@ -112,6 +131,14 @@ mod tests {
                 SubValue::String(String::from("-Concatenated"))
             ]
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_no_substitution() -> Result<(), TransmuteError> {
+        let v = sub_parse_tree("NoSubstitution")?;
+        assert_eq!(v, vec![SubValue::String(String::from("NoSubstitution"))]);
 
         Ok(())
     }

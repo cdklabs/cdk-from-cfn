@@ -199,7 +199,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let arr = match condition_object.as_array() {
                     None => {
                         return Err(TransmuteError {
-                            details: format!("Condition must be an array {}", name),
+                            details: format!("Fn::FindInMap must form an array {}", name),
                         })
                     }
                     Some(x) => x,

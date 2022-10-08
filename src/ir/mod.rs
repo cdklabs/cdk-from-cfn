@@ -13,6 +13,7 @@ pub mod mappings;
 pub mod outputs;
 pub mod reference;
 pub mod resources;
+pub mod sub;
 
 pub struct CloudformationProgramIr {
     pub imports: Vec<ImportInstruction>,

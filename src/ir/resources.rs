@@ -1,6 +1,6 @@
 use crate::ir::reference::{Origin, Reference};
-use crate::parser::resource::ResourceValue;
-use crate::parser::sub::{sub_parse_tree, SubValue};
+use crate::ir::sub::{sub_parse_tree, SubValue};
+use crate::parser::resource::{ResourceValue, WrapperF64};
 use crate::specification::{spec, Complexity, SimpleType, Specification};
 use crate::{CloudformationParseTree, TransmuteError};
 use std::collections::HashMap;
@@ -16,6 +16,7 @@ pub enum ResourceIr {
     Null,
     Bool(bool),
     Number(i64),
+    Double(WrapperF64),
     String(String),
 
     // Higher level resolutions
@@ -68,22 +69,17 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
     let spec = spec();
     let mut resource_instructions = Vec::new();
     for resource in parse_tree.resources.resources.iter() {
-        let resource_spec = spec
-            .resource_types
-            .get(&resource.resource_type)
-            .unwrap()
-            .properties
-            .as_ref();
         let mut props = HashMap::new();
+        let resource_spec = spec.get_resource(&resource.resource_type).unwrap();
         for (name, prop) in resource.properties.iter() {
-            let property_rule = resource_spec.unwrap().get(name).unwrap();
-            let complexity = property_rule.get_complexity();
+            let complexity = resource_spec.property_complexity(name).unwrap();
+
             let property_type =
                 Specification::full_property_name(&complexity, &resource.resource_type);
             let property_type = property_type.as_deref();
             let rt = ResourceTranslationInputs {
                 parse_tree,
-                complexity: property_rule.get_complexity(),
+                complexity,
                 resource_metadata: Option::Some(ResourceMetadata {
                     specification: &spec,
                     property_type,
@@ -132,7 +128,12 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruc
                 panic!("Cyclic dependency in your resources ")
             }
             Some(x) => {
-                let rs = hash.remove(&x).unwrap();
+                let rs = match hash.remove(&x) {
+                    None => {
+                        panic!("Attempted to reference or depend on a resource not defined in the CloudFormation template. Resource: {}", x);
+                    }
+                    Some(x) => x,
+                };
                 sorted_instructions.push(rs);
             }
         }
@@ -166,7 +167,11 @@ fn find_dependencies(
     topo: &mut TopologicalSort<String>,
 ) {
     match resource {
-        ResourceIr::Null | ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::String(_) => {}
+        ResourceIr::Null
+        | ResourceIr::Bool(_)
+        | ResourceIr::Number(_)
+        | ResourceIr::Double(_)
+        | ResourceIr::String(_) => {}
 
         ResourceIr::Array(_, arr) => {
             for x in arr {
@@ -229,6 +234,7 @@ pub fn translate_resource(
         ResourceValue::Null => Ok(ResourceIr::Null),
         ResourceValue::Bool(b) => Ok(ResourceIr::Bool(*b)),
         ResourceValue::Number(n) => Ok(ResourceIr::Number(*n)),
+        ResourceValue::Double(d) => Ok(ResourceIr::Double(*d)),
         ResourceValue::String(s) => {
             if let Complexity::Simple(simple_type) = &resource_translator.complexity {
                 return match simple_type {

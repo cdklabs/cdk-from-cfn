@@ -1,4 +1,4 @@
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use noctilucent::ir::CloudformationProgramIr;
 use noctilucent::synthesizer::typescript_synthesizer::TypescriptSynthesizer;
 use noctilucent::CloudformationParseTree;
@@ -6,7 +6,7 @@ use serde_json::Value;
 use std::fs;
 
 fn main() {
-    let matches = App::new("Translates cfn templates to cdk typescript")
+    let matches = Command::new("Translates cfn templates to cdk typescript")
         .version("1.0")
         .author("Sean Tyler Myers <seanmyers0608@gmail.com>")
         .about("Reads cfn templates and translates them to typescript")
@@ -16,6 +16,12 @@ fn main() {
                 .required(true)
                 .index(1),
         )
+        .arg(
+            Arg::new("OUTPUT")
+                .help("Sets the output file to use")
+                .required(false)
+                .index(2),
+        )
         .get_matches();
 
     let txt_location: &str = matches.value_of("INPUT").unwrap();
@@ -24,5 +30,11 @@ fn main() {
 
     let cfn_tree = CloudformationParseTree::build(&value).unwrap();
     let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree).unwrap();
-    TypescriptSynthesizer::output(ir);
+    let output: String = TypescriptSynthesizer::output(ir);
+
+    if matches.is_present("OUTPUT") {
+        fs::write(matches.value_of("OUTPUT").unwrap(), output).expect("Unable to write file");
+    } else {
+        println!("{}", output);
+    }
 }

@@ -1,6 +1,8 @@
 use crate::TransmuteError;
+use numberkit::is_digit;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
+use std::{f64, fmt};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ResourceValue {
@@ -8,6 +10,7 @@ pub enum ResourceValue {
     Null,
     Bool(bool),
     Number(i64),
+    Double(WrapperF64),
     String(String),
     Array(Vec<ResourceValue>),
     Object(HashMap<String, ResourceValue>),
@@ -27,6 +30,32 @@ pub enum ResourceValue {
 }
 
 impl ResourceValue {}
+
+#[derive(Debug, Clone, Copy)]
+pub struct WrapperF64 {
+    num: f64,
+}
+
+impl WrapperF64 {
+    pub fn new(num: f64) -> WrapperF64 {
+        WrapperF64 { num }
+    }
+}
+
+impl PartialEq for WrapperF64 {
+    fn eq(&self, other: &Self) -> bool {
+        // It's equal if the diff is very small
+        (self.num - other.num).abs() < 0.0000001
+    }
+}
+
+impl fmt::Display for WrapperF64 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.num)
+    }
+}
+
+impl Eq for WrapperF64 {}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ResourceParseTree {
@@ -149,7 +178,15 @@ pub fn build_resources_recursively(
         Value::String(x) => return Ok(ResourceValue::String(x.to_string())),
         Value::Null => return Ok(ResourceValue::Null),
         Value::Bool(b) => return Ok(ResourceValue::Bool(b.to_owned())),
-        Value::Number(n) => return Ok(ResourceValue::Number(n.as_i64().unwrap())),
+        Value::Number(n) => {
+            if is_digit(n.to_string(), false) {
+                return Ok(ResourceValue::Number(n.as_i64().unwrap()));
+            }
+            let val = WrapperF64 {
+                num: n.as_f64().unwrap(),
+            };
+            return Ok(ResourceValue::Double(val));
+        }
         Value::Array(arr) => {
             let mut v = Vec::new();
             for item in arr.iter() {
@@ -202,7 +239,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to be an array entry {}",
+                                    "Fn::FindInMap is supposed to be an array entry {}",
                                     name
                                 ),
                             })
@@ -214,7 +251,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to have 3 values in array, has 0 {}",
+                                    "Fn::FindInMap is supposed to have 3 values in array, has 0 {}",
                                     name
                                 ),
                             })
@@ -225,7 +262,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to have 3 values in array, has 1 {}",
+                                    "Fn::FindInMap is supposed to have 3 values in array, has 1 {}",
                                     name
                                 ),
                             })
@@ -236,7 +273,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to have 3 values in array, has 2 {}",
+                                    "Fn::FindInMap is supposed to have 3 values in array, has 2 {}",
                                     name
                                 ),
                             })
@@ -250,42 +287,53 @@ pub fn build_resources_recursively(
                     )
                 }
                 "Fn::GetAtt" => {
-                    let v = match resource_object.as_array() {
-                        None => {
-                            return Err(TransmuteError {
-                                details: format!(
-                                    "Fn::Map is supposed to be an array entry {}",
-                                    name
-                                ),
-                            })
-                        }
-                        Some(x) => x,
-                    };
+                    match resource_object {
+                        // Short form: "Fn::GetAttr": "blah.blah"
+                        Value::String(x) => {
+                            let split_str: Vec<&str> = x.splitn(2, '.').collect();
+                            let resource_ref = split_str.first().unwrap();
+                            let attribute_ref = split_str.get(1).unwrap();
 
-                    let first_obj = match v.get(0) {
-                        None => {
-                            return Err(TransmuteError {
-                                details: format!(
-                                    "Fn::Map is supposed to have 3 values in array, has 0 {}",
-                                    name
-                                ),
-                            })
+                            ResourceValue::GetAtt(
+                                Box::new(ResourceValue::String(resource_ref.to_string())),
+                                Box::new(ResourceValue::String(attribute_ref.to_string())),
+                            )
                         }
-                        Some(x) => build_resources_recursively(name, x),
-                    }?;
-                    let second_obj = match v.get(1) {
-                        None => {
-                            return Err(TransmuteError {
-                                details: format!(
-                                    "Fn::Map is supposed to have 3 values in array, has 1 {}",
-                                    name
-                                ),
-                            })
-                        }
-                        Some(x) => build_resources_recursively(name, x),
-                    }?;
+                        Value::Array(v) => {
+                            let first_obj = match v.get(0) {
+                                None => {
+                                    return Err(TransmuteError {
+                                        details: format!(
+                                            "Fn::GetAtt is supposed to have 3 values in array, has 0 {}",
+                                            name
+                                        ),
+                                    })
+                                }
+                                Some(x) => build_resources_recursively(name, x),
+                            }?;
+                            let second_obj = match v.get(1) {
+                                None => {
+                                    return Err(TransmuteError {
+                                        details: format!(
+                                            "Fn::GetAtt is supposed to have 3 values in array, has 1 {}",
+                                            name
+                                        ),
+                                    })
+                                }
+                                Some(x) => build_resources_recursively(name, x),
+                            }?;
 
-                    ResourceValue::GetAtt(Box::new(first_obj), Box::new(second_obj))
+                            ResourceValue::GetAtt(Box::new(first_obj), Box::new(second_obj))
+                        }
+                        &_ => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::GetAtt is supposed to be an array entry {}",
+                                    name
+                                ),
+                            })
+                        }
+                    }
                 }
                 "Fn::GetAZs" => {
                     let v = match resource_object {
@@ -402,7 +450,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Map is supposed to be an array entry {}",
+                                    "Fn::Join is supposed to be an array entry {}",
                                     name
                                 ),
                             })

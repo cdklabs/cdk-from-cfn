@@ -62,10 +62,10 @@ pub enum MappingInnerValue {
 impl Display for MappingInnerValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         return match self {
-            MappingInnerValue::String(string_val) => write!(f, "\"{}\"", string_val),
+            MappingInnerValue::String(string_val) => write!(f, "'{}'", string_val),
             MappingInnerValue::List(list_val) => {
                 let quoted_list_values: Vec<String> =
-                    list_val.iter().map(|val| format!("\"{}\"", val)).collect();
+                    list_val.iter().map(|val| format!("'{}'", val)).collect();
                 write!(f, "[{}]", quoted_list_values.join(","))
             }
         };
@@ -123,7 +123,7 @@ fn convert_to_string_vector(
                         "List values for mappings must be a string. Found {:?}, for key {}",
                         inner_key, vector_val
                     ),
-                })
+                });
             }
         };
         string_vector.push(converted_val);
@@ -132,16 +132,16 @@ fn convert_to_string_vector(
 }
 
 fn ensure_object<'a>(name: &str, obj: &'a Value) -> Result<&'a Map<String, Value>, TransmuteError> {
-    return match obj {
+    match obj {
         Value::Object(x) => Ok(x),
         _ => Err(TransmuteError {
             details: format!("Mapping must be an object {}, {:?}", name, obj),
         }),
-    };
+    }
 }
 
 fn ensure_mapping_value_type(name: &str, obj: &Value) -> Result<MappingInnerValue, TransmuteError> {
-    return match obj {
+    match obj {
         Value::String(x) => Ok(MappingInnerValue::String(x.to_string())),
         Value::Number(x) => Ok(MappingInnerValue::String(x.to_string())),
         Value::Array(x) => Ok(MappingInnerValue::List(convert_to_string_vector(x, name)?)),
@@ -151,5 +151,5 @@ fn ensure_mapping_value_type(name: &str, obj: &Value) -> Result<MappingInnerValu
                 name, obj
             ),
         }),
-    };
+    }
 }

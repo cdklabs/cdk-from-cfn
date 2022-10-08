@@ -48,7 +48,7 @@ impl Importer {
 // ImportInstruction look something like:
 // import * as $name from '$path[0]/$path[1]...';
 // which should account for many import styles.
-#[derive(PartialEq, PartialOrd, Clone, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Clone, Debug)]
 pub struct ImportInstruction {
     pub name: String,
     pub path: Vec<String>,

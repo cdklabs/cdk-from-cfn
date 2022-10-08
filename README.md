@@ -4,6 +4,14 @@ json into beautiful typescript...until now.
 
 Noctilucent will take your json and output the equivalent typescript.
 
+## User Guide
+```
+cargo build --release
+./target/release/noctilucent <INPUT> <OUTPUT>
+```
+* `INPUT` is the input file path.
+* `OUTPUT` is the output file path; if not specified, output will be printed on your command line.
+
 ## Implemented
 
 - [x] Fn::FindInMap
