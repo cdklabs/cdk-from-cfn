@@ -1,5 +1,5 @@
 use crate::ir::conditions::ConditionIr;
-use crate::ir::mappings::MappingInstruction;
+use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::resources::ResourceIr;
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
@@ -55,9 +55,16 @@ impl TypescriptSynthesizer {
         append_with_newline(output, "\n\t\t// Mappings");
 
         for mapping in ir.mappings.iter() {
-            let record_type = match mapping.find_first_type() {
-                MappingInnerValue::String(_) => "Record<string, Record<string, string>>",
-                MappingInnerValue::List(_) => "Record<string, Record<string, Array<string>>>",
+            let record_type = match mapping.output_type() {
+                OutputType::Consistent(inner_type) => match inner_type {
+                    MappingInnerValue::Number(_) | MappingInnerValue::Float(_) => {
+                        "Record<string, Record<string, number>>"
+                    }
+                    MappingInnerValue::Bool(_) => "Record<string, Record<string, bool>>",
+                    MappingInnerValue::String(_) => "Record<string, Record<string, string>>",
+                    MappingInnerValue::List(_) => "Record<string, Record<string, Array<string>>>",
+                },
+                OutputType::Complex => "Record<string, Record<string, any>>",
             };
 
             append_with_newline(

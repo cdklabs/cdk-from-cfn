@@ -10,6 +10,7 @@ use serde_json::Value;
 pub mod integrations;
 pub mod ir;
 pub mod parser;
+pub mod primitives;
 pub mod specification;
 pub mod synthesizer;
 

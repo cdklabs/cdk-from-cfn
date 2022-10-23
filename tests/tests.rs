@@ -1,6 +1,5 @@
-use noctilucent::parser::resource::{
-    build_resources, ResourceParseTree, ResourceValue, WrapperF64,
-};
+use noctilucent::parser::resource::{build_resources, ResourceParseTree, ResourceValue};
+use noctilucent::primitives::WrapperF64;
 use serde_json::Value;
 
 macro_rules! map(
