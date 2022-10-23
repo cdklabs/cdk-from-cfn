@@ -1,6 +1,7 @@
 use crate::ir::reference::{Origin, Reference};
 use crate::ir::sub::{sub_parse_tree, SubValue};
-use crate::parser::resource::{ResourceValue, WrapperF64};
+use crate::parser::resource::ResourceValue;
+use crate::primitives::WrapperF64;
 use crate::specification::{spec, Complexity, SimpleType, Specification};
 use crate::{CloudformationParseTree, TransmuteError};
 use std::collections::HashMap;

@@ -1,3 +1,4 @@
+use crate::primitives::WrapperF64;
 use crate::TransmuteError;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -49,12 +50,18 @@ impl MappingParseTree {
 
 /**
  * MappingInnerValue tracks the allowed value types in a Mapping as defined by CloudFormation in the
- * link below. Right now that is either a String or List.
+ * link below. The values are allowed to only be a String or List:
  *
  * https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/mappings-section-structure.html#mappings-section-structure-syntax
+ *
+ * In reality, all values are allowed from the json specification. If we detect any other conflicting
+ * numbers, then the type becomes "Any" to allow for the strangeness.
  */
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MappingInnerValue {
+    Number(i64),
+    Float(WrapperF64),
+    Bool(bool),
     String(String),
     List(Vec<String>),
 }
@@ -68,6 +75,9 @@ impl Display for MappingInnerValue {
                     list_val.iter().map(|val| format!("'{}'", val)).collect();
                 write!(f, "[{}]", quoted_list_values.join(","))
             }
+            MappingInnerValue::Number(val) => write!(f, "{}", val),
+            MappingInnerValue::Float(val) => write!(f, "{}", val),
+            MappingInnerValue::Bool(val) => write!(f, "{}", val),
         };
     }
 }
@@ -143,7 +153,13 @@ fn ensure_object<'a>(name: &str, obj: &'a Value) -> Result<&'a Map<String, Value
 fn ensure_mapping_value_type(name: &str, obj: &Value) -> Result<MappingInnerValue, TransmuteError> {
     match obj {
         Value::String(x) => Ok(MappingInnerValue::String(x.to_string())),
-        Value::Number(x) => Ok(MappingInnerValue::String(x.to_string())),
+        Value::Number(x) => match x.is_f64() {
+            true => Ok(MappingInnerValue::Float(WrapperF64::new(
+                x.as_f64().unwrap(),
+            ))),
+            false => Ok(MappingInnerValue::Number(x.as_i64().unwrap())),
+        },
+        Value::Bool(x) => Ok(MappingInnerValue::Bool(*x)),
         Value::Array(x) => Ok(MappingInnerValue::List(convert_to_string_vector(x, name)?)),
         _ => Err(TransmuteError {
             details: format!(
