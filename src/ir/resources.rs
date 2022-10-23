@@ -350,9 +350,11 @@ pub fn translate_resource(
             Ok(ResourceIr::Sub(r))
         }
         ResourceValue::FindInMap(mapper, first, second) => {
-            let mapper_str = translate_resource(mapper, resource_translator)?;
-            let first_str = translate_resource(first, resource_translator)?;
-            let second_str = translate_resource(second, resource_translator)?;
+            let mut rt = resource_translator.clone();
+            rt.complexity = Complexity::Simple(SimpleType::String);
+            let mapper_str = translate_resource(mapper, &rt)?;
+            let first_str = translate_resource(first, &rt)?;
+            let second_str = translate_resource(second, &rt)?;
             Ok(ResourceIr::Map(
                 Box::new(mapper_str),
                 Box::new(first_str),
