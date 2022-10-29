@@ -3,7 +3,7 @@ use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::resources::ResourceIr;
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::specification::Complexity;
+use crate::specification::Structure;
 use std::collections::HashMap;
 use voca_rs::case::camel_case;
 
@@ -274,8 +274,8 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
                         // If a type is complex, all it's properties will be camel-case in cdk-ts.
                         // simple types, even nested json, will have all characters preserved.
                         let s = match complexity {
-                            Complexity::Simple(_) => s.to_string(),
-                            Complexity::Complex(_) => camel_case(s),
+                            Structure::Simple(_) => s.to_string(),
+                            Structure::Composite(_) => camel_case(s),
                         };
                         if s.chars().all(char::is_alphanumeric) && !s.starts_with(char::is_numeric)
                         {
