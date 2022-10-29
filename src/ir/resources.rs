@@ -2,7 +2,7 @@ use crate::ir::reference::{Origin, Reference};
 use crate::ir::sub::{sub_parse_tree, SubValue};
 use crate::parser::resource::ResourceValue;
 use crate::primitives::WrapperF64;
-use crate::specification::{spec, Complexity, SimpleType, Specification};
+use crate::specification::{CfnType, Specification, Structure};
 use crate::{CloudformationParseTree, TransmuteError};
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -21,8 +21,8 @@ pub enum ResourceIr {
     String(String),
 
     // Higher level resolutions
-    Array(Complexity, Vec<ResourceIr>),
-    Object(Complexity, HashMap<String, ResourceIr>),
+    Array(Structure, Vec<ResourceIr>),
+    Object(Structure, HashMap<String, ResourceIr>),
 
     /// Rest is meta functions
     /// https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html#w2ab1c33c28c21c29
@@ -42,7 +42,7 @@ pub enum ResourceIr {
 #[derive(Clone, Debug)]
 pub struct ResourceTranslationInputs<'t> {
     pub parse_tree: &'t CloudformationParseTree,
-    pub complexity: Complexity,
+    pub complexity: Structure,
     pub resource_metadata: Option<ResourceMetadata<'t>>,
 }
 
@@ -67,13 +67,13 @@ pub struct ResourceInstruction {
 }
 
 pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<ResourceInstruction> {
-    let spec = spec();
+    let spec = Specification::new();
     let mut resource_instructions = Vec::new();
     for resource in parse_tree.resources.resources.iter() {
         let mut props = HashMap::new();
         let resource_spec = spec.get_resource(&resource.resource_type).unwrap();
         for (name, prop) in resource.properties.iter() {
-            let complexity = resource_spec.property_complexity(name).unwrap();
+            let complexity = resource_spec.structure(name).unwrap();
 
             let property_type =
                 Specification::full_property_name(&complexity, &resource.resource_type);
@@ -148,7 +148,7 @@ fn optional_ir_json(
 ) -> Result<Option<ResourceIr>, TransmuteError> {
     let mut policy: Option<ResourceIr> = Option::None;
     if let Some(x) = input {
-        let complexity = Complexity::Simple(SimpleType::Json);
+        let complexity = Structure::Simple(CfnType::Json);
         let rt = ResourceTranslationInputs {
             parse_tree,
             complexity,
@@ -237,10 +237,10 @@ pub fn translate_resource(
         ResourceValue::Number(n) => Ok(ResourceIr::Number(*n)),
         ResourceValue::Double(d) => Ok(ResourceIr::Double(*d)),
         ResourceValue::String(s) => {
-            if let Complexity::Simple(simple_type) = &resource_translator.complexity {
+            if let Structure::Simple(simple_type) = &resource_translator.complexity {
                 return match simple_type {
-                    SimpleType::Boolean => Ok(ResourceIr::Bool(s.parse().unwrap())),
-                    SimpleType::Integer => Ok(ResourceIr::Number(s.parse().unwrap())),
+                    CfnType::Boolean => Ok(ResourceIr::Bool(s.parse().unwrap())),
+                    CfnType::Integer => Ok(ResourceIr::Number(s.parse().unwrap())),
                     &_ => Ok(ResourceIr::String(s.to_string())),
                 };
             }
@@ -262,8 +262,8 @@ pub fn translate_resource(
             let mut new_hash = HashMap::new();
             for (s, rv) in o {
                 let property_ir = match resource_translator.complexity {
-                    Complexity::Simple(_) => translate_resource(rv, resource_translator)?,
-                    Complexity::Complex(_) => {
+                    Structure::Simple(_) => translate_resource(rv, resource_translator)?,
+                    Structure::Composite(_) => {
                         // Update the rule with it's underlying property rule.
                         let mut new_rt = resource_translator.clone();
                         let resource_metadata =
@@ -283,9 +283,9 @@ pub fn translate_resource(
                             .unwrap();
                         let properties = rule.properties.as_ref().unwrap();
                         let property_rule = properties.get(s).unwrap();
-                        new_rt.complexity = property_rule.get_complexity();
+                        new_rt.complexity = property_rule.get_structure();
                         let opt = Specification::full_property_name(
-                            &property_rule.get_complexity(),
+                            &property_rule.get_structure(),
                             resource_metadata.resource_type,
                         );
                         let mut new_metadata = resource_metadata.clone();
@@ -351,7 +351,7 @@ pub fn translate_resource(
         }
         ResourceValue::FindInMap(mapper, first, second) => {
             let mut rt = resource_translator.clone();
-            rt.complexity = Complexity::Simple(SimpleType::String);
+            rt.complexity = Structure::Simple(CfnType::String);
             let mapper_str = translate_resource(mapper, &rt)?;
             let first_str = translate_resource(first, &rt)?;
             let second_str = translate_resource(second, &rt)?;

@@ -1,40 +1,40 @@
-use crate::specification::Complexity::{Complex, Simple};
+use crate::specification::Structure::{Composite, Simple};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Rule {
     #[serde(alias = "PrimitiveType")]
-    primitive_type: Option<SimpleType>,
+    pub primitive_type: Option<CfnType>,
     #[serde(alias = "ItemType")]
-    item_type: Option<String>,
+    pub item_type: Option<String>,
     #[serde(alias = "Type")]
-    property_type: Option<String>,
+    pub property_type: Option<String>,
     #[serde(alias = "Properties")]
     pub properties: Option<HashMap<String, PropertyRule>>,
 }
 
-// Complexity is used in the overarching program.
-// CDK uses anything that is not a "SimpleType" (defined below)
-// to camel_case their interfaces. We have to manipulate
-// that same structure backwards, in order to emit
-// the correct output.
-//
-// Simple is essentially "primitive" -- leave it alone.
-// Complex means there are deeper structures, and CDK
-// has enough information to actually camel case, so
-// you have to camelcase as well.
+/// Structure is used in the overarching program.
+/// CDK uses anything that is not a "CfnType" (defined below)
+/// to camel_case their interfaces. We have to manipulate
+/// that same structure backwards, in order to emit
+/// the correct output.
+///
+/// CfnType is essentially "primitive" -- leave it alone.
+/// Composite means there are deeper structures, and CDK
+/// has enough information to actually camel case, so
+/// you have to camelcase as well.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Complexity {
-    Simple(SimpleType),
-    Complex(String),
+pub enum Structure {
+    Simple(CfnType),
+    Composite(String),
 }
 
-// SimpleType is the primitives in the CloudFormation specification.
-// They are when CFN just "doesn't care anymore" and doesn't do anything
-// outside of parse-classification-errors.
+/// CfnType is the primitives in the CloudFormation specification.
+/// They are when CFN just "doesn't care anymore" and doesn't do anything
+/// outside of parse-classification-errors.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
-pub enum SimpleType {
+pub enum CfnType {
     Boolean,
     Integer,
     String,
@@ -47,13 +47,13 @@ pub enum SimpleType {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PropertyRule {
     #[serde(alias = "Required")]
-    required: bool,
+    pub required: bool,
     #[serde(alias = "PrimitiveType")]
-    primitive_type: Option<SimpleType>,
+    pub primitive_type: Option<CfnType>,
     #[serde(alias = "PrimitiveItemType")]
-    primitive_item_type: Option<SimpleType>,
+    pub primitive_item_type: Option<CfnType>,
     #[serde(alias = "ItemType")]
-    item_type: Option<String>,
+    pub item_type: Option<String>,
     #[serde(alias = "Type")]
     pub property_type: Option<String>,
 }
@@ -71,19 +71,19 @@ impl PropertyRule {
     //   <enough about lists / maps>
     //    - If a "Type" exists, it is a Complex type.
     //    - Otherwise, it is simple and will always have a "PrimitiveType" (different from "PrimitiveItemType")
-    pub fn get_complexity(&self) -> Complexity {
+    pub fn get_structure(&self) -> Structure {
         if let Some(x) = &self.property_type {
             let simple_map_type = match x.as_str() {
                 "List" | "Map" => &self.primitive_item_type,
-                &_ => return Complex(x.to_string()),
+                &_ => return Composite(x.to_string()),
             };
 
             return match simple_map_type {
                 None => {
                     let complex_item = self.item_type.as_ref().unwrap();
-                    Complex(complex_item.to_string())
+                    Composite(complex_item.to_string())
                 }
-                Some(x) => Complexity::Simple(*x),
+                Some(x) => Structure::Simple(*x),
             };
         }
 
@@ -104,14 +104,19 @@ pub struct Specification {
 }
 
 impl Specification {
+    pub fn new() -> Specification {
+        let str = include_str!("spec.json");
+        serde_json::from_str::<Specification>(str).unwrap()
+    }
+
     // Resource Properties in Specification look something like:
     // `AWS::Iam::Role.Policy` yet are represented in the specification
     // as "Policy". full_property_name transforms that property name
     // and complexity property into the correct type.
-    pub fn full_property_name(complexity: &Complexity, resource_type: &str) -> Option<String> {
+    pub fn full_property_name(complexity: &Structure, resource_type: &str) -> Option<String> {
         match complexity {
-            Complexity::Simple(_) => Option::None,
-            Complexity::Complex(x) => {
+            Structure::Simple(_) => Option::None,
+            Structure::Composite(x) => {
                 let mut full_rule_name = format!("{}.{}", resource_type, x);
                 // Every type in CloudFormation has the form: {resource}.{resource_type}
                 // e.g. AWS::Iam::Role.Policy . Tag's lookup name in the specification is "Tag".
@@ -125,23 +130,30 @@ impl Specification {
         }
     }
 
-    pub fn get_resource(&self, resource_type: &str) -> Option<ResourceSpecification> {
+    pub fn get_resource(&self, resource_type: &str) -> Option<ResourceProperties> {
         if resource_type.starts_with("Custom::") {
             let rules = self
                 .resource_types
                 .get("AWS::CloudFormation::CustomResource")
                 .and_then(|t| t.properties.as_ref());
-            return rules.map(|x| ResourceSpecification::new(x, ResourceType::Custom));
+            return rules.map(|x| ResourceProperties::new(x, ResourceType::Custom));
         }
         let rules = self
             .resource_types
             .get(resource_type)
             .and_then(|t| t.properties.as_ref());
-        rules.map(|x| ResourceSpecification::new(x, ResourceType::Normal))
+        rules.map(|x| ResourceProperties::new(x, ResourceType::Normal))
     }
 }
 
-// Custom Resources have no specification to them, so we will not have them.
+impl Default for Specification {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// Internal enum to look specifically for CustomResources, as they have to be treated differently
+// in the CFN Spec.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 enum ResourceType {
     Normal,
@@ -149,53 +161,59 @@ enum ResourceType {
 }
 
 #[derive(Debug, Clone)]
-pub struct ResourceSpecification<'a> {
-    properties: &'a HashMap<String, PropertyRule>,
+pub struct ResourceProperties<'a> {
+    pub properties: &'a HashMap<String, PropertyRule>,
     resource_type: ResourceType,
 }
 
-impl<'a> ResourceSpecification<'a> {
+impl<'a> ResourceProperties<'a> {
     fn new(
         props: &HashMap<String, PropertyRule>,
         resource_type: ResourceType,
-    ) -> ResourceSpecification {
-        ResourceSpecification {
+    ) -> ResourceProperties {
+        ResourceProperties {
             properties: props,
             resource_type,
         }
     }
-    pub fn property_complexity(&self, property_name: &str) -> Option<Complexity> {
+    /// structure will return a <Structure> object, that tells the user
+    /// if the individual property is either <Simple>, such as the common primitive
+    /// types, or if it's actually a more deeply nested complext type.
+    /// Take for example a DynamoDB Table. Let's assume that it only supported 3 properties:
+    /// - TableName: string
+    /// - ProvisionedThroughput: ProvisionedThroughput
+    /// - KeySchema: List<KeySchema>
+    ///
+    /// In this example, the following would occur:
+    /// ```rust
+    /// use noctilucent::specification::{CfnType, Specification, Structure};
+    /// let specification = Specification::new();
+    /// let resource = specification.get_resource("AWS::DynamoDB::Table").unwrap();
+    /// assert_eq!(resource.structure("TableName"), Option::Some(Structure::Simple(CfnType::String)));
+    /// assert_eq!(resource.structure("ProvisionedThroughput"), Option::Some(Structure::Composite("ProvisionedThroughput".into())));
+    /// assert_eq!(resource.structure("KeySchema"), Option::Some(Structure::Composite("KeySchema".into())));
+    /// ```
+    pub fn structure(&self, property_name: &str) -> Option<Structure> {
         match self.resource_type {
             ResourceType::Normal => {
                 let property_rule = self.properties.get(property_name);
-                property_rule.map(PropertyRule::get_complexity)
+                property_rule.map(PropertyRule::get_structure)
             }
             ResourceType::Custom => {
+                // Custom resource types have multiple fields, but all are arbitrary json structs
+                // except ServiceToken.
                 if property_name == "ServiceToken" {
-                    return Option::Some(Complexity::Simple(SimpleType::String));
+                    return Option::Some(Structure::Simple(CfnType::String));
                 }
-                Option::Some(Complexity::Simple(SimpleType::Json))
+                Option::Some(Structure::Simple(CfnType::Json))
             }
         }
     }
 }
 
-fn read_specification() -> String {
-    let str = include_str!("spec.json");
-    str.to_string()
-}
-
-// Fully reads the specification from the stored json file
-pub fn spec() -> Specification {
-    let str = read_specification();
-    let res = serde_json::from_str::<Specification>(str.as_str()).unwrap();
-
-    res
-}
-
 #[test]
 fn test_pull_json_spec() {
-    let specification = spec();
+    let specification = Specification::new();
     let policy = specification
         .property_types
         .get("AWS::IAM::Role.Policy")
@@ -203,7 +221,7 @@ fn test_pull_json_spec() {
     let policy_properties = policy.properties.as_ref().unwrap();
 
     assert_eq!(
-        SimpleType::Json,
+        CfnType::Json,
         policy_properties
             .get("PolicyDocument")
             .unwrap()
@@ -211,7 +229,7 @@ fn test_pull_json_spec() {
             .unwrap()
     );
     assert_eq!(
-        SimpleType::String,
+        CfnType::String,
         policy_properties
             .get("PolicyName")
             .unwrap()

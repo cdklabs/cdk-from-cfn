@@ -1,5 +1,5 @@
 use crate::ir::resources::{translate_resource, ResourceIr, ResourceTranslationInputs};
-use crate::specification::{Complexity, SimpleType};
+use crate::specification::{CfnType, Structure};
 use crate::CloudformationParseTree;
 
 pub struct OutputInstruction {
@@ -14,7 +14,7 @@ pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<OutputInstruction>
     for (name, output) in outputs.outputs.iter() {
         let resource_translator = ResourceTranslationInputs {
             parse_tree,
-            complexity: Complexity::Simple(SimpleType::Json),
+            complexity: Structure::Simple(CfnType::Json),
             resource_metadata: None,
         };
 
