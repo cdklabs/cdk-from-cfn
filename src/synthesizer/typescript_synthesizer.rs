@@ -38,8 +38,8 @@ impl TypescriptSynthesizer {
                 output,
                 &format!(
                     "\treadonly {}: {};",
-                    camel_case(&param.name),
-                    camel_case(&param.constructor_type)
+                    pretty_name(&param.name),
+                    pretty_name(&param.constructor_type)
                 ),
             );
         }
@@ -71,7 +71,7 @@ impl TypescriptSynthesizer {
                 output,
                 &format!(
                     "\t\tconst {}: {} = {};",
-                    camel_case(&mapping.name),
+                    pretty_name(&mapping.name),
                     record_type,
                     synthesize_mapping_instruction(mapping),
                 ),
@@ -85,7 +85,7 @@ impl TypescriptSynthesizer {
 
             append_with_newline(
                 output,
-                &format!("\t\tconst {} = {};", camel_case(&cond.name), synthed),
+                &format!("\t\tconst {} = {};", pretty_name(&cond.name), synthed),
             );
         }
 
@@ -105,19 +105,33 @@ impl TypescriptSynthesizer {
             }
 
             if let Some(x) = &reference.condition {
-                append_with_newline(output, &format!("\t\tif ({}) {{", camel_case(x)));
+                append_with_newline(
+                    output,
+                    &format!("\t\tlet {};", pretty_name(&reference.name)),
+                );
+                append_with_newline(output, &format!("\t\tif ({}) {{", pretty_name(x)));
+                append_with_newline(
+                    output,
+                    &format!(
+                        "\t\t{} = new {}.Cfn{}(this, '{}', {{",
+                        pretty_name(&reference.name),
+                        service,
+                        rtype,
+                        reference.name,
+                    ),
+                );
+            } else {
+                append_with_newline(
+                    output,
+                    &format!(
+                        "\t\tconst {} = new {}.Cfn{}(this, '{}', {{",
+                        pretty_name(&reference.name),
+                        service,
+                        rtype,
+                        reference.name,
+                    ),
+                );
             }
-
-            append_with_newline(
-                output,
-                &format!(
-                    "\t\tconst {} = new {}.Cfn{}(this, '{}', {{",
-                    camel_case(&reference.name),
-                    service,
-                    rtype,
-                    reference.name,
-                ),
-            );
 
             for (i, (name, prop)) in reference.properties.iter().enumerate() {
                 match to_string_ir(prop) {
@@ -127,7 +141,7 @@ impl TypescriptSynthesizer {
                             output,
                             &format!(
                                 "{}: {}{}",
-                                camel_case(name),
+                                pretty_name(name),
                                 x,
                                 match i {
                                     // Remove trailing comma.
@@ -145,7 +159,7 @@ impl TypescriptSynthesizer {
             if let Some(metadata) = &reference.metadata {
                 append_with_newline(
                     output,
-                    &format!("{}.addOverride('Metadata', ", camel_case(&reference.name)),
+                    &format!("{}.addOverride('Metadata', ", pretty_name(&reference.name)),
                 );
 
                 match to_string_ir(metadata) {
@@ -163,7 +177,7 @@ impl TypescriptSynthesizer {
                     output,
                     &format!(
                         "{}.addOverride('UpdatePolicy', ",
-                        camel_case(&reference.name),
+                        pretty_name(&reference.name),
                     ),
                 );
 
@@ -182,7 +196,7 @@ impl TypescriptSynthesizer {
                     output,
                     &format!(
                         "{}.addOverride('DeletionPolicy', '{}');",
-                        camel_case(&reference.name),
+                        pretty_name(&reference.name),
                         deletion_policy,
                     ),
                 );
@@ -191,7 +205,10 @@ impl TypescriptSynthesizer {
             if !reference.dependencies.is_empty() {
                 append_with_newline(
                     output,
-                    &format!("{}.addOverride('DependsOn', [", camel_case(&reference.name)),
+                    &format!(
+                        "{}.addOverride('DependsOn', [",
+                        pretty_name(&reference.name)
+                    ),
                 );
 
                 let x: Vec<String> = reference
@@ -236,6 +253,14 @@ impl TypescriptSynthesizer {
         }
 
         append_with_newline(output, "\t}");
+        append_with_newline(
+            output,
+            "function assertDefined(name: string, x: any): asserts x is NonNullable<any> {
+  if (x === undefined) {
+    throw new Error(`A combination of conditions caused '${name}' to be undefined. Fixit.`);
+  }
+}",
+        );
         append_with_newline(output, "}");
 
         output.to_string()
@@ -251,7 +276,9 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::Number(n) => Option::Some(n.to_string()),
         ResourceIr::Double(d) => Option::Some(d.to_string()),
         ResourceIr::String(s) => {
-            Option::Some(format!("'{}'", s.replace('\'', "\\'").replace('\n', "\\n")))
+            let formatted_str = s.replace("\\'", "'");
+            let formatted_str = formatted_str.escape_debug();
+            Option::Some(format!("'{}'", formatted_str))
         }
         ResourceIr::Array(_, arr) => {
             let mut v = Vec::new();
@@ -271,11 +298,11 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
                 match to_string_ir(rv) {
                     None => {}
                     Some(r) => {
-                        // If a type is complex, all it's properties will be camel-case in cdk-ts.
+                        // If a type is composite, all it's properties will be camel-case in cdk-ts.
                         // simple types, even nested json, will have all characters preserved.
                         let s = match complexity {
                             Structure::Simple(_) => s.to_string(),
-                            Structure::Composite(_) => camel_case(s),
+                            Structure::Composite(_) => pretty_name(s),
                         };
                         if s.chars().all(char::is_alphanumeric) && !s.starts_with(char::is_numeric)
                         {
@@ -305,7 +332,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::Map(mapper, first, second) => {
             let a: &ResourceIr = mapper.as_ref();
             let mapper_str = match a {
-                ResourceIr::String(x) => camel_case(x),
+                ResourceIr::String(x) => pretty_name(x),
                 &_ => to_string_ir(mapper).unwrap(),
             };
             let first_str = to_string_ir(first).unwrap();
@@ -314,7 +341,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             Option::Some(format!("{}[{}][{}]", mapper_str, first_str, second_str))
         }
         ResourceIr::If(bool_expr, true_expr, false_expr) => {
-            let bool_expr = camel_case(bool_expr);
+            let bool_expr = pretty_name(bool_expr);
             let true_expr = match to_string_ir(true_expr) {
                 None => String::from("{}"),
                 Some(x) => x,
@@ -338,7 +365,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
                 }
             }
 
-            Option::Some(format!("{}.join('{}')", strs.join(","), sep))
+            Option::Some(format!("{}.join('{}')", strs.join(","), sep.escape_debug()))
         }
         ResourceIr::Ref(x) => Option::Some(x.synthesize()),
         ResourceIr::Base64(x) => {
@@ -398,7 +425,7 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         ConditionIr::Ref(x) => x.synthesize(),
         ConditionIr::Map(named_resource, l1, l2) => {
             let name = match named_resource.as_ref() {
-                ConditionIr::Str(x) => camel_case(x),
+                ConditionIr::Str(x) => pretty_name(x),
                 &_ => synthesize_condition_recursive(named_resource.as_ref()),
             };
 
@@ -445,4 +472,63 @@ fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) 
 
 fn append_with_newline(result: &mut String, string: &str) {
     String::push_str(result, &format!("{}\n", string));
+}
+
+struct SuffixFix<'a> {
+    suffix: &'a str,
+    fix: &'a str,
+}
+
+/// If you have stumbled across this lunacy, I still don't fully understand it myself.
+///
+/// CDK folks decided to prettify a few names, e.g. ProviderARNs -> providerArns.
+/// This list is hand-maintained, but always refer to the original source:
+///
+const SUFFIX_FIXES: &[SuffixFix] = &[
+    SuffixFix {
+        suffix: "ARNs",
+        fix: "Arns",
+    },
+    SuffixFix {
+        suffix: "MBs",
+        fix: "MBs",
+    },
+    SuffixFix {
+        suffix: "AZs",
+        fix: "AZs",
+    },
+];
+
+fn pretty_name(name: &str) -> String {
+    // hardcoded consts that always need love.
+    if name == "VPCs" {
+        return "vpcs".to_string();
+    }
+    if name == "GetObject" {
+        return "objectAccess".to_string();
+    }
+    if name == "Equals" {
+        return "equalTo".to_string();
+    }
+
+    let mut end_str = name.to_string();
+    for hay in SUFFIX_FIXES.iter() {
+        if end_str.ends_with(hay.suffix) {
+            let temp = end_str.strip_suffix(hay.suffix).unwrap();
+            end_str = temp.to_string();
+            end_str.push_str(hay.fix);
+        }
+    }
+
+    camel_case(&end_str)
+}
+
+#[test]
+fn pretty_name_fixes() {
+    assert_eq!("vpc", pretty_name("VPC"));
+    assert_eq!("objectAccess", pretty_name("GetObject"));
+    assert_eq!("equalTo", pretty_name("Equals"));
+    assert_eq!("providerArns", pretty_name("ProviderARNs"));
+    assert_eq!("targetAZs", pretty_name("TargetAZs"));
+    assert_eq!("diskSizeMBs", pretty_name("DiskSizeMBs"));
 }
