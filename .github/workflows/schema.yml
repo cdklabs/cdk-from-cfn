@@ -26,6 +26,14 @@ jobs:
       - name: "Unzip spec"
         run: "gunzip -f src/specification/spec.json.gz"
 
+      - name: "Sort json"
+        uses: sergeysova/jq-action@v2
+        with:
+          cmd: "cat src/specification/spec.json | jq --sort-keys >> src/specification/spec_sorted.json"
+
+      - name: "Move to spec"
+        run: "mv src/specification/spec_sorted.json src/specification/spec.json"
+
       - name: "Show diff"
         run: "git diff src/specification/spec.json"
 
