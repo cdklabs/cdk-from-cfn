@@ -214,7 +214,7 @@ impl TypescriptSynthesizer {
                 let x: Vec<String> = reference
                     .dependencies
                     .iter()
-                    .map(|x| format!("'{}'", x))
+                    .map(|x| format!("'{x}'"))
                     .collect();
 
                 append_with_newline(output, &x.join(",").to_string());
@@ -237,7 +237,7 @@ impl TypescriptSynthesizer {
             let export_str = op.export.and_then(|x| to_string_ir(&x));
 
             if let Some(export) = export_str {
-                append_with_newline(output, &format!("\texportName: {},", export));
+                append_with_newline(output, &format!("\texportName: {export},"));
             }
 
             match to_string_ir(&op.value) {
@@ -245,7 +245,7 @@ impl TypescriptSynthesizer {
                     panic!("Can't happen")
                 }
                 Some(x) => {
-                    append_with_newline(output, &format!("\tvalue: {}", x));
+                    append_with_newline(output, &format!("\tvalue: {x}"));
                 }
             }
 
@@ -278,7 +278,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::String(s) => {
             let formatted_str = s.replace("\\'", "'");
             let formatted_str = formatted_str.escape_debug();
-            Option::Some(format!("'{}'", formatted_str))
+            Option::Some(format!("'{formatted_str}'"))
         }
         ResourceIr::Array(_, arr) => {
             let mut v = Vec::new();
@@ -306,9 +306,9 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
                         };
                         if s.chars().all(char::is_alphanumeric) && !s.starts_with(char::is_numeric)
                         {
-                            v.push(format!("{}: {}", s, r));
+                            v.push(format!("{s}: {r}"));
                         } else {
-                            v.push(format!("'{}': {}", s, r));
+                            v.push(format!("'{s}': {r}"));
                         }
                     }
                 }
@@ -338,7 +338,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             let first_str = to_string_ir(first).unwrap();
             let second_str = to_string_ir(second).unwrap();
 
-            Option::Some(format!("{}[{}][{}]", mapper_str, first_str, second_str))
+            Option::Some(format!("{mapper_str}[{first_str}][{second_str}]"))
         }
         ResourceIr::If(bool_expr, true_expr, false_expr) => {
             let bool_expr = pretty_name(bool_expr);
@@ -354,7 +354,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
                 Some(x) => x,
             };
 
-            Option::Some(format!("{} ? {} : {}", bool_expr, true_expr, false_expr))
+            Option::Some(format!("{bool_expr} ? {true_expr} : {false_expr}"))
         }
         ResourceIr::Join(sep, join_obj) => {
             let mut strs = Vec::new();
@@ -370,11 +370,11 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::Ref(x) => Option::Some(x.synthesize()),
         ResourceIr::Base64(x) => {
             let str = to_string_ir(x.as_ref()).unwrap();
-            Option::Some(format!("Buffer.from({}).toString('base64')", str))
+            Option::Some(format!("Buffer.from({str}).toString('base64')"))
         }
         ResourceIr::ImportValue(x) => {
             let str = to_string_ir(x.as_ref()).unwrap();
-            Option::Some(format!("cdk.Fn.importValue({})", str))
+            Option::Some(format!("cdk.Fn.importValue({str})"))
         }
         ResourceIr::GetAZs(x) => {
             let str = to_string_ir(x.as_ref()).unwrap();
@@ -382,7 +382,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             if str.len() == 2 {
                 return Option::Some("cdk.Fn.getAzs()".to_string());
             }
-            Option::Some(format!("cdk.Fn.getAzs({})", str))
+            Option::Some(format!("cdk.Fn.getAzs({str})"))
         }
         ResourceIr::Select(index, obj) => {
             let str = to_string_ir(obj.as_ref()).unwrap();
@@ -397,7 +397,7 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
             let a: Vec<String> = x.iter().map(synthesize_condition_recursive).collect();
 
             let inner = a.join(" && ");
-            format!("({})", inner)
+            format!("({inner})")
         }
         ConditionIr::Equals(a, b) => {
             format!(
@@ -417,10 +417,10 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
             let a: Vec<String> = x.iter().map(synthesize_condition_recursive).collect();
 
             let inner = a.join(" || ");
-            format!("({})", inner)
+            format!("({inner})")
         }
         ConditionIr::Str(x) => {
-            format!("'{}'", x)
+            format!("'{x}'")
         }
         ConditionIr::Ref(x) => x.synthesize(),
         ConditionIr::Map(named_resource, l1, l2) => {
@@ -461,8 +461,7 @@ fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) 
     let mut inner_mapping_entries = Vec::new();
     for (inner_mapping_key, inner_mapping_value) in inner_mapping {
         inner_mapping_entries.push(format!(
-            "\t\t\t\t'{}': {}",
-            inner_mapping_key, inner_mapping_value
+            "\t\t\t\t'{inner_mapping_key}': {inner_mapping_value}"
         ));
     }
     inner_mapping_ts_str.push_str(&inner_mapping_entries.join(",\n"));
@@ -471,7 +470,7 @@ fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) 
 }
 
 fn append_with_newline(result: &mut String, string: &str) {
-    String::push_str(result, &format!("{}\n", string));
+    String::push_str(result, &format!("{string}\n"));
 }
 
 struct SuffixFix<'a> {

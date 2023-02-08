@@ -69,15 +69,15 @@ pub enum MappingInnerValue {
 impl Display for MappingInnerValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         return match self {
-            MappingInnerValue::String(string_val) => write!(f, "'{}'", string_val),
+            MappingInnerValue::String(string_val) => write!(f, "'{string_val}'"),
             MappingInnerValue::List(list_val) => {
                 let quoted_list_values: Vec<String> =
-                    list_val.iter().map(|val| format!("'{}'", val)).collect();
+                    list_val.iter().map(|val| format!("'{val}'")).collect();
                 write!(f, "[{}]", quoted_list_values.join(","))
             }
-            MappingInnerValue::Number(val) => write!(f, "{}", val),
-            MappingInnerValue::Float(val) => write!(f, "{}", val),
-            MappingInnerValue::Bool(val) => write!(f, "{}", val),
+            MappingInnerValue::Number(val) => write!(f, "{val}"),
+            MappingInnerValue::Float(val) => write!(f, "{val}"),
+            MappingInnerValue::Bool(val) => write!(f, "{val}"),
         };
     }
 }
@@ -130,8 +130,7 @@ fn convert_to_string_vector(
             _ => {
                 return Err(TransmuteError {
                     details: format!(
-                        "List values for mappings must be a string. Found {:?}, for key {}",
-                        inner_key, vector_val
+                        "List values for mappings must be a string. Found {inner_key:?}, for key {vector_val}"
                     ),
                 });
             }
@@ -145,7 +144,7 @@ fn ensure_object<'a>(name: &str, obj: &'a Value) -> Result<&'a Map<String, Value
     match obj {
         Value::Object(x) => Ok(x),
         _ => Err(TransmuteError {
-            details: format!("Mapping must be an object {}, {:?}", name, obj),
+            details: format!("Mapping must be an object {name}, {obj:?}"),
         }),
     }
 }
@@ -163,8 +162,7 @@ fn ensure_mapping_value_type(name: &str, obj: &Value) -> Result<MappingInnerValu
         Value::Array(x) => Ok(MappingInnerValue::List(convert_to_string_vector(x, name)?)),
         _ => Err(TransmuteError {
             details: format!(
-                "Inner mapping value must be a string or array. Found {:?}, for {}",
-                name, obj
+                "Inner mapping value must be a string or array. Found {name:?}, for {obj}"
             ),
         }),
     }

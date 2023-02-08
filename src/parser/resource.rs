@@ -108,7 +108,7 @@ pub fn build_resources(
                             None => {
                                 return Err(TransmuteError {
                                     details: format!(
-                                        "DependsOn attribute has an array of non-strings, which isn't allowed {}", name
+                                        "DependsOn attribute has an array of non-strings, which isn't allowed {name}"
                                     ),
                                 })
                             }
@@ -121,8 +121,7 @@ pub fn build_resources(
                 _ => {
                     return Err(TransmuteError {
                         details: format!(
-                            "DependsOn attribute can only be a string or an array {}",
-                            name
+                            "DependsOn attribute can only be a string or an array {name}"
                         ),
                     })
                 }
@@ -198,8 +197,7 @@ pub fn build_resources_recursively(
                         _ => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Sub can only be either an array or a string {}",
-                                    name
+                                    "Fn::Sub can only be either an array or a string {name}"
                                 ),
                             });
                         }
@@ -211,8 +209,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::FindInMap is supposed to be an array entry {}",
-                                    name
+                                    "Fn::FindInMap is supposed to be an array entry {name}"
                                 ),
                             })
                         }
@@ -223,9 +220,8 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::FindInMap is supposed to have 3 values in array, has 0 {}",
-                                    name
-                                ),
+                                "Fn::FindInMap is supposed to have 3 values in array, has 0 {name}"
+                            ),
                             })
                         }
                         Some(x) => build_resources_recursively(name, x),
@@ -234,9 +230,8 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::FindInMap is supposed to have 3 values in array, has 1 {}",
-                                    name
-                                ),
+                                "Fn::FindInMap is supposed to have 3 values in array, has 1 {name}"
+                            ),
                             })
                         }
                         Some(x) => build_resources_recursively(name, x),
@@ -245,9 +240,8 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::FindInMap is supposed to have 3 values in array, has 2 {}",
-                                    name
-                                ),
+                                "Fn::FindInMap is supposed to have 3 values in array, has 2 {name}"
+                            ),
                             })
                         }
                         Some(x) => build_resources_recursively(name, x),
@@ -276,8 +270,7 @@ pub fn build_resources_recursively(
                                 None => {
                                     return Err(TransmuteError {
                                         details: format!(
-                                            "Fn::GetAtt is supposed to have 3 values in array, has 0 {}",
-                                            name
+                                            "Fn::GetAtt is supposed to have 3 values in array, has 0 {name}"
                                         ),
                                     })
                                 }
@@ -287,8 +280,7 @@ pub fn build_resources_recursively(
                                 None => {
                                     return Err(TransmuteError {
                                         details: format!(
-                                            "Fn::GetAtt is supposed to have 3 values in array, has 1 {}",
-                                            name
+                                            "Fn::GetAtt is supposed to have 3 values in array, has 1 {name}"
                                         ),
                                     })
                                 }
@@ -300,8 +292,7 @@ pub fn build_resources_recursively(
                         &_ => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::GetAtt is supposed to be an array entry {}",
-                                    name
+                                    "Fn::GetAtt is supposed to be an array entry {name}"
                                 ),
                             })
                         }
@@ -318,8 +309,7 @@ pub fn build_resources_recursively(
                         x => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::GetAZs only takes a string as input for resource {} value: {:?}",
-                                    name, x
+                                    "Fn::GetAZs only takes a string as input for resource {name} value: {x:?}"
                                 ),
                             })
 
@@ -344,8 +334,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Select is supposed to have 2 values in array, has 0 {}",
-                                    name
+                                    "Fn::Select is supposed to have 2 values in array, has 0 {name}"
                                 ),
                             })
                         }
@@ -355,8 +344,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Select is supposed to have 2 values in array, has 1 {}",
-                                    name
+                                    "Fn::Select is supposed to have 2 values in array, has 1 {name}"
                                 ),
                             })
                         }
@@ -369,10 +357,7 @@ pub fn build_resources_recursively(
                     let v = match resource_object.as_array() {
                         None => {
                             return Err(TransmuteError {
-                                details: format!(
-                                    "Fn::If is supposed to be an array entry {}",
-                                    name
-                                ),
+                                details: format!("Fn::If is supposed to be an array entry {name}"),
                             })
                         }
                         Some(x) => x,
@@ -382,8 +367,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::If is supposed to have 3 values in array, has 0 {}",
-                                    name
+                                    "Fn::If is supposed to have 3 values in array, has 0 {name}"
                                 ),
                             })
                         }
@@ -393,8 +377,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::If is supposed to have 3 values in array, has 1 {}",
-                                    name
+                                    "Fn::If is supposed to have 3 values in array, has 1 {name}"
                                 ),
                             })
                         }
@@ -404,8 +387,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::If is supposed to have 3 values in array, has 2 {}",
-                                    name
+                                    "Fn::If is supposed to have 3 values in array, has 2 {name}"
                                 ),
                             })
                         }
@@ -422,8 +404,7 @@ pub fn build_resources_recursively(
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
-                                    "Fn::Join is supposed to be an array entry {}",
-                                    name
+                                    "Fn::Join is supposed to be an array entry {name}"
                                 ),
                             })
                         }
@@ -443,7 +424,7 @@ pub fn build_resources_recursively(
                     let ref_name = match resource_object.as_str() {
                         None => {
                             return Err(TransmuteError {
-                                details: format!("Condition must a string {}", name),
+                                details: format!("Condition must a string {name}"),
                             })
                         }
                         Some(x) => x,
@@ -472,9 +453,6 @@ pub fn build_resources_recursively(
     }
 
     Err(TransmuteError {
-        details: format!(
-            "Could not find a parsable path for resource {}, {:?}",
-            name, obj
-        ),
+        details: format!("Could not find a parsable path for resource {name}, {obj:?}"),
     })
 }

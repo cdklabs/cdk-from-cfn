@@ -51,7 +51,7 @@ pub fn build_parameters(vals: &Map<String, Value>) -> Result<Parameters, Transmu
             Some(v) => v.to_string(),
             None => {
                 return Err(TransmuteError {
-                    details: format!("Type was not specified correctly {}", name),
+                    details: format!("Type was not specified correctly {name}"),
                 })
             }
         };
