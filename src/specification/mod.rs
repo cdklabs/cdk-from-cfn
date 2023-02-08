@@ -1,5 +1,6 @@
 use crate::specification::Structure::{Composite, Simple};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -47,7 +48,7 @@ pub enum CfnType {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PropertyRule {
     #[serde(alias = "Required")]
-    pub required: bool,
+    pub required: Option<bool>,
     #[serde(alias = "PrimitiveType")]
     pub primitive_type: Option<CfnType>,
     #[serde(alias = "PrimitiveItemType")]
@@ -91,6 +92,25 @@ impl PropertyRule {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RawRule {
+    #[serde(flatten, with = "::serde_with::rust::maps_first_key_wins")]
+    all: HashMap<String, Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RawSpecification {
+    #[serde(
+        alias = "PropertyTypes",
+        rename = "PropertyTypes",
+        with = "::serde_with::rust::maps_first_key_wins"
+    )]
+    pub property_types: HashMap<String, RawRule>,
+
+    #[serde(alias = "ResourceTypes", rename = "ResourceTypes")]
+    pub resource_types: HashMap<String, RawRule>,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Specification {
     #[serde(
@@ -106,7 +126,9 @@ pub struct Specification {
 impl Specification {
     pub fn new() -> Specification {
         let str = include_str!("spec.json");
-        serde_json::from_str::<Specification>(str).unwrap()
+        let raw = serde_json::from_str::<RawSpecification>(str).unwrap();
+        let compressed_str = serde_json::to_string::<RawSpecification>(&raw).unwrap();
+        serde_json::from_str::<Specification>(&compressed_str).unwrap()
     }
 
     // Resource Properties in Specification look something like:
