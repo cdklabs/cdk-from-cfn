@@ -88,7 +88,7 @@ mod tests {
         let var = String::from("some_value");
         let postfix = String::from(":constant");
         // for those who don't want to read: arn:${some_value}:constant
-        let v = sub_parse_tree(format!("{}${{{}}}{}", prefix, var, postfix).as_str())?;
+        let v = sub_parse_tree(format!("{prefix}${{{var}}}{postfix}").as_str())?;
         assert_eq!(
             v,
             vec![

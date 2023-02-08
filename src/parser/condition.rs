@@ -80,7 +80,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
         Value::Object(x) => x,
         _ => {
             return Err(TransmuteError {
-                details: format!("Condition must be an object or string {}, {:?}", name, obj),
+                details: format!("Condition must be an object or string {name}, {obj:?}"),
             })
         }
     };
@@ -95,7 +95,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let arr = match condition_object.as_array() {
                     None => {
                         return Err(TransmuteError::new(
-                            format!("Condition must be an array {}", name).as_str(),
+                            format!("Condition must be an array {name}").as_str(),
                         ))
                     }
                     Some(x) => x,
@@ -111,7 +111,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let arr = match condition_object.as_array() {
                     None => {
                         return Err(TransmuteError {
-                            details: format!("Condition must be an array {}", name),
+                            details: format!("Condition must be an array {name}"),
                         })
                     }
                     Some(x) => x,
@@ -120,7 +120,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let obj1 = match arr.get(0) {
                     None => {
                         return Err(TransmuteError {
-                            details: format!("Equal condition must have 2 array values {}", name),
+                            details: format!("Equal condition must have 2 array values {name}"),
                         })
                     }
                     Some(x) => build_condition_recursively(name, x),
@@ -128,7 +128,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let obj2 = match arr.get(1) {
                     None => {
                         return Err(TransmuteError {
-                            details: format!("Equal condition must have 2 array values {}", name),
+                            details: format!("Equal condition must have 2 array values {name}"),
                         })
                     }
                     Some(x) => build_condition_recursively(name, x),
@@ -139,7 +139,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let arr = match condition_object.as_array() {
                     None => {
                         return Err(TransmuteError {
-                            details: format!("Condition must be an array {}", name),
+                            details: format!("Condition must be an array {name}"),
                         })
                     }
                     Some(x) => x,
@@ -148,7 +148,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let obj1 = match arr.get(0) {
                     None => {
                         return Err(TransmuteError {
-                            details: format!("Equal condition must have 2 array values {}", name),
+                            details: format!("Equal condition must have 2 array values {name}"),
                         })
                     }
                     Some(x) => build_condition_recursively(name, x),
@@ -159,7 +159,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let arr = match condition_object.as_array() {
                     None => {
                         return Err(TransmuteError {
-                            details: format!("Condition must be an array {}", name),
+                            details: format!("Condition must be an array {name}"),
                         })
                     }
                     Some(x) => x,
@@ -177,7 +177,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let condition_name = match condition_object.as_str() {
                     None => {
                         return Err(TransmuteError {
-                            details: format!("Condition must a string {}", name),
+                            details: format!("Condition must a string {name}"),
                         })
                     }
                     Some(x) => x,
@@ -188,7 +188,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let ref_name = match condition_object.as_str() {
                     None => {
                         return Err(TransmuteError {
-                            details: format!("Condition must a string {}", name),
+                            details: format!("Condition must a string {name}"),
                         })
                     }
                     Some(x) => x,
@@ -199,7 +199,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let arr = match condition_object.as_array() {
                     None => {
                         return Err(TransmuteError {
-                            details: format!("Fn::FindInMap must form an array {}", name),
+                            details: format!("Fn::FindInMap must form an array {name}"),
                         })
                     }
                     Some(x) => x,
@@ -217,6 +217,6 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
     }
 
     Err(TransmuteError {
-        details: format!("Could not match the pattern for {}, {:?}", name, obj),
+        details: format!("Could not match the pattern for {name}, {obj:?}"),
     })
 }

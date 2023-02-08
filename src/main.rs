@@ -35,6 +35,6 @@ fn main() {
     if matches.is_present("OUTPUT") {
         fs::write(matches.value_of("OUTPUT").unwrap(), output).expect("Unable to write file");
     } else {
-        println!("{}", output);
+        println!("{output}");
     }
 }

@@ -117,7 +117,7 @@ impl Specification {
         match complexity {
             Structure::Simple(_) => Option::None,
             Structure::Composite(x) => {
-                let mut full_rule_name = format!("{}.{}", resource_type, x);
+                let mut full_rule_name = format!("{resource_type}.{x}");
                 // Every type in CloudFormation has the form: {resource}.{resource_type}
                 // e.g. AWS::Iam::Role.Policy . Tag's lookup name in the specification is "Tag".
                 // no one can explain why. Thanks CFN.
