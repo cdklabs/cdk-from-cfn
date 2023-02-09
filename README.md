@@ -34,14 +34,12 @@ cargo build --release
 - [x] Fn::GetAZs support
 - [x] Adding depends-on, and ordering based on it too.
 - [x] Deletion policy
- 
+- [x] Fn::Cidr support 
+
 ## Remaining
 
 There are known unsupported features. Working on them in priority order:
 
-
-
-- [ ] Fn::Cidr support
 - [ ] Create policy
 - [ ] ssm metadata references
 - [ ] secretsmanager references

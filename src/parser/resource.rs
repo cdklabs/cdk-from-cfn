@@ -27,6 +27,7 @@ pub enum ResourceValue {
     Base64(Box<ResourceValue>),
     ImportValue(Box<ResourceValue>),
     Select(Box<ResourceValue>, Box<ResourceValue>),
+    Cidr(Box<ResourceValue>, Box<ResourceValue>, Box<ResourceValue>),
 }
 
 impl ResourceValue {}
@@ -419,6 +420,55 @@ pub fn build_resources_recursively(
                     }
 
                     ResourceValue::Join(v)
+                }
+                "Fn::Cidr" => {
+                    let v = match resource_object.as_array() {
+                        None => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::Cidr is supposed to be an array entry {name}"
+                                ),
+                            })
+                        }
+                        Some(x) => x,
+                    };
+
+                    let first_obj = match v.get(0) {
+                        None => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::Cidr is supposed to have 3 values in array, has 0 {name}"
+                                ),
+                            })
+                        }
+                        Some(x) => build_resources_recursively(name, x),
+                    }?;
+                    let second_obj = match v.get(1) {
+                        None => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::Cidr is supposed to have 3 values in array, has 1 {name}"
+                                ),
+                            })
+                        }
+                        Some(x) => build_resources_recursively(name, x),
+                    }?;
+                    let third_obj = match v.get(2) {
+                        None => {
+                            return Err(TransmuteError {
+                                details: format!(
+                                    "Fn::Cidr is supposed to have 3 values in array, has 2 {name}"
+                                ),
+                            })
+                        }
+                        Some(x) => build_resources_recursively(name, x),
+                    }?;
+
+                    ResourceValue::Cidr(
+                        Box::new(first_obj),
+                        Box::new(second_obj),
+                        Box::new(third_obj),
+                    )
                 }
                 "Ref" => {
                     let ref_name = match resource_object.as_str() {
