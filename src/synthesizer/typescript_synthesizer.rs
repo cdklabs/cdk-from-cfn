@@ -388,6 +388,14 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             let str = to_string_ir(obj.as_ref()).unwrap();
             Option::Some(format!("{}[{}]", str, *index))
         }
+        ResourceIr::Cidr(ip_block, count, cidr_bits) => {
+            let ip_block_str = to_string_ir(ip_block.as_ref()).unwrap();
+            let count_str = to_string_ir(count.as_ref()).unwrap();
+            let cidr_bits_str = to_string_ir(cidr_bits.as_ref()).unwrap();
+            Option::Some(format!(
+                "cdk.Fn.cidr({ip_block_str}, {count_str}, {cidr_bits_str})"
+            ))
+        }
     }
 }
 

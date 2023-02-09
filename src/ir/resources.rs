@@ -35,6 +35,7 @@ pub enum ResourceIr {
     ImportValue(Box<ResourceIr>),
     GetAZs(Box<ResourceIr>),
     Select(i64, Box<ResourceIr>),
+    Cidr(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
 }
 
 /// ResourceTranslationInputs is a place to store all the intermediate recursion
@@ -223,6 +224,11 @@ fn find_dependencies(
         }
         ResourceIr::GetAZs(x) => {
             find_dependencies(resource_name, x.deref(), topo);
+        }
+        ResourceIr::Cidr(x, y, z) => {
+            find_dependencies(resource_name, x.deref(), topo);
+            find_dependencies(resource_name, y.deref(), topo);
+            find_dependencies(resource_name, z.deref(), topo);
         }
     }
 }
@@ -446,6 +452,18 @@ pub fn translate_resource(
         ResourceValue::GetAZs(x) => {
             let ir = translate_resource(x, resource_translator)?;
             Ok(ResourceIr::GetAZs(Box::new(ir)))
+        }
+        ResourceValue::Cidr(ip_block, count, cidr_bits) => {
+            let mut rt = resource_translator.clone();
+            rt.complexity = Structure::Simple(CfnType::String);
+            let ip_block_str = translate_resource(ip_block, &rt)?;
+            let count_str = translate_resource(count, &rt)?;
+            let cidr_bits_str = translate_resource(cidr_bits, &rt)?;
+            Ok(ResourceIr::Cidr(
+                Box::new(ip_block_str),
+                Box::new(count_str),
+                Box::new(cidr_bits_str),
+            ))
         }
     }
 }
