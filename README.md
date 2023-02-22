@@ -7,8 +7,9 @@ Noctilucent will take your json and output the equivalent typescript.
 ## User Guide
 ```
 cargo build --release
-./target/release/noctilucent <INPUT> <OUTPUT>
+./target/release/noctilucent [--input-format yaml] <INPUT> [OUTPUT]
 ```
+* `input-format` is an optional parameter to specify the input format of the CFN template (json|yaml). If not specified, json is defaulted.
 * `INPUT` is the input file path.
 * `OUTPUT` is the output file path; if not specified, output will be printed on your command line.
 
