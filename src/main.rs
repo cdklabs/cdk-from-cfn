@@ -36,12 +36,12 @@ fn main() {
     let txt_location: &str = matches.value_of("INPUT").unwrap();
     let contents = fs::read_to_string(txt_location).unwrap();
     let input_format: &str = matches.value_of("inputFormat").unwrap();
-    let value: Value;
-    if input_format.eq("json") {
-        value = serde_json::from_str(contents.as_str()).unwrap();
+
+    let value: Value = if input_format.eq("json") {
+        serde_json::from_str(contents.as_str()).unwrap()
     } else {
-        value = serde_yaml::from_str::<serde_json::Value>(contents.as_str()).unwrap();
-    }
+        serde_yaml::from_str::<Value>(contents.as_str()).unwrap()
+    };
 
     let cfn_tree = CloudformationParseTree::build(&value).unwrap();
     let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree).unwrap();
