@@ -104,12 +104,19 @@ impl TypescriptSynthesizer {
                 rtype = String::from(split_ref.next().unwrap());
             }
 
+            if !reference.referrers.is_empty() {
+                for dep in reference.referrers.iter() {
+                    append_with_newline(output, &format!("if ({} === undefined) {{ throw new Error(`A combination of conditions caused '{}' to be undefined. Fixit.`); }}", pretty_name(dep), pretty_name(dep)));
+                }
+            }
+
             if let Some(x) = &reference.condition {
                 append_with_newline(
                     output,
                     &format!("\t\tlet {};", pretty_name(&reference.name)),
                 );
                 append_with_newline(output, &format!("\t\tif ({}) {{", pretty_name(x)));
+
                 append_with_newline(
                     output,
                     &format!(
@@ -251,16 +258,8 @@ impl TypescriptSynthesizer {
 
             append_with_newline(output, "});");
         }
-
+        //"if (x === undefined) { throw new Error(`A combination of conditions caused '${name}' to be undefined. Fixit.`); }"
         append_with_newline(output, "\t}");
-        append_with_newline(
-            output,
-            "function assertDefined(name: string, x: any): asserts x is NonNullable<any> {
-  if (x === undefined) {
-    throw new Error(`A combination of conditions caused '${name}' to be undefined. Fixit.`);
-  }
-}",
-        );
         append_with_newline(output, "}");
 
         output.to_string()

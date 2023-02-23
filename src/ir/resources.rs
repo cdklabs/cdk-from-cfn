@@ -63,6 +63,9 @@ pub struct ResourceInstruction {
     pub update_policy: Option<ResourceIr>,
     pub deletion_policy: Option<String>,
     pub dependencies: Vec<String>,
+    // Referrers are a meta concept of "anything other resource that ResourceInstruction references".
+    // This could be in a property or dependency path.
+    pub referrers: Vec<String>,
     pub resource_type: String,
     pub properties: HashMap<String, ResourceIr>,
 }
@@ -90,11 +93,13 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
             };
 
             let ir = translate_resource(prop, &rt).unwrap();
+
             props.insert(name.to_string(), ir);
         }
         let metadata = optional_ir_json(parse_tree, &resource.metadata).unwrap();
         let update_policy = optional_ir_json(parse_tree, &resource.update_policy).unwrap();
-        resource_instructions.push(ResourceInstruction {
+
+        let mut resource_instruction = ResourceInstruction {
             name: resource.name.to_string(),
             resource_type: resource.resource_type.to_string(),
             dependencies: resource.dependencies.clone(),
@@ -103,7 +108,13 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
             properties: props,
             metadata,
             update_policy,
-        });
+
+            // Everything below this line will be blown away by "later updates".
+            referrers: Vec::new(),
+        };
+        let references = generate_references(&resource_instruction);
+        resource_instruction.referrers = references;
+        resource_instructions.push(resource_instruction);
     }
     order(resource_instructions)
 }
@@ -161,6 +172,181 @@ fn optional_ir_json(
     }
 
     Ok(policy)
+}
+
+fn generate_references(resource_instruction: &ResourceInstruction) -> Vec<String> {
+    let mut references = Vec::new();
+    for dep in resource_instruction.dependencies.iter() {
+        references.push(dep.to_string());
+    }
+
+    for (_, property) in resource_instruction.properties.iter() {
+        let opt_refs = find_references(property);
+        if let Some(x) = opt_refs {
+            references.extend(x)
+        }
+    }
+
+    references
+}
+
+fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
+    match resource {
+        ResourceIr::Null
+        | ResourceIr::Bool(_)
+        | ResourceIr::Number(_)
+        | ResourceIr::Double(_)
+        | ResourceIr::String(_) => Option::None,
+
+        ResourceIr::Array(_, arr) => {
+            let mut v = Vec::new();
+            for resource in arr {
+                let opt = find_references(resource);
+                match opt {
+                    None => {}
+                    Some(x) => v.extend(x),
+                }
+            }
+
+            Option::Some(v)
+        }
+        ResourceIr::Object(_, hash) => {
+            let mut v = Vec::new();
+            for resource in hash.values() {
+                let opt = find_references(resource);
+                match opt {
+                    None => {}
+                    Some(x) => v.extend(x),
+                }
+            }
+
+            Option::Some(v)
+        }
+        ResourceIr::If(_, x, y) => {
+            let mut v = Vec::new();
+            let opt = find_references(x.deref());
+            match opt {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            let opt2 = find_references(y.deref());
+            match opt2 {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+
+            Option::Some(v)
+        }
+        ResourceIr::Join(_, arr) => {
+            let mut v = Vec::new();
+            for resource in arr {
+                let opt = find_references(resource);
+                match opt {
+                    None => {}
+                    Some(x) => v.extend(x),
+                }
+            }
+
+            Option::Some(v)
+        }
+        ResourceIr::Ref(x) => match x.origin {
+            Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => Option::None,
+            Origin::LogicalId => {
+                let v = vec![x.name.to_string()];
+                Option::Some(v)
+            }
+            Origin::GetAttribute(_) => {
+                let v = vec![x.name.to_string()];
+                Option::Some(v)
+            }
+        },
+        ResourceIr::Sub(arr) => {
+            let mut v = vec![];
+            for resource in arr {
+                let opt = find_references(resource);
+                match opt {
+                    None => {}
+                    Some(x) => v.extend(x),
+                }
+            }
+
+            Option::Some(v)
+        }
+        ResourceIr::Map(x, y, z) => {
+            let mut v = Vec::new();
+            let opt = find_references(x.deref());
+            match opt {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            let opt2 = find_references(y.deref());
+            match opt2 {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            let opt3 = find_references(z.deref());
+            match opt3 {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            Option::Some(v)
+        }
+        ResourceIr::Base64(x) => {
+            let mut v = Vec::new();
+            let opt = find_references(x.deref());
+            match opt {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            Option::Some(v)
+        }
+        ResourceIr::ImportValue(x) => {
+            let mut v = Vec::new();
+            let opt = find_references(x.deref());
+            match opt {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            Option::Some(v)
+        }
+        ResourceIr::Select(_, x) => {
+            let mut v = Vec::new();
+            let opt = find_references(x.deref());
+            match opt {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            Option::Some(v)
+        }
+        ResourceIr::GetAZs(x) => {
+            let mut v = Vec::new();
+            let opt = find_references(x.deref());
+            match opt {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            Option::Some(v)
+        }
+        ResourceIr::Cidr(x, y, z) => {
+            let mut v = Vec::new();
+            let opt = find_references(x.deref());
+            match opt {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            let opt2 = find_references(y.deref());
+            match opt2 {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            let opt3 = find_references(z.deref());
+            match opt3 {
+                None => {}
+                Some(res) => v.extend(res),
+            }
+            Option::Some(v)
+        }
+    }
 }
 
 fn find_dependencies(
@@ -495,7 +681,7 @@ fn find_ref(x: &str, parse_tree: &CloudformationParseTree) -> Reference {
 #[cfg(test)]
 mod tests {
     use crate::ir::reference::{Origin, Reference};
-    use crate::ir::resources::{order, ResourceInstruction, ResourceIr};
+    use crate::ir::resources::{generate_references, order, ResourceInstruction, ResourceIr};
     use std::collections::HashMap;
 
     #[test]
@@ -508,6 +694,7 @@ mod tests {
             update_policy: Option::None,
             dependencies: Vec::new(),
             resource_type: "".to_string(),
+            referrers: Vec::new(),
             properties: HashMap::new(),
         };
 
@@ -519,6 +706,7 @@ mod tests {
             deletion_policy: Option::None,
             update_policy: Option::None,
             resource_type: "".to_string(),
+            referrers: Vec::new(),
             properties: create_property(
                 "something",
                 ResourceIr::Ref(Reference::new("A", Origin::LogicalId)),
@@ -529,6 +717,27 @@ mod tests {
 
         let actual = order(misordered);
         assert_eq!(actual, vec![ir_instruction, later]);
+    }
+
+    #[test]
+    fn test_ref_links() {
+        let ir_instruction = ResourceInstruction {
+            name: "A".to_string(),
+            condition: None,
+            metadata: Option::None,
+            deletion_policy: Option::None,
+            update_policy: Option::None,
+            dependencies: vec!["foo".to_string()],
+            resource_type: "".to_string(),
+            referrers: Vec::new(),
+            properties: create_property(
+                "something",
+                ResourceIr::Ref(Reference::new("bar", Origin::LogicalId)),
+            ),
+        };
+
+        let refs = generate_references(&ir_instruction);
+        assert_eq!(refs, vec!["foo", "bar"])
     }
 
     fn create_property(name: &str, resource: ResourceIr) -> HashMap<String, ResourceIr> {
