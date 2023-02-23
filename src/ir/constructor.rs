@@ -13,9 +13,11 @@ impl Constructor {
     pub fn translate(parse_tree: &CloudformationParseTree) -> Constructor {
         let mut inputs = Vec::new();
         for (name, param) in parse_tree.parameters.params.iter() {
+            let default: Option<&String> = param.default.as_ref();
             inputs.push(ConstructorParameter {
                 name: camel_case(name),
                 constructor_type: param.parameter_type.to_string(),
+                default_value: default.map(|v| v.to_string()),
             })
         }
         Constructor { inputs }
@@ -30,4 +32,5 @@ impl Default for Constructor {
 pub struct ConstructorParameter {
     pub name: String,
     pub constructor_type: String,
+    pub default_value: Option<String>,
 }

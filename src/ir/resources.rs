@@ -433,6 +433,7 @@ pub fn translate_resource(
                 return match simple_type {
                     CfnType::Boolean => Ok(ResourceIr::Bool(s.parse().unwrap())),
                     CfnType::Integer => Ok(ResourceIr::Number(s.parse().unwrap())),
+                    CfnType::Double => Ok(ResourceIr::Number(s.parse().unwrap())),
                     &_ => Ok(ResourceIr::String(s.to_string())),
                 };
             }
