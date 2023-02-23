@@ -33,18 +33,39 @@ impl TypescriptSynthesizer {
             "export interface NoctStackProps extends cdk.StackProps {",
         );
 
-        for param in ir.constructor.inputs {
+        for param in &ir.constructor.inputs {
             append_with_newline(
                 output,
                 &format!(
                     "\treadonly {}: {};",
                     pretty_name(&param.name),
-                    pretty_name(&param.constructor_type)
+                    pretty_name(&param.constructor_type),
                 ),
             );
         }
 
         append_with_newline(output, "}");
+
+        append_with_newline(output, "\n// Default parameters");
+        append_with_newline(output, "// {");
+        for param in &ir.constructor.inputs {
+            let default_value: Option<&String> = param.default_value.as_ref();
+            if let Some(x) = default_value {
+                append_with_newline(
+                    output,
+                    &format!(
+                        "//\t {}: {},",
+                        pretty_name(&param.name),
+                        match pretty_name(&param.constructor_type).as_str() {
+                            "string" => x.to_string(),
+                            _ => pretty_name(x),
+                        }
+                    ),
+                );
+            }
+        }
+        append_with_newline(output, "// }");
+
         append_with_newline(output, "\n// Stack");
         append_with_newline(output, "export class NoctStack extends cdk.Stack {");
         append_with_newline(
