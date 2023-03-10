@@ -1,6 +1,6 @@
 use crate::ir::conditions::ConditionIr;
 use crate::ir::mappings::{MappingInstruction, OutputType};
-use crate::ir::resources::ResourceIr;
+use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::Structure;
@@ -125,18 +125,14 @@ impl TypescriptSynthesizer {
                 rtype = String::from(split_ref.next().unwrap());
             }
 
-            if !reference.referrers.is_empty() {
-                for dep in reference.referrers.iter() {
-                    append_with_newline(output, &format!("if ({} === undefined) {{ throw new Error(`A combination of conditions caused '{}' to be undefined. Fixit.`); }}", pretty_name(dep), pretty_name(dep)));
-                }
-            }
-
             if let Some(x) = &reference.condition {
                 append_with_newline(
                     output,
                     &format!("\t\tlet {};", pretty_name(&reference.name)),
                 );
                 append_with_newline(output, &format!("\t\tif ({}) {{", pretty_name(x)));
+
+                append_references(output, reference);
 
                 append_with_newline(
                     output,
@@ -149,6 +145,7 @@ impl TypescriptSynthesizer {
                     ),
                 );
             } else {
+                append_references(output, reference);
                 append_with_newline(
                     output,
                     &format!(
@@ -257,6 +254,10 @@ impl TypescriptSynthesizer {
         append_with_newline(output, "\n\t\t// Outputs");
 
         for op in ir.outputs {
+            if let Some(x) = &op.condition {
+                append_with_newline(output, &format!("\t\tif ({}) {{", pretty_name(x)));
+            }
+
             append_with_newline(
                 output,
                 &format!("new cdk.CfnOutput(this, '{}', {{", op.name),
@@ -266,6 +267,12 @@ impl TypescriptSynthesizer {
 
             if let Some(export) = export_str {
                 append_with_newline(output, &format!("\texportName: {export},"));
+            }
+
+            if let Some(x) = &op.description {
+                let formatted_str = x.replace("\\'", "'");
+                let formatted_str = formatted_str.escape_debug();
+                append_with_newline(output, &format!("\tdescription: '{formatted_str}',"));
             }
 
             match to_string_ir(&op.value) {
@@ -278,6 +285,10 @@ impl TypescriptSynthesizer {
             }
 
             append_with_newline(output, "});");
+
+            if let Some(_x) = &op.condition {
+                append_with_newline(output, "}")
+            }
         }
         //"if (x === undefined) { throw new Error(`A combination of conditions caused '${name}' to be undefined. Fixit.`); }"
         append_with_newline(output, "\t}");
@@ -499,6 +510,14 @@ fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) 
 
 fn append_with_newline(result: &mut String, string: &str) {
     String::push_str(result, &format!("{string}\n"));
+}
+
+fn append_references(output: &mut String, reference: &ResourceInstruction) {
+    if !reference.referrers.is_empty() {
+        for dep in reference.referrers.iter() {
+            append_with_newline(output, &format!("if ({} === undefined) {{ throw new Error(`A combination of conditions caused '{}' to be undefined. Fixit.`); }}", pretty_name(dep), pretty_name(dep)));
+        }
+    }
 }
 
 struct SuffixFix<'a> {

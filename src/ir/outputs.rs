@@ -6,6 +6,8 @@ pub struct OutputInstruction {
     pub name: String,
     pub export: Option<ResourceIr>,
     pub value: ResourceIr,
+    pub condition: Option<String>,
+    pub description: Option<String>,
 }
 
 pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<OutputInstruction> {
@@ -19,6 +21,8 @@ pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<OutputInstruction>
         };
 
         let value = translate_resource(&output.value, &resource_translator).unwrap();
+        let condition = output.condition.clone();
+        let description = output.description.clone();
         let mut export = Option::None;
         if let Some(x) = &output.export {
             export = Option::Some(translate_resource(x, &resource_translator).unwrap());
@@ -28,6 +32,8 @@ pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<OutputInstruction>
             name: name.to_string(),
             export,
             value,
+            condition,
+            description,
         })
     }
     instructions

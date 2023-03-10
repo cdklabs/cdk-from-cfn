@@ -26,14 +26,24 @@ pub struct Output {
     pub logical_name: String,
     pub value: ResourceValue, // TODO - I think this is limited, may want to make it an enum.
     pub export: Option<ResourceValue>,
+    pub condition: Option<String>,
+    pub description: Option<String>,
 }
 
 impl Output {
-    fn new(logical_name: String, value: ResourceValue, export: Option<ResourceValue>) -> Output {
+    fn new(
+        logical_name: String,
+        value: ResourceValue,
+        export: Option<ResourceValue>,
+        condition: Option<String>,
+        description: Option<String>,
+    ) -> Output {
         Output {
             logical_name,
             value,
             export,
+            condition,
+            description,
         }
     }
 }
@@ -63,10 +73,22 @@ pub fn build_outputs(vals: &Map<String, Value>) -> Result<OutputsParseTree, Tran
             Some(x) => Option::Some(build_resources_recursively(logical_id, x)?),
         };
 
+        let condition = value
+            .get("Condition")
+            .and_then(|t| t.as_str())
+            .map(|t| t.to_string());
+
+        let description = value
+            .get("Description")
+            .and_then(|t| t.as_str())
+            .map(|t| t.to_string());
+
         outputs.add(Output {
             logical_name: logical_id.to_string(),
             value: val,
             export,
+            condition,
+            description,
         });
     }
 
