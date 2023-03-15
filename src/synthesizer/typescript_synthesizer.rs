@@ -374,7 +374,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::If(bool_expr, true_expr, false_expr) => {
             let bool_expr = pretty_name(bool_expr);
             let true_expr = match to_string_ir(true_expr) {
-                None => String::from("{}"),
+                None => String::from("undefined"),
                 Some(x) => x,
             };
             let false_expr = match to_string_ir(false_expr) {
@@ -417,7 +417,12 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         }
         ResourceIr::Select(index, obj) => {
             let str = to_string_ir(obj.as_ref()).unwrap();
-            Option::Some(format!("{}[{}]", str, *index))
+            match obj as &ResourceIr {
+                ResourceIr::GetAZs(_) => {
+                    Option::Some(format!("cdk.Fn.select({}, {})", *index, str))
+                }
+                _ => Option::Some(format!("{}[{}]", str, *index)),
+            }
         }
         ResourceIr::Cidr(ip_block, count, cidr_bits) => {
             let ip_block_str = to_string_ir(ip_block.as_ref()).unwrap();
