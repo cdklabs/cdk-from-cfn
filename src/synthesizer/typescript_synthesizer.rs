@@ -417,7 +417,12 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         }
         ResourceIr::Select(index, obj) => {
             let str = to_string_ir(obj.as_ref()).unwrap();
-            Option::Some(format!("{}[{}]", str, *index))
+            match obj as &ResourceIr {
+                ResourceIr::GetAZs(_) => {
+                    Option::Some(format!("cdk.Fn.select({}, {})", *index, str))
+                }
+                _ => Option::Some(format!("{}[{}]", str, *index)),
+            }
         }
         ResourceIr::Cidr(ip_block, count, cidr_bits) => {
             let ip_block_str = to_string_ir(ip_block.as_ref()).unwrap();
