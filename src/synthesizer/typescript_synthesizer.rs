@@ -374,7 +374,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         ResourceIr::If(bool_expr, true_expr, false_expr) => {
             let bool_expr = pretty_name(bool_expr);
             let true_expr = match to_string_ir(true_expr) {
-                None => String::from("{}"),
+                None => String::from("undefined"),
                 Some(x) => x,
             };
             let false_expr = match to_string_ir(false_expr) {
