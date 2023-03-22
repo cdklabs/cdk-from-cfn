@@ -354,11 +354,19 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             let mut r = Vec::new();
             for i in arr.iter() {
                 match i {
-                    ResourceIr::String(s) => r.push(s.to_string()),
+                    ResourceIr::String(s) => {
+                        // Since we are changing the output strings to use ticks for typescript sugar syntax,
+                        // we need to escape the ticks that already exist.
+                        let _replaced = s.replace('`', "\\`");
+                        let _replaced = s.replace('{', "\\{`");
+                        let replaced = s.replace('}', "\\}`");
+                        r.push(replaced.to_string())
+                    }
                     &_ => r.push(format!("${{{}}}", to_string_ir(i).unwrap())),
                 };
             }
-            Option::Some(format!("`{}`", r.join("")))
+            let full_text = r.join("");
+            Option::Some(format!("`{full_text}`"))
         }
         ResourceIr::Map(mapper, first, second) => {
             let a: &ResourceIr = mapper.as_ref();
