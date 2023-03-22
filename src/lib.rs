@@ -6,6 +6,7 @@ use crate::parser::output::{build_outputs, OutputsParseTree};
 use crate::parser::parameters::{build_parameters, Parameters};
 use crate::parser::resource::{build_resources, ResourceValue, ResourcesParseTree};
 use serde_json::Value;
+use std::collections::HashSet;
 
 pub mod integrations;
 pub mod ir;
@@ -49,6 +50,8 @@ pub struct CloudformationParseTree {
     pub conditions: ConditionsParseTree,
     pub resources: ResourcesParseTree,
     pub outputs: OutputsParseTree,
+
+    logical_lookup: HashSet<String>,
 }
 
 impl CloudformationParseTree {
@@ -66,6 +69,11 @@ impl CloudformationParseTree {
         // All stacks must have resources, so no checking.
         let resources = build_resources(json_obj["Resources"].as_object().unwrap())?;
 
+        let mut logical_lookup = HashSet::new();
+        for resource in resources.resources.iter() {
+            logical_lookup.insert(resource.name.clone());
+        }
+
         let mappings = match json_obj["Mappings"].as_object() {
             None => MappingsParseTree::new(),
             Some(x) => build_mappings(x)?,
@@ -81,6 +89,11 @@ impl CloudformationParseTree {
             resources,
             mappings,
             outputs,
+            logical_lookup,
         })
+    }
+
+    pub fn contains_logical_id(&self, logical_id: &str) -> bool {
+        self.logical_lookup.contains(logical_id)
     }
 }

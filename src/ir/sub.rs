@@ -16,16 +16,6 @@ pub enum SubValue {
 
 pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, TransmuteError> {
     let mut full_resolver = many1(inner_resolver);
-    // Remove the beginning and ending quotations, as they are annoying to add to the parse tree.
-    // TODO - just add them to the parse grammar to simplify this.
-    let str = match str.strip_prefix('\"') {
-        None => str,
-        Some(x) => x,
-    };
-    let str = match str.strip_suffix('\"') {
-        None => str,
-        Some(x) => x,
-    };
 
     match full_resolver(str) {
         Ok((remaining, built_subs)) => {
@@ -57,6 +47,10 @@ fn inner_resolver(str: &str) -> IResult<&str, SubValue> {
     }
 
     let ir = alt((
+        map(
+            delimited(tag("${!"), take_until("}"), take(1usize)),
+            |var: &str| SubValue::String(format!("${{{var}}}")),
+        ),
         // Attempt to find ${...} and eat those tokens.
         map(
             delimited(tag("${"), take_until("}"), take(1usize)),
@@ -139,6 +133,37 @@ mod tests {
     fn test_no_substitution() -> Result<(), TransmuteError> {
         let v = sub_parse_tree("NoSubstitution")?;
         assert_eq!(v, vec![SubValue::String(String::from("NoSubstitution"))]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_quotes() -> Result<(), TransmuteError> {
+        let v = sub_parse_tree("echo \"${lol}\"")?;
+        assert_eq!(
+            v,
+            vec![
+                SubValue::String(String::from("echo \"")),
+                SubValue::Variable(String::from("lol")),
+                SubValue::String(String::from("\"")),
+            ]
+        );
+
+        Ok(())
+    }
+
+    // As quoted in the sub docs: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-sub.html
+    // To write a dollar sign and curly braces (${}) literally, add an exclamation point (!) after the open curly brace, such as ${!Literal}. CloudFormation resolves this text as ${Literal}.
+    #[test]
+    fn test_literal() -> Result<(), TransmuteError> {
+        let v = sub_parse_tree("echo ${!lol}")?;
+        assert_eq!(
+            v,
+            vec![
+                SubValue::String(String::from("echo ")),
+                SubValue::String(String::from("${lol}"))
+            ]
+        );
 
         Ok(())
     }

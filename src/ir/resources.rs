@@ -532,10 +532,7 @@ pub fn translate_resource(
                 .map(|x| match &x {
                     SubValue::String(x) => ResourceIr::String(x.to_string()),
                     SubValue::Variable(x) => match excess_map.get(x) {
-                        None => {
-                            // if x has a period, it is actually a get-attr
-                            ResourceIr::Ref(find_ref(x, resource_translator.parse_tree))
-                        }
+                        None => ResourceIr::Ref(find_ref(x, resource_translator.parse_tree)),
                         Some(x) => x.clone(),
                     },
                 })
@@ -668,6 +665,7 @@ fn find_ref(x: &str, parse_tree: &CloudformationParseTree) -> Reference {
         }
     }
 
+    // if x has a period, it is actually a get-attr
     if x.contains('.') {
         let splits = x.split('.');
         let sp: Vec<&str> = splits.collect();
