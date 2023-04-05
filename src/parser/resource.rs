@@ -183,7 +183,7 @@ pub fn build_resources_recursively(
         #[allow(clippy::never_loop)]
         for (resource_name, resource_object) in val {
             let cond: ResourceValue = match resource_name.as_str() {
-                "Fn::Sub" => {
+                "!Sub" | "Fn::Sub" => {
                     let mut v = Vec::new();
                     match resource_object {
                         Value::String(str) => {
@@ -205,7 +205,7 @@ pub fn build_resources_recursively(
                     }
                     ResourceValue::Sub(v)
                 }
-                "Fn::FindInMap" => {
+                "!FindInMap" | "Fn::FindInMap" => {
                     let v = match resource_object.as_array() {
                         None => {
                             return Err(TransmuteError {
@@ -253,7 +253,7 @@ pub fn build_resources_recursively(
                         Box::new(third_obj),
                     )
                 }
-                "Fn::GetAtt" => {
+                "!GetAtt" | "Fn::GetAtt" => {
                     match resource_object {
                         // Short form: "Fn::GetAttr": "blah.blah"
                         Value::String(x) => {
@@ -299,7 +299,7 @@ pub fn build_resources_recursively(
                         }
                     }
                 }
-                "Fn::GetAZs" => {
+                "!GetAZs" | "Fn::GetAZs" => {
                     let v = match resource_object {
                         Value::String(_) => {
                             build_resources_recursively(name, resource_object)
@@ -320,15 +320,15 @@ pub fn build_resources_recursively(
                     ResourceValue::GetAZs(Box::new(v))
                 }
 
-                "Fn::Base64" => {
+                "!Base64" | "Fn::Base64" => {
                     let resolved_obj = build_resources_recursively(name, resource_object)?;
                     ResourceValue::Base64(Box::new(resolved_obj))
                 }
-                "Fn::ImportValue" => {
+                "!ImportValue" | "Fn::ImportValue" => {
                     let resolved_obj = build_resources_recursively(name, resource_object)?;
                     ResourceValue::ImportValue(Box::new(resolved_obj))
                 }
-                "Fn::Select" => {
+                "!Select" | "Fn::Select" => {
                     let arr = resource_object.as_array().unwrap();
 
                     let index = match arr.get(0) {
@@ -354,7 +354,7 @@ pub fn build_resources_recursively(
 
                     ResourceValue::Select(Box::new(index), Box::new(obj))
                 }
-                "Fn::If" => {
+                "!If" | "Fn::If" => {
                     let v = match resource_object.as_array() {
                         None => {
                             return Err(TransmuteError {
@@ -400,7 +400,7 @@ pub fn build_resources_recursively(
                         Box::new(third_obj),
                     )
                 }
-                "Fn::Join" => {
+                "!Join" | "Fn::Join" => {
                     let arr = match resource_object.as_array() {
                         None => {
                             return Err(TransmuteError {
@@ -421,7 +421,7 @@ pub fn build_resources_recursively(
 
                     ResourceValue::Join(v)
                 }
-                "Fn::Cidr" => {
+                "!Cidr" | "Fn::Cidr" => {
                     let v = match resource_object.as_array() {
                         None => {
                             return Err(TransmuteError {
@@ -470,7 +470,7 @@ pub fn build_resources_recursively(
                         Box::new(third_obj),
                     )
                 }
-                "Ref" => {
+                "!Ref" | "Ref" => {
                     let ref_name = match resource_object.as_str() {
                         None => {
                             return Err(TransmuteError {

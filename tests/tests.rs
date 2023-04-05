@@ -77,6 +77,33 @@ fn test_parse_tree_sub_str() {
 }
 
 #[test]
+fn test_parse_tree_yaml_codes() {
+    let a = serde_json::json!({
+        "LogicalResource": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": {
+                    "!Sub": "bobs-role-${AWS::Region}"
+                }
+            }
+        }
+    });
+
+    let resource = ResourceParseTree {
+        name: "LogicalResource".into(),
+        condition: Option::None,
+        metadata: Option::None,
+        update_policy: Option::None,
+        deletion_policy: Option::None,
+        dependencies: vec![],
+        resource_type: "AWS::IAM::Role".into(),
+        properties: map! {
+            "RoleName" => ResourceValue::Sub(vec![ResourceValue::String("bobs-role-${AWS::Region}".into())])
+        },
+    };
+    assert_resource_equal(a, resource);
+}
+#[test]
 fn test_parse_get_attr_shorthand() {
     let a = serde_json::json!({
         "LogicalResource": {
