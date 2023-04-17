@@ -1,5 +1,6 @@
 use crate::TransmuteError;
-use serde_json::{Map, Value};
+use serde_yaml::{Mapping, Value};
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -58,26 +59,35 @@ impl Default for ConditionsParseTree {
     }
 }
 
-pub fn build_conditions(vals: &Map<String, Value>) -> Result<ConditionsParseTree, TransmuteError> {
+pub fn build_conditions(vals: &Mapping) -> Result<ConditionsParseTree, TransmuteError> {
     let mut conditions = ConditionsParseTree::new();
 
     for (name, obj) in vals {
+        let name = name.as_str().unwrap();
         let cond = build_condition_recursively(name, obj)?;
         let condition = ConditionParseTree {
-            name: name.clone(),
+            name: name.to_string(),
             val: cond,
         };
-        conditions.conditions.insert(name.clone(), condition);
+        conditions.conditions.insert(name.to_string(), condition);
     }
     Ok(conditions)
 }
 
 fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue, TransmuteError> {
-    let val = match obj {
+    let val: Cow<Mapping> = match obj {
         Value::String(x) => return Ok(ConditionValue::Str(x.to_string())),
         Value::Number(x) => return Ok(ConditionValue::Str(x.to_string())),
         Value::Bool(x) => return Ok(ConditionValue::Str(x.to_string())),
-        Value::Object(x) => x,
+        Value::Mapping(x) => Cow::Borrowed(x),
+        Value::Tagged(x) => {
+            let mut mapping = Mapping::new();
+            mapping.insert(
+                serde_yaml::Value::String(format!("!{}", x.tag)),
+                x.value.clone(),
+            );
+            Cow::Owned(mapping)
+        }
         _ => {
             return Err(TransmuteError {
                 details: format!("Condition must be an object or string {name}, {obj:?}"),
@@ -88,11 +98,11 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
     // At this point, we have an object-json, and need to iterate over all
     // the keys
     #[allow(clippy::never_loop)]
-    for (condition_name, condition_object) in val {
+    for (condition_name, condition_object) in val.as_ref() {
         let cond: ConditionValue = match condition_name.as_str() {
-            "!And" | "Fn::And" => {
+            Some("!And") | Some("Fn::And") => {
                 let mut v: Vec<ConditionValue> = Vec::new();
-                let arr = match condition_object.as_array() {
+                let arr = match condition_object.as_sequence() {
                     None => {
                         return Err(TransmuteError::new(
                             format!("Condition must be an array {name}").as_str(),
@@ -107,8 +117,8 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
 
                 ConditionValue::And(v)
             }
-            "!Equals" | "Fn::Equals" => {
-                let arr = match condition_object.as_array() {
+            Some("!Equals") | Some("Fn::Equals") => {
+                let arr = match condition_object.as_sequence() {
                     None => {
                         return Err(TransmuteError {
                             details: format!("Condition must be an array {name}"),
@@ -135,8 +145,8 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 }?;
                 ConditionValue::Equals(Box::new(obj1), Box::new(obj2))
             }
-            "!Not" | "Fn::Not" => {
-                let arr = match condition_object.as_array() {
+            Some("!Not") | Some("Fn::Not") => {
+                let arr = match condition_object.as_sequence() {
                     None => {
                         return Err(TransmuteError {
                             details: format!("Condition must be an array {name}"),
@@ -155,8 +165,8 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 }?;
                 ConditionValue::Not(Box::new(obj1))
             }
-            "!Or" | "Fn::Or" => {
-                let arr = match condition_object.as_array() {
+            Some("!Or") | Some("Fn::Or") => {
+                let arr = match condition_object.as_sequence() {
                     None => {
                         return Err(TransmuteError {
                             details: format!("Condition must be an array {name}"),
@@ -173,7 +183,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
 
                 ConditionValue::Or(v)
             }
-            "!Condition" | "Condition" => {
+            Some("Condition") => {
                 let condition_name = match condition_object.as_str() {
                     None => {
                         return Err(TransmuteError {
@@ -184,7 +194,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 };
                 ConditionValue::Condition(condition_name.to_string())
             }
-            "!Ref" | "Ref" => {
+            Some("Ref") => {
                 let ref_name = match condition_object.as_str() {
                     None => {
                         return Err(TransmuteError {
@@ -195,8 +205,8 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 };
                 ConditionValue::Ref(ref_name.to_string())
             }
-            "!FindInMap" | "Fn::FindInMap" => {
-                let arr = match condition_object.as_array() {
+            Some("!FindInMap") | Some("Fn::FindInMap") => {
+                let arr = match condition_object.as_sequence() {
                     None => {
                         return Err(TransmuteError {
                             details: format!("Fn::FindInMap must form an array {name}"),
@@ -210,7 +220,8 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 let m3 = build_condition_recursively(name, arr.get(2).unwrap())?;
                 ConditionValue::FindInMap(Box::new(m1), Box::new(m2), Box::new(m3))
             }
-            v => ConditionValue::Str(v.to_string()),
+            Some(v) => ConditionValue::Str(v.to_string()),
+            None => unimplemented!("Condition name is not a string"),
         };
 
         return Ok(cond);

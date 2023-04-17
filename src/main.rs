@@ -3,7 +3,7 @@ use noctilucent::ir::CloudformationProgramIr;
 use noctilucent::synthesizer::typescript_synthesizer::TypescriptSynthesizer;
 use noctilucent::synthesizer::Synthesizer;
 use noctilucent::CloudformationParseTree;
-use serde_json::Value;
+use serde_yaml::Value;
 use std::{fs, io};
 
 fn main() {
@@ -30,19 +30,19 @@ fn main() {
                 .long("input-format")
                 .required(false)
                 .value_parser(["json", "yaml"])
-                .default_value("json"),
+                .hide(true),
         )
         .get_matches();
 
+    if matches.is_present("inputFormat") {
+        eprintln!("--inputFormat (-f) is a no-op and will be removed in a future version. All input is treated as YAML");
+        eprintln!("as it is a strict super-set of JSON (all valid JSON is valid YAML).");
+    }
+
     let txt_location: &str = matches.value_of("INPUT").unwrap();
     let contents = fs::read_to_string(txt_location).unwrap();
-    let input_format: &str = matches.value_of("inputFormat").unwrap();
 
-    let value: Value = if input_format.eq("json") {
-        serde_json::from_str(contents.as_str()).unwrap()
-    } else {
-        serde_yaml::from_str::<Value>(contents.as_str()).unwrap()
-    };
+    let value: Value = serde_yaml::from_str::<Value>(contents.as_str()).unwrap();
 
     let cfn_tree = CloudformationParseTree::build(&value).unwrap();
     let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree).unwrap();

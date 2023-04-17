@@ -1,6 +1,8 @@
 use noctilucent::parser::resource::{build_resources, ResourceParseTree, ResourceValue};
 use noctilucent::primitives::WrapperF64;
-use serde_json::Value;
+use serde_yaml::Value;
+
+mod json;
 
 macro_rules! map(
     { $($key:expr => $value:expr),+ } => {
@@ -16,7 +18,7 @@ macro_rules! map(
 
 #[test]
 fn test_parse_tree_basics() {
-    let a = serde_json::json!({
+    let a = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -50,7 +52,7 @@ fn test_parse_tree_basics() {
 
 #[test]
 fn test_basic_parse_tree_with_condition() {
-    let a: Value = serde_json::json!({
+    let a: Value = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Condition": "SomeCondition",
@@ -160,7 +162,7 @@ fn test_parse_tree_basics_with_deletion_policy() {
 
 #[test]
 fn test_parse_tree_sub_str() {
-    let a = serde_json::json!({
+    let a = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -188,7 +190,7 @@ fn test_parse_tree_sub_str() {
 
 #[test]
 fn test_parse_tree_yaml_codes() {
-    let a = serde_json::json!({
+    let a = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -215,7 +217,7 @@ fn test_parse_tree_yaml_codes() {
 }
 #[test]
 fn test_parse_get_attr_shorthand() {
-    let a = serde_json::json!({
+    let a = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -243,7 +245,7 @@ fn test_parse_get_attr_shorthand() {
 
 #[test]
 fn test_parse_tree_sub_list() {
-    let a = serde_json::json!({
+    let a = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -283,7 +285,7 @@ fn test_parse_tree_sub_list() {
 
 #[test]
 fn test_parse_tree_resource_with_floats() {
-    let a = serde_json::json!({
+    let a = json!({
         "Alarm": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
@@ -326,7 +328,7 @@ fn test_parse_tree_resource_with_floats() {
 }
 
 fn assert_resource_equal(val: Value, resource: ResourceParseTree) {
-    let obj = val.as_object().unwrap();
+    let obj = val.as_mapping().unwrap();
     let resources = build_resources(obj).unwrap();
     assert_eq!(resources.resources[0], resource)
 }

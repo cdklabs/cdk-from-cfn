@@ -1,7 +1,8 @@
 use crate::primitives::WrapperF64;
 use crate::TransmuteError;
 use numberkit::is_digit;
-use serde_json::{Map, Value};
+use serde_yaml::{Mapping, Value};
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -49,13 +50,12 @@ pub struct ResourcesParseTree {
     pub resources: Vec<ResourceParseTree>,
 }
 
-pub fn build_resources(
-    resource_map: &Map<String, Value>,
-) -> Result<ResourcesParseTree, TransmuteError> {
+pub fn build_resources(resource_map: &Mapping) -> Result<ResourcesParseTree, TransmuteError> {
     let mut resources = Vec::new();
 
     for (name, json_value) in resource_map.iter() {
-        let resource_object = json_value.as_object().unwrap();
+        let name = name.as_str().expect("mapping key was not a string");
+        let resource_object = json_value.as_mapping().unwrap();
         let resource_type = resource_object
             .get("Type")
             .unwrap()
@@ -70,9 +70,10 @@ pub fn build_resources(
         let mut properties = HashMap::new();
         if let Some(x) = resource_object
             .get("Properties")
-            .and_then(|x| x.as_object())
+            .and_then(|x| x.as_mapping())
         {
             for (prop_name, prop_value) in x {
+                let prop_name = prop_name.as_str().unwrap();
                 let result = build_resources_recursively(name, prop_value)?;
                 properties.insert(prop_name.to_owned(), result);
             }
@@ -103,7 +104,7 @@ pub fn build_resources(
                 Value::String(x) => {
                     dependencies.push(x.to_string());
                 }
-                Value::Array(x) => {
+                Value::Sequence(x) => {
                     for dep in x.iter() {
                         match dep.as_str() {
                             None => {
@@ -148,7 +149,7 @@ pub fn build_resources_recursively(
     name: &str,
     obj: &Value,
 ) -> Result<ResourceValue, TransmuteError> {
-    let val = match obj {
+    let val: Cow<Mapping> = match obj {
         Value::String(x) => return Ok(ResourceValue::String(x.to_string())),
         Value::Null => return Ok(ResourceValue::Null),
         Value::Bool(b) => return Ok(ResourceValue::Bool(b.to_owned())),
@@ -159,7 +160,7 @@ pub fn build_resources_recursively(
             let v = WrapperF64::new(n.as_f64().unwrap());
             return Ok(ResourceValue::Double(v));
         }
-        Value::Array(arr) => {
+        Value::Sequence(arr) => {
             let mut v = Vec::new();
             for item in arr.iter() {
                 let obj = build_resources_recursively(name, item)?;
@@ -169,27 +170,33 @@ pub fn build_resources_recursively(
             return Ok(ResourceValue::Array(v));
         }
         // Only real follow-up object
-        Value::Object(x) => x,
+        Value::Mapping(x) => Cow::Borrowed(x),
+        Value::Tagged(x) => {
+            let mut mapping = Mapping::new();
+            mapping.insert(Value::String(format!("!{}", x.tag)), x.value.clone());
+            Cow::Owned(mapping)
+        }
     };
 
     if val.len() > 1 || val.is_empty() {
         let mut hm = HashMap::new();
-        for (name, obj) in val {
+        for (name, obj) in val.as_ref() {
+            let name = name.as_str().unwrap();
             hm.insert(name.to_owned(), build_resources_recursively(name, obj)?);
         }
 
         return Ok(ResourceValue::Object(hm));
     } else {
         #[allow(clippy::never_loop)]
-        for (resource_name, resource_object) in val {
+        for (resource_name, resource_object) in val.as_ref() {
             let cond: ResourceValue = match resource_name.as_str() {
-                "!Sub" | "Fn::Sub" => {
+                Some("!Sub") | Some("Fn::Sub") => {
                     let mut v = Vec::new();
                     match resource_object {
                         Value::String(str) => {
                             v.push(ResourceValue::String(str.to_owned()));
                         }
-                        Value::Array(arr) => {
+                        Value::Sequence(arr) => {
                             for obj in arr.iter() {
                                 let resource = build_resources_recursively(name, obj)?;
                                 v.push(resource);
@@ -205,8 +212,8 @@ pub fn build_resources_recursively(
                     }
                     ResourceValue::Sub(v)
                 }
-                "!FindInMap" | "Fn::FindInMap" => {
-                    let v = match resource_object.as_array() {
+                Some("!FindInMap") | Some("Fn::FindInMap") => {
+                    let v = match resource_object.as_sequence() {
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
@@ -253,7 +260,7 @@ pub fn build_resources_recursively(
                         Box::new(third_obj),
                     )
                 }
-                "!GetAtt" | "Fn::GetAtt" => {
+                Some("!GetAtt") | Some("Fn::GetAtt") => {
                     match resource_object {
                         // Short form: "Fn::GetAttr": "blah.blah"
                         Value::String(x) => {
@@ -266,7 +273,7 @@ pub fn build_resources_recursively(
                                 Box::new(ResourceValue::String(attribute_ref.to_string())),
                             )
                         }
-                        Value::Array(v) => {
+                        Value::Sequence(v) => {
                             let first_obj = match v.get(0) {
                                 None => {
                                     return Err(TransmuteError {
@@ -299,12 +306,12 @@ pub fn build_resources_recursively(
                         }
                     }
                 }
-                "!GetAZs" | "Fn::GetAZs" => {
+                Some("!GetAZs") | Some("Fn::GetAZs") => {
                     let v = match resource_object {
                         Value::String(_) => {
                             build_resources_recursively(name, resource_object)
                         }
-                        Value::Object(_) => {
+                        Value::Mapping(_) => {
                             build_resources_recursively(name, resource_object)
                         }
                         x => {
@@ -320,16 +327,16 @@ pub fn build_resources_recursively(
                     ResourceValue::GetAZs(Box::new(v))
                 }
 
-                "!Base64" | "Fn::Base64" => {
+                Some("!Base64") | Some("Fn::Base64") => {
                     let resolved_obj = build_resources_recursively(name, resource_object)?;
                     ResourceValue::Base64(Box::new(resolved_obj))
                 }
-                "!ImportValue" | "Fn::ImportValue" => {
+                Some("!ImportValue") | Some("Fn::ImportValue") => {
                     let resolved_obj = build_resources_recursively(name, resource_object)?;
                     ResourceValue::ImportValue(Box::new(resolved_obj))
                 }
-                "!Select" | "Fn::Select" => {
-                    let arr = resource_object.as_array().unwrap();
+                Some("!Select") | Some("Fn::Select") => {
+                    let arr = resource_object.as_sequence().unwrap();
 
                     let index = match arr.get(0) {
                         None => {
@@ -354,8 +361,8 @@ pub fn build_resources_recursively(
 
                     ResourceValue::Select(Box::new(index), Box::new(obj))
                 }
-                "!If" | "Fn::If" => {
-                    let v = match resource_object.as_array() {
+                Some("!If") | Some("Fn::If") => {
+                    let v = match resource_object.as_sequence() {
                         None => {
                             return Err(TransmuteError {
                                 details: format!("Fn::If is supposed to be an array entry {name}"),
@@ -400,8 +407,8 @@ pub fn build_resources_recursively(
                         Box::new(third_obj),
                     )
                 }
-                "!Join" | "Fn::Join" => {
-                    let arr = match resource_object.as_array() {
+                Some("!Join") | Some("Fn::Join") => {
+                    let arr = match resource_object.as_sequence() {
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
@@ -421,8 +428,8 @@ pub fn build_resources_recursively(
 
                     ResourceValue::Join(v)
                 }
-                "!Cidr" | "Fn::Cidr" => {
-                    let v = match resource_object.as_array() {
+                Some("!Cidr") | Some("Fn::Cidr") => {
+                    let v = match resource_object.as_sequence() {
                         None => {
                             return Err(TransmuteError {
                                 details: format!(
@@ -470,7 +477,7 @@ pub fn build_resources_recursively(
                         Box::new(third_obj),
                     )
                 }
-                "!Ref" | "Ref" => {
+                Some("Ref") => {
                     let ref_name = match resource_object.as_str() {
                         None => {
                             return Err(TransmuteError {
@@ -488,7 +495,7 @@ pub fn build_resources_recursively(
 
                 // If it is none of the above, it must be part of the resource properties, continue
                 // parsing as if this was an object with a single property.
-                v => {
+                Some(v) => {
                     let mut hm = HashMap::new();
                     hm.insert(
                         v.to_owned(),
@@ -496,6 +503,8 @@ pub fn build_resources_recursively(
                     );
                     ResourceValue::Object(hm)
                 }
+
+                None => unimplemented!("resource key is not a string"),
             };
 
             return Ok(cond);

@@ -1,5 +1,5 @@
 use crate::TransmuteError;
-use serde_json::{Map, Value};
+use serde_yaml::{Mapping, Value};
 use std::collections::HashMap;
 
 // template anatomy can be found here: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-anatomy.html
@@ -44,11 +44,17 @@ impl Default for Parameters {
     }
 }
 
-pub fn build_parameters(vals: &Map<String, Value>) -> Result<Parameters, TransmuteError> {
+pub fn build_parameters(vals: &Mapping) -> Result<Parameters, TransmuteError> {
     let mut params = Parameters::new();
     for (name, obj) in vals {
-        let t = match obj.get("Type") {
-            Some(v) => v.to_string(),
+        let name = name.as_str().expect("mapping key was not a string");
+        let t = match obj.get::<Value>("Type".into()) {
+            Some(Value::String(v)) => v.to_string(),
+            Some(bad) => {
+                return Err(TransmuteError {
+                    details: format!("Type was not a string {bad:?}"),
+                })
+            }
             None => {
                 return Err(TransmuteError {
                     details: format!("Type was not specified correctly {name}"),
@@ -56,9 +62,13 @@ pub fn build_parameters(vals: &Map<String, Value>) -> Result<Parameters, Transmu
             }
         };
 
-        let def: Option<String> = obj.get("Default").map(|d| d.to_string());
+        let def: Option<String> = match obj.get("Default") {
+            Some(Value::String(v)) => Some(v.to_string()),
+            Some(bad) => unimplemented!("{bad:?}"),
+            None => None,
+        };
 
-        params.add(Parameter::new(name.clone(), t, def));
+        params.add(Parameter::new(name.to_string(), t, def));
     }
 
     Ok(params)
