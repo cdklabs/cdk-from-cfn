@@ -5,75 +5,85 @@ use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::Structure;
 use std::collections::HashMap;
+use std::io;
 use voca_rs::case::camel_case;
+
+use super::Synthesizer;
 
 pub struct TypescriptSynthesizer {
     // TODO: Put options in here for different outputs in typescript
 }
 
 impl TypescriptSynthesizer {
+    #[deprecated(note = "Prefer using the Synthrsizer API instead")]
     pub fn output(ir: CloudformationProgramIr) -> String {
-        let output = &mut String::new();
+        let mut output = Vec::new();
+        TypescriptSynthesizer {}
+            .synthesize(ir, &mut output)
+            .unwrap();
+        String::from_utf8(output).unwrap()
+    }
+}
 
+impl Synthesizer for TypescriptSynthesizer {
+    fn synthesize(
+        &self,
+        ir: CloudformationProgramIr,
+        output: &mut dyn io::Write,
+    ) -> io::Result<()> {
         for import in ir.imports {
-            append_with_newline(
+            writeln!(
                 output,
-                &format!(
-                    "import * as {} from '{}';",
-                    import.name,
-                    import.path.join("/")
-                ),
-            );
+                "import * as {} from '{}';",
+                import.name,
+                import.path.join("/")
+            )?;
         }
         // Static imports with base assumptions (e.g. using base 64)
-        append_with_newline(output, "import {Buffer} from 'buffer';");
-        append_with_newline(output, "\n// Interfaces");
-        append_with_newline(
+        writeln!(output, "import {{ Buffer }} from 'buffer';")?;
+        writeln!(output, "\n// Interfaces")?;
+        writeln!(
             output,
-            "export interface NoctStackProps extends cdk.StackProps {",
-        );
+            "export interface NoctStackProps extends cdk.StackProps {{",
+        )?;
 
         for param in &ir.constructor.inputs {
-            append_with_newline(
+            writeln!(
                 output,
-                &format!(
-                    "\treadonly {}: {};",
-                    pretty_name(&param.name),
-                    pretty_name(&param.constructor_type),
-                ),
-            );
+                "\treadonly {}: {};",
+                pretty_name(&param.name),
+                pretty_name(&param.constructor_type),
+            )?;
         }
 
-        append_with_newline(output, "}");
+        writeln!(output, "}}")?;
 
-        append_with_newline(output, "\n// Default parameters");
-        append_with_newline(output, "// {");
+        writeln!(output, "\n// Default parameters")?;
+        writeln!(output, "// {{")?;
         for param in &ir.constructor.inputs {
             let default_value: Option<&String> = param.default_value.as_ref();
             if let Some(x) = default_value {
-                append_with_newline(
+                writeln!(
                     output,
-                    &format!(
-                        "//\t {}: {},",
-                        pretty_name(&param.name),
-                        match pretty_name(&param.constructor_type).as_str() {
-                            "string" => x.to_string(),
-                            _ => pretty_name(x),
-                        }
-                    ),
-                );
+                    "//\t {}: {},",
+                    pretty_name(&param.name),
+                    match pretty_name(&param.constructor_type).as_str() {
+                        "string" => x.to_string(),
+                        _ => pretty_name(x),
+                    }
+                )?;
             }
         }
-        append_with_newline(output, "// }");
+        writeln!(output, "// }}")?;
 
-        append_with_newline(output, "\n// Stack");
-        append_with_newline(output, "export class NoctStack extends cdk.Stack {");
-        append_with_newline(
+        writeln!(output, "\n// Stack")?;
+        writeln!(output, "export class NoctStack extends cdk.Stack {{")?;
+        writeln!(
             output,
-            "\tconstructor(scope: cdk.App, id: string, props: NoctStackProps) {",
-        );
-        append_with_newline(output, "\t\tsuper(scope, id, props);");
-        append_with_newline(output, "\n\t\t// Mappings");
+            "\tconstructor(scope: cdk.App, id: string, props: NoctStackProps) {{",
+        )?;
+        writeln!(output, "\t\tsuper(scope, id, props);")?;
+        writeln!(output, "\n\t\t// Mappings")?;
 
         for mapping in ir.mappings.iter() {
             let record_type = match mapping.output_type() {
@@ -88,29 +98,29 @@ impl TypescriptSynthesizer {
                 OutputType::Complex => "Record<string, Record<string, any>>",
             };
 
-            append_with_newline(
+            writeln!(
                 output,
-                &format!(
-                    "\t\tconst {}: {} = {};",
-                    pretty_name(&mapping.name),
-                    record_type,
-                    synthesize_mapping_instruction(mapping),
-                ),
-            );
+                "\t\tconst {}: {} = {};",
+                pretty_name(&mapping.name),
+                record_type,
+                synthesize_mapping_instruction(mapping),
+            )?;
         }
 
-        append_with_newline(output, "\n\t\t// Conditions");
+        writeln!(output, "\n\t\t// Conditions")?;
 
         for cond in ir.conditions {
             let synthed = synthesize_condition_recursive(&cond.value);
 
-            append_with_newline(
+            writeln!(
                 output,
-                &format!("\t\tconst {} = {};", pretty_name(&cond.name), synthed),
-            );
+                "\t\tconst {} = {};",
+                pretty_name(&cond.name),
+                synthed
+            )?;
         }
 
-        append_with_newline(output, "\n\t\t// Resources");
+        writeln!(output, "\n\t\t// Resources")?;
 
         for reference in ir.resources.iter() {
             let mut split_ref = reference.resource_type.split("::");
@@ -126,115 +136,101 @@ impl TypescriptSynthesizer {
             }
 
             if let Some(x) = &reference.condition {
-                append_with_newline(
-                    output,
-                    &format!("\t\tlet {};", pretty_name(&reference.name)),
-                );
-                append_with_newline(output, &format!("\t\tif ({}) {{", pretty_name(x)));
+                writeln!(output, "\t\tlet {};", pretty_name(&reference.name))?;
+                writeln!(output, "\t\tif ({}) {{", pretty_name(x))?;
 
-                append_references(output, reference);
+                append_references(output, reference)?;
 
-                append_with_newline(
+                writeln!(
                     output,
-                    &format!(
-                        "\t\t{} = new {}.Cfn{}(this, '{}', {{",
-                        pretty_name(&reference.name),
-                        service,
-                        rtype,
-                        reference.name,
-                    ),
-                );
+                    "\t\t{} = new {}.Cfn{}(this, '{}', {{",
+                    pretty_name(&reference.name),
+                    service,
+                    rtype,
+                    reference.name,
+                )?;
             } else {
-                append_references(output, reference);
-                append_with_newline(
+                append_references(output, reference)?;
+                writeln!(
                     output,
-                    &format!(
-                        "\t\tconst {} = new {}.Cfn{}(this, '{}', {{",
-                        pretty_name(&reference.name),
-                        service,
-                        rtype,
-                        reference.name,
-                    ),
-                );
+                    "\t\tconst {} = new {}.Cfn{}(this, '{}', {{",
+                    pretty_name(&reference.name),
+                    service,
+                    rtype,
+                    reference.name,
+                )?;
             }
 
             for (i, (name, prop)) in reference.properties.iter().enumerate() {
                 match to_string_ir(prop) {
                     None => {}
                     Some(x) => {
-                        append_with_newline(
+                        writeln!(
                             output,
-                            &format!(
-                                "{}: {}{}",
-                                pretty_name(name),
-                                x,
-                                match i {
-                                    // Remove trailing comma.
-                                    x if x == reference.properties.len() - 1 => "",
-                                    _ => ",",
-                                }
-                            ),
-                        );
+                            "{}: {}{}",
+                            pretty_name(name),
+                            x,
+                            match i {
+                                // Remove trailing comma.
+                                x if x == reference.properties.len() - 1 => "",
+                                _ => ",",
+                            }
+                        )?;
                     }
                 }
             }
 
-            append_with_newline(output, "\t\t});");
+            writeln!(output, "\t\t}});")?;
 
             if let Some(metadata) = &reference.metadata {
-                append_with_newline(
+                writeln!(
                     output,
-                    &format!("{}.addOverride('Metadata', ", pretty_name(&reference.name)),
-                );
+                    "{}.addOverride('Metadata', ",
+                    pretty_name(&reference.name),
+                )?;
 
                 match to_string_ir(metadata) {
                     None => panic!("This should never fail"),
                     Some(x) => {
-                        append_with_newline(output, &x.to_string());
+                        writeln!(output, "{x}")?;
                     }
                 };
 
-                append_with_newline(output, ");");
+                writeln!(output, ");")?;
             }
 
             if let Some(update_policy) = &reference.update_policy {
-                append_with_newline(
+                writeln!(
                     output,
-                    &format!(
-                        "{}.addOverride('UpdatePolicy', ",
-                        pretty_name(&reference.name),
-                    ),
-                );
+                    "{}.addOverride('UpdatePolicy', ",
+                    pretty_name(&reference.name),
+                )?;
 
                 match to_string_ir(update_policy) {
                     None => panic!("This should never fail"),
                     Some(x) => {
-                        append_with_newline(output, &x.to_string());
+                        writeln!(output, "{x}")?;
                     }
                 };
 
-                append_with_newline(output, ");");
+                writeln!(output, ");")?;
             }
 
             if let Some(deletion_policy) = &reference.deletion_policy {
-                append_with_newline(
+                writeln!(
                     output,
-                    &format!(
-                        "{}.addOverride('DeletionPolicy', '{}');",
-                        pretty_name(&reference.name),
-                        deletion_policy,
-                    ),
-                );
+                    "{}.addOverride('DeletionPolicy', '{}');",
+                    pretty_name(&reference.name),
+                    deletion_policy,
+                )?;
             }
 
             if !reference.dependencies.is_empty() {
-                append_with_newline(
+                writeln!(
                     output,
-                    &format!(
-                        "{}.addOverride('DependsOn', [",
-                        pretty_name(&reference.name)
-                    ),
-                );
+                    "{}.addOverride('DependsOn', [",
+                    pretty_name(&reference.name)
+                )?;
 
                 let x: Vec<String> = reference
                     .dependencies
@@ -242,37 +238,34 @@ impl TypescriptSynthesizer {
                     .map(|x| format!("'{x}'"))
                     .collect();
 
-                append_with_newline(output, &x.join(",").to_string());
-                append_with_newline(output, "]);");
+                writeln!(output, "{}", &x.join(","))?;
+                writeln!(output, "]);")?;
             }
 
             if let Some(_x) = &reference.condition {
-                append_with_newline(output, "}")
+                writeln!(output, "}}")?;
             }
         }
 
-        append_with_newline(output, "\n\t\t// Outputs");
+        writeln!(output, "\n\t\t// Outputs")?;
 
         for op in ir.outputs {
             if let Some(x) = &op.condition {
-                append_with_newline(output, &format!("\t\tif ({}) {{", pretty_name(x)));
+                writeln!(output, "\t\tif ({}) {{", pretty_name(x))?;
             }
 
-            append_with_newline(
-                output,
-                &format!("new cdk.CfnOutput(this, '{}', {{", op.name),
-            );
+            writeln!(output, "new cdk.CfnOutput(this, '{}', {{", op.name)?;
 
             let export_str = op.export.and_then(|x| to_string_ir(&x));
 
             if let Some(export) = export_str {
-                append_with_newline(output, &format!("\texportName: {export},"));
+                writeln!(output, "\texportName: {export},")?;
             }
 
             if let Some(x) = &op.description {
                 let formatted_str = x.replace("\\'", "'");
                 let formatted_str = formatted_str.escape_debug();
-                append_with_newline(output, &format!("\tdescription: '{formatted_str}',"));
+                writeln!(output, "\tdescription: '{formatted_str}',")?;
             }
 
             match to_string_ir(&op.value) {
@@ -280,21 +273,21 @@ impl TypescriptSynthesizer {
                     panic!("Can't happen")
                 }
                 Some(x) => {
-                    append_with_newline(output, &format!("\tvalue: {x}"));
+                    writeln!(output, "\tvalue: {x}")?;
                 }
             }
 
-            append_with_newline(output, "});");
+            writeln!(output, "}});")?;
 
             if let Some(_x) = &op.condition {
-                append_with_newline(output, "}")
+                writeln!(output, "}}")?;
             }
         }
         //"if (x === undefined) { throw new Error(`A combination of conditions caused '${name}' to be undefined. Fixit.`); }"
-        append_with_newline(output, "\t}");
-        append_with_newline(output, "}");
+        writeln!(output, "\t}}")?;
+        writeln!(output, "}}")?;
 
-        output.to_string()
+        Ok(())
     }
 }
 
@@ -521,16 +514,16 @@ fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) 
     inner_mapping_ts_str
 }
 
-fn append_with_newline(result: &mut String, string: &str) {
-    String::push_str(result, &format!("{string}\n"));
-}
-
-fn append_references(output: &mut String, reference: &ResourceInstruction) {
+fn append_references(
+    output: &mut dyn io::Write,
+    reference: &ResourceInstruction,
+) -> io::Result<()> {
     if !reference.referrers.is_empty() {
         for dep in reference.referrers.iter() {
-            append_with_newline(output, &format!("if ({} === undefined) {{ throw new Error(`A combination of conditions caused '{}' to be undefined. Fixit.`); }}", pretty_name(dep), pretty_name(dep)));
+            writeln!(output, "if ({dep} === undefined) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep))?;
         }
     }
+    Ok(())
 }
 
 struct SuffixFix<'a> {
