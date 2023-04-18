@@ -190,7 +190,7 @@ pub fn build_resources_recursively(
         #[allow(clippy::never_loop)]
         for (resource_name, resource_object) in val.as_ref() {
             let cond: ResourceValue = match resource_name.as_str() {
-                Some("!Sub") | Some("Fn::Sub") => {
+                Some("!Sub" | "Fn::Sub") => {
                     let mut v = Vec::new();
                     match resource_object {
                         Value::String(str) => {
@@ -212,7 +212,7 @@ pub fn build_resources_recursively(
                     }
                     ResourceValue::Sub(v)
                 }
-                Some("!FindInMap") | Some("Fn::FindInMap") => {
+                Some("!FindInMap" | "Fn::FindInMap") => {
                     let v = match resource_object.as_sequence() {
                         None => {
                             return Err(TransmuteError {
@@ -260,7 +260,7 @@ pub fn build_resources_recursively(
                         Box::new(third_obj),
                     )
                 }
-                Some("!GetAtt") | Some("Fn::GetAtt") => {
+                Some("!GetAtt" | "Fn::GetAtt") => {
                     match resource_object {
                         // Short form: "Fn::GetAttr": "blah.blah"
                         Value::String(x) => {
@@ -306,7 +306,7 @@ pub fn build_resources_recursively(
                         }
                     }
                 }
-                Some("!GetAZs") | Some("Fn::GetAZs") => {
+                Some("!GetAZs" | "Fn::GetAZs") => {
                     let v = match resource_object {
                         Value::String(_) => {
                             build_resources_recursively(name, resource_object)
@@ -327,15 +327,15 @@ pub fn build_resources_recursively(
                     ResourceValue::GetAZs(Box::new(v))
                 }
 
-                Some("!Base64") | Some("Fn::Base64") => {
+                Some("!Base64" | "Fn::Base64") => {
                     let resolved_obj = build_resources_recursively(name, resource_object)?;
                     ResourceValue::Base64(Box::new(resolved_obj))
                 }
-                Some("!ImportValue") | Some("Fn::ImportValue") => {
+                Some("!ImportValue" | "Fn::ImportValue") => {
                     let resolved_obj = build_resources_recursively(name, resource_object)?;
                     ResourceValue::ImportValue(Box::new(resolved_obj))
                 }
-                Some("!Select") | Some("Fn::Select") => {
+                Some("!Select" | "Fn::Select") => {
                     let arr = resource_object.as_sequence().unwrap();
 
                     let index = match arr.get(0) {
@@ -361,7 +361,7 @@ pub fn build_resources_recursively(
 
                     ResourceValue::Select(Box::new(index), Box::new(obj))
                 }
-                Some("!If") | Some("Fn::If") => {
+                Some("!If" | "Fn::If") => {
                     let v = match resource_object.as_sequence() {
                         None => {
                             return Err(TransmuteError {
@@ -407,7 +407,7 @@ pub fn build_resources_recursively(
                         Box::new(third_obj),
                     )
                 }
-                Some("!Join") | Some("Fn::Join") => {
+                Some("!Join" | "Fn::Join") => {
                     let arr = match resource_object.as_sequence() {
                         None => {
                             return Err(TransmuteError {
@@ -428,7 +428,7 @@ pub fn build_resources_recursively(
 
                     ResourceValue::Join(v)
                 }
-                Some("!Cidr") | Some("Fn::Cidr") => {
+                Some("!Cidr" | "Fn::Cidr") => {
                     let v = match resource_object.as_sequence() {
                         None => {
                             return Err(TransmuteError {
@@ -477,7 +477,7 @@ pub fn build_resources_recursively(
                         Box::new(third_obj),
                     )
                 }
-                Some("Ref") => {
+                Some("!Ref" | "Ref") => {
                     let ref_name = match resource_object.as_str() {
                         None => {
                             return Err(TransmuteError {

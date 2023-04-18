@@ -100,7 +100,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
     #[allow(clippy::never_loop)]
     for (condition_name, condition_object) in val.as_ref() {
         let cond: ConditionValue = match condition_name.as_str() {
-            Some("!And") | Some("Fn::And") => {
+            Some("!And" | "Fn::And") => {
                 let mut v: Vec<ConditionValue> = Vec::new();
                 let arr = match condition_object.as_sequence() {
                     None => {
@@ -117,7 +117,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
 
                 ConditionValue::And(v)
             }
-            Some("!Equals") | Some("Fn::Equals") => {
+            Some("!Equals" | "Fn::Equals") => {
                 let arr = match condition_object.as_sequence() {
                     None => {
                         return Err(TransmuteError {
@@ -145,7 +145,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 }?;
                 ConditionValue::Equals(Box::new(obj1), Box::new(obj2))
             }
-            Some("!Not") | Some("Fn::Not") => {
+            Some("!Not" | "Fn::Not") => {
                 let arr = match condition_object.as_sequence() {
                     None => {
                         return Err(TransmuteError {
@@ -165,7 +165,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 }?;
                 ConditionValue::Not(Box::new(obj1))
             }
-            Some("!Or") | Some("Fn::Or") => {
+            Some("!Or" | "Fn::Or") => {
                 let arr = match condition_object.as_sequence() {
                     None => {
                         return Err(TransmuteError {
@@ -183,7 +183,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
 
                 ConditionValue::Or(v)
             }
-            Some("Condition") => {
+            Some("!Condition" | "Condition") => {
                 let condition_name = match condition_object.as_str() {
                     None => {
                         return Err(TransmuteError {
@@ -194,7 +194,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 };
                 ConditionValue::Condition(condition_name.to_string())
             }
-            Some("Ref") => {
+            Some("!Ref" | "Ref") => {
                 let ref_name = match condition_object.as_str() {
                     None => {
                         return Err(TransmuteError {
@@ -205,7 +205,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
                 };
                 ConditionValue::Ref(ref_name.to_string())
             }
-            Some("!FindInMap") | Some("Fn::FindInMap") => {
+            Some("!FindInMap" | "Fn::FindInMap") => {
                 let arr = match condition_object.as_sequence() {
                     None => {
                         return Err(TransmuteError {
