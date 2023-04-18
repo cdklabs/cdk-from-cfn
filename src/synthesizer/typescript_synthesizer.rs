@@ -15,7 +15,7 @@ pub struct TypescriptSynthesizer {
 }
 
 impl TypescriptSynthesizer {
-    #[deprecated(note = "Prefer using the Synthrsizer API instead")]
+    #[deprecated(note = "Prefer using the Synthesizer API instead")]
     pub fn output(ir: CloudformationProgramIr) -> String {
         let mut output = Vec::new();
         TypescriptSynthesizer {}
