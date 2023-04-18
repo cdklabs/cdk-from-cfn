@@ -4,16 +4,18 @@ version = "0.2.0"
 edition = "2018"
 description = "Library for parsing and reconstructing cloudformation json into cdk"
 license = "MIT"
-license-file = "LICENSE"
+
+repository = "https://github.com/iph/noctilucent.git"
+homepage = "https://github.com/iph/noctilucent#readme"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = "3.0.0-beta.2"
+clap = "4.2.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
-serde_with = {version = "2.0.0", features = ["json"]}
+serde_with = { version = "2.0.0", features = ["json"] }
 numberkit = "0.1.0"
 nom = "7.0.0"
 voca_rs = "1.14.0"
