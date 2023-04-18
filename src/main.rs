@@ -1,9 +1,10 @@
 use clap::{Arg, Command};
 use noctilucent::ir::CloudformationProgramIr;
 use noctilucent::synthesizer::typescript_synthesizer::TypescriptSynthesizer;
+use noctilucent::synthesizer::Synthesizer;
 use noctilucent::CloudformationParseTree;
 use serde_json::Value;
-use std::fs;
+use std::{fs, io};
 
 fn main() {
     let matches = Command::new("Translates cfn templates to cdk typescript")
@@ -45,11 +46,16 @@ fn main() {
 
     let cfn_tree = CloudformationParseTree::build(&value).unwrap();
     let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree).unwrap();
-    let output: String = TypescriptSynthesizer::output(ir);
+    let synthesizer: &dyn Synthesizer = &TypescriptSynthesizer {};
 
-    if matches.is_present("OUTPUT") {
-        fs::write(matches.value_of("OUTPUT").unwrap(), output).expect("Unable to write file");
+    let mut output: Box<dyn io::Write> = if matches.is_present("OUTPUT") {
+        Box::new(
+            fs::File::create(matches.value_of("OUTPUT").unwrap()).expect("unable to create file"),
+        )
     } else {
-        println!("{output}");
-    }
+        Box::new(io::stdout())
+    };
+
+    ir.synthesize(synthesizer, &mut output)
+        .expect("unable to synthesize");
 }
