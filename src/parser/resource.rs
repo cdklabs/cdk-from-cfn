@@ -91,7 +91,7 @@ pub fn build_resources(
         }
 
         let deletion_policy = resource_object
-            .get("UpdatePolicy")
+            .get("DeletionPolicy")
             .and_then(|x| x.as_str())
             .map(|x| x.to_string());
 
