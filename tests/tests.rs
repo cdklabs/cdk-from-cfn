@@ -120,7 +120,7 @@ fn test_basic_parse_tree_with_metadata() {
         },
     };
     assert_resource_equal(a, resource);
-}   
+}
 
 #[test]
 fn test_parse_tree_basics_with_deletion_policy() {
@@ -157,7 +157,6 @@ fn test_parse_tree_basics_with_deletion_policy() {
 
     assert_resource_equal(a, resource);
 }
-
 
 #[test]
 fn test_parse_tree_sub_str() {
