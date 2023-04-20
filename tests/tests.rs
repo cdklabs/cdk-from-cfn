@@ -87,7 +87,7 @@ fn test_basic_parse_tree_with_condition() {
 
 #[test]
 fn test_basic_parse_tree_with_metadata() {
-    let a: Value = serde_json::json!({
+    let a: Value = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Metadata": {
@@ -126,7 +126,7 @@ fn test_basic_parse_tree_with_metadata() {
 
 #[test]
 fn test_parse_tree_basics_with_deletion_policy() {
-    let a: Value = serde_json::json!({
+    let a: Value = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "DeletionPolicy": "Retain",
