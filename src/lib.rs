@@ -5,7 +5,7 @@ use crate::parser::lookup_table::{build_mappings, MappingsParseTree};
 use crate::parser::output::{build_outputs, OutputsParseTree};
 use crate::parser::parameters::{build_parameters, Parameters};
 use crate::parser::resource::{build_resources, ResourceValue, ResourcesParseTree};
-use serde_json::Value;
+use serde_yaml::Value;
 use std::collections::HashSet;
 
 pub mod integrations;
@@ -56,29 +56,29 @@ pub struct CloudformationParseTree {
 
 impl CloudformationParseTree {
     pub fn build(json_obj: &Value) -> Result<CloudformationParseTree, TransmuteError> {
-        let parameters = match json_obj["Parameters"].as_object() {
+        let parameters = match json_obj["Parameters"].as_mapping() {
             None => Parameters::new(),
             Some(params) => build_parameters(params)?,
         };
 
-        let conditions = match json_obj["Conditions"].as_object() {
+        let conditions = match json_obj["Conditions"].as_mapping() {
             None => ConditionsParseTree::new(),
             Some(x) => build_conditions(x)?,
         };
 
         // All stacks must have resources, so no checking.
-        let resources = build_resources(json_obj["Resources"].as_object().unwrap())?;
+        let resources = build_resources(json_obj["Resources"].as_mapping().unwrap())?;
 
         let mut logical_lookup = HashSet::new();
         for resource in resources.resources.iter() {
             logical_lookup.insert(resource.name.clone());
         }
 
-        let mappings = match json_obj["Mappings"].as_object() {
+        let mappings = match json_obj["Mappings"].as_mapping() {
             None => MappingsParseTree::new(),
             Some(x) => build_mappings(x)?,
         };
-        let outputs = match json_obj["Outputs"].as_object() {
+        let outputs = match json_obj["Outputs"].as_mapping() {
             None => OutputsParseTree::new(),
             Some(x) => build_outputs(x)?,
         };

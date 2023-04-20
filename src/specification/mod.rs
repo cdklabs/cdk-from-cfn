@@ -1,6 +1,6 @@
 use crate::specification::Structure::{Composite, Simple};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_yaml::Value;
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -126,9 +126,9 @@ pub struct Specification {
 impl Specification {
     pub fn new() -> Specification {
         let str = include_str!("spec.json");
-        let raw = serde_json::from_str::<RawSpecification>(str).unwrap();
-        let compressed_str = serde_json::to_string::<RawSpecification>(&raw).unwrap();
-        serde_json::from_str::<Specification>(&compressed_str).unwrap()
+        let raw = serde_yaml::from_str::<RawSpecification>(str).unwrap();
+        let compressed_str = serde_yaml::to_string::<RawSpecification>(&raw).unwrap();
+        serde_yaml::from_str::<Specification>(&compressed_str).unwrap()
     }
 
     // Resource Properties in Specification look something like:
