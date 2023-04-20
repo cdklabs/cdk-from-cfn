@@ -84,6 +84,81 @@ fn test_basic_parse_tree_with_condition() {
 }
 
 #[test]
+fn test_basic_parse_tree_with_metadata() {
+    let a: Value = serde_json::json!({
+        "LogicalResource": {
+            "Type": "AWS::IAM::Role",
+            "Metadata": {
+                "myArbitrary": "objectData"
+            },
+            "Properties": {
+                "RoleName": "bob",
+                "AssumeTime": 20,
+                "Bool": true,
+                "NotExistent": {"Ref": "AWS::NoValue"},
+                "Array": ["hi", "there"]
+            }
+        }
+    });
+
+    let resource = ResourceParseTree {
+        name: "LogicalResource".into(),
+        condition: Option::None,
+        metadata: Option::Some(ResourceValue::Object(map! {
+            "myArbitrary" => ResourceValue::String("objectData".into())
+        })),
+        update_policy: Option::None,
+        deletion_policy: Option::None,
+        dependencies: vec![],
+        resource_type: "AWS::IAM::Role".into(),
+        properties: map! {
+            "RoleName" => ResourceValue::String("bob".into()),
+            "AssumeTime" => ResourceValue::Number(20),
+            "Bool" => ResourceValue::Bool(true),
+            "NotExistent" => ResourceValue::Null,
+            "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
+        },
+    };
+    assert_resource_equal(a, resource);
+}
+
+#[test]
+fn test_parse_tree_basics_with_deletion_policy() {
+    let a: Value = serde_json::json!({
+        "LogicalResource": {
+            "Type": "AWS::IAM::Role",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "RoleName": "bob",
+                "AssumeTime": 20,
+                "Bool": true,
+                "NotExistent": {"Ref": "AWS::NoValue"},
+                "Array": ["hi", "there"]
+            }
+        }
+    });
+
+    let resource: ResourceParseTree = ResourceParseTree {
+        name: "LogicalResource".into(),
+        condition: Option::None,
+        metadata: Option::None,
+        update_policy: Option::None,
+        deletion_policy: Option::Some("Retain".into()),
+        dependencies: vec![],
+        resource_type: "AWS::IAM::Role".into(),
+        properties: map! {
+            "RoleName" => ResourceValue::String("bob".into()),
+            "AssumeTime" => ResourceValue::Number(20),
+            "Bool" => ResourceValue::Bool(true),
+            "NotExistent" => ResourceValue::Null,
+            "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
+        },
+    };
+
+    assert_resource_equal(a, resource);
+}
+
+#[test]
 fn test_parse_tree_sub_str() {
     let a = serde_json::json!({
         "LogicalResource": {
