@@ -1,15 +1,14 @@
 # noctilucent
-In a world where people want to use the full extent of the cdk, there **was** no product that would transform all your 
-json into beautiful typescript...until now. 
+In a world where people want to use the full extent of the cdk, there **was** no product that would transform all your
+JSON/YAML into beautiful typescript...until now.
 
-Noctilucent will take your json and output the equivalent typescript.
+Noctilucent will take your JSON/YAML and output the equivalent typescript.
 
 ## User Guide
 ```
 cargo build --release
-./target/release/noctilucent [--input-format yaml] <INPUT> [OUTPUT]
+./target/release/noctilucent <INPUT> [OUTPUT]
 ```
-* `input-format` is an optional parameter to specify the input format of the CFN template (json|yaml). If not specified, json is defaulted.
 * `INPUT` is the input file path.
 * `OUTPUT` is the output file path; if not specified, output will be printed on your command line.
 
@@ -35,7 +34,7 @@ cargo build --release
 - [x] Fn::GetAZs support
 - [x] Adding depends-on, and ordering based on it too.
 - [x] Deletion policy
-- [x] Fn::Cidr support 
+- [x] Fn::Cidr support
 
 ## Remaining
 
