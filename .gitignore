@@ -13,3 +13,6 @@ Cargo.lock
 **/*.rs.bk
 .vscode/
 node_modules/
+
+# These are generated files:
+/src/specification/spec.rs

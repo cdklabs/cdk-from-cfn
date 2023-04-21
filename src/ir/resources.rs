@@ -71,7 +71,7 @@ pub struct ResourceInstruction {
 }
 
 pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<ResourceInstruction> {
-    let spec = Specification::new();
+    let spec = Specification::default();
     let mut resource_instructions = Vec::new();
     for resource in parse_tree.resources.resources.iter() {
         let mut props = HashMap::new();
@@ -463,18 +463,16 @@ pub fn translate_resource(
                             resource_translator.resource_metadata.as_ref().unwrap();
                         let rule = resource_metadata
                             .specification
-                            .property_types
-                            .get(
-                                &resource_translator
+                            .property_type(
+                                resource_translator
                                     .resource_metadata
                                     .as_ref()
                                     .unwrap()
                                     .property_type
-                                    .unwrap()
-                                    .to_string(),
+                                    .unwrap(),
                             )
                             .unwrap();
-                        let properties = rule.properties.as_ref().unwrap();
+                        let properties = rule.as_properties().unwrap();
                         let property_rule = properties.get(s).unwrap();
                         new_rt.complexity = property_rule.get_structure();
                         let opt = Specification::full_property_name(
