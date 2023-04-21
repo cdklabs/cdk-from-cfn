@@ -1,4 +1,4 @@
-use clap::{Arg, Command};
+use clap::{Arg, ArgAction, Command};
 use noctilucent::ir::CloudformationProgramIr;
 use noctilucent::synthesizer::typescript_synthesizer::TypescriptSynthesizer;
 use noctilucent::synthesizer::Synthesizer;
@@ -15,13 +15,15 @@ fn main() {
             Arg::new("INPUT")
                 .help("Sets the input file to use")
                 .required(true)
-                .index(1),
+                .index(1)
+                .action(ArgAction::Set),
         )
         .arg(
             Arg::new("OUTPUT")
                 .help("Sets the output file to use")
                 .required(false)
-                .index(2),
+                .index(2)
+                .action(ArgAction::Set),
         )
         .arg(
             Arg::new("inputFormat")
@@ -30,16 +32,18 @@ fn main() {
                 .long("input-format")
                 .required(false)
                 .value_parser(["json", "yaml"])
+                .default_value("json")
+                .action(ArgAction::Set)
                 .hide(true),
         )
         .get_matches();
 
-    if matches.is_present("inputFormat") {
+    if matches.get_one::<&str>("inputFormat").is_some() {
         eprintln!("--inputFormat (-f) is a no-op and will be removed in a future version. All input is treated as YAML");
         eprintln!("as it is a strict super-set of JSON (all valid JSON is valid YAML).");
     }
 
-    let txt_location: &str = matches.value_of("INPUT").unwrap();
+    let txt_location: &str = matches.get_one::<&str>("INPUT").unwrap();
     let contents = fs::read_to_string(txt_location).unwrap();
 
     let value: Value = serde_yaml::from_str::<Value>(contents.as_str()).unwrap();
@@ -48,13 +52,12 @@ fn main() {
     let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree).unwrap();
     let synthesizer: &dyn Synthesizer = &TypescriptSynthesizer {};
 
-    let mut output: Box<dyn io::Write> = if matches.is_present("OUTPUT") {
-        Box::new(
-            fs::File::create(matches.value_of("OUTPUT").unwrap()).expect("unable to create file"),
-        )
-    } else {
-        Box::new(io::stdout())
-    };
+    let mut output: Box<dyn io::Write> =
+        if let Some(output_file) = matches.get_one::<&str>("OUTPUT") {
+            Box::new(fs::File::create(output_file).expect("unable to create file"))
+        } else {
+            Box::new(io::stdout())
+        };
 
     ir.synthesize(synthesizer, &mut output)
         .expect("unable to synthesize");
