@@ -89,9 +89,9 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
             Cow::Owned(mapping)
         }
         _ => {
-            return Err(TransmuteError {
-                details: format!("Condition must be an object or string {name}, {obj:?}"),
-            })
+            return Err(TransmuteError::new(format!(
+                "Condition must be an object or string {name}, {obj:?}"
+            )))
         }
     };
 
@@ -120,26 +120,26 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
             Some("!Equals" | "Fn::Equals") => {
                 let arr = match condition_object.as_sequence() {
                     None => {
-                        return Err(TransmuteError {
-                            details: format!("Condition must be an array {name}"),
-                        })
+                        return Err(TransmuteError::new(format!(
+                            "Condition must be an array {name}"
+                        )))
                     }
                     Some(x) => x,
                 };
 
                 let obj1 = match arr.get(0) {
                     None => {
-                        return Err(TransmuteError {
-                            details: format!("Equal condition must have 2 array values {name}"),
-                        })
+                        return Err(TransmuteError::new(format!(
+                            "Equal condition must have 2 array values {name}"
+                        )))
                     }
                     Some(x) => build_condition_recursively(name, x),
                 }?;
                 let obj2 = match arr.get(1) {
                     None => {
-                        return Err(TransmuteError {
-                            details: format!("Equal condition must have 2 array values {name}"),
-                        })
+                        return Err(TransmuteError::new(format!(
+                            "Equal condition must have 2 array values {name}"
+                        )))
                     }
                     Some(x) => build_condition_recursively(name, x),
                 }?;
@@ -148,18 +148,18 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
             Some("!Not" | "Fn::Not") => {
                 let arr = match condition_object.as_sequence() {
                     None => {
-                        return Err(TransmuteError {
-                            details: format!("Condition must be an array {name}"),
-                        })
+                        return Err(TransmuteError::new(format!(
+                            "Condition must be an array {name}"
+                        )))
                     }
                     Some(x) => x,
                 };
 
                 let obj1 = match arr.get(0) {
                     None => {
-                        return Err(TransmuteError {
-                            details: format!("Equal condition must have 2 array values {name}"),
-                        })
+                        return Err(TransmuteError::new(format!(
+                            "Equal condition must have 2 array values {name}"
+                        )))
                     }
                     Some(x) => build_condition_recursively(name, x),
                 }?;
@@ -168,9 +168,9 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
             Some("!Or" | "Fn::Or") => {
                 let arr = match condition_object.as_sequence() {
                     None => {
-                        return Err(TransmuteError {
-                            details: format!("Condition must be an array {name}"),
-                        })
+                        return Err(TransmuteError::new(format!(
+                            "Condition must be an array {name}"
+                        )))
                     }
                     Some(x) => x,
                 };
@@ -186,9 +186,9 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
             Some("!Condition" | "Condition") => {
                 let condition_name = match condition_object.as_str() {
                     None => {
-                        return Err(TransmuteError {
-                            details: format!("Condition must a string {name}"),
-                        })
+                        return Err(TransmuteError::new(format!(
+                            "Condition must a string {name}"
+                        )))
                     }
                     Some(x) => x,
                 };
@@ -197,9 +197,9 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
             Some("!Ref" | "Ref") => {
                 let ref_name = match condition_object.as_str() {
                     None => {
-                        return Err(TransmuteError {
-                            details: format!("Condition must a string {name}"),
-                        })
+                        return Err(TransmuteError::new(format!(
+                            "Condition must a string {name}"
+                        )))
                     }
                     Some(x) => x,
                 };
@@ -208,9 +208,9 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
             Some("!FindInMap" | "Fn::FindInMap") => {
                 let arr = match condition_object.as_sequence() {
                     None => {
-                        return Err(TransmuteError {
-                            details: format!("Fn::FindInMap must form an array {name}"),
-                        })
+                        return Err(TransmuteError::new(format!(
+                            "Fn::FindInMap must form an array {name}"
+                        )))
                     }
                     Some(x) => x,
                 };
@@ -227,7 +227,7 @@ fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue
         return Ok(cond);
     }
 
-    Err(TransmuteError {
-        details: format!("Could not match the pattern for {name}, {obj:?}"),
-    })
+    Err(TransmuteError::new(format!(
+        "Could not match the pattern for {name}, {obj:?}"
+    )))
 }

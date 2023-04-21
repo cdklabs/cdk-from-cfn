@@ -8,6 +8,7 @@ use crate::parser::resource::{build_resources, ResourceValue, ResourcesParseTree
 use serde_yaml::Value;
 use std::collections::HashSet;
 
+pub mod errors;
 pub mod integrations;
 pub mod ir;
 pub mod parser;
@@ -15,22 +16,12 @@ pub mod primitives;
 pub mod specification;
 pub mod synthesizer;
 
+#[doc(inline)]
+pub use errors::*;
+
 pub trait CustomIntegration {
     fn is_type(resource_type: &str) -> bool;
     fn synthesize(rv: &ResourceValue) -> String;
-}
-
-#[derive(Debug)]
-pub struct TransmuteError {
-    details: String,
-}
-
-impl TransmuteError {
-    fn new(msg: &str) -> TransmuteError {
-        TransmuteError {
-            details: msg.to_string(),
-        }
-    }
 }
 
 pub struct Import {
