@@ -3,7 +3,7 @@ use noctilucent::ir::CloudformationProgramIr;
 use noctilucent::synthesizer::typescript_synthesizer::TypescriptSynthesizer;
 use noctilucent::synthesizer::Synthesizer;
 use noctilucent::CloudformationParseTree;
-use serde_json::Value;
+use serde_yaml::Value;
 use std::{fs, io};
 
 fn main() {
@@ -33,29 +33,31 @@ fn main() {
                 .required(false)
                 .value_parser(["json", "yaml"])
                 .default_value("json")
-                .action(ArgAction::Set),
+                .action(ArgAction::Set)
+                .hide(true),
         )
         .get_matches();
 
+    if matches.get_one::<&str>("inputFormat").is_some() {
+        eprintln!("--inputFormat (-f) is a no-op and will be removed in a future version. All input is treated as YAML");
+        eprintln!("as it is a strict super-set of JSON (all valid JSON is valid YAML).");
+    }
+
     let txt_location: &str = matches.get_one::<&str>("INPUT").unwrap();
     let contents = fs::read_to_string(txt_location).unwrap();
-    let input_format: &str = matches.get_one::<&str>("inputFormat").unwrap();
 
-    let value: Value = if input_format.eq("json") {
-        serde_json::from_str(contents.as_str()).unwrap()
-    } else {
-        serde_yaml::from_str::<Value>(contents.as_str()).unwrap()
-    };
+    let value: Value = serde_yaml::from_str::<Value>(contents.as_str()).unwrap();
 
     let cfn_tree = CloudformationParseTree::build(&value).unwrap();
     let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree).unwrap();
     let synthesizer: &dyn Synthesizer = &TypescriptSynthesizer {};
 
-    if let Some(output_file) = matches.get_one::<&str>("OUTPUT") {
-        fs::write(output_file, output).expect("Unable to write file");
-    } else {
-        Box::new(io::stdout())
-    };
+    let mut output: Box<dyn io::Write> =
+        if let Some(output_file) = matches.get_one::<&str>("OUTPUT") {
+            Box::new(fs::File::create(output_file).expect("unable to create file"))
+        } else {
+            Box::new(io::stdout())
+        };
 
     ir.synthesize(synthesizer, &mut output)
         .expect("unable to synthesize");

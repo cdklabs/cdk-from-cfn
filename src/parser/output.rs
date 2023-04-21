@@ -1,6 +1,6 @@
 use crate::parser::resource::build_resources_recursively;
 use crate::{ResourceValue, TransmuteError};
-use serde_json::{Map, Value};
+use serde_yaml::Mapping;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -54,9 +54,10 @@ impl Default for OutputsParseTree {
     }
 }
 
-pub fn build_outputs(vals: &Map<String, Value>) -> Result<OutputsParseTree, TransmuteError> {
+pub fn build_outputs(vals: &Mapping) -> Result<OutputsParseTree, TransmuteError> {
     let mut outputs = OutputsParseTree::new();
     for (logical_id, value) in vals.iter() {
+        let logical_id = logical_id.as_str().unwrap();
         let val = match value.get("Value") {
             None => {
                 // All outputs *MUST* have a value. Fail
