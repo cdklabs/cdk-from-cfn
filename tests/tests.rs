@@ -1,10 +1,12 @@
-use noctilucent::parser::resource::{build_resources, ResourceParseTree, ResourceValue, ResourcesParseTree};
-use noctilucent::parser::condition::{ConditionsParseTree};
-use noctilucent::parser::lookup_table::{MappingsParseTree};
-use noctilucent::parser::output::{OutputsParseTree};
-use noctilucent::parser::parameters::{Parameters};
+use noctilucent::parser::condition::ConditionsParseTree;
+use noctilucent::parser::lookup_table::MappingsParseTree;
+use noctilucent::parser::output::OutputsParseTree;
+use noctilucent::parser::parameters::Parameters;
+use noctilucent::parser::resource::{
+    build_resources, ResourceParseTree, ResourceValue, ResourcesParseTree,
+};
 use noctilucent::primitives::WrapperF64;
-use noctilucent::{CloudformationParseTree};
+use noctilucent::CloudformationParseTree;
 use serde_yaml::Value;
 
 mod json;
@@ -330,7 +332,7 @@ fn test_parse_simple_json_template() {
 
     let resources = ResourcesParseTree {
         resources: vec![
-            ResourceParseTree{
+            ResourceParseTree {
                 name: "EC2Instance".into(),
                 condition: Option::None,
                 resource_type: "AWS::EC2::Instance".into(),
@@ -351,9 +353,9 @@ fn test_parse_simple_json_template() {
                             })
                         })
                     ])
-                }
+                },
             },
-            ResourceParseTree{
+            ResourceParseTree {
                 name: "EBSVolume".into(),
                 condition: Option::None,
                 resource_type: "AWS::EC2::Volume".into(),
@@ -365,9 +367,9 @@ fn test_parse_simple_json_template() {
                     "Size" => ResourceValue::Number(10),
                     "AvailabilityZone" => ResourceValue::String("us-east-1a".into()),
                     "VolumeType" => ResourceValue::String("gp2".into())
-                }
+                },
             },
-            ResourceParseTree{
+            ResourceParseTree {
                 name: "VolumeAttachment".into(),
                 condition: Option::None,
                 resource_type: "AWS::EC2::VolumeAttachment".into(),
@@ -379,8 +381,8 @@ fn test_parse_simple_json_template() {
                     "InstanceId" => ResourceValue::Null,
                     "VolumeId" => ResourceValue::Null,
                     "Device" => ResourceValue::String("/dev/xvdf".into())
-                }
-            }
+                },
+            },
         ],
     };
 
@@ -392,7 +394,7 @@ fn test_parse_simple_json_template() {
         resources: resources,
         outputs: OutputsParseTree::new(),
     };
-    
+
     assert_template_equal(cfn_template, cfn_tree)
 }
 
@@ -448,5 +450,8 @@ fn assert_resource_equal(val: Value, resource: ResourceParseTree) {
 
 fn assert_template_equal(val: Value, cfn_tree: CloudformationParseTree) {
     let cfn_template = CloudformationParseTree::build(&val).unwrap();
-    assert_eq!(cfn_template.resources.resources, cfn_tree.resources.resources)
+    assert_eq!(
+        cfn_template.resources.resources,
+        cfn_tree.resources.resources
+    )
 }
