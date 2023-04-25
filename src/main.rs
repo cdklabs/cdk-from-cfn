@@ -25,23 +25,7 @@ fn main() -> anyhow::Result<()> {
                 .index(2)
                 .action(ArgAction::Set),
         )
-        .arg(
-            Arg::new("inputFormat")
-                .help("Sets the input template format")
-                .short('f')
-                .long("input-format")
-                .required(false)
-                .value_parser(["json", "yaml"])
-                .default_value("json")
-                .action(ArgAction::Set)
-                .hide(true),
-        )
         .get_matches();
-
-    if matches.get_one::<&str>("inputFormat").is_some() {
-        eprintln!("--inputFormat (-f) is a no-op and will be removed in a future version. All input is treated as YAML");
-        eprintln!("as it is a strict super-set of JSON (all valid JSON is valid YAML).");
-    }
 
     let txt_location: &str = matches.get_one::<&str>("INPUT").unwrap();
     let contents = fs::read_to_string(txt_location)?;
