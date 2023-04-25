@@ -51,14 +51,14 @@ pub fn build_parameters(vals: &Mapping) -> Result<Parameters, TransmuteError> {
         let t = match obj.get::<Value>("Type".into()) {
             Some(Value::String(v)) => v.to_string(),
             Some(bad) => {
-                return Err(TransmuteError {
-                    details: format!("Type was not a string {bad:?}"),
-                })
+                return Err(TransmuteError::new(format!(
+                    "Type was not a string {bad:?}"
+                )))
             }
             None => {
-                return Err(TransmuteError {
-                    details: format!("Type was not specified correctly {name}"),
-                })
+                return Err(TransmuteError::new(format!(
+                    "Type was not specified correctly {name}"
+                )))
             }
         };
 

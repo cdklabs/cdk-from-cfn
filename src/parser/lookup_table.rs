@@ -131,11 +131,9 @@ fn convert_to_string_vector(
             Value::String(x) => x.to_string(),
             Value::Number(x) => x.to_string(),
             vector_val => {
-                return Err(TransmuteError {
-                    details: format!(
+                return Err(TransmuteError::new(format!(
                         "List values for mappings must be a string. Found {inner_key:?}, for key {vector_val:?}"
-                    ),
-                });
+                    )));
             }
         };
         string_vector.push(converted_val);
@@ -146,9 +144,9 @@ fn convert_to_string_vector(
 fn ensure_object<'a>(name: &str, obj: &'a Value) -> Result<&'a Mapping, TransmuteError> {
     match obj {
         Value::Mapping(x) => Ok(x),
-        _ => Err(TransmuteError {
-            details: format!("Mapping must be an object {name}, {obj:?}"),
-        }),
+        _ => Err(TransmuteError::new(format!(
+            "Mapping must be an object {name}, {obj:?}"
+        ))),
     }
 }
 
@@ -163,10 +161,8 @@ fn ensure_mapping_value_type(name: &str, obj: &Value) -> Result<MappingInnerValu
         },
         Value::Bool(x) => Ok(MappingInnerValue::Bool(*x)),
         Value::Sequence(x) => Ok(MappingInnerValue::List(convert_to_string_vector(x, name)?)),
-        _ => Err(TransmuteError {
-            details: format!(
-                "Inner mapping value must be a string or array. Found {name:?}, for {obj:?}"
-            ),
-        }),
+        _ => Err(TransmuteError::new(format!(
+            "Inner mapping value must be a string or array. Found {name:?}, for {obj:?}"
+        ))),
     }
 }

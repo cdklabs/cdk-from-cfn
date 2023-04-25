@@ -6,7 +6,7 @@ use noctilucent::CloudformationParseTree;
 use serde_yaml::Value;
 use std::{fs, io};
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let matches = Command::new("Translates cfn templates to cdk typescript")
         .version("1.0")
         .author("Sean Tyler Myers <seanmyers0608@gmail.com>")
@@ -44,21 +44,22 @@ fn main() {
     }
 
     let txt_location: &str = matches.get_one::<&str>("INPUT").unwrap();
-    let contents = fs::read_to_string(txt_location).unwrap();
+    let contents = fs::read_to_string(txt_location)?;
 
-    let value: Value = serde_yaml::from_str::<Value>(contents.as_str()).unwrap();
+    let value: Value = serde_yaml::from_str::<Value>(contents.as_str())?;
 
-    let cfn_tree = CloudformationParseTree::build(&value).unwrap();
-    let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree).unwrap();
+    let cfn_tree = CloudformationParseTree::build(&value)?;
+    let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree)?;
     let synthesizer: &dyn Synthesizer = &TypescriptSynthesizer {};
 
     let mut output: Box<dyn io::Write> =
         if let Some(output_file) = matches.get_one::<&str>("OUTPUT") {
-            Box::new(fs::File::create(output_file).expect("unable to create file"))
+            Box::new(fs::File::create(output_file)?)
         } else {
             Box::new(io::stdout())
         };
 
-    ir.synthesize(synthesizer, &mut output)
-        .expect("unable to synthesize");
+    ir.synthesize(synthesizer, &mut output)?;
+
+    Ok(())
 }
