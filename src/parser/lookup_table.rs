@@ -4,7 +4,7 @@ use serde_yaml::{Mapping, Value};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct MappingsParseTree {
     pub mappings: HashMap<String, MappingParseTree>,
 }
@@ -27,7 +27,7 @@ impl MappingsParseTree {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct MappingParseTree {
     pub mappings: HashMap<String, HashMap<String, MappingInnerValue>>,
 }
