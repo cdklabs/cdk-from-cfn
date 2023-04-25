@@ -3,8 +3,7 @@ use crate::{ResourceValue, TransmuteError};
 use serde_yaml::Mapping;
 use std::collections::HashMap;
 
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct OutputsParseTree {
     pub outputs: HashMap<String, Output>,
 }
@@ -21,8 +20,7 @@ impl OutputsParseTree {
     }
 }
 
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Output {
     // This is the top level name, also stored in the hash
     pub logical_name: String,
