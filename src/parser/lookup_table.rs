@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub struct MappingsParseTree {
     pub mappings: HashMap<String, MappingParseTree>,
 }
@@ -28,6 +29,7 @@ impl MappingsParseTree {
 }
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub struct MappingParseTree {
     pub mappings: HashMap<String, HashMap<String, MappingInnerValue>>,
 }

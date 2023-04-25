@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 // template anatomy can be found here: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-anatomy.html
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub struct Parameters {
     pub params: HashMap<String, Parameter>,
 }
@@ -21,6 +22,7 @@ impl Parameters {
 }
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub struct Parameter {
     // This is the top level name, also stored in the hash
     pub logical_name: String,

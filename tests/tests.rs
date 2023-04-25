@@ -450,8 +450,10 @@ fn assert_resource_equal(val: Value, resource: ResourceParseTree) {
 
 fn assert_template_equal(val: Value, cfn_tree: CloudformationParseTree) {
     let cfn_template = CloudformationParseTree::build(&val).unwrap();
-    assert_eq!(
-        cfn_template.resources.resources,
-        cfn_tree.resources.resources
-    )
+    assert_eq!(cfn_template.parameters.params, cfn_tree.parameters.params);
+    assert_eq!(cfn_template.mappings.mappings, cfn_tree.mappings.mappings);
+    assert_eq!(cfn_template.conditions.conditions, cfn_tree.conditions.conditions);
+    assert_eq!(cfn_template.outputs.outputs, cfn_tree.outputs.outputs);
+    assert_eq!(cfn_template.logical_lookup, cfn_tree.logical_lookup);
+    assert_eq!(cfn_template.resources.resources,cfn_tree.resources.resources)
 }
