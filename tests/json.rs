@@ -1,4 +1,5 @@
-/// Shamelessly copied from: https://docs.rs/serde_json/latest/src/serde_json/macros.rs.html
+/// Was previously shamelessly copied from: https://docs.rs/serde_json/latest/src/serde_json/macros.rs.html
+/// Constructs a serde::yaml from a json literal (or yaml literal)
 
 #[macro_export]
 macro_rules! json {

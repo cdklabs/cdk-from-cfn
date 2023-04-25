@@ -1,5 +1,12 @@
-use noctilucent::parser::resource::{build_resources, ResourceParseTree, ResourceValue};
+use noctilucent::parser::condition::ConditionsParseTree;
+use noctilucent::parser::lookup_table::MappingsParseTree;
+use noctilucent::parser::output::OutputsParseTree;
+use noctilucent::parser::parameters::Parameters;
+use noctilucent::parser::resource::{
+    build_resources, ResourceParseTree, ResourceValue, ResourcesParseTree,
+};
 use noctilucent::primitives::WrapperF64;
+use noctilucent::CloudformationParseTree;
 use serde_yaml::Value;
 
 mod json;
@@ -284,6 +291,114 @@ fn test_parse_tree_sub_list() {
 }
 
 #[test]
+fn test_parse_simple_json_template() {
+    let cfn_template = json!({
+        "Resources": {
+            "EC2Instance": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId": "ami-0c55b159cbfafe1f0",
+                    "InstanceType": "t2.micro",
+                    "KeyName": "my-key-pair",
+                    "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/xvda",
+                        "Ebs": {
+                            "VolumeSize": 8,
+                            "VolumeType": "gp2"
+                        }
+                    }
+                    ]
+                }
+            },
+            "EBSVolume": {
+                "Type": "AWS::EC2::Volume",
+                "Properties": {
+                    "Size": 10,
+                    "AvailabilityZone": "us-east-1a",
+                    "VolumeType": "gp2"
+                }
+            },
+            "VolumeAttachment": {
+                "Type": "AWS::EC2::VolumeAttachment",
+                "Properties": {
+                    "InstanceId": null,
+                    "VolumeId": null,
+                    "Device": "/dev/xvdf"
+                }
+            }
+        }
+    });
+
+    let resources = ResourcesParseTree {
+        resources: vec![
+            ResourceParseTree {
+                name: "EC2Instance".into(),
+                condition: Option::None,
+                resource_type: "AWS::EC2::Instance".into(),
+                metadata: Option::None,
+                update_policy: Option::None,
+                deletion_policy: Option::None,
+                dependencies: vec![],
+                properties: map! {
+                    "ImageId" => ResourceValue::String("ami-0c55b159cbfafe1f0".into()),
+                    "InstanceType" => ResourceValue::String("t2.micro".into()),
+                    "KeyName" => ResourceValue::String("my-key-pair".into()),
+                    "BlockDeviceMappings" => ResourceValue::Array(vec![
+                        ResourceValue::Object(map!{
+                            "DeviceName" => ResourceValue::String("/dev/xvda".into()),
+                            "Ebs" => ResourceValue::Object(map!{
+                                "VolumeSize" => ResourceValue::Number(8),
+                                "VolumeType" => ResourceValue::String("gp2".into())
+                            })
+                        })
+                    ])
+                },
+            },
+            ResourceParseTree {
+                name: "EBSVolume".into(),
+                condition: Option::None,
+                resource_type: "AWS::EC2::Volume".into(),
+                metadata: Option::None,
+                update_policy: Option::None,
+                deletion_policy: Option::None,
+                dependencies: vec![],
+                properties: map! {
+                    "Size" => ResourceValue::Number(10),
+                    "AvailabilityZone" => ResourceValue::String("us-east-1a".into()),
+                    "VolumeType" => ResourceValue::String("gp2".into())
+                },
+            },
+            ResourceParseTree {
+                name: "VolumeAttachment".into(),
+                condition: Option::None,
+                resource_type: "AWS::EC2::VolumeAttachment".into(),
+                metadata: Option::None,
+                update_policy: Option::None,
+                deletion_policy: Option::None,
+                dependencies: vec![],
+                properties: map! {
+                    "InstanceId" => ResourceValue::Null,
+                    "VolumeId" => ResourceValue::Null,
+                    "Device" => ResourceValue::String("/dev/xvdf".into())
+                },
+            },
+        ],
+    };
+
+    let cfn_tree = CloudformationParseTree {
+        parameters: Parameters::new(),
+        mappings: MappingsParseTree::new(),
+        conditions: ConditionsParseTree::new(),
+        logical_lookup: CloudformationParseTree::build_logical_lookup(&resources),
+        resources: resources,
+        outputs: OutputsParseTree::new(),
+    };
+
+    assert_template_equal(cfn_template, cfn_tree)
+}
+
+#[test]
 fn test_parse_tree_resource_with_floats() {
     let a = json!({
         "Alarm": {
@@ -331,4 +446,12 @@ fn assert_resource_equal(val: Value, resource: ResourceParseTree) {
     let obj = val.as_mapping().unwrap();
     let resources = build_resources(obj).unwrap();
     assert_eq!(resources.resources[0], resource)
+}
+
+fn assert_template_equal(val: Value, cfn_tree: CloudformationParseTree) {
+    let cfn_template = CloudformationParseTree::build(&val).unwrap();
+    assert_eq!(
+        cfn_template.resources.resources,
+        cfn_tree.resources.resources
+    )
 }

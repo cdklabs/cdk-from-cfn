@@ -42,7 +42,7 @@ pub struct CloudformationParseTree {
     pub resources: ResourcesParseTree,
     pub outputs: OutputsParseTree,
 
-    logical_lookup: HashSet<String>,
+    pub logical_lookup: HashSet<String>,
 }
 
 impl CloudformationParseTree {
@@ -60,10 +60,7 @@ impl CloudformationParseTree {
         // All stacks must have resources, so no checking.
         let resources = build_resources(json_obj["Resources"].as_mapping().unwrap())?;
 
-        let mut logical_lookup = HashSet::new();
-        for resource in resources.resources.iter() {
-            logical_lookup.insert(resource.name.clone());
-        }
+        let logical_lookup = CloudformationParseTree::build_logical_lookup(&resources);
 
         let mappings = match json_obj["Mappings"].as_mapping() {
             None => MappingsParseTree::new(),
@@ -82,6 +79,14 @@ impl CloudformationParseTree {
             outputs,
             logical_lookup,
         })
+    }
+
+    pub fn build_logical_lookup(resources: &ResourcesParseTree) -> HashSet<String> {
+        let mut logical_lookup = HashSet::new();
+        for resource in resources.resources.iter() {
+            logical_lookup.insert(resource.name.clone());
+        }
+        logical_lookup
     }
 
     pub fn contains_logical_id(&self, logical_id: &str) -> bool {
