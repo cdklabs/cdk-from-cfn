@@ -5,8 +5,8 @@ on:
 name: Checks
 
 jobs:
-  correctness:
-    name: correctness
+  lint_and_format:
+    name: Lint and Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -17,11 +17,10 @@ jobs:
           override: true
           components: rustfmt, clippy
       # Ensure build.rs has ran before we assert formatting...
-      - name: Run tests
+      - name: Build
         uses: actions-rs/cargo@v1
         with:
-          command: test
-          args: --verbose
+          command: build
       - name: Check formatting
         uses: actions-rs/cargo@v1
         with:
@@ -32,3 +31,15 @@ jobs:
         with:
           command: clippy
           args: --manifest-path ./Cargo.toml -- -Adead-code -D warnings
+  testing:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Tests with Coverage
+        run: bash tasks/coverage.sh
