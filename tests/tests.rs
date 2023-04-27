@@ -391,7 +391,7 @@ fn test_parse_simple_json_template() {
         mappings: MappingsParseTree::new(),
         conditions: ConditionsParseTree::new(),
         logical_lookup: CloudformationParseTree::build_logical_lookup(&resources),
-        resources: resources,
+        resources,
         outputs: OutputsParseTree::new(),
     };
 
