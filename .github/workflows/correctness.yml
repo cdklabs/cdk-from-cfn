@@ -15,13 +15,11 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-          components: rustfmt, clippy
-      # Ensure build.rs has ran before we assert formatting...
+          components: rustfmt, clippy, llvm-tools-preview
+      # Ensure build.rs has ran before we assert formatting... Gather coverage.
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --verbose
+        run: tasks/coverage.sh
+
       - name: Check formatting
         uses: actions-rs/cargo@v1
         with:
@@ -32,3 +30,11 @@ jobs:
         with:
           command: clippy
           args: --manifest-path ./Cargo.toml -- -Adead-code -D warnings
+
+      # Upload coverage data to Codecov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/coverage/lcov.info
+          fail_ci_if_error: true
