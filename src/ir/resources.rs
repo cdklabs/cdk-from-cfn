@@ -28,6 +28,7 @@ pub enum ResourceIr {
     /// https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html#w2ab1c33c28c21c29
     If(String, Box<ResourceIr>, Box<ResourceIr>),
     Join(String, Vec<ResourceIr>),
+    Split(String, Box<ResourceIr>),
     Ref(Reference),
     Sub(Vec<ResourceIr>),
     Map(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
@@ -249,6 +250,7 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
 
             Option::Some(v)
         }
+        ResourceIr::Split(_, ir) => find_references(ir),
         ResourceIr::Ref(x) => match x.origin {
             Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => Option::None,
             Origin::LogicalId => {
@@ -380,6 +382,7 @@ fn find_dependencies(
                 find_dependencies(resource_name, x, topo);
             }
         }
+        ResourceIr::Split(_, ir) => find_dependencies(resource_name, ir, topo),
         ResourceIr::Ref(x) => match x.origin {
             Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => {}
             Origin::LogicalId => {
@@ -608,6 +611,16 @@ pub fn translate_resource(
             }
 
             Ok(ResourceIr::Join(sep.to_string(), irs))
+        }
+        ResourceValue::Split(sep, x) => {
+            let sep = match sep.as_ref() {
+                ResourceValue::String(x) => x,
+                _ => return Err(TransmuteError::new("Separator for split must be a string")),
+            };
+
+            let ir = translate_resource(x, resource_translator)?;
+
+            Ok(ResourceIr::Split(sep.to_string(), Box::new(ir)))
         }
         ResourceValue::Ref(x) => Ok(ResourceIr::Ref(find_ref(x, resource_translator.parse_tree))),
         ResourceValue::Base64(x) => {

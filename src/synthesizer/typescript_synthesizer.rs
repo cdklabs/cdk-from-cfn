@@ -399,6 +399,10 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
 
             Option::Some(format!("{}.join('{}')", strs.join(","), sep.escape_debug()))
         }
+        ResourceIr::Split(sep, ir) => Option::Some(format!(
+            "cdk.Fn.split({sep:?}, {})",
+            to_string_ir(ir).unwrap()
+        )),
         ResourceIr::Ref(x) => Option::Some(x.synthesize()),
         ResourceIr::Base64(x) => {
             let str = to_string_ir(x.as_ref()).unwrap();

@@ -24,6 +24,7 @@ pub enum ResourceValue {
     GetAZs(Box<ResourceValue>),
     If(Box<ResourceValue>, Box<ResourceValue>, Box<ResourceValue>),
     Join(Vec<ResourceValue>),
+    Split(Box<ResourceValue>, Box<ResourceValue>),
     Ref(String),
     Base64(Box<ResourceValue>),
     ImportValue(Box<ResourceValue>),
@@ -169,7 +170,7 @@ pub fn build_resources_recursively(
         Value::Mapping(x) => Cow::Borrowed(x),
         Value::Tagged(x) => {
             let mut mapping = Mapping::new();
-            mapping.insert(Value::String(format!("!{}", x.tag)), x.value.clone());
+            mapping.insert(Value::String(x.tag.to_string()), x.value.clone());
             Cow::Owned(mapping)
         }
     };
@@ -394,6 +395,26 @@ pub fn build_resources_recursively(
 
                     ResourceValue::Join(v)
                 }
+                Some("!Split" | "Fn::Split") => {
+                    let arr = match resource_object.as_sequence() {
+                        None => {
+                            return Err(TransmuteError::new(format!(
+                                "Fn::Split is supposed to be an array entry {name}"
+                            )))
+                        }
+                        Some(x) => x,
+                    };
+                    if arr.len() != 2 {
+                        return Err(TransmuteError::new(format!(
+                            "Fn::Split is supposed to have 2 values in array, has {len} {name}",
+                            len = arr.len()
+                        )));
+                    }
+                    let sep = build_resources_recursively(name, &arr[0])?;
+                    let val = build_resources_recursively(name, &arr[1])?;
+
+                    ResourceValue::Split(Box::new(sep), Box::new(val))
+                }
                 Some("!Cidr" | "Fn::Cidr") => {
                     let v = match resource_object.as_sequence() {
                         None => {
@@ -472,4 +493,368 @@ pub fn build_resources_recursively(
     Err(TransmuteError::new(format!(
         "Could not find a parsable path for resource {name}, {obj:?}"
     )))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    // Bring in the json! macro
+    include!("../../tests/json.rs");
+
+    #[test]
+    fn intrinsic_base64() {
+        const BASE64_TEXT: &str = "dGVzdAo=";
+        assert_eq!(
+            ResourceValue::Base64(Box::new(ResourceValue::String(BASE64_TEXT.to_string()))),
+            build_resources_recursively("Dummy", &json!({ "Fn::Base64": BASE64_TEXT })).unwrap()
+        );
+        assert_eq!(
+            ResourceValue::Base64(Box::new(ResourceValue::String(BASE64_TEXT.to_string()))),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!Base64 {BASE64_TEXT:?}")).unwrap()
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn intrinsic_cidr() {
+        const IP_BLOCK: &str = "10.0.0.0";
+        const COUNT: i64 = 3;
+        const CIDR_BITS: i64 = 8;
+
+        assert_eq!(
+            ResourceValue::Cidr(
+                Box::new(ResourceValue::String(IP_BLOCK.to_string())),
+                Box::new(ResourceValue::Number(COUNT)),
+                Box::new(ResourceValue::Number(CIDR_BITS))
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &json!({"Fn::Cidr": [IP_BLOCK, COUNT, CIDR_BITS] })
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            ResourceValue::Cidr(
+                Box::new(ResourceValue::String(IP_BLOCK.to_string())),
+                Box::new(ResourceValue::Number(COUNT)),
+                Box::new(ResourceValue::Number(CIDR_BITS))
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!Cidr [{IP_BLOCK:?}, {COUNT}, {CIDR_BITS}]"))
+                    .unwrap()
+            )
+            .unwrap()
+        );
+
+        assert_eq!(
+            ResourceValue::Cidr(
+                Box::new(ResourceValue::String(IP_BLOCK.to_string())),
+                Box::new(ResourceValue::String(COUNT.to_string())),
+                Box::new(ResourceValue::String(CIDR_BITS.to_string()))
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &json!({"Fn::Cidr": [IP_BLOCK, COUNT.to_string(), CIDR_BITS.to_string()] })
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            ResourceValue::Cidr(
+                Box::new(ResourceValue::String(IP_BLOCK.to_string())),
+                Box::new(ResourceValue::String(COUNT.to_string())),
+                Box::new(ResourceValue::String(CIDR_BITS.to_string()))
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!(
+                    "!Cidr [{IP_BLOCK:?}, {:?}, {:?}]",
+                    COUNT.to_string(),
+                    CIDR_BITS.to_string()
+                ))
+                .unwrap()
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn intrinsic_find_in_map() {
+        const MAP_NAME: &str = "MapName";
+        const FIRST_KEY: &str = "FirstKey";
+        const SECOND_KEY: &str = "SecondKey";
+        assert_eq!(
+            ResourceValue::FindInMap(
+                Box::new(ResourceValue::String(MAP_NAME.to_string())),
+                Box::new(ResourceValue::String(FIRST_KEY.to_string())),
+                Box::new(ResourceValue::String(SECOND_KEY.to_string()))
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &json!({"Fn::FindInMap": [MAP_NAME, FIRST_KEY, SECOND_KEY]})
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            ResourceValue::FindInMap(
+                Box::new(ResourceValue::String(MAP_NAME.to_string())),
+                Box::new(ResourceValue::String(FIRST_KEY.to_string())),
+                Box::new(ResourceValue::String(SECOND_KEY.to_string()))
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!(
+                    "!FindInMap [{MAP_NAME}, {FIRST_KEY}, {SECOND_KEY}]"
+                ))
+                .unwrap()
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn intrinsic_get_att() {
+        const LOGICAL_NAME: &str = "MapName";
+        const ATTRIBUTE_NAME: &str = "FirstKey";
+        assert_eq!(
+            ResourceValue::GetAtt(
+                Box::new(ResourceValue::String(LOGICAL_NAME.to_string())),
+                Box::new(ResourceValue::String(ATTRIBUTE_NAME.to_string())),
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &json!({"Fn::GetAtt": [LOGICAL_NAME, ATTRIBUTE_NAME]})
+            )
+            .unwrap()
+        );
+        // TODO: Confirm the below actually works in CloudFormation (it's not documented!)
+        assert_eq!(
+            ResourceValue::GetAtt(
+                Box::new(ResourceValue::String(LOGICAL_NAME.to_string())),
+                Box::new(ResourceValue::String(ATTRIBUTE_NAME.to_string())),
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!GetAtt [{LOGICAL_NAME}, {ATTRIBUTE_NAME}]"))
+                    .unwrap()
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            ResourceValue::GetAtt(
+                Box::new(ResourceValue::String(LOGICAL_NAME.to_string())),
+                Box::new(ResourceValue::String(ATTRIBUTE_NAME.to_string())),
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!GetAtt {LOGICAL_NAME}.{ATTRIBUTE_NAME}")).unwrap()
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn intrinsic_get_azs() {
+        const REGION: &str = "test-dummy-1337";
+        assert_eq!(
+            ResourceValue::GetAZs(Box::new(ResourceValue::String(REGION.to_string()))),
+            build_resources_recursively("Dummy", &json!({ "Fn::GetAZs": REGION })).unwrap(),
+        );
+        assert_eq!(
+            ResourceValue::GetAZs(Box::new(ResourceValue::String(REGION.to_string()))),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!GetAZs {REGION}")).unwrap()
+            )
+            .unwrap(),
+        );
+    }
+
+    #[test]
+    fn intrinsic_import_value() {
+        const SHARED_VALUE: &str = "SharedValue.ToImport";
+        assert_eq!(
+            ResourceValue::ImportValue(Box::new(ResourceValue::String(SHARED_VALUE.to_string()))),
+            build_resources_recursively("Dummy", &json!({ "Fn::ImportValue": SHARED_VALUE }))
+                .unwrap(),
+        );
+        assert_eq!(
+            ResourceValue::ImportValue(Box::new(ResourceValue::String(SHARED_VALUE.to_string()))),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!ImportValue {SHARED_VALUE}")).unwrap()
+            )
+            .unwrap(),
+        );
+    }
+
+    #[test]
+    fn intrinsic_join() {
+        const DELIMITER: &str = "/";
+        const VALUES: [&str; 3] = ["a", "b", "c"];
+
+        assert_eq!(
+            ResourceValue::Join(vec![
+                ResourceValue::String(DELIMITER.to_string()),
+                ResourceValue::Array(
+                    VALUES
+                        .iter()
+                        .map(|v| ResourceValue::String(v.to_string()))
+                        .collect()
+                )
+            ],),
+            build_resources_recursively("Dummy", &json!({"Fn::Join": [DELIMITER, VALUES]}))
+                .unwrap()
+        );
+        assert_eq!(
+            ResourceValue::Join(vec![
+                ResourceValue::String(DELIMITER.to_string()),
+                ResourceValue::Array(
+                    VALUES
+                        .iter()
+                        .map(|v| ResourceValue::String(v.to_string()))
+                        .collect()
+                )
+            ]),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!Join [{DELIMITER}, {VALUES:?}]",)).unwrap()
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn intrinsic_select() {
+        const INDEX: i64 = 1337;
+        const VALUES: [&str; 3] = ["a", "b", "c"];
+
+        assert_eq!(
+            ResourceValue::Select(
+                Box::new(ResourceValue::Number(INDEX)),
+                Box::new(ResourceValue::Array(
+                    VALUES
+                        .iter()
+                        .map(|v| ResourceValue::String(v.to_string()))
+                        .collect()
+                ))
+            ),
+            build_resources_recursively("Dummy", &json!({"Fn::Select": [INDEX, VALUES]})).unwrap()
+        );
+        assert_eq!(
+            ResourceValue::Select(
+                Box::new(ResourceValue::Number(INDEX)),
+                Box::new(ResourceValue::Array(
+                    VALUES
+                        .iter()
+                        .map(|v| ResourceValue::String(v.to_string()))
+                        .collect()
+                ))
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!Select [{INDEX}, {VALUES:?}]",)).unwrap()
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn intrinsic_split() {
+        const DELIMITER: &str = "/";
+        const VALUE: &str = "a/b/c";
+
+        assert_eq!(
+            ResourceValue::Split(
+                Box::new(ResourceValue::String(DELIMITER.to_string())),
+                Box::new(ResourceValue::String(VALUE.to_string()))
+            ),
+            build_resources_recursively("Dummy", &json!({"Fn::Split": [DELIMITER, VALUE]}))
+                .unwrap()
+        );
+        assert_eq!(
+            ResourceValue::Split(
+                Box::new(ResourceValue::String(DELIMITER.to_string())),
+                Box::new(ResourceValue::String(VALUE.to_string()))
+            ),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!Split [{DELIMITER}, {VALUE}]",)).unwrap()
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn intrinsic_sub() {
+        const STRING: &str = "String ${AWS::Region} with ${CUSTOM_VARIABLE}";
+        const CUSTOM: i64 = 1337;
+
+        assert_eq!(
+            ResourceValue::Sub(vec![ResourceValue::String(STRING.to_string())]),
+            build_resources_recursively("Dummy", &json!({ "Fn::Sub": STRING })).unwrap()
+        );
+        assert_eq!(
+            ResourceValue::Sub(vec![ResourceValue::String(STRING.to_string())]),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!Sub {STRING}")).unwrap()
+            )
+            .unwrap()
+        );
+
+        assert_eq!(
+            ResourceValue::Sub(vec![
+                ResourceValue::String(STRING.to_string(),),
+                ResourceValue::Object(HashMap::from([(
+                    "CUSTOM_VARIABLE".to_string(),
+                    ResourceValue::Number(CUSTOM)
+                )])),
+            ]),
+            build_resources_recursively(
+                "Dummy",
+                &json!({ "Fn::Sub": [STRING, {"CUSTOM_VARIABLE": CUSTOM}] })
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            ResourceValue::Sub(vec![
+                ResourceValue::String(STRING.to_string(),),
+                ResourceValue::Object(HashMap::from([(
+                    "CUSTOM_VARIABLE".to_string(),
+                    ResourceValue::Number(CUSTOM)
+                )])),
+            ]),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!(
+                    "!Sub [{STRING:?}, {{ CUSTOM_VARIABLE: {CUSTOM} }}]"
+                ))
+                .unwrap()
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn intrinsic_ref() {
+        const LOGICAL_NAME: &str = "LogicalName";
+
+        assert_eq!(
+            ResourceValue::Ref(LOGICAL_NAME.to_string()),
+            build_resources_recursively("Dummy", &json!({ "Ref": LOGICAL_NAME })).unwrap()
+        );
+        assert_eq!(
+            ResourceValue::Ref(LOGICAL_NAME.to_string()),
+            build_resources_recursively(
+                "Dummy",
+                &serde_yaml::from_str(&format!("!Ref {LOGICAL_NAME}")).unwrap()
+            )
+            .unwrap()
+        );
+    }
 }
