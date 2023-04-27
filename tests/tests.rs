@@ -1,4 +1,6 @@
 use noctilucent::parser::condition::ConditionsParseTree;
+use noctilucent::parser::lookup_table::MappingInnerValue;
+use noctilucent::parser::lookup_table::MappingParseTree;
 use noctilucent::parser::lookup_table::MappingsParseTree;
 use noctilucent::parser::output::OutputsParseTree;
 use noctilucent::parser::parameters::Parameters;
@@ -389,6 +391,108 @@ fn test_parse_simple_json_template() {
     let cfn_tree = CloudformationParseTree {
         parameters: Parameters::new(),
         mappings: MappingsParseTree::new(),
+        conditions: ConditionsParseTree::new(),
+        logical_lookup: CloudformationParseTree::build_logical_lookup(&resources),
+        resources,
+        outputs: OutputsParseTree::new(),
+    };
+
+    assert_template_equal(cfn_template, cfn_tree)
+}
+
+#[test]
+fn test_parse_tree_with_fnfindinmap() {
+    let cfn_template = json!(
+        {
+            "Resources": {
+                "MyInstance": {
+                    "Type": "AWS::EC2::Instance",
+                    "Properties": {
+                        "InstanceType": { "Fn::FindInMap": [ "InstanceTypes", { "Ref": "Region" }, "t2.micro" ] },
+                        "ImageId": { "Fn::FindInMap": [ "AMIIds", { "Ref": "Region" }, "AmazonLinuxAMI" ] }
+                    }
+                }
+            },
+            "Mappings": {
+                "InstanceTypes": {
+                    "us-east-1": {
+                        "t2.micro": "t2.micro",
+                        "t2.small": "t2.small"
+                    },
+                    "us-west-2": {
+                        "t2.micro": "t2.nano",
+                        "t2.small": "t2.micro"
+                    }
+                },
+                "AMIIds": {
+                    "us-east-1": {
+                        "AmazonLinuxAMI": "ami-0ff8a91507f77f867",
+                        "UbuntuAMI": "ami-0c55b159cbfafe1f0"
+                    },
+                    "us-west-2": {
+                        "AmazonLinuxAMI": "ami-0323c3dd2da7fb37d",
+                        "UbuntuAMI": "ami-0bdb1d6c15a40392c"
+                    }
+                }
+            }
+        }
+
+    );
+
+    let resources = ResourcesParseTree {
+        resources: vec![ResourceParseTree {
+            name: "MyInstance".into(),
+            condition: Option::None,
+            resource_type: "AWS::EC2::Instance".into(),
+            metadata: Option::None,
+            update_policy: Option::None,
+            deletion_policy: Option::None,
+            dependencies: vec![],
+            properties: map! {
+                "InstanceType" => ResourceValue::FindInMap(
+                    Box::new(ResourceValue::String("InstanceTypes".into())),
+                    Box::new(ResourceValue::Ref("Region".into())),
+                    Box::new(ResourceValue::String("t2.micro".into())),
+                ),
+                "ImageId" => ResourceValue::FindInMap(
+                    Box::new(ResourceValue::String("AMIIds".into())),
+                    Box::new(ResourceValue::Ref("Region".into())),
+                    Box::new(ResourceValue::String("AmazonLinuxAMI".into())),
+                )
+            },
+        }],
+    };
+
+    let cfn_tree = CloudformationParseTree {
+        parameters: Parameters::new(),
+        mappings: MappingsParseTree {
+            mappings: map! {
+                "InstanceTypes" => MappingParseTree {
+                    mappings: map! {
+                            "us-east-1" => map! {
+                                "t2.micro" => MappingInnerValue::String("t2.micro".into()),
+                                "t2.small" => MappingInnerValue::String("t2.small".into())
+                            },
+                            "us-west-2" => map! {
+                                "t2.micro" => MappingInnerValue::String("t2.nano".into()),
+                                "t2.small" => MappingInnerValue::String("t2.micro".into())
+                            }
+                    },
+                },
+                "AMIIds" => MappingParseTree {
+                    mappings: map! {
+                            "us-east-1" => map! {
+                                "AmazonLinuxAMI" => MappingInnerValue::String("ami-0ff8a91507f77f867".into()),
+                                "UbuntuAMI" => MappingInnerValue::String("ami-0c55b159cbfafe1f0".into())
+                            },
+                            "us-west-2" => map! {
+                                "AmazonLinuxAMI" => MappingInnerValue::String("ami-0323c3dd2da7fb37d".into()),
+                                "UbuntuAMI" => MappingInnerValue::String("ami-0bdb1d6c15a40392c".into())
+                            }
+                    },
+                }
+            },
+        },
         conditions: ConditionsParseTree::new(),
         logical_lookup: CloudformationParseTree::build_logical_lookup(&resources),
         resources,
