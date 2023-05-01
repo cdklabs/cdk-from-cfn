@@ -40,7 +40,6 @@ cargo test
 
 ```console
 git status
-git switch -c extra-doc
 git add CONTRIBUTING.md
 git commit -m "chore: Adding a contributing guide"
 git push
