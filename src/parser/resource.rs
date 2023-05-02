@@ -552,7 +552,24 @@ mod test {
             .into(),
         );
         assert_eq!(
+            ResourceValue::from_value(json!({ "Fn::Sub": [STRING] })).unwrap(),
+            IntrinsicFunction::Sub {
+                string: STRING.into(),
+                replaces: None
+            }
+            .into(),
+        );
+        assert_eq!(
             ResourceValue::from_value(serde_yaml::from_str(&format!("!Sub {STRING}")).unwrap())
+                .unwrap(),
+            IntrinsicFunction::Sub {
+                string: STRING.into(),
+                replaces: None
+            }
+            .into(),
+        );
+        assert_eq!(
+            ResourceValue::from_value(serde_yaml::from_str(&format!("!Sub [{STRING:?}]")).unwrap())
                 .unwrap(),
             IntrinsicFunction::Sub {
                 string: STRING.into(),

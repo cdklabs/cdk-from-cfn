@@ -173,7 +173,7 @@ impl IntrinsicFunction {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(untagged)]
 enum StringOrPair {
     String(String),
@@ -195,12 +195,12 @@ impl StringOrPair {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(untagged)]
 enum SubPayload {
     String(String),
     SingletonList((String,)),
-    StringAndObject(String, ResourceValue),
+    StringAndObject(String, Option<ResourceValue>),
 }
 
 impl SubPayload {
@@ -208,7 +208,7 @@ impl SubPayload {
         match self {
             Self::String(string) => (string, None),
             Self::SingletonList((string,)) => (string, None),
-            Self::StringAndObject(string, object) => (string, Some(object)),
+            Self::StringAndObject(string, object) => (string, object),
         }
     }
 }
