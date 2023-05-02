@@ -32,3 +32,27 @@ impl fmt::Display for WrapperF64 {
 }
 
 impl Eq for WrapperF64 {}
+
+impl From<f64> for WrapperF64 {
+    fn from(num: f64) -> Self {
+        WrapperF64::new(num)
+    }
+}
+
+impl From<u64> for WrapperF64 {
+    fn from(num: u64) -> Self {
+        WrapperF64::new(num as f64)
+    }
+}
+
+impl From<i128> for WrapperF64 {
+    fn from(num: i128) -> Self {
+        WrapperF64::new(num as f64)
+    }
+}
+
+impl From<u128> for WrapperF64 {
+    fn from(num: u128) -> Self {
+        WrapperF64::new(num as f64)
+    }
+}

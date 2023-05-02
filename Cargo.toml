@@ -30,5 +30,6 @@ serde_with = "2.0.0"
 
 [profile.release]
 codegen-units = 1
-opt-level = 3
+incremental = false
 lto = true
+opt-level = 3

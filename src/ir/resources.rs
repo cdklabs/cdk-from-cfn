@@ -1,6 +1,6 @@
 use crate::ir::reference::{Origin, Reference};
 use crate::ir::sub::{sub_parse_tree, SubValue};
-use crate::parser::resource::ResourceValue;
+use crate::parser::resource::{IntrinsicFunction, ResourceValue};
 use crate::primitives::WrapperF64;
 use crate::specification::{CfnType, Specification, Structure};
 use crate::{CloudformationParseTree, TransmuteError};
@@ -497,168 +497,151 @@ pub fn translate_resource(
                 new_hash,
             ))
         }
-        ResourceValue::Sub(arr) => {
-            // Sub has two ways of being built: Either resolution via a bunch of objects
-            // or everything is in the first sub element, and that's it.
-            // just resolve the objects.
-            let val = &arr[0];
-            let val = match val {
-                ResourceValue::String(x) => x,
-                _ => return Err(TransmuteError::new("First value in sub must be a string")),
-            };
-
-            let mut excess_map = HashMap::new();
-            if arr.len() > 1 {
-                let mut iter = arr.iter();
-                iter.next();
-
-                for obj in iter {
-                    match obj {
-                        ResourceValue::Object(obj) => {
-                            for (key, val) in obj.iter() {
-                                let val_str = translate_resource(val, resource_translator)?;
-                                excess_map.insert(key.to_string(), val_str);
+        ResourceValue::IntrinsicFunction(intrinsic) => {
+            match intrinsic.as_ref() {
+                IntrinsicFunction::Sub { string, replaces } => {
+                    let mut excess_map = HashMap::new();
+                    if let Some(replaces) = replaces {
+                        match replaces {
+                            ResourceValue::Object(obj) => {
+                                excess_map.reserve(obj.len());
+                                for (key, val) in obj.iter() {
+                                    let val_str = translate_resource(val, resource_translator)?;
+                                    excess_map.insert(key.to_string(), val_str);
+                                }
+                            }
+                            _ => {
+                                // these aren't possible, so panic
+                                return Err(TransmuteError::new(
+                                    "Sub excess map must be an object",
+                                ));
                             }
                         }
-                        _ => {
-                            // these aren't possible, so panic
-                            return Err(TransmuteError::new("Sub excess map must be an object"));
-                        }
                     }
+
+                    let vars = sub_parse_tree(string)?;
+                    let r = vars
+                        .iter()
+                        .map(|x| match &x {
+                            SubValue::String(x) => ResourceIr::String(x.to_string()),
+                            SubValue::Variable(x) => match excess_map.get(x) {
+                                None => {
+                                    ResourceIr::Ref(find_ref(x, resource_translator.parse_tree))
+                                }
+                                Some(x) => x.clone(),
+                            },
+                        })
+                        .collect();
+                    Ok(ResourceIr::Sub(r))
                 }
-            }
-            let vars = sub_parse_tree(val.as_str())?;
-            let r = vars
-                .iter()
-                .map(|x| match &x {
-                    SubValue::String(x) => ResourceIr::String(x.to_string()),
-                    SubValue::Variable(x) => match excess_map.get(x) {
-                        None => ResourceIr::Ref(find_ref(x, resource_translator.parse_tree)),
-                        Some(x) => x.clone(),
-                    },
-                })
-                .collect();
-            Ok(ResourceIr::Sub(r))
-        }
-        ResourceValue::FindInMap(mapper, first, second) => {
-            let mut rt = resource_translator.clone();
-            rt.complexity = Structure::Simple(CfnType::String);
-            let mapper_str = translate_resource(mapper, &rt)?;
-            let first_str = translate_resource(first, &rt)?;
-            let second_str = translate_resource(second, &rt)?;
-            Ok(ResourceIr::Map(
-                Box::new(mapper_str),
-                Box::new(first_str),
-                Box::new(second_str),
-            ))
-        }
-        ResourceValue::GetAtt(name, attribute) => {
-            let name: &ResourceValue = name.as_ref();
-            let attribute: &ResourceValue = attribute.as_ref();
-            let resource_name = match name {
-                ResourceValue::String(x) => x,
-                _ => {
-                    return Err(TransmuteError::new(
-                        "Get attribute first element must be a string",
+                IntrinsicFunction::FindInMap {
+                    map_name,
+                    top_level_key,
+                    second_level_key,
+                } => {
+                    let mut rt = resource_translator.clone();
+                    rt.complexity = Structure::Simple(CfnType::String);
+                    let map_name_str = translate_resource(map_name, &rt)?;
+                    let top_level_key_str = translate_resource(top_level_key, &rt)?;
+                    let second_level_key_str = translate_resource(second_level_key, &rt)?;
+                    Ok(ResourceIr::Map(
+                        Box::new(map_name_str),
+                        Box::new(top_level_key_str),
+                        Box::new(second_level_key_str),
                     ))
                 }
-            };
-            let attr_name = match attribute {
-                ResourceValue::String(x) => x,
-                _ => {
-                    return Err(TransmuteError::new(
-                        "Get attribute first element must be a string",
+                IntrinsicFunction::GetAtt {
+                    logical_name,
+                    attribute_name,
+                } => Ok(ResourceIr::Ref(Reference::new(
+                    logical_name,
+                    Origin::GetAttribute(attribute_name.clone()),
+                ))),
+                IntrinsicFunction::If {
+                    condition_name,
+                    value_if_true,
+                    value_if_false,
+                } => {
+                    let value_if_true = translate_resource(value_if_true, resource_translator)?;
+                    let value_if_false = translate_resource(value_if_false, resource_translator)?;
+
+                    Ok(ResourceIr::If(
+                        condition_name.clone(),
+                        Box::new(value_if_true),
+                        Box::new(value_if_false),
                     ))
                 }
-            };
-            Ok(ResourceIr::Ref(Reference::new(
-                resource_name,
-                Origin::GetAttribute(attr_name.to_string()),
-            )))
-        }
-        ResourceValue::If(bool_expr, true_expr, false_expr) => {
-            let bool_expr = match bool_expr.as_ref() {
-                ResourceValue::String(x) => x,
-                &_ => {
-                    return Err(TransmuteError::new(
-                        "Resource value if statement truth must be a string",
-                    ));
+                IntrinsicFunction::Join { sep, list } => {
+                    let mut irs = Vec::new();
+                    match list {
+                        ResourceValue::Array(list) => {
+                            irs.reserve(list.len());
+                            for rv in list.iter() {
+                                let resource_ir = translate_resource(rv, resource_translator)?;
+                                irs.push(resource_ir)
+                            }
+                        }
+                        list => irs.push(translate_resource(list, resource_translator)?),
+                    }
+
+                    Ok(ResourceIr::Join(sep.to_string(), irs))
                 }
-            };
-            let true_expr = translate_resource(true_expr, resource_translator)?;
-            let false_expr = translate_resource(false_expr, resource_translator)?;
+                IntrinsicFunction::Split { sep, string } => {
+                    let ir = translate_resource(string, resource_translator)?;
 
-            Ok(ResourceIr::If(
-                bool_expr.to_string(),
-                Box::new(true_expr),
-                Box::new(false_expr),
-            ))
-        }
-        ResourceValue::Join(x) => {
-            let sep = x.get(0).unwrap();
+                    Ok(ResourceIr::Split(sep.clone(), Box::new(ir)))
+                }
+                IntrinsicFunction::Ref(x) => {
+                    Ok(ResourceIr::Ref(find_ref(x, resource_translator.parse_tree)))
+                }
+                IntrinsicFunction::Base64(x) => {
+                    let ir = translate_resource(x, resource_translator)?;
+                    Ok(ResourceIr::Base64(Box::new(ir)))
+                }
+                IntrinsicFunction::ImportValue(x) => {
+                    let ir = translate_resource(x, resource_translator)?;
+                    Ok(ResourceIr::ImportValue(Box::new(ir)))
+                }
+                IntrinsicFunction::Select { index, list } => {
+                    let index = match index.deref() {
+                        ResourceValue::String(x) => match x.parse::<i64>() {
+                            Ok(x) => x,
+                            Err(_) => {
+                                return Err(TransmuteError::new("index must be int for Select"))
+                            }
+                        },
+                        ResourceValue::Number(x) => *x,
+                        _ => {
+                            return Err(TransmuteError::new("Separator for join must be a string"))
+                        }
+                    };
 
-            let sep = match sep {
-                ResourceValue::String(x) => x,
-                _ => return Err(TransmuteError::new("Separator for join must be a string")),
-            };
+                    let obj = translate_resource(list, resource_translator)?;
+                    Ok(ResourceIr::Select(index, Box::new(obj)))
+                }
+                IntrinsicFunction::GetAZs(x) => {
+                    let ir = translate_resource(x, resource_translator)?;
+                    Ok(ResourceIr::GetAZs(Box::new(ir)))
+                }
+                IntrinsicFunction::Cidr {
+                    ip_block,
+                    count,
+                    cidr_bits,
+                } => {
+                    let mut rt = resource_translator.clone();
+                    rt.complexity = Structure::Simple(CfnType::String);
+                    let ip_block_str = translate_resource(ip_block, &rt)?;
+                    let count_str = translate_resource(count, &rt)?;
+                    let cidr_bits_str = translate_resource(cidr_bits, &rt)?;
+                    Ok(ResourceIr::Cidr(
+                        Box::new(ip_block_str),
+                        Box::new(count_str),
+                        Box::new(cidr_bits_str),
+                    ))
+                }
 
-            let iterator = x.iter().skip(1);
-
-            let mut irs = Vec::new();
-            for rv in iterator {
-                let resource_ir = translate_resource(rv, resource_translator)?;
-                irs.push(resource_ir)
+                unimplemented => unimplemented!("{unimplemented:?}"),
             }
-
-            Ok(ResourceIr::Join(sep.to_string(), irs))
-        }
-        ResourceValue::Split(sep, x) => {
-            let sep = match sep.as_ref() {
-                ResourceValue::String(x) => x,
-                _ => return Err(TransmuteError::new("Separator for split must be a string")),
-            };
-
-            let ir = translate_resource(x, resource_translator)?;
-
-            Ok(ResourceIr::Split(sep.to_string(), Box::new(ir)))
-        }
-        ResourceValue::Ref(x) => Ok(ResourceIr::Ref(find_ref(x, resource_translator.parse_tree))),
-        ResourceValue::Base64(x) => {
-            let ir = translate_resource(x, resource_translator)?;
-            Ok(ResourceIr::Base64(Box::new(ir)))
-        }
-        ResourceValue::ImportValue(x) => {
-            let ir = translate_resource(x, resource_translator)?;
-            Ok(ResourceIr::ImportValue(Box::new(ir)))
-        }
-        ResourceValue::Select(index, x) => {
-            let index = match index.deref() {
-                ResourceValue::String(x) => match x.parse::<i64>() {
-                    Ok(x) => x,
-                    Err(_) => return Err(TransmuteError::new("index must be int for Select")),
-                },
-                ResourceValue::Number(x) => *x,
-                _ => return Err(TransmuteError::new("Separator for join must be a string")),
-            };
-
-            let obj = translate_resource(x.deref(), resource_translator)?;
-            Ok(ResourceIr::Select(index, Box::new(obj)))
-        }
-        ResourceValue::GetAZs(x) => {
-            let ir = translate_resource(x, resource_translator)?;
-            Ok(ResourceIr::GetAZs(Box::new(ir)))
-        }
-        ResourceValue::Cidr(ip_block, count, cidr_bits) => {
-            let mut rt = resource_translator.clone();
-            rt.complexity = Structure::Simple(CfnType::String);
-            let ip_block_str = translate_resource(ip_block, &rt)?;
-            let count_str = translate_resource(count, &rt)?;
-            let cidr_bits_str = translate_resource(cidr_bits, &rt)?;
-            Ok(ResourceIr::Cidr(
-                Box::new(ip_block_str),
-                Box::new(count_str),
-                Box::new(cidr_bits_str),
-            ))
         }
     }
 }
