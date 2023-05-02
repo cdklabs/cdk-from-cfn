@@ -1,4 +1,3 @@
-use crate::parser::resource::build_resources_recursively;
 use crate::{ResourceValue, TransmuteError};
 use serde_yaml::Mapping;
 use std::collections::HashMap;
@@ -65,13 +64,17 @@ pub fn build_outputs(vals: &Mapping) -> Result<OutputsParseTree, TransmuteError>
                     "All outputs must have a value, but this does not",
                 ));
             }
-            Some(x) => build_resources_recursively(logical_id, x)?,
+            Some(x) => serde_yaml::from_value(x.clone())
+                .map_err(|cause| TransmuteError::new(format!("{logical_id}: {cause}")))?,
         };
 
         // For all Exports that exist, it must have a Name object, if either don't exist, don't record.
         let export = match value.get("Export").and_then(|x| x.get("Name")) {
             None => Option::None,
-            Some(x) => Option::Some(build_resources_recursively(logical_id, x)?),
+            Some(x) => Option::Some(
+                serde_yaml::from_value(x.clone())
+                    .map_err(|cause| TransmuteError::new(format!("{logical_id}: {cause}")))?,
+            ),
         };
 
         let condition = value

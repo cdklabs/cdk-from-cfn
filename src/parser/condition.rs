@@ -3,7 +3,7 @@ use serde_yaml::{Mapping, Value};
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConditionValue {
     // Higher level boolean operators
     And(Vec<ConditionValue>),

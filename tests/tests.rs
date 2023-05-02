@@ -1,9 +1,9 @@
 use noctilucent::parser::condition::ConditionsParseTree;
-use noctilucent::parser::lookup_table::MappingInnerValue;
-use noctilucent::parser::lookup_table::MappingParseTree;
 use noctilucent::parser::lookup_table::MappingsParseTree;
+use noctilucent::parser::lookup_table::{MappingInnerValue, MappingParseTree};
 use noctilucent::parser::output::OutputsParseTree;
 use noctilucent::parser::parameters::Parameters;
+use noctilucent::parser::resource::IntrinsicFunction;
 use noctilucent::parser::resource::{
     build_resources, ResourceParseTree, ResourceValue, ResourcesParseTree,
 };
@@ -24,6 +24,33 @@ macro_rules! map(
         }
      };
 );
+
+macro_rules! assert_resource_equal {
+    ($val:expr, $resource:expr) => {
+        let obj = ($val).as_mapping().unwrap();
+        let resources = build_resources(obj).unwrap();
+        assert_eq!(resources.resources[0], ($resource))
+    };
+}
+
+macro_rules! assert_template_equal {
+    ($val:expr, $cfn_tree:expr) => {{
+        let cfn_template = CloudformationParseTree::build(&$val).unwrap();
+        let cfn_tree = $cfn_tree;
+        assert_eq!(cfn_template.parameters.params, cfn_tree.parameters.params);
+        assert_eq!(cfn_template.mappings.mappings, cfn_tree.mappings.mappings);
+        assert_eq!(cfn_template.outputs.outputs, cfn_tree.outputs.outputs);
+        assert_eq!(cfn_template.logical_lookup, cfn_tree.logical_lookup);
+        assert_eq!(
+            cfn_template.conditions.conditions,
+            cfn_tree.conditions.conditions
+        );
+        assert_eq!(
+            cfn_template.resources.resources,
+            cfn_tree.resources.resources
+        );
+    }};
+}
 
 #[test]
 fn test_parse_tree_basics() {
@@ -56,7 +83,7 @@ fn test_parse_tree_basics() {
             "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
         },
     };
-    assert_resource_equal(a, resource);
+    assert_resource_equal!(a, resource);
 }
 
 #[test]
@@ -91,7 +118,7 @@ fn test_basic_parse_tree_with_condition() {
             "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
         },
     };
-    assert_resource_equal(a, resource);
+    assert_resource_equal!(a, resource);
 }
 
 #[test]
@@ -130,7 +157,7 @@ fn test_basic_parse_tree_with_metadata() {
             "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
         },
     };
-    assert_resource_equal(a, resource);
+    assert_resource_equal!(a, resource);
 }
 
 #[test]
@@ -166,7 +193,7 @@ fn test_parse_tree_basics_with_deletion_policy() {
         },
     };
 
-    assert_resource_equal(a, resource);
+    assert_resource_equal!(a, resource);
 }
 
 #[test]
@@ -191,10 +218,10 @@ fn test_parse_tree_sub_str() {
         dependencies: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
-            "RoleName" => ResourceValue::Sub(vec![ResourceValue::String("bobs-role-${AWS::Region}".into())])
+            "RoleName" => IntrinsicFunction::Sub{ string:"bobs-role-${AWS::Region}".into(), replaces: None }.into()
         },
     };
-    assert_resource_equal(a, resource);
+    assert_resource_equal!(a, resource);
 }
 
 #[test]
@@ -219,10 +246,10 @@ fn test_parse_tree_yaml_codes() {
         dependencies: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
-            "RoleName" => ResourceValue::Sub(vec![ResourceValue::String("bobs-role-${AWS::Region}".into())])
+            "RoleName" => IntrinsicFunction::Sub{ string: "bobs-role-${AWS::Region}".into(), replaces: None }.into()
         },
     };
-    assert_resource_equal(a, resource);
+    assert_resource_equal!(a, resource);
 }
 #[test]
 fn test_parse_get_attr_shorthand() {
@@ -246,10 +273,10 @@ fn test_parse_get_attr_shorthand() {
         dependencies: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
-            "RoleName" => ResourceValue::GetAtt(Box::new(ResourceValue::String("Foo".to_string())), Box::new(ResourceValue::String("Bar".to_string())))
+            "RoleName" => IntrinsicFunction::GetAtt{logical_name:"Foo".into(), attribute_name:"Bar".into()}.into()
         },
     };
-    assert_resource_equal(a, resource);
+    assert_resource_equal!(a, resource);
 }
 
 #[test]
@@ -281,15 +308,15 @@ fn test_parse_tree_sub_list() {
         deletion_policy: Option::None,
         dependencies: vec![],
         properties: map! {
-            "RoleName" => ResourceValue::Sub(vec![
-                ResourceValue::String("bobs-role-${Region}".into()),
-                ResourceValue::Object(map!{
-                    "Region" =>  ResourceValue::Ref("AWS::Region".into())
-                })
-            ])
+            "RoleName" => IntrinsicFunction::Sub{
+                string: "bobs-role-${Region}".into(),
+                replaces: Some(ResourceValue::Object(map!{
+                    "Region" =>  IntrinsicFunction::Ref("AWS::Region".into()).into()
+                }))
+            }.into()
         },
     };
-    assert_resource_equal(a, resource);
+    assert_resource_equal!(a, resource);
 }
 
 #[test]
@@ -397,7 +424,7 @@ fn test_parse_simple_json_template() {
         outputs: OutputsParseTree::new(),
     };
 
-    assert_template_equal(cfn_template, cfn_tree)
+    assert_template_equal!(cfn_template, cfn_tree)
 }
 
 #[test]
@@ -449,16 +476,16 @@ fn test_parse_tree_with_fnfindinmap() {
             deletion_policy: Option::None,
             dependencies: vec![],
             properties: map! {
-                "InstanceType" => ResourceValue::FindInMap(
-                    Box::new(ResourceValue::String("InstanceTypes".into())),
-                    Box::new(ResourceValue::Ref("Region".into())),
-                    Box::new(ResourceValue::String("t2.micro".into())),
-                ),
-                "ImageId" => ResourceValue::FindInMap(
-                    Box::new(ResourceValue::String("AMIIds".into())),
-                    Box::new(ResourceValue::Ref("Region".into())),
-                    Box::new(ResourceValue::String("AmazonLinuxAMI".into())),
-                )
+                "InstanceType" => IntrinsicFunction::FindInMap{
+                    map_name:ResourceValue::String("InstanceTypes".into()),
+                    top_level_key:IntrinsicFunction::Ref("Region".into()).into(),
+                    second_level_key:ResourceValue::String("t2.micro".into()),
+                }.into(),
+                "ImageId" => IntrinsicFunction::FindInMap{
+                    map_name:ResourceValue::String("AMIIds".into()),
+                    top_level_key:IntrinsicFunction::Ref("Region".into()).into(),
+                    second_level_key: ResourceValue::String("AmazonLinuxAMI".into()),
+                }.into()
             },
         }],
     };
@@ -499,7 +526,7 @@ fn test_parse_tree_with_fnfindinmap() {
         outputs: OutputsParseTree::new(),
     };
 
-    assert_template_equal(cfn_template, cfn_tree)
+    assert_template_equal!(cfn_template, cfn_tree)
 }
 
 #[test]
@@ -533,37 +560,15 @@ fn test_parse_tree_resource_with_floats() {
         deletion_policy: Option::None,
         dependencies: vec![],
         properties: map! {
-            "AlarmName" => ResourceValue::Sub(vec![
-                ResourceValue::String("${Tag}-FrontendDistributedCacheTrafficImbalanceAlarm".into()),
-                ResourceValue::Object(map!{
-                    "Tag" =>  ResourceValue::Ref("AWS::Region".into())
-                })
-            ]),
+            "AlarmName" => IntrinsicFunction::Sub{
+                string: "${Tag}-FrontendDistributedCacheTrafficImbalanceAlarm".into(),
+                replaces: Some(ResourceValue::Object(map!{
+                    "Tag" =>  IntrinsicFunction::Ref("AWS::Region".into()).into()
+                }))
+            }.into(),
             "ComparisonOperator" => ResourceValue::String("GreaterThanOrEqualToThreshold".to_string()),
             "Threshold" => ResourceValue::Double(WrapperF64::new(3.5))
         },
     };
-    assert_resource_equal(a, resource);
-}
-
-fn assert_resource_equal(val: Value, resource: ResourceParseTree) {
-    let obj = val.as_mapping().unwrap();
-    let resources = build_resources(obj).unwrap();
-    assert_eq!(resources.resources[0], resource)
-}
-
-fn assert_template_equal(val: Value, cfn_tree: CloudformationParseTree) {
-    let cfn_template = CloudformationParseTree::build(&val).unwrap();
-    assert_eq!(cfn_template.parameters.params, cfn_tree.parameters.params);
-    assert_eq!(cfn_template.mappings.mappings, cfn_tree.mappings.mappings);
-    assert_eq!(cfn_template.outputs.outputs, cfn_tree.outputs.outputs);
-    assert_eq!(cfn_template.logical_lookup, cfn_tree.logical_lookup);
-    assert_eq!(
-        cfn_template.conditions.conditions,
-        cfn_tree.conditions.conditions
-    );
-    assert_eq!(
-        cfn_template.resources.resources,
-        cfn_tree.resources.resources
-    )
+    assert_resource_equal!(a, resource);
 }
