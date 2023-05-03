@@ -3,7 +3,6 @@ use noctilucent::ir::CloudformationProgramIr;
 use noctilucent::synthesizer::typescript_synthesizer::TypescriptSynthesizer;
 use noctilucent::synthesizer::Synthesizer;
 use noctilucent::CloudformationParseTree;
-use serde_yaml::Value;
 use std::{fs, io};
 
 fn main() -> anyhow::Result<()> {
@@ -13,8 +12,8 @@ fn main() -> anyhow::Result<()> {
         .about("Reads cfn templates and translates them to typescript")
         .arg(
             Arg::new("INPUT")
-                .help("Sets the input file to use")
-                .required(true)
+                .help("Sets the input file to use (use - to read from STDIN)")
+                .default_value("-")
                 .index(1)
                 .action(ArgAction::Set),
         )
@@ -27,12 +26,16 @@ fn main() -> anyhow::Result<()> {
         )
         .get_matches();
 
-    let txt_location: &str = matches.get_one::<&str>("INPUT").unwrap();
-    let contents = fs::read_to_string(txt_location)?;
+    let cfn_tree: CloudformationParseTree = {
+        let reader: Box<dyn std::io::Read> =
+            match matches.get_one::<String>("INPUT").map(|s| s.as_str()) {
+                None | Some("-") => Box::new(io::stdin()),
+                Some(file) => Box::new(fs::File::open(file)?),
+            };
 
-    let value: Value = serde_yaml::from_str::<Value>(contents.as_str())?;
+        serde_yaml::from_reader(reader)?
+    };
 
-    let cfn_tree = CloudformationParseTree::build(&value)?;
     let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree)?;
     let synthesizer: &dyn Synthesizer = &TypescriptSynthesizer {};
 

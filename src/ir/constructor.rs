@@ -11,8 +11,8 @@ impl Constructor {
     }
 
     pub fn translate(parse_tree: &CloudformationParseTree) -> Constructor {
-        let mut inputs = Vec::new();
-        for (name, param) in parse_tree.parameters.params.iter() {
+        let mut inputs = Vec::with_capacity(parse_tree.parameters.len());
+        for (name, param) in &parse_tree.parameters {
             let default: Option<&String> = param.default.as_ref();
             inputs.push(ConstructorParameter {
                 name: camel_case(name),

@@ -30,7 +30,7 @@ impl Rule {
 /// Composite means there are deeper structures, and CDK
 /// has enough information to actually camel case, so
 /// you have to camelcase as well.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Structure {
     Simple(CfnType),
     Composite(String),
@@ -39,7 +39,7 @@ pub enum Structure {
 /// CfnType is the primitives in the CloudFormation specification.
 /// They are when CFN just "doesn't care anymore" and doesn't do anything
 /// outside of parse-classification-errors.
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum CfnType {
     Boolean,
     Integer,
@@ -50,7 +50,7 @@ pub enum CfnType {
     Json,
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum TypeRule {
     Primitive(CfnType),
     PropertyType(&'static str),
@@ -76,7 +76,7 @@ impl TypeRule {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ItemTypeRule {
     Primitive(CfnType),
     PropertyType(&'static str),

@@ -7,7 +7,8 @@ use std::fmt;
 
 /// WrapperF64 exists because compraisons and outputs into typescripts are annoying with the
 /// default f64. Use this whenever referring to a floating point number in CFN standard.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, serde::Deserialize)]
+#[serde(transparent)]
 pub struct WrapperF64 {
     num: f64,
 }

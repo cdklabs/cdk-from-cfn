@@ -1,6 +1,7 @@
 use crate::ir::reference::{Origin, Reference};
-use crate::parser::condition::{ConditionParseTree, ConditionValue, ConditionsParseTree};
+use crate::parser::condition::{ConditionFunction, ConditionValue};
 use crate::CloudformationParseTree;
+use indexmap::IndexMap;
 use topological_sort::TopologicalSort;
 
 // ConditionInstructions are simple assignment + boolean
@@ -40,139 +41,166 @@ impl ConditionIr {
 }
 
 pub fn translate_conditions(parse_tree: &CloudformationParseTree) -> Vec<ConditionInstruction> {
-    let mut list = Vec::new();
-    for cond in determine_order(&parse_tree.conditions) {
-        let ir = translate_ir(&cond.val);
+    let mut list = Vec::with_capacity(parse_tree.conditions.len());
+    for name in determine_order(&parse_tree.conditions) {
+        let value = parse_tree.conditions[name].as_ir();
         list.push(ConditionInstruction {
-            name: cond.name,
-            value: ir,
+            name: name.into(),
+            value,
         });
     }
 
     list
 }
 
-fn translate_ir(value: &ConditionValue) -> ConditionIr {
-    match value {
-        ConditionValue::And(x) => {
-            let and_list = x.iter().cloned().map(|y| translate_ir(&y)).collect();
-            ConditionIr::And(and_list)
-        }
-        ConditionValue::Equals(x, y) => {
-            let x = translate_ir(x);
-            let y = translate_ir(y);
-
-            ConditionIr::Equals(Box::new(x), Box::new(y))
-        }
-        ConditionValue::Not(x) => {
-            let x = translate_ir(x);
-            ConditionIr::Not(Box::new(x))
-        }
-        ConditionValue::Or(x) => {
-            let or_list = x.iter().cloned().map(|y| translate_ir(&y)).collect();
-            ConditionIr::Or(or_list)
-        }
-        ConditionValue::FindInMap(name, x, y) => {
-            let name = translate_ir(name);
-            let x = translate_ir(x);
-            let y = translate_ir(y);
-
-            ConditionIr::Map(Box::new(name), Box::new(x), Box::new(y))
-        }
-        ConditionValue::Str(x) => ConditionIr::Str(x.clone()),
-        ConditionValue::Ref(x) => {
-            // The only 2 references allowed in conditions is parameters or pseudo parameters.
-            // so assume it's a parameter and check for pseudo fill-ins
-            let mut origin = Origin::Parameter;
-            if let Option::Some(s) = Reference::match_pseudo_parameter(x) {
-                origin = Origin::PseudoParameter(s);
+impl ConditionFunction {
+    fn as_ir(&self) -> ConditionIr {
+        match self {
+            Self::And(x) => {
+                let and_list = x.iter().map(ConditionValue::as_ir).collect();
+                ConditionIr::And(and_list)
             }
-            ConditionIr::Ref(Reference {
-                origin,
-                name: x.clone(),
-            })
+            Self::Equals(x, y) => {
+                let x = x.as_ir();
+                let y = y.as_ir();
+
+                ConditionIr::Equals(Box::new(x), Box::new(y))
+            }
+            Self::Not(x) => {
+                let x = x.as_ir();
+                ConditionIr::Not(Box::new(x))
+            }
+            Self::Or(x) => {
+                let or_list = x.iter().map(ConditionValue::as_ir).collect();
+                ConditionIr::Or(or_list)
+            }
+            Self::If { .. } => unimplemented!(),
         }
-        ConditionValue::Condition(x) => ConditionIr::Ref(Reference {
-            origin: Origin::Condition,
-            name: x.clone(),
-        }),
+    }
+}
+
+impl ConditionValue {
+    fn as_ir(&self) -> ConditionIr {
+        match self {
+            Self::Function(function) => function.as_ir(),
+            Self::FindInMap(name, x, y) => {
+                let name = name.as_ir();
+                let x = x.as_ir();
+                let y = y.as_ir();
+
+                ConditionIr::Map(Box::new(name), Box::new(x), Box::new(y))
+            }
+            Self::String(x) => ConditionIr::Str(x.clone()),
+            Self::Ref(x) => {
+                // The only 2 references allowed in conditions is parameters or pseudo parameters.
+                // so assume it's a parameter and check for pseudo fill-ins
+                let mut origin = Origin::Parameter;
+                if let Option::Some(s) = Reference::match_pseudo_parameter(x) {
+                    origin = Origin::PseudoParameter(s);
+                }
+                ConditionIr::Ref(Reference {
+                    origin,
+                    name: x.clone(),
+                })
+            }
+            Self::Condition(x) => ConditionIr::Ref(Reference {
+                origin: Origin::Condition,
+                name: x.clone(),
+            }),
+        }
     }
 }
 
 /**
  * Provides an ordering of conditions contained in the tree based on relative dependencies.
  */
-pub fn determine_order(conditions_parse_tree: &ConditionsParseTree) -> Vec<ConditionParseTree> {
-    let mut topo: TopologicalSort<String> = TopologicalSort::new();
+pub fn determine_order(conditions: &IndexMap<String, ConditionFunction>) -> Vec<&str> {
+    let mut topo: TopologicalSort<&str> = TopologicalSort::new();
     // Identify condition dependencies
-    for (condition_name, condition_parts) in conditions_parse_tree.conditions.iter() {
-        topo.insert(condition_name.to_string());
-        find_dependencies(condition_name, &condition_parts.val, &mut topo);
+    for (name, value) in conditions {
+        topo.insert(name.as_str());
+        value.find_dependencies(name, &mut topo);
     }
-    let mut sorted = Vec::new();
+
+    let mut sorted = Vec::with_capacity(conditions.len());
     while !topo.is_empty() {
         match topo.pop() {
             None => {
                 panic!("There are cyclic deps in the conditions clauses")
             }
-            Some(item) => {
-                let condition = conditions_parse_tree.conditions.get(&item).unwrap();
-                sorted.push(condition.clone())
-            }
+            Some(item) => sorted.push(item),
         }
     }
 
     sorted
 }
 
-/**
- * Recursively identify the dependency conditions of a CloudFormation condition.
- */
-fn find_dependencies(
-    root_condition_name: &str,
-    condition_val: &ConditionValue,
-    topological_sort: &mut TopologicalSort<String>,
-) {
-    match condition_val {
-        ConditionValue::And(x) | ConditionValue::Or(x) => x
-            .iter()
-            .for_each(|cond| find_dependencies(root_condition_name, cond, topological_sort)),
-        ConditionValue::Equals(a, b) => {
-            find_dependencies(root_condition_name, a, topological_sort);
-            find_dependencies(root_condition_name, b, topological_sort);
+impl ConditionFunction {
+    fn find_dependencies<'a>(
+        &'a self,
+        logical_id: &'a str,
+        topo_sort: &'_ mut TopologicalSort<&'a str>,
+    ) {
+        match self {
+            Self::And(list) | Self::Or(list) => list
+                .iter()
+                .for_each(|val| val.find_dependencies(logical_id, topo_sort)),
+            Self::Equals(a, b) => {
+                a.find_dependencies(logical_id, topo_sort);
+                b.find_dependencies(logical_id, topo_sort);
+            }
+            Self::Not(cond) => cond.find_dependencies(logical_id, topo_sort),
+            Self::If {
+                condition_name,
+                if_true,
+                if_false,
+                ..
+            } => {
+                topo_sort.add_dependency(condition_name.as_str(), logical_id);
+                if_true.find_dependencies(logical_id, topo_sort);
+                if_false.find_dependencies(logical_id, topo_sort);
+            }
         }
-        ConditionValue::Not(a) => {
-            find_dependencies(root_condition_name, a, topological_sort);
+    }
+}
+
+impl ConditionValue {
+    fn find_dependencies<'a>(
+        &'a self,
+        logical_id: &'a str,
+        topo_sort: &'_ mut TopologicalSort<&'a str>,
+    ) {
+        match self {
+            Self::Condition(cond) => {
+                topo_sort.add_dependency(cond.as_str(), logical_id);
+            }
+            Self::FindInMap(name, key1, key2) => {
+                name.find_dependencies(logical_id, topo_sort);
+                key1.find_dependencies(logical_id, topo_sort);
+                key2.find_dependencies(logical_id, topo_sort);
+            }
+            Self::Function(func) => func.find_dependencies(logical_id, topo_sort),
+            Self::Ref(_) | Self::String(_) => {}
         }
-        ConditionValue::Ref(_x) | ConditionValue::Str(_x) => {}
-        ConditionValue::Condition(x) => {
-            topological_sort.insert(root_condition_name);
-            topological_sort.add_dependency(x.to_string(), root_condition_name.to_string())
-        }
-        ConditionValue::FindInMap(name, l1, l2) => {
-            find_dependencies(root_condition_name, name, topological_sort);
-            find_dependencies(root_condition_name, l1, topological_sort);
-            find_dependencies(root_condition_name, l2, topological_sort);
-        }
-    };
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::ir::conditions::{determine_order, translate_ir, ConditionIr};
+    use indexmap::IndexMap;
+
+    use crate::ir::conditions::{determine_order, ConditionIr};
     use crate::ir::reference::{Origin, PseudoParameter, Reference};
-    use crate::parser::condition::{ConditionParseTree, ConditionValue};
-    use crate::ConditionsParseTree;
-    use std::collections::HashMap;
+    use crate::parser::condition::{ConditionFunction, ConditionValue};
 
     #[test]
     fn test_eq_translation() {
-        let condition_structure: ConditionValue = ConditionValue::Equals(
-            Box::new(ConditionValue::Str("us-west-2".into())),
-            Box::new(ConditionValue::Ref("AWS::Region".into())),
+        let condition_structure = ConditionFunction::Equals(
+            ConditionValue::String("us-west-2".into()),
+            ConditionValue::Ref("AWS::Region".into()),
         );
 
-        let condition_ir = translate_ir(&condition_structure);
+        let condition_ir = condition_structure.as_ir();
         assert_eq!(
             ConditionIr::Equals(
                 Box::new(ConditionIr::Str("us-west-2".into())),
@@ -187,30 +215,23 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        let a = ConditionParseTree {
-            name: "A".to_string(),
-            val: ConditionValue::Ref("Hello".to_string()),
-        };
+        let a = ConditionFunction::Equals(
+            ConditionValue::Ref("Foo".into()),
+            ConditionValue::Ref("Bar".into()),
+        );
 
-        let b = ConditionParseTree {
-            name: "B".to_string(),
-            val: ConditionValue::Condition("A".to_string()),
-        };
+        let b = ConditionFunction::Not(ConditionValue::Condition("A".into()));
 
-        let mut hash = HashMap::new();
-        hash.insert("A".to_string(), a.clone());
-        hash.insert("B".to_string(), b.clone());
-        let conditions = ConditionsParseTree { conditions: hash };
+        let hash = IndexMap::from([("A".into(), a), ("B".into(), b)]);
+        let ordered = determine_order(&hash);
 
-        let ordered = determine_order(&conditions);
-
-        assert_eq!(ordered, vec![a, b]);
+        assert_eq!(ordered, vec!["A", "B"]);
     }
 
     #[test]
     fn test_condition_translation() {
         let condition_structure: ConditionValue = ConditionValue::Condition("other".into());
-        let condition_ir = translate_ir(&condition_structure);
+        let condition_ir = condition_structure.as_ir();
         assert_eq!(
             (ConditionIr::Ref(Reference::new("other", Origin::Condition))),
             condition_ir
@@ -220,7 +241,7 @@ mod tests {
     fn test_simple() {
         assert_eq!(
             ConditionIr::Str("hi".into()),
-            translate_ir(&ConditionValue::Str("hi".into()))
+            ConditionValue::String("hi".into()).as_ir()
         );
     }
 }
