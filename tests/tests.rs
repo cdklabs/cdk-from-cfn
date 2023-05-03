@@ -1,54 +1,43 @@
-use noctilucent::parser::condition::ConditionsParseTree;
-use noctilucent::parser::lookup_table::MappingsParseTree;
-use noctilucent::parser::lookup_table::{MappingInnerValue, MappingParseTree};
-use noctilucent::parser::output::OutputsParseTree;
-use noctilucent::parser::parameters::Parameters;
-use noctilucent::parser::resource::IntrinsicFunction;
-use noctilucent::parser::resource::{
-    build_resources, ResourceParseTree, ResourceValue, ResourcesParseTree,
-};
+use indexmap::IndexMap;
+use noctilucent::parser::lookup_table::{MappingInnerValue, MappingTable};
+use noctilucent::parser::resource::{DeletionPolicy, IntrinsicFunction};
+use noctilucent::parser::resource::{ResourceAttributes, ResourceValue};
 use noctilucent::primitives::WrapperF64;
 use noctilucent::CloudformationParseTree;
 use serde_yaml::Value;
 
 mod json;
 
-macro_rules! map(
-    { $($key:expr => $value:expr),+ } => {
+macro_rules! map{
+    ($($key:expr => $value:expr),+) => {
         {
-            let mut m = ::std::collections::HashMap::new();
+            let mut m = ::indexmap::IndexMap::<String, _, _>::default();
             $(
-                m.insert($key.to_string(), $value);
+                m.insert($key.into(), $value);
             )+
             m
         }
      };
-);
+}
 
 macro_rules! assert_resource_equal {
-    ($val:expr, $resource:expr) => {
+    ($name:expr => $val:expr, $resource:expr) => {
         let obj = ($val).as_mapping().unwrap();
-        let resources = build_resources(obj).unwrap();
-        assert_eq!(resources.resources[0], ($resource))
+        let resources: IndexMap<String, ResourceAttributes> =
+            serde_yaml::from_value(serde_yaml::Value::Mapping(obj.clone())).unwrap();
+        assert_eq!(resources[$name], ($resource))
     };
 }
 
 macro_rules! assert_template_equal {
     ($val:expr, $cfn_tree:expr) => {{
-        let cfn_template = CloudformationParseTree::build(&$val).unwrap();
+        let cfn_template: CloudformationParseTree = serde_yaml::from_value($val).unwrap();
         let cfn_tree = $cfn_tree;
-        assert_eq!(cfn_template.parameters.params, cfn_tree.parameters.params);
-        assert_eq!(cfn_template.mappings.mappings, cfn_tree.mappings.mappings);
-        assert_eq!(cfn_template.outputs.outputs, cfn_tree.outputs.outputs);
-        assert_eq!(cfn_template.logical_lookup, cfn_tree.logical_lookup);
-        assert_eq!(
-            cfn_template.conditions.conditions,
-            cfn_tree.conditions.conditions
-        );
-        assert_eq!(
-            cfn_template.resources.resources,
-            cfn_tree.resources.resources
-        );
+        assert_eq!(cfn_template.parameters, cfn_tree.parameters);
+        assert_eq!(cfn_template.mappings, cfn_tree.mappings);
+        assert_eq!(cfn_template.outputs, cfn_tree.outputs);
+        assert_eq!(cfn_template.conditions, cfn_tree.conditions);
+        assert_eq!(cfn_template.resources, cfn_tree.resources);
     }};
 }
 
@@ -67,8 +56,7 @@ fn test_parse_tree_basics() {
         }
     });
 
-    let resource = ResourceParseTree {
-        name: "LogicalResource".into(),
+    let resource = ResourceAttributes {
         condition: Option::None,
         metadata: Option::None,
         update_policy: Option::None,
@@ -83,7 +71,7 @@ fn test_parse_tree_basics() {
             "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
         },
     };
-    assert_resource_equal!(a, resource);
+    assert_resource_equal!("LogicalResource" => a, resource);
 }
 
 #[test]
@@ -102,8 +90,7 @@ fn test_basic_parse_tree_with_condition() {
         }
     });
 
-    let resource = ResourceParseTree {
-        name: "LogicalResource".into(),
+    let resource = ResourceAttributes {
         condition: Option::Some("SomeCondition".into()),
         metadata: Option::None,
         update_policy: Option::None,
@@ -118,7 +105,7 @@ fn test_basic_parse_tree_with_condition() {
             "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
         },
     };
-    assert_resource_equal!(a, resource);
+    assert_resource_equal!("LogicalResource" => a, resource);
 }
 
 #[test]
@@ -139,8 +126,7 @@ fn test_basic_parse_tree_with_metadata() {
         }
     });
 
-    let resource = ResourceParseTree {
-        name: "LogicalResource".into(),
+    let resource = ResourceAttributes {
         condition: Option::None,
         metadata: Option::Some(ResourceValue::Object(map! {
             "myArbitrary" => ResourceValue::String("objectData".into())
@@ -157,7 +143,7 @@ fn test_basic_parse_tree_with_metadata() {
             "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
         },
     };
-    assert_resource_equal!(a, resource);
+    assert_resource_equal!("LogicalResource" => a, resource);
 }
 
 #[test]
@@ -176,12 +162,11 @@ fn test_parse_tree_basics_with_deletion_policy() {
         }
     });
 
-    let resource: ResourceParseTree = ResourceParseTree {
-        name: "LogicalResource".into(),
+    let resource: ResourceAttributes = ResourceAttributes {
         condition: Option::None,
         metadata: Option::None,
         update_policy: Option::None,
-        deletion_policy: Option::Some("Retain".into()),
+        deletion_policy: Option::Some(DeletionPolicy::Retain),
         dependencies: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
@@ -193,7 +178,7 @@ fn test_parse_tree_basics_with_deletion_policy() {
         },
     };
 
-    assert_resource_equal!(a, resource);
+    assert_resource_equal!("LogicalResource" => a, resource);
 }
 
 #[test]
@@ -209,8 +194,7 @@ fn test_parse_tree_sub_str() {
         }
     });
 
-    let resource = ResourceParseTree {
-        name: "LogicalResource".into(),
+    let resource = ResourceAttributes {
         condition: Option::None,
         metadata: Option::None,
         update_policy: Option::None,
@@ -221,7 +205,7 @@ fn test_parse_tree_sub_str() {
             "RoleName" => IntrinsicFunction::Sub{ string:"bobs-role-${AWS::Region}".into(), replaces: None }.into()
         },
     };
-    assert_resource_equal!(a, resource);
+    assert_resource_equal!("LogicalResource" => a, resource);
 }
 
 #[test]
@@ -237,8 +221,7 @@ fn test_parse_tree_yaml_codes() {
         }
     });
 
-    let resource = ResourceParseTree {
-        name: "LogicalResource".into(),
+    let resource = ResourceAttributes {
         condition: Option::None,
         metadata: Option::None,
         update_policy: Option::None,
@@ -249,7 +232,7 @@ fn test_parse_tree_yaml_codes() {
             "RoleName" => IntrinsicFunction::Sub{ string: "bobs-role-${AWS::Region}".into(), replaces: None }.into()
         },
     };
-    assert_resource_equal!(a, resource);
+    assert_resource_equal!("LogicalResource" => a, resource);
 }
 #[test]
 fn test_parse_get_attr_shorthand() {
@@ -264,8 +247,7 @@ fn test_parse_get_attr_shorthand() {
         }
     });
 
-    let resource = ResourceParseTree {
-        name: "LogicalResource".into(),
+    let resource = ResourceAttributes {
         condition: Option::None,
         metadata: Option::None,
         update_policy: Option::None,
@@ -276,7 +258,7 @@ fn test_parse_get_attr_shorthand() {
             "RoleName" => IntrinsicFunction::GetAtt{logical_name:"Foo".into(), attribute_name:"Bar".into()}.into()
         },
     };
-    assert_resource_equal!(a, resource);
+    assert_resource_equal!("LogicalResource" => a, resource);
 }
 
 #[test]
@@ -299,8 +281,7 @@ fn test_parse_tree_sub_list() {
         }
     });
 
-    let resource = ResourceParseTree {
-        name: "LogicalResource".into(),
+    let resource = ResourceAttributes {
         condition: Option::None,
         resource_type: "AWS::IAM::Role".into(),
         metadata: Option::None,
@@ -316,7 +297,7 @@ fn test_parse_tree_sub_list() {
             }.into()
         },
     };
-    assert_resource_equal!(a, resource);
+    assert_resource_equal!("LogicalResource" => a, resource);
 }
 
 #[test]
@@ -359,10 +340,10 @@ fn test_parse_simple_json_template() {
         }
     });
 
-    let resources = ResourcesParseTree {
-        resources: vec![
-            ResourceParseTree {
-                name: "EC2Instance".into(),
+    let resources = IndexMap::from([
+        (
+            "EC2Instance".into(),
+            ResourceAttributes {
                 condition: Option::None,
                 resource_type: "AWS::EC2::Instance".into(),
                 metadata: Option::None,
@@ -384,8 +365,10 @@ fn test_parse_simple_json_template() {
                     ])
                 },
             },
-            ResourceParseTree {
-                name: "EBSVolume".into(),
+        ),
+        (
+            "EBSVolume".into(),
+            ResourceAttributes {
                 condition: Option::None,
                 resource_type: "AWS::EC2::Volume".into(),
                 metadata: Option::None,
@@ -398,8 +381,10 @@ fn test_parse_simple_json_template() {
                     "VolumeType" => ResourceValue::String("gp2".into())
                 },
             },
-            ResourceParseTree {
-                name: "VolumeAttachment".into(),
+        ),
+        (
+            "VolumeAttachment".into(),
+            ResourceAttributes {
                 condition: Option::None,
                 resource_type: "AWS::EC2::VolumeAttachment".into(),
                 metadata: Option::None,
@@ -412,16 +397,15 @@ fn test_parse_simple_json_template() {
                     "Device" => ResourceValue::String("/dev/xvdf".into())
                 },
             },
-        ],
-    };
+        ),
+    ]);
 
     let cfn_tree = CloudformationParseTree {
-        parameters: Parameters::new(),
-        mappings: MappingsParseTree::new(),
-        conditions: ConditionsParseTree::new(),
-        logical_lookup: CloudformationParseTree::build_logical_lookup(&resources),
+        parameters: IndexMap::default(),
+        mappings: IndexMap::default(),
+        conditions: IndexMap::default(),
         resources,
-        outputs: OutputsParseTree::new(),
+        outputs: IndexMap::default(),
     };
 
     assert_template_equal!(cfn_template, cfn_tree)
@@ -466,9 +450,9 @@ fn test_parse_tree_with_fnfindinmap() {
 
     );
 
-    let resources = ResourcesParseTree {
-        resources: vec![ResourceParseTree {
-            name: "MyInstance".into(),
+    let resources = IndexMap::from([(
+        "MyInstance".into(),
+        ResourceAttributes {
             condition: Option::None,
             resource_type: "AWS::EC2::Instance".into(),
             metadata: Option::None,
@@ -487,43 +471,40 @@ fn test_parse_tree_with_fnfindinmap() {
                     second_level_key: ResourceValue::String("AmazonLinuxAMI".into()),
                 }.into()
             },
-        }],
-    };
+        },
+    )]);
 
     let cfn_tree = CloudformationParseTree {
-        parameters: Parameters::new(),
-        mappings: MappingsParseTree {
-            mappings: map! {
-                "InstanceTypes" => MappingParseTree {
-                    mappings: map! {
-                            "us-east-1" => map! {
-                                "t2.micro" => MappingInnerValue::String("t2.micro".into()),
-                                "t2.small" => MappingInnerValue::String("t2.small".into())
-                            },
-                            "us-west-2" => map! {
-                                "t2.micro" => MappingInnerValue::String("t2.nano".into()),
-                                "t2.small" => MappingInnerValue::String("t2.micro".into())
-                            }
-                    },
+        parameters: IndexMap::default(),
+        mappings: map! {
+            "InstanceTypes" => MappingTable {
+                mappings: map! {
+                        "us-east-1" => map! {
+                            "t2.micro" => MappingInnerValue::String("t2.micro".into()),
+                            "t2.small" => MappingInnerValue::String("t2.small".into())
+                        },
+                        "us-west-2" => map! {
+                            "t2.micro" => MappingInnerValue::String("t2.nano".into()),
+                            "t2.small" => MappingInnerValue::String("t2.micro".into())
+                        }
                 },
-                "AMIIds" => MappingParseTree {
-                    mappings: map! {
-                            "us-east-1" => map! {
-                                "AmazonLinuxAMI" => MappingInnerValue::String("ami-0ff8a91507f77f867".into()),
-                                "UbuntuAMI" => MappingInnerValue::String("ami-0c55b159cbfafe1f0".into())
-                            },
-                            "us-west-2" => map! {
-                                "AmazonLinuxAMI" => MappingInnerValue::String("ami-0323c3dd2da7fb37d".into()),
-                                "UbuntuAMI" => MappingInnerValue::String("ami-0bdb1d6c15a40392c".into())
-                            }
-                    },
-                }
             },
+            "AMIIds" => MappingTable {
+                mappings: map! {
+                        "us-east-1" => map! {
+                            "AmazonLinuxAMI" => MappingInnerValue::String("ami-0ff8a91507f77f867".into()),
+                            "UbuntuAMI" => MappingInnerValue::String("ami-0c55b159cbfafe1f0".into())
+                        },
+                        "us-west-2" => map! {
+                            "AmazonLinuxAMI" => MappingInnerValue::String("ami-0323c3dd2da7fb37d".into()),
+                            "UbuntuAMI" => MappingInnerValue::String("ami-0bdb1d6c15a40392c".into())
+                        }
+                },
+            }
         },
-        conditions: ConditionsParseTree::new(),
-        logical_lookup: CloudformationParseTree::build_logical_lookup(&resources),
+        conditions: IndexMap::default(),
         resources,
-        outputs: OutputsParseTree::new(),
+        outputs: IndexMap::default(),
     };
 
     assert_template_equal!(cfn_template, cfn_tree)
@@ -551,8 +532,7 @@ fn test_parse_tree_resource_with_floats() {
         }
     });
 
-    let resource = ResourceParseTree {
-        name: "Alarm".into(),
+    let resource = ResourceAttributes {
         condition: Option::None,
         resource_type: "AWS::CloudWatch::Alarm".into(),
         metadata: Option::None,
@@ -570,5 +550,5 @@ fn test_parse_tree_resource_with_floats() {
             "Threshold" => ResourceValue::Double(WrapperF64::new(3.5))
         },
     };
-    assert_resource_equal!(a, resource);
+    assert_resource_equal!("Alarm" => a, resource);
 }

@@ -1,7 +1,7 @@
 use super::resource::ResourceValue;
 use serde::de::{Error, VariantAccess};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum IntrinsicFunction {
     // Standard built-ins
     Base64(ResourceValue),

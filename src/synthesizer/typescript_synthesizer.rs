@@ -4,7 +4,7 @@ use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::Structure;
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::io;
 use voca_rs::case::camel_case;
 
@@ -305,7 +305,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             Option::Some(format!("'{formatted_str}'"))
         }
         ResourceIr::Array(_, arr) => {
-            let mut v = Vec::new();
+            let mut v = Vec::with_capacity(arr.len());
             for a in arr {
                 match to_string_ir(a) {
                     None => {}
@@ -317,7 +317,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
         }
         ResourceIr::Object(complexity, o) => {
             // We are transforming to typescript-json which will not have quotes.
-            let mut v = Vec::new();
+            let mut v = Vec::with_capacity(o.len());
             for (s, rv) in o {
                 match to_string_ir(rv) {
                     None => {}
@@ -344,7 +344,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             // Sub has two ways of being built: Either resolution via a bunch of objects
             // or everything is in the first sub element, and that's it.
             // just resolve the objects.
-            let mut r = Vec::new();
+            let mut r = Vec::with_capacity(arr.len());
             for i in arr.iter() {
                 match i {
                     ResourceIr::String(s) => {
@@ -389,7 +389,7 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             Option::Some(format!("{bool_expr} ? {true_expr} : {false_expr}"))
         }
         ResourceIr::Join(sep, join_obj) => {
-            let mut strs = Vec::new();
+            let mut strs = Vec::with_capacity(join_obj.len());
             for rv in join_obj.iter() {
                 match to_string_ir(rv) {
                     None => {}
@@ -490,7 +490,7 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
 
 fn synthesize_mapping_instruction(mapping_instruction: &MappingInstruction) -> String {
     let mut mapping_parse_tree_ts = String::from("{\n");
-    let mut outer_records = Vec::new();
+    let mut outer_records = Vec::with_capacity(mapping_instruction.map.len());
     for (outer_mapping_key, inner_mapping) in mapping_instruction.map.iter() {
         outer_records.push(format!(
             "\t\t\t'{}': {}",
@@ -505,9 +505,9 @@ fn synthesize_mapping_instruction(mapping_instruction: &MappingInstruction) -> S
     mapping_parse_tree_ts
 }
 
-fn synthesize_inner_mapping(inner_mapping: &HashMap<String, MappingInnerValue>) -> String {
+fn synthesize_inner_mapping(inner_mapping: &IndexMap<String, MappingInnerValue>) -> String {
     let mut inner_mapping_ts_str = String::from("{\n");
-    let mut inner_mapping_entries = Vec::new();
+    let mut inner_mapping_entries = Vec::with_capacity(inner_mapping.len());
     for (inner_mapping_key, inner_mapping_value) in inner_mapping {
         inner_mapping_entries.push(format!(
             "\t\t\t\t'{inner_mapping_key}': {inner_mapping_value}"

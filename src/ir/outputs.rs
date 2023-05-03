@@ -11,9 +11,8 @@ pub struct OutputInstruction {
 }
 
 pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<OutputInstruction> {
-    let outputs = &parse_tree.outputs;
-    let mut instructions = Vec::new();
-    for (name, output) in outputs.outputs.iter() {
+    let mut instructions = Vec::with_capacity(parse_tree.outputs.len());
+    for (name, output) in &parse_tree.outputs {
         let resource_translator = ResourceTranslationInputs {
             parse_tree,
             complexity: Structure::Simple(CfnType::Json),

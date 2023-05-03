@@ -1,15 +1,118 @@
-use crate::TransmuteError;
-use serde_yaml::{Mapping, Value};
-use std::borrow::Cow;
-use std::collections::HashMap;
+use serde::de::{Error, VariantAccess};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
+pub enum ConditionFunction {
+    And(Vec<ConditionValue>),
+    Or(Vec<ConditionValue>),
+    Equals(ConditionValue, ConditionValue),
+    If {
+        condition_name: String,
+        if_true: ConditionValue,
+        if_false: ConditionValue,
+    },
+    Not(ConditionValue),
+}
+
+impl ConditionFunction {
+    fn from_variant_access<'de, A: serde::de::VariantAccess<'de>>(
+        variant: &str,
+        data: A,
+    ) -> Result<Self, A::Error> {
+        match variant {
+            "And" => Ok(Self::And(data.newtype_variant()?)),
+            "Or" => Ok(Self::Or(data.newtype_variant()?)),
+            "Equals" => {
+                let (left, right) = data.newtype_variant()?;
+                Ok(Self::Equals(left, right))
+            }
+            "If" => {
+                let (condition_name, if_true, if_false) = data.newtype_variant()?;
+                Ok(Self::If {
+                    condition_name,
+                    if_true,
+                    if_false,
+                })
+            }
+            "Not" => Ok(Self::Not(data.newtype_variant::<Singleton>()?.unwrap())),
+            unknown => Err(A::Error::unknown_variant(
+                unknown,
+                &["And", "Or", "Equals", "If", "Not"],
+            )),
+        }
+    }
+
+    fn from_map_access<'de, A: serde::de::MapAccess<'de>>(
+        variant: &str,
+        data: &mut A,
+    ) -> Result<Self, A::Error> {
+        match variant {
+            "!And" | "Fn::And" => Ok(Self::And(data.next_value()?)),
+            "!Or" | "Fn::Or" => Ok(Self::Or(data.next_value()?)),
+            "!Equals" | "Fn::Equals" => {
+                let (left, right) = data.next_value()?;
+                Ok(Self::Equals(left, right))
+            }
+            "!If" | "Fn::If" => {
+                let (condition_name, if_true, if_false) = data.next_value()?;
+                Ok(Self::If {
+                    condition_name,
+                    if_true,
+                    if_false,
+                })
+            }
+            "!Not" | "Fn::Not" => Ok(Self::Not(data.next_value::<Singleton>()?.unwrap())),
+            unknown => Err(A::Error::unknown_variant(
+                unknown,
+                &["Fn::And", "Fn::Or", "Fn::Equals", "Fn::If", "Fn::Not"],
+            )),
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ConditionFunction {
+    fn deserialize<D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<ConditionFunction, D::Error> {
+        struct ConditionVisitor;
+        impl<'de> serde::de::Visitor<'de> for ConditionVisitor {
+            type Value = ConditionFunction;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a CloudFormation condition function")
+            }
+
+            fn visit_enum<A: serde::de::EnumAccess<'de>>(
+                self,
+                data: A,
+            ) -> Result<Self::Value, A::Error> {
+                let (variant, data) = data.variant::<String>()?;
+                Self::Value::from_variant_access(&variant, data)
+            }
+
+            fn visit_map<A: serde::de::MapAccess<'de>>(
+                self,
+                mut data: A,
+            ) -> Result<Self::Value, A::Error> {
+                let variant: String = match data.next_key()? {
+                    Some(key) => key,
+                    None => return Err(A::Error::invalid_length(0, &Self)),
+                };
+                let value = Self::Value::from_map_access(&variant, &mut data)?;
+                if data.next_key::<String>()?.is_some() {
+                    return Err(A::Error::invalid_length(2, &Self));
+                }
+                Ok(value)
+            }
+        }
+
+        deserializer.deserialize_any(ConditionVisitor)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum ConditionValue {
     // Higher level boolean operators
-    And(Vec<ConditionValue>),
-    Equals(Box<ConditionValue>, Box<ConditionValue>),
-    Not(Box<ConditionValue>),
-    Or(Vec<ConditionValue>),
+    Function(Box<ConditionFunction>),
 
     // Cloudformation meta-functions
     FindInMap(
@@ -19,215 +122,366 @@ pub enum ConditionValue {
     ),
 
     // End of recursion, the base primitives to work with
-    Str(String),
+    String(String),
     Ref(String),
     Condition(String),
 }
 
-#[derive(Debug, Clone)]
-pub struct ConditionParseTree {
-    pub name: String,
-    pub val: ConditionValue,
-}
-
-impl PartialEq for ConditionParseTree {
-    fn eq(&self, other: &ConditionParseTree) -> bool {
-        self.name == other.name
+impl From<ConditionFunction> for ConditionValue {
+    fn from(f: ConditionFunction) -> Self {
+        Self::Function(Box::new(f))
     }
 }
 
-pub fn is_intrinsic(x: &str) -> bool {
-    x.starts_with("AWS::")
-}
+impl<'de> serde::Deserialize<'de> for ConditionValue {
+    fn deserialize<D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<ConditionValue, D::Error> {
+        struct ConditionValueVisitor;
+        impl<'de> serde::de::Visitor<'de> for ConditionValueVisitor {
+            type Value = ConditionValue;
 
-#[derive(Debug)]
-pub struct ConditionsParseTree {
-    pub conditions: HashMap<String, ConditionParseTree>,
-}
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a CloudFormation condition value")
+            }
 
-impl ConditionsParseTree {
-    pub fn new() -> ConditionsParseTree {
-        ConditionsParseTree {
-            conditions: HashMap::new(),
-        }
-    }
-}
+            fn visit_bool<E: serde::de::Error>(self, val: bool) -> Result<Self::Value, E> {
+                Ok(ConditionValue::String(val.to_string()))
+            }
 
-impl Default for ConditionsParseTree {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-pub fn build_conditions(vals: &Mapping) -> Result<ConditionsParseTree, TransmuteError> {
-    let mut conditions = ConditionsParseTree::new();
-
-    for (name, obj) in vals {
-        let name = name.as_str().unwrap();
-        let cond = build_condition_recursively(name, obj)?;
-        let condition = ConditionParseTree {
-            name: name.to_string(),
-            val: cond,
-        };
-        conditions.conditions.insert(name.to_string(), condition);
-    }
-    Ok(conditions)
-}
-
-fn build_condition_recursively(name: &str, obj: &Value) -> Result<ConditionValue, TransmuteError> {
-    let val: Cow<Mapping> = match obj {
-        Value::String(x) => return Ok(ConditionValue::Str(x.to_string())),
-        Value::Number(x) => return Ok(ConditionValue::Str(x.to_string())),
-        Value::Bool(x) => return Ok(ConditionValue::Str(x.to_string())),
-        Value::Mapping(x) => Cow::Borrowed(x),
-        Value::Tagged(x) => {
-            let mut mapping = Mapping::new();
-            mapping.insert(
-                serde_yaml::Value::String(format!("!{}", x.tag)),
-                x.value.clone(),
-            );
-            Cow::Owned(mapping)
-        }
-        _ => {
-            return Err(TransmuteError::new(format!(
-                "Condition must be an object or string {name}, {obj:?}"
-            )))
-        }
-    };
-
-    // At this point, we have an object-json, and need to iterate over all
-    // the keys
-    #[allow(clippy::never_loop)]
-    for (condition_name, condition_object) in val.as_ref() {
-        let cond: ConditionValue = match condition_name.as_str() {
-            Some("!And" | "Fn::And") => {
-                let mut v: Vec<ConditionValue> = Vec::new();
-                let arr = match condition_object.as_sequence() {
-                    None => {
-                        return Err(TransmuteError::new(
-                            format!("Condition must be an array {name}").as_str(),
+            fn visit_enum<A: serde::de::EnumAccess<'de>>(
+                self,
+                data: A,
+            ) -> Result<Self::Value, A::Error> {
+                let (variant, data) = data.variant::<String>()?;
+                match variant.as_str() {
+                    "Condition" => Ok(Self::Value::Condition(data.newtype_variant()?)),
+                    "FindInMap" => {
+                        let (map_name, top_level_key, second_level_key) = data.newtype_variant()?;
+                        Ok(Self::Value::FindInMap(
+                            map_name,
+                            top_level_key,
+                            second_level_key,
                         ))
                     }
-                    Some(x) => x,
-                };
-
-                for a in arr {
-                    v.push(build_condition_recursively(name, a)?);
+                    "Ref" => Ok(Self::Value::Ref(data.newtype_variant()?)),
+                    other => Ok(ConditionFunction::from_variant_access(other, data)?.into()),
                 }
-
-                ConditionValue::And(v)
             }
-            Some("!Equals" | "Fn::Equals") => {
-                let arr = match condition_object.as_sequence() {
-                    None => {
-                        return Err(TransmuteError::new(format!(
-                            "Condition must be an array {name}"
-                        )))
-                    }
-                    Some(x) => x,
-                };
 
-                let obj1 = match arr.get(0) {
-                    None => {
-                        return Err(TransmuteError::new(format!(
-                            "Equal condition must have 2 array values {name}"
-                        )))
-                    }
-                    Some(x) => build_condition_recursively(name, x),
-                }?;
-                let obj2 = match arr.get(1) {
-                    None => {
-                        return Err(TransmuteError::new(format!(
-                            "Equal condition must have 2 array values {name}"
-                        )))
-                    }
-                    Some(x) => build_condition_recursively(name, x),
-                }?;
-                ConditionValue::Equals(Box::new(obj1), Box::new(obj2))
+            fn visit_f64<E: serde::de::Error>(self, val: f64) -> Result<Self::Value, E> {
+                Ok(ConditionValue::String(val.to_string()))
             }
-            Some("!Not" | "Fn::Not") => {
-                let arr = match condition_object.as_sequence() {
-                    None => {
-                        return Err(TransmuteError::new(format!(
-                            "Condition must be an array {name}"
-                        )))
-                    }
-                    Some(x) => x,
-                };
 
-                let obj1 = match arr.get(0) {
-                    None => {
-                        return Err(TransmuteError::new(format!(
-                            "Equal condition must have 2 array values {name}"
-                        )))
-                    }
-                    Some(x) => build_condition_recursively(name, x),
-                }?;
-                ConditionValue::Not(Box::new(obj1))
+            fn visit_i128<E: serde::de::Error>(self, val: i128) -> Result<Self::Value, E> {
+                Ok(ConditionValue::String(val.to_string()))
             }
-            Some("!Or" | "Fn::Or") => {
-                let arr = match condition_object.as_sequence() {
-                    None => {
-                        return Err(TransmuteError::new(format!(
-                            "Condition must be an array {name}"
-                        )))
-                    }
-                    Some(x) => x,
+
+            fn visit_i64<E: serde::de::Error>(self, val: i64) -> Result<Self::Value, E> {
+                Ok(ConditionValue::String(val.to_string()))
+            }
+
+            fn visit_map<A: serde::de::MapAccess<'de>>(
+                self,
+                mut data: A,
+            ) -> Result<Self::Value, A::Error> {
+                let key: String = match data.next_key()? {
+                    Some(key) => key,
+                    None => return Err(A::Error::invalid_length(0, &Self)),
                 };
-
-                let mut v: Vec<ConditionValue> = Vec::new();
-
-                for a in arr {
-                    v.push(build_condition_recursively(name, a)?);
+                match key.as_str() {
+                    "!Condition" | "Condition" => Ok(Self::Value::Condition(data.next_value()?)),
+                    "!FindInMap" | "Fn::FindInMap" => {
+                        let (map_name, top_level_key, second_level_key) = data.next_value()?;
+                        Ok(Self::Value::FindInMap(
+                            map_name,
+                            top_level_key,
+                            second_level_key,
+                        ))
+                    }
+                    "!Ref" | "Ref" => Ok(Self::Value::Ref(data.next_value()?)),
+                    other => Ok(ConditionFunction::from_map_access(other, &mut data)?.into()),
                 }
+            }
 
-                ConditionValue::Or(v)
+            fn visit_u128<E: serde::de::Error>(self, val: u128) -> Result<Self::Value, E> {
+                Ok(ConditionValue::String(val.to_string()))
             }
-            Some("!Condition" | "Condition") => {
-                let condition_name = match condition_object.as_str() {
-                    None => {
-                        return Err(TransmuteError::new(format!(
-                            "Condition must a string {name}"
-                        )))
-                    }
-                    Some(x) => x,
-                };
-                ConditionValue::Condition(condition_name.to_string())
-            }
-            Some("!Ref" | "Ref") => {
-                let ref_name = match condition_object.as_str() {
-                    None => {
-                        return Err(TransmuteError::new(format!(
-                            "Condition must a string {name}"
-                        )))
-                    }
-                    Some(x) => x,
-                };
-                ConditionValue::Ref(ref_name.to_string())
-            }
-            Some("!FindInMap" | "Fn::FindInMap") => {
-                let arr = match condition_object.as_sequence() {
-                    None => {
-                        return Err(TransmuteError::new(format!(
-                            "Fn::FindInMap must form an array {name}"
-                        )))
-                    }
-                    Some(x) => x,
-                };
 
-                let m1 = build_condition_recursively(name, arr.get(0).unwrap())?;
-                let m2 = build_condition_recursively(name, arr.get(1).unwrap())?;
-                let m3 = build_condition_recursively(name, arr.get(2).unwrap())?;
-                ConditionValue::FindInMap(Box::new(m1), Box::new(m2), Box::new(m3))
+            fn visit_str<E: serde::de::Error>(self, val: &str) -> Result<Self::Value, E> {
+                Ok(ConditionValue::String(val.into()))
             }
-            Some(v) => ConditionValue::Str(v.to_string()),
-            None => unimplemented!("Condition name is not a string"),
-        };
 
-        return Ok(cond);
+            fn visit_u64<E: serde::de::Error>(self, val: u64) -> Result<Self::Value, E> {
+                Ok(ConditionValue::String(val.to_string()))
+            }
+        }
+
+        deserializer.deserialize_any(ConditionValueVisitor)
+    }
+}
+
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum Singleton {
+    Value(ConditionValue),
+    SingletonTuple((ConditionValue,)),
+}
+
+impl Singleton {
+    fn unwrap(self) -> ConditionValue {
+        match self {
+            Self::Value(value) => value,
+            Self::SingletonTuple((value,)) => value,
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn function_and() {
+        let expected = Box::new(ConditionFunction::And(vec![
+            ConditionValue::String("true".into()),
+            ConditionValue::String("false".into()),
+        ]));
+
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("!And [true, 'false']").unwrap(),
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("Fn::And: [true, 'false']").unwrap(),
+        );
     }
 
-    Err(TransmuteError::new(format!(
-        "Could not match the pattern for {name}, {obj:?}"
-    )))
+    #[test]
+    fn function_or() {
+        let expected = Box::new(ConditionFunction::Or(vec![
+            ConditionValue::String("true".into()),
+            ConditionValue::String("false".into()),
+        ]));
+
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("!Or [true, 'false']").unwrap(),
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("Fn::Or: [true, 'false']").unwrap(),
+        );
+    }
+
+    #[test]
+    fn function_equals() {
+        let expected = Box::new(ConditionFunction::Equals(
+            ConditionValue::String("true".into()),
+            ConditionValue::String("false".into()),
+        ));
+
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("!Equals [true, 'false']").unwrap(),
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("Fn::Equals: [true, 'false']").unwrap(),
+        );
+    }
+
+    #[test]
+    fn function_if() {
+        let expected = Box::new(ConditionFunction::If {
+            condition_name: "condition".into(),
+            if_true: ConditionValue::String("true".into()),
+            if_false: ConditionValue::String("false".into()),
+        });
+
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("!If [condition, true, 'false']").unwrap(),
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("Fn::If: [condition, true, 'false']").unwrap(),
+        );
+    }
+
+    #[test]
+    fn function_not() {
+        let expected = Box::new(ConditionFunction::Not(ConditionValue::String(
+            "true".into(),
+        )));
+
+        assert_eq!(expected, serde_yaml::from_str("!Not [true]").unwrap());
+        assert_eq!(expected, serde_yaml::from_str("Fn::Not: [true]").unwrap());
+
+        assert_eq!(expected, serde_yaml::from_str("!Not true").unwrap());
+        assert_eq!(expected, serde_yaml::from_str("Fn::Not: true").unwrap());
+    }
+
+    #[test]
+    fn condition_function_and() {
+        let expected = ConditionValue::Function(Box::new(ConditionFunction::And(vec![
+            ConditionValue::String("true".into()),
+            ConditionValue::String("false".into()),
+        ])));
+
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("!And [true, 'false']").unwrap(),
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("Fn::And: [true, 'false']").unwrap(),
+        );
+    }
+
+    #[test]
+    fn condition_function_or() {
+        let expected = ConditionValue::Function(Box::new(ConditionFunction::Or(vec![
+            ConditionValue::String("true".into()),
+            ConditionValue::String("false".into()),
+        ])));
+
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("!Or [true, 'false']").unwrap(),
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("Fn::Or: [true, 'false']").unwrap(),
+        );
+    }
+
+    #[test]
+    fn condition_function_equals() {
+        let expected = ConditionValue::Function(Box::new(ConditionFunction::Equals(
+            ConditionValue::String("true".into()),
+            ConditionValue::String("false".into()),
+        )));
+
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("!Equals [true, 'false']").unwrap(),
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("Fn::Equals: [true, 'false']").unwrap(),
+        );
+    }
+
+    #[test]
+    fn condition_function_if() {
+        let expected = ConditionValue::Function(Box::new(ConditionFunction::If {
+            condition_name: "condition".into(),
+            if_true: ConditionValue::String("true".into()),
+            if_false: ConditionValue::String("false".into()),
+        }));
+
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("!If [condition, true, 'false']").unwrap(),
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("Fn::If: [condition, true, 'false']").unwrap(),
+        );
+    }
+
+    #[test]
+    fn condition_function_not() {
+        let expected = ConditionValue::Function(Box::new(ConditionFunction::Not(
+            ConditionValue::String("true".into()),
+        )));
+
+        assert_eq!(expected, serde_yaml::from_str("!Not [true]").unwrap());
+        assert_eq!(expected, serde_yaml::from_str("Fn::Not: [true]").unwrap());
+
+        assert_eq!(expected, serde_yaml::from_str("!Not true").unwrap());
+        assert_eq!(expected, serde_yaml::from_str("Fn::Not: true").unwrap());
+    }
+
+    #[test]
+    fn condition_find_in_map() {
+        let expected = ConditionValue::FindInMap(
+            Box::new(ConditionValue::String("Map".into())),
+            Box::new(ConditionValue::String("TLK".into())),
+            Box::new(ConditionValue::String("SLK".into())),
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("!FindInMap [Map, TLK, SLK]").unwrap()
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("Fn::FindInMap: [Map, TLK, SLK]").unwrap()
+        );
+    }
+
+    #[test]
+    fn condition_str_bool() {
+        let expected = ConditionValue::String("true".into());
+        assert_eq!(expected, serde_yaml::from_str("true").unwrap());
+    }
+    #[test]
+    fn condition_str_float() {
+        let expected = ConditionValue::String("3.1415".into());
+        assert_eq!(expected, serde_yaml::from_str("3.1415").unwrap());
+    }
+    #[test]
+    fn condition_str_ilong() {
+        let expected = ConditionValue::String("-184467440737095516150".into());
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("-184467440737095516150").unwrap()
+        );
+    }
+    #[test]
+    fn condition_str_int() {
+        let expected = ConditionValue::String("-1337".into());
+        assert_eq!(expected, serde_yaml::from_str("-1337").unwrap());
+    }
+    #[test]
+    fn condition_str_uint() {
+        let expected = ConditionValue::String("1337".into());
+        assert_eq!(expected, serde_yaml::from_str("1337").unwrap());
+    }
+    #[test]
+    fn condition_str_ulong() {
+        let expected = ConditionValue::String("184467440737095516150".into());
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("184467440737095516150").unwrap()
+        );
+    }
+
+    #[test]
+    fn condition_str_string() {
+        let expected = ConditionValue::String("Hello, world!".into());
+        assert_eq!(expected, serde_yaml::from_str("'Hello, world!'").unwrap());
+    }
+
+    #[test]
+    fn condition_ref() {
+        let expected = ConditionValue::Ref("LogicalID".into());
+        assert_eq!(expected, serde_yaml::from_str("!Ref LogicalID").unwrap());
+        assert_eq!(expected, serde_yaml::from_str("Ref: LogicalID").unwrap());
+    }
+
+    #[test]
+    fn condition_condition() {
+        let expected = ConditionValue::Condition("LogicalID".into());
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("!Condition LogicalID").unwrap()
+        );
+        assert_eq!(
+            expected,
+            serde_yaml::from_str("Condition: LogicalID").unwrap()
+        );
+    }
 }

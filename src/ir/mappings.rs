@@ -1,11 +1,12 @@
+use indexmap::IndexMap;
+
 use crate::ir::mappings::OutputType::{Complex, Consistent};
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::CloudformationParseTree;
-use std::collections::HashMap;
 
 pub struct MappingInstruction {
     pub name: String,
-    pub map: HashMap<String, HashMap<String, MappingInnerValue>>,
+    pub map: IndexMap<String, IndexMap<String, MappingInnerValue>>,
 }
 
 /// When printing out to a file, sometimes there are non ordinal types in mappings.
@@ -16,7 +17,7 @@ pub struct MappingInstruction {
 ///    }
 ///
 /// The above example has both a number and a bool. This is considered "Complex".
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum OutputType {
     Consistent(MappingInnerValue),
     Complex,
@@ -39,9 +40,8 @@ impl MappingInstruction {
     }
 }
 pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<MappingInstruction> {
-    let mapping_parse_tree = &parse_tree.mappings;
-    let mut instructions = Vec::new();
-    for (name, map) in mapping_parse_tree.mappings.iter() {
+    let mut instructions = Vec::with_capacity(parse_tree.mappings.len());
+    for (name, map) in &parse_tree.mappings {
         instructions.push(MappingInstruction {
             name: name.to_string(),
             map: map.mappings.clone(),
@@ -53,17 +53,17 @@ pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<MappingInstruction
 #[cfg(test)]
 mod tests {
     use super::*;
-    macro_rules! map(
-    { $($key:expr => $value:expr),+ } => {
-        {
-            let mut m = ::std::collections::HashMap::new();
-            $(
-                m.insert($key.to_string(), $value);
-            )+
-            m
-        }
-     };
-    );
+    macro_rules! map {
+        ($($key:expr => $value:expr),+) => {
+            {
+                let mut m = ::indexmap::IndexMap::<String,_,_>::default();
+                $(
+                    m.insert($key.into(), $value);
+                )+
+                m
+            }
+        };
+    }
 
     #[test]
     fn test_mapping_consistent_string() {

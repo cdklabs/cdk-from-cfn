@@ -1,9 +1,10 @@
 use crate::ir::reference::{Origin, Reference};
 use crate::ir::sub::{sub_parse_tree, SubValue};
-use crate::parser::resource::{IntrinsicFunction, ResourceValue};
+use crate::parser::resource::{DeletionPolicy, IntrinsicFunction, ResourceValue};
 use crate::primitives::WrapperF64;
 use crate::specification::{CfnType, Specification, Structure};
 use crate::{CloudformationParseTree, TransmuteError};
+use indexmap::IndexMap;
 use std::collections::HashMap;
 use std::ops::Deref;
 use topological_sort::TopologicalSort;
@@ -22,7 +23,7 @@ pub enum ResourceIr {
 
     // Higher level resolutions
     Array(Structure, Vec<ResourceIr>),
-    Object(Structure, HashMap<String, ResourceIr>),
+    Object(Structure, IndexMap<String, ResourceIr>),
 
     /// Rest is meta functions
     /// https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html#w2ab1c33c28c21c29
@@ -62,20 +63,20 @@ pub struct ResourceInstruction {
     pub condition: Option<String>,
     pub metadata: Option<ResourceIr>,
     pub update_policy: Option<ResourceIr>,
-    pub deletion_policy: Option<String>,
+    pub deletion_policy: Option<DeletionPolicy>,
     pub dependencies: Vec<String>,
     // Referrers are a meta concept of "anything other resource that ResourceInstruction references".
     // This could be in a property or dependency path.
     pub referrers: Vec<String>,
     pub resource_type: String,
-    pub properties: HashMap<String, ResourceIr>,
+    pub properties: IndexMap<String, ResourceIr>,
 }
 
 pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<ResourceInstruction> {
     let spec = Specification::default();
     let mut resource_instructions = Vec::new();
-    for resource in parse_tree.resources.resources.iter() {
-        let mut props = HashMap::new();
+    for (name, resource) in &parse_tree.resources {
+        let mut props = IndexMap::with_capacity(resource.properties.len());
         let resource_spec = spec.get_resource(&resource.resource_type).unwrap();
         for (name, prop) in resource.properties.iter() {
             let complexity = resource_spec.structure(name).unwrap();
@@ -101,10 +102,10 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
         let update_policy = optional_ir_json(parse_tree, &resource.update_policy).unwrap();
 
         let mut resource_instruction = ResourceInstruction {
-            name: resource.name.to_string(),
+            name: name.clone(),
             resource_type: resource.resource_type.to_string(),
             dependencies: resource.dependencies.clone(),
-            deletion_policy: resource.deletion_policy.clone(),
+            deletion_policy: resource.deletion_policy,
             condition: resource.condition.clone(),
             properties: props,
             metadata,
@@ -122,7 +123,7 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
 
 fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruction> {
     let mut topo = TopologicalSort::new();
-    let mut hash = HashMap::new();
+    let mut hash = HashMap::with_capacity(resource_instructions.len());
     for resource_instruction in resource_instructions {
         topo.insert(resource_instruction.name.to_string());
 
@@ -135,7 +136,7 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruc
         hash.insert(resource_instruction.name.to_string(), resource_instruction);
     }
 
-    let mut sorted_instructions = Vec::new();
+    let mut sorted_instructions = Vec::with_capacity(hash.len());
     while !topo.is_empty() {
         match topo.pop() {
             None => {
@@ -176,7 +177,7 @@ fn optional_ir_json(
 }
 
 fn generate_references(resource_instruction: &ResourceInstruction) -> Vec<String> {
-    let mut references = Vec::new();
+    let mut references = Vec::with_capacity(resource_instruction.dependencies.len());
     for dep in resource_instruction.dependencies.iter() {
         references.push(dep.to_string());
     }
@@ -200,40 +201,32 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
         | ResourceIr::String(_) => Option::None,
 
         ResourceIr::Array(_, arr) => {
-            let mut v = Vec::new();
+            let mut v = Vec::with_capacity(arr.len());
             for resource in arr {
-                let opt = find_references(resource);
-                match opt {
-                    None => {}
-                    Some(x) => v.extend(x),
+                if let Some(vec) = find_references(resource) {
+                    v.extend(vec);
                 }
             }
 
             Option::Some(v)
         }
         ResourceIr::Object(_, hash) => {
-            let mut v = Vec::new();
+            let mut v = Vec::with_capacity(hash.len());
             for resource in hash.values() {
-                let opt = find_references(resource);
-                match opt {
-                    None => {}
-                    Some(x) => v.extend(x),
+                if let Some(vec) = find_references(resource) {
+                    v.extend(vec);
                 }
             }
 
             Option::Some(v)
         }
         ResourceIr::If(_, x, y) => {
-            let mut v = Vec::new();
-            let opt = find_references(x.deref());
-            match opt {
-                None => {}
-                Some(res) => v.extend(res),
+            let mut v = Vec::with_capacity(2);
+            if let Some(vec) = find_references(x.deref()) {
+                v.extend(vec);
             }
-            let opt2 = find_references(y.deref());
-            match opt2 {
-                None => {}
-                Some(res) => v.extend(res),
+            if let Some(vec) = find_references(y.deref()) {
+                v.extend(vec);
             }
 
             Option::Some(v)
@@ -241,10 +234,8 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
         ResourceIr::Join(_, arr) => {
             let mut v = Vec::new();
             for resource in arr {
-                let opt = find_references(resource);
-                match opt {
-                    None => {}
-                    Some(x) => v.extend(x),
+                if let Some(vec) = find_references(resource) {
+                    v.extend(vec);
                 }
             }
 
@@ -253,22 +244,14 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
         ResourceIr::Split(_, ir) => find_references(ir),
         ResourceIr::Ref(x) => match x.origin {
             Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => Option::None,
-            Origin::LogicalId => {
-                let v = vec![x.name.to_string()];
-                Option::Some(v)
-            }
-            Origin::GetAttribute(_) => {
-                let v = vec![x.name.to_string()];
-                Option::Some(v)
-            }
+            Origin::LogicalId => Option::Some(vec![x.name.to_string()]),
+            Origin::GetAttribute(_) => Option::Some(vec![x.name.to_string()]),
         },
         ResourceIr::Sub(arr) => {
-            let mut v = vec![];
+            let mut v = Vec::new();
             for resource in arr {
-                let opt = find_references(resource);
-                match opt {
-                    None => {}
-                    Some(x) => v.extend(x),
+                if let Some(vec) = find_references(resource) {
+                    v.extend(vec);
                 }
             }
 
@@ -276,75 +259,31 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
         }
         ResourceIr::Map(x, y, z) => {
             let mut v = Vec::new();
-            let opt = find_references(x.deref());
-            match opt {
-                None => {}
-                Some(res) => v.extend(res),
+            if let Some(vec) = find_references(x.deref()) {
+                v.extend(vec);
             }
-            let opt2 = find_references(y.deref());
-            match opt2 {
-                None => {}
-                Some(res) => v.extend(res),
+            if let Some(vec) = find_references(y.deref()) {
+                v.extend(vec);
             }
-            let opt3 = find_references(z.deref());
-            match opt3 {
-                None => {}
-                Some(res) => v.extend(res),
+            if let Some(vec) = find_references(z.deref()) {
+                v.extend(vec);
             }
             Option::Some(v)
         }
-        ResourceIr::Base64(x) => {
-            let mut v = Vec::new();
-            let opt = find_references(x.deref());
-            match opt {
-                None => {}
-                Some(res) => v.extend(res),
-            }
-            Option::Some(v)
-        }
-        ResourceIr::ImportValue(x) => {
-            let mut v = Vec::new();
-            let opt = find_references(x.deref());
-            match opt {
-                None => {}
-                Some(res) => v.extend(res),
-            }
-            Option::Some(v)
-        }
-        ResourceIr::Select(_, x) => {
-            let mut v = Vec::new();
-            let opt = find_references(x.deref());
-            match opt {
-                None => {}
-                Some(res) => v.extend(res),
-            }
-            Option::Some(v)
-        }
-        ResourceIr::GetAZs(x) => {
-            let mut v = Vec::new();
-            let opt = find_references(x.deref());
-            match opt {
-                None => {}
-                Some(res) => v.extend(res),
-            }
-            Option::Some(v)
-        }
+        ResourceIr::Base64(x) => find_references(x.deref()),
+        ResourceIr::ImportValue(x) => find_references(x.deref()),
+        ResourceIr::Select(_, x) => find_references(x.deref()),
+        ResourceIr::GetAZs(x) => find_references(x.deref()),
         ResourceIr::Cidr(x, y, z) => {
             let mut v = Vec::new();
-            let opt = find_references(x.deref());
-            match opt {
-                None => {}
-                Some(res) => v.extend(res),
+            if let Some(vec) = find_references(x.deref()) {
+                v.extend(vec);
             }
-            let opt2 = find_references(y.deref());
-            match opt2 {
-                None => {}
-                Some(res) => v.extend(res),
+            if let Some(vec) = find_references(y.deref()) {
+                v.extend(vec);
             }
-            let opt3 = find_references(z.deref());
-            match opt3 {
-                None => {}
-                Some(res) => v.extend(res),
+            if let Some(vec) = find_references(z.deref()) {
+                v.extend(vec);
             }
             Option::Some(v)
         }
@@ -455,7 +394,7 @@ pub fn translate_resource(
             ))
         }
         ResourceValue::Object(o) => {
-            let mut new_hash = HashMap::new();
+            let mut new_hash = IndexMap::with_capacity(o.len());
             for (s, rv) in o {
                 let property_ir = match resource_translator.complexity {
                     Structure::Simple(_) => translate_resource(rv, resource_translator)?,
@@ -500,7 +439,7 @@ pub fn translate_resource(
         ResourceValue::IntrinsicFunction(intrinsic) => {
             match intrinsic.as_ref() {
                 IntrinsicFunction::Sub { string, replaces } => {
-                    let mut excess_map = HashMap::new();
+                    let mut excess_map = IndexMap::new();
                     if let Some(replaces) = replaces {
                         match replaces {
                             ResourceValue::Object(obj) => {
@@ -653,7 +592,7 @@ fn find_ref(x: &str, parse_tree: &CloudformationParseTree) -> Reference {
         return Reference::new(x, Origin::PseudoParameter(pseudo));
     }
 
-    for (name, _) in parse_tree.parameters.params.iter() {
+    for (name, _) in &parse_tree.parameters {
         if name == x {
             return Reference::new(x, Origin::Parameter);
         }
@@ -673,9 +612,10 @@ fn find_ref(x: &str, parse_tree: &CloudformationParseTree) -> Reference {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexMap;
+
     use crate::ir::reference::{Origin, Reference};
     use crate::ir::resources::{generate_references, order, ResourceInstruction, ResourceIr};
-    use std::collections::HashMap;
 
     #[test]
     fn test_ir_ordering() {
@@ -688,7 +628,7 @@ mod tests {
             dependencies: Vec::new(),
             resource_type: "".to_string(),
             referrers: Vec::new(),
-            properties: HashMap::new(),
+            properties: IndexMap::default(),
         };
 
         let later = ResourceInstruction {
@@ -733,9 +673,7 @@ mod tests {
         assert_eq!(refs, vec!["foo", "bar"])
     }
 
-    fn create_property(name: &str, resource: ResourceIr) -> HashMap<String, ResourceIr> {
-        let mut hash = HashMap::new();
-        hash.insert(name.to_string(), resource);
-        hash
+    fn create_property(name: &str, resource: ResourceIr) -> IndexMap<String, ResourceIr> {
+        IndexMap::from([(name.into(), resource)])
     }
 }

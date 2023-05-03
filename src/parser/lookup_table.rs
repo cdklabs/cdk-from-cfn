@@ -1,51 +1,11 @@
 use crate::primitives::WrapperF64;
-use crate::TransmuteError;
-use serde_yaml::{Mapping, Value};
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, PartialEq)]
-pub struct MappingsParseTree {
-    pub mappings: HashMap<String, MappingParseTree>,
-}
-
-impl Default for MappingsParseTree {
-    fn default() -> Self {
-        MappingsParseTree::new()
-    }
-}
-
-impl MappingsParseTree {
-    pub fn new() -> MappingsParseTree {
-        MappingsParseTree {
-            mappings: HashMap::new(),
-        }
-    }
-
-    pub fn insert(&mut self, mapping_name: String, mapping: MappingParseTree) {
-        self.mappings.insert(mapping_name, mapping);
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct MappingParseTree {
-    pub mappings: HashMap<String, HashMap<String, MappingInnerValue>>,
-}
-
-impl MappingParseTree {
-    fn new() -> MappingParseTree {
-        MappingParseTree {
-            mappings: HashMap::new(),
-        }
-    }
-
-    fn insert(
-        &mut self,
-        outer_mapping_key: String,
-        inner_mapping: HashMap<String, MappingInnerValue>,
-    ) {
-        self.mappings.insert(outer_mapping_key, inner_mapping);
-    }
+#[derive(Clone, Debug, PartialEq, serde::Deserialize)]
+#[serde(transparent)]
+pub struct MappingTable {
+    pub mappings: IndexMap<String, IndexMap<String, MappingInnerValue>>,
 }
 
 /**
@@ -57,7 +17,8 @@ impl MappingParseTree {
  * In reality, all values are allowed from the json specification. If we detect any other conflicting
  * numbers, then the type becomes "Any" to allow for the strangeness.
  */
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[serde(untagged)]
 pub enum MappingInnerValue {
     Number(i64),
     Float(WrapperF64),
@@ -79,90 +40,5 @@ impl Display for MappingInnerValue {
             MappingInnerValue::Float(val) => write!(f, "{val}"),
             MappingInnerValue::Bool(val) => write!(f, "{val}"),
         };
-    }
-}
-
-pub fn build_mappings(vals: &Mapping) -> Result<MappingsParseTree, TransmuteError> {
-    let mut mappings = MappingsParseTree::new();
-    for (name, obj) in vals {
-        let name = name.as_str().unwrap();
-        let outer_mapping = build_outer_mapping(name, obj)?;
-        mappings.insert(name.to_string(), outer_mapping);
-    }
-    Ok(mappings)
-}
-
-fn build_outer_mapping(name: &str, obj: &Value) -> Result<MappingParseTree, TransmuteError> {
-    let val = ensure_object(name, obj)?;
-
-    let mut outer_mapping: MappingParseTree = MappingParseTree::new();
-    #[allow(clippy::never_loop)]
-    for (outer_key, inner_mapping_obj) in val {
-        let outer_key = outer_key.as_str().unwrap();
-        let inner_mapping = build_inner_mapping(outer_key, inner_mapping_obj)?;
-        outer_mapping.insert(outer_key.to_string(), inner_mapping);
-    }
-    Ok(outer_mapping)
-}
-
-fn build_inner_mapping(
-    name: &str,
-    obj: &Value,
-) -> Result<HashMap<String, MappingInnerValue>, TransmuteError> {
-    let val = ensure_object(name, obj)?;
-
-    let mut inner_mapping: HashMap<String, MappingInnerValue> = HashMap::new();
-    #[allow(clippy::never_loop)]
-    for (inner_key, inner_mapping_obj) in val {
-        let inner_key = inner_key.as_str().unwrap();
-        let val = ensure_mapping_value_type(inner_key, inner_mapping_obj)?;
-        inner_mapping.insert(inner_key.to_string(), val);
-    }
-    Ok(inner_mapping)
-}
-
-fn convert_to_string_vector(
-    json_vector: &[Value],
-    inner_key: &str,
-) -> Result<Vec<String>, TransmuteError> {
-    let mut string_vector = Vec::new();
-    for vector_val in json_vector {
-        let converted_val = match vector_val {
-            Value::String(x) => x.to_string(),
-            Value::Number(x) => x.to_string(),
-            vector_val => {
-                return Err(TransmuteError::new(format!(
-                        "List values for mappings must be a string. Found {inner_key:?}, for key {vector_val:?}"
-                    )));
-            }
-        };
-        string_vector.push(converted_val);
-    }
-    Ok(string_vector)
-}
-
-fn ensure_object<'a>(name: &str, obj: &'a Value) -> Result<&'a Mapping, TransmuteError> {
-    match obj {
-        Value::Mapping(x) => Ok(x),
-        _ => Err(TransmuteError::new(format!(
-            "Mapping must be an object {name}, {obj:?}"
-        ))),
-    }
-}
-
-fn ensure_mapping_value_type(name: &str, obj: &Value) -> Result<MappingInnerValue, TransmuteError> {
-    match obj {
-        Value::String(x) => Ok(MappingInnerValue::String(x.to_string())),
-        Value::Number(x) => match x.is_f64() {
-            true => Ok(MappingInnerValue::Float(WrapperF64::new(
-                x.as_f64().unwrap(),
-            ))),
-            false => Ok(MappingInnerValue::Number(x.as_i64().unwrap())),
-        },
-        Value::Bool(x) => Ok(MappingInnerValue::Bool(*x)),
-        Value::Sequence(x) => Ok(MappingInnerValue::List(convert_to_string_vector(x, name)?)),
-        _ => Err(TransmuteError::new(format!(
-            "Inner mapping value must be a string or array. Found {name:?}, for {obj:?}"
-        ))),
     }
 }

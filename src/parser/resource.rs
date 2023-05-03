@@ -1,14 +1,13 @@
 use crate::primitives::WrapperF64;
-use crate::TransmuteError;
+use indexmap::map::Entry;
+use indexmap::IndexMap;
 use serde::de::Error;
-use serde_yaml::{Mapping, Value};
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
 use std::convert::TryInto;
+use std::fmt;
 
 pub use super::intrinsics::IntrinsicFunction;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ResourceValue {
     Null,
     Bool(bool),
@@ -16,7 +15,7 @@ pub enum ResourceValue {
     Double(WrapperF64),
     String(String),
     Array(Vec<ResourceValue>),
-    Object(HashMap<String, ResourceValue>),
+    Object(IndexMap<String, ResourceValue>),
 
     IntrinsicFunction(Box<IntrinsicFunction>),
 }
@@ -77,7 +76,7 @@ impl<'de> serde::de::Deserialize<'de> for ResourceValue {
                 self,
                 mut data: A,
             ) -> Result<Self::Value, A::Error> {
-                let mut map = HashMap::with_capacity(data.size_hint().unwrap_or_default());
+                let mut map = IndexMap::with_capacity(data.size_hint().unwrap_or_default());
                 while let Some(key) = data.next_key::<String>()? {
                     if let Some(intrinsic) = IntrinsicFunction::from_singleton_map(&key, &mut data)?
                     {
@@ -141,123 +140,42 @@ impl<'de> serde::de::Deserialize<'de> for ResourceValue {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct ResourceParseTree {
-    pub name: String,
+#[derive(Debug, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct ResourceAttributes {
+    #[serde(rename = "Type")]
     pub resource_type: String,
     pub condition: Option<String>,
     pub metadata: Option<ResourceValue>,
+    #[serde(default)]
     pub dependencies: Vec<String>,
     pub update_policy: Option<ResourceValue>,
-    pub deletion_policy: Option<String>,
-    pub properties: HashMap<String, ResourceValue>,
+    pub deletion_policy: Option<DeletionPolicy>,
+    #[serde(default)]
+    pub properties: IndexMap<String, ResourceValue>,
 }
 
-#[derive(Debug)]
-pub struct ResourcesParseTree {
-    pub resources: Vec<ResourceParseTree>,
+#[derive(Clone, Copy, Debug, PartialEq, serde_enum_str::Deserialize_enum_str)]
+pub enum DeletionPolicy {
+    Delete,
+    Retain,
+    Snapshot,
 }
 
-pub fn build_resources(resource_map: &Mapping) -> Result<ResourcesParseTree, TransmuteError> {
-    let mut resources = Vec::new();
-
-    for (name, json_value) in resource_map.iter() {
-        let name = name.as_str().expect("mapping key was not a string");
-        let resource_object = json_value.as_mapping().unwrap();
-        let resource_type = resource_object
-            .get("Type")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .to_owned();
-        let condition = resource_object
-            .get("Condition")
-            .and_then(|t| t.as_str())
-            .map(|t| t.to_string());
-
-        let mut properties = HashMap::new();
-        if let Some(x) = resource_object
-            .get("Properties")
-            .and_then(|x| x.as_mapping())
-        {
-            for (prop_name, prop_value) in x {
-                let prop_name = prop_name.as_str().unwrap();
-                let result = serde_yaml::from_value(prop_value.clone())
-                    .map_err(|cause| TransmuteError::new(format!("{name}: {cause}")))?;
-                properties.insert(prop_name.to_owned(), result);
-            }
+impl fmt::Display for DeletionPolicy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Delete => write!(f, "Delete"),
+            Self::Retain => write!(f, "Retain"),
+            Self::Snapshot => write!(f, "Snapshot"),
         }
-
-        let metadata_obj = resource_object.get("Metadata");
-        let mut metadata = Option::None;
-        if let Some(x) = metadata_obj {
-            metadata = Option::Some(
-                serde_yaml::from_value(x.clone())
-                    .map_err(|cause| TransmuteError::new(format!("{name}: {cause}")))?,
-            );
-        }
-
-        let update_policy_obj = resource_object.get("UpdatePolicy");
-        let mut update_policy = Option::None;
-        if let Some(x) = update_policy_obj {
-            update_policy = Option::Some(
-                serde_yaml::from_value(x.clone())
-                    .map_err(|cause| TransmuteError::new(format!("{name}: {cause}")))?,
-            );
-        }
-
-        let deletion_policy = resource_object
-            .get("DeletionPolicy")
-            .and_then(|x| x.as_str())
-            .map(|x| x.to_string());
-
-        let depends_on = resource_object.get("DependsOn");
-        let mut dependencies = Vec::new();
-
-        if let Some(x) = depends_on {
-            match x {
-                Value::String(x) => {
-                    dependencies.push(x.to_string());
-                }
-                Value::Sequence(x) => {
-                    for dep in x.iter() {
-                        match dep.as_str() {
-                            None => {
-                                return Err(TransmuteError::new(format!(
-                                        "DependsOn attribute has an array of non-strings, which isn't allowed {name}"
-                                    )))
-                            }
-                            Some(x) => {
-                                dependencies.push(x.to_string());
-                            }
-                        }
-                    }
-                }
-                _ => {
-                    return Err(TransmuteError::new(format!(
-                        "DependsOn attribute can only be a string or an array {name}"
-                    )))
-                }
-            }
-        }
-
-        resources.push(ResourceParseTree {
-            name: name.to_owned(),
-            metadata,
-            dependencies,
-            update_policy,
-            deletion_policy,
-            resource_type,
-            condition,
-            properties,
-        })
     }
-
-    Ok(ResourcesParseTree { resources })
 }
 
 #[cfg(test)]
 mod test {
+    use serde_yaml::Value;
+
     use super::*;
 
     // Bring in the json! macro
@@ -583,7 +501,7 @@ mod test {
                 .unwrap(),
             IntrinsicFunction::Sub {
                 string: STRING.into(),
-                replaces: Some(ResourceValue::Object(HashMap::from([(
+                replaces: Some(ResourceValue::Object(IndexMap::from([(
                     "CUSTOM_VARIABLE".to_string(),
                     ResourceValue::Number(CUSTOM)
                 )])))
@@ -600,7 +518,7 @@ mod test {
             .unwrap(),
             IntrinsicFunction::Sub {
                 string: STRING.into(),
-                replaces: Some(ResourceValue::Object(HashMap::from([(
+                replaces: Some(ResourceValue::Object(IndexMap::from([(
                     "CUSTOM_VARIABLE".to_string(),
                     ResourceValue::Number(CUSTOM)
                 )]))),

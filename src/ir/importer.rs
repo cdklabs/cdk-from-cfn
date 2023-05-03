@@ -8,7 +8,7 @@ pub struct Importer {
 impl Importer {
     pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<ImportInstruction> {
         let mut type_names = HashSet::new();
-        for resource in parse_tree.resources.resources.iter() {
+        for (_, resource) in &parse_tree.resources {
             let name = &resource.resource_type;
             let mut split_ref = name.split("::");
 
@@ -48,13 +48,13 @@ impl Importer {
 // ImportInstruction look something like:
 // import * as $name from '$path[0]/$path[1]...';
 // which should account for many import styles.
-#[derive(PartialEq, Eq, PartialOrd, Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct ImportInstruction {
     pub name: String,
     pub path: Vec<String>,
 }
 
-#[derive(PartialEq, PartialOrd, Clone, Debug, Eq, Hash)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd)]
 struct TypeName {
     organization: String,
     service: String,
