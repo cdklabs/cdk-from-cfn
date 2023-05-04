@@ -412,6 +412,46 @@ fn test_parse_simple_json_template() {
 }
 
 #[test]
+fn test_parse_tree_with_fnjoin() {
+    let a = json!({
+            "MyBucket": {
+                "Type": "AWS::S3::Bucket",
+                "Properties": {
+                    "BucketName": {
+                        "Fn::Join": [
+                            "-",
+                            [
+                                "my-bucket-prefix",
+                                { "Ref": "AWS::Region" },
+                                { "Ref": "AWS::AccountId" }
+                            ]
+                        ]
+                    }
+                }
+            }
+    });
+    let resource = ResourceAttributes {
+        condition: Option::None,
+        resource_type: "AWS::S3::Bucket".into(),
+        metadata: Option::None,
+        update_policy: Option::None,
+        deletion_policy: Option::None,
+        dependencies: vec![],
+        properties: map! {
+            "BucketName" => IntrinsicFunction::Join{
+                sep: "-".into(),
+                list: ResourceValue::Array(vec![
+                    ResourceValue::String("my-bucket-prefix".into()),
+                    IntrinsicFunction::Ref("AWS::Region".into()).into(),
+                    IntrinsicFunction::Ref("AWS::AccountId".into()).into()
+                ])
+            }.into()
+        },
+    };
+    assert_resource_equal!("MyBucket" => a, resource);
+}
+
+#[test]
 fn test_parse_tree_with_fnfindinmap() {
     let cfn_template = json!(
         {
