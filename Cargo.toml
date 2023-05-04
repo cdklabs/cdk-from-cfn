@@ -32,6 +32,9 @@ serde_with = "2.0.0"
 
 [profile.release]
 codegen-units = 1
-incremental = false
 lto = true
 opt-level = 3
+
+[profile.coverage]
+inherits = "test"
+incremental = false

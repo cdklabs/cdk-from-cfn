@@ -50,7 +50,7 @@ impl Synthesizer for TypescriptSynthesizer {
         for param in &ir.constructor.inputs {
             writeln!(
                 output,
-                "\treadonly {}: {};",
+                "  readonly {}: {};",
                 pretty_name(&param.name),
                 pretty_name(&param.constructor_type),
             )?;
@@ -65,10 +65,10 @@ impl Synthesizer for TypescriptSynthesizer {
             if let Some(x) = default_value {
                 writeln!(
                     output,
-                    "//\t {}: {},",
+                    "//   {}: {},",
                     pretty_name(&param.name),
                     match pretty_name(&param.constructor_type).as_str() {
-                        "string" => x.to_string(),
+                        "string" => format!("{x:?}"),
                         _ => pretty_name(x),
                     }
                 )?;
@@ -80,10 +80,10 @@ impl Synthesizer for TypescriptSynthesizer {
         writeln!(output, "export class NoctStack extends cdk.Stack {{")?;
         writeln!(
             output,
-            "\tconstructor(scope: cdk.App, id: string, props: NoctStackProps) {{",
+            "  constructor(scope: cdk.App, id: string, props: NoctStackProps) {{",
         )?;
-        writeln!(output, "\t\tsuper(scope, id, props);")?;
-        writeln!(output, "\n\t\t// Mappings")?;
+        writeln!(output, "    super(scope, id, props);")?;
+        writeln!(output, "\n    // Mappings")?;
 
         for mapping in ir.mappings.iter() {
             let record_type = match mapping.output_type() {
@@ -100,27 +100,27 @@ impl Synthesizer for TypescriptSynthesizer {
 
             writeln!(
                 output,
-                "\t\tconst {}: {} = {};",
+                "    const {}: {} = {};",
                 pretty_name(&mapping.name),
                 record_type,
                 synthesize_mapping_instruction(mapping),
             )?;
         }
 
-        writeln!(output, "\n\t\t// Conditions")?;
+        writeln!(output, "\n    // Conditions")?;
 
         for cond in ir.conditions {
             let synthed = synthesize_condition_recursive(&cond.value);
 
             writeln!(
                 output,
-                "\t\tconst {} = {};",
+                "    const {} = {};",
                 pretty_name(&cond.name),
                 synthed
             )?;
         }
 
-        writeln!(output, "\n\t\t// Resources")?;
+        writeln!(output, "\n    // Resources")?;
 
         for reference in ir.resources.iter() {
             let mut split_ref = reference.resource_type.split("::");
@@ -136,14 +136,14 @@ impl Synthesizer for TypescriptSynthesizer {
             }
 
             if let Some(x) = &reference.condition {
-                writeln!(output, "\t\tlet {};", pretty_name(&reference.name))?;
-                writeln!(output, "\t\tif ({}) {{", pretty_name(x))?;
+                writeln!(output, "    let {};", pretty_name(&reference.name))?;
+                writeln!(output, "    if ({}) {{", pretty_name(x))?;
 
                 append_references(output, reference)?;
 
                 writeln!(
                     output,
-                    "\t\t{} = new {}.Cfn{}(this, '{}', {{",
+                    "    {} = new {}.Cfn{}(this, '{}', {{",
                     pretty_name(&reference.name),
                     service,
                     rtype,
@@ -153,7 +153,7 @@ impl Synthesizer for TypescriptSynthesizer {
                 append_references(output, reference)?;
                 writeln!(
                     output,
-                    "\t\tconst {} = new {}.Cfn{}(this, '{}', {{",
+                    "    const {} = new {}.Cfn{}(this, '{}', {{",
                     pretty_name(&reference.name),
                     service,
                     rtype,
@@ -167,7 +167,7 @@ impl Synthesizer for TypescriptSynthesizer {
                     Some(x) => {
                         writeln!(
                             output,
-                            "{}: {}{}",
+                            "      {}: {}{}",
                             pretty_name(name),
                             x,
                             match i {
@@ -180,19 +180,19 @@ impl Synthesizer for TypescriptSynthesizer {
                 }
             }
 
-            writeln!(output, "\t\t}});")?;
+            writeln!(output, "    }});")?;
 
             if let Some(metadata) = &reference.metadata {
-                writeln!(
+                write!(
                     output,
-                    "{}.addOverride('Metadata', ",
+                    "    {}.addOverride('Metadata', ",
                     pretty_name(&reference.name),
                 )?;
 
                 match to_string_ir(metadata) {
                     None => panic!("This should never fail"),
                     Some(x) => {
-                        writeln!(output, "{x}")?;
+                        write!(output, "{x}")?;
                     }
                 };
 
@@ -247,25 +247,25 @@ impl Synthesizer for TypescriptSynthesizer {
             }
         }
 
-        writeln!(output, "\n\t\t// Outputs")?;
+        writeln!(output, "\n    // Outputs")?;
 
         for op in ir.outputs {
             if let Some(x) = &op.condition {
-                writeln!(output, "\t\tif ({}) {{", pretty_name(x))?;
+                writeln!(output, "    if ({}) {{", pretty_name(x))?;
             }
 
-            writeln!(output, "new cdk.CfnOutput(this, '{}', {{", op.name)?;
+            writeln!(output, "    new cdk.CfnOutput(this, '{}', {{", op.name)?;
 
             let export_str = op.export.and_then(|x| to_string_ir(&x));
 
             if let Some(export) = export_str {
-                writeln!(output, "\texportName: {export},")?;
+                writeln!(output, "  exportName: {export},")?;
             }
 
             if let Some(x) = &op.description {
                 let formatted_str = x.replace("\\'", "'");
                 let formatted_str = formatted_str.escape_debug();
-                writeln!(output, "\tdescription: '{formatted_str}',")?;
+                writeln!(output, "      description: '{formatted_str}',")?;
             }
 
             match to_string_ir(&op.value) {
@@ -273,18 +273,18 @@ impl Synthesizer for TypescriptSynthesizer {
                     panic!("Can't happen")
                 }
                 Some(x) => {
-                    writeln!(output, "\tvalue: {x}")?;
+                    writeln!(output, "      value: {x}")?;
                 }
             }
 
-            writeln!(output, "}});")?;
+            writeln!(output, "    }});")?;
 
             if let Some(_x) = &op.condition {
                 writeln!(output, "}}")?;
             }
         }
         //"if (x === undefined) { throw new Error(`A combination of conditions caused '${name}' to be undefined. Fixit.`); }"
-        writeln!(output, "\t}}")?;
+        writeln!(output, "  }}")?;
         writeln!(output, "}}")?;
 
         Ok(())
@@ -493,7 +493,7 @@ fn synthesize_mapping_instruction(mapping_instruction: &MappingInstruction) -> S
     let mut outer_records = Vec::with_capacity(mapping_instruction.map.len());
     for (outer_mapping_key, inner_mapping) in mapping_instruction.map.iter() {
         outer_records.push(format!(
-            "\t\t\t'{}': {}",
+            "      '{}': {}",
             outer_mapping_key,
             synthesize_inner_mapping(inner_mapping)
         ));
@@ -501,7 +501,7 @@ fn synthesize_mapping_instruction(mapping_instruction: &MappingInstruction) -> S
 
     let outer = outer_records.join(",\n");
     mapping_parse_tree_ts.push_str(&outer);
-    mapping_parse_tree_ts.push_str("\n\t\t}");
+    mapping_parse_tree_ts.push_str("\n    }");
     mapping_parse_tree_ts
 }
 
@@ -510,11 +510,11 @@ fn synthesize_inner_mapping(inner_mapping: &IndexMap<String, MappingInnerValue>)
     let mut inner_mapping_entries = Vec::with_capacity(inner_mapping.len());
     for (inner_mapping_key, inner_mapping_value) in inner_mapping {
         inner_mapping_entries.push(format!(
-            "\t\t\t\t'{inner_mapping_key}': {inner_mapping_value}"
+            "        '{inner_mapping_key}': {inner_mapping_value}"
         ));
     }
     inner_mapping_ts_str.push_str(&inner_mapping_entries.join(",\n"));
-    inner_mapping_ts_str.push_str("\n\t\t\t}");
+    inner_mapping_ts_str.push_str("\n      }");
     inner_mapping_ts_str
 }
 
@@ -579,12 +579,17 @@ fn pretty_name(name: &str) -> String {
     camel_case(&end_str)
 }
 
-#[test]
-fn pretty_name_fixes() {
-    assert_eq!("vpc", pretty_name("VPC"));
-    assert_eq!("objectAccess", pretty_name("GetObject"));
-    assert_eq!("equalTo", pretty_name("Equals"));
-    assert_eq!("providerArns", pretty_name("ProviderARNs"));
-    assert_eq!("targetAZs", pretty_name("TargetAZs"));
-    assert_eq!("diskSizeMBs", pretty_name("DiskSizeMBs"));
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn pretty_name_fixes() {
+        assert_eq!("vpc", pretty_name("VPC"));
+        assert_eq!("objectAccess", pretty_name("GetObject"));
+        assert_eq!("equalTo", pretty_name("Equals"));
+        assert_eq!("providerArns", pretty_name("ProviderARNs"));
+        assert_eq!("targetAZs", pretty_name("TargetAZs"));
+        assert_eq!("diskSizeMBs", pretty_name("DiskSizeMBs"));
+    }
 }

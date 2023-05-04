@@ -19,7 +19,7 @@ fi
 function after_tests(){
   echo 'Generating coverage reports...'
   grcov "${COVERAGE_ROOT}/profraw"                                              \
-    --binary-path "${PWD}/target/debug/deps"                                    \
+    --binary-path "${COVERAGE_ROOT}/deps"                                       \
     --source-dir "${PWD}"                                                       \
     --output-types "html,lcov"                                                  \
     --branch                                                                    \
@@ -39,7 +39,6 @@ function after_tests(){
 trap after_tests EXIT
 
 echo 'Running tests with coverage instrumentation...'
-CARGO_INCREMENTAL=0                                                             \
 RUSTFLAGS='-Cinstrument-coverage'                                               \
 LLVM_PROFILE_FILE="${COVERAGE_ROOT}/profraw/%p-%m.profraw"                      \
-cargo test
+cargo test --profile=coverage
