@@ -4,26 +4,30 @@ import { Buffer } from 'buffer';
 
 // Interfaces
 export interface NoctStackProps extends cdk.StackProps {
-  readonly bucketNamePrefix: string;
+  /**
+   * The prefix for the bucket name
+   * @default "bucket"
+   */
+  readonly bucketNamePrefix?: string;
 }
-
-// Default parameters
-// {
-//   bucketNamePrefix: "bucket",
-// }
 
 // Stack
 export class NoctStack extends cdk.Stack {
-  constructor(scope: cdk.App, id: string, props: NoctStackProps) {
+  constructor(scope: cdk.App, id: string, props: NoctStackProps = {}) {
     super(scope, id, props);
 
     // Mappings
+    const table: Record<string, Record<string, string>> = {
+      'Foo': {
+        'Bar': 'Baz'
+      }
+    };
 
     // Conditions
 
     // Resources
     const bucket = new s3.CfnBucket(this, 'Bucket', {
-      bucketName: `${props.bucketNamePrefix}-${this.stackName}-bucket`
+      bucketName: `${props.bucketNamePrefix}-${this.stackName}-bucket`,
     });
     bucket.addOverride('Metadata', {
 CostCenter: 1337

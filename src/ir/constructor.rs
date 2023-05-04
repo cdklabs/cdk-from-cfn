@@ -16,6 +16,7 @@ impl Constructor {
             let default: Option<&String> = param.default.as_ref();
             inputs.push(ConstructorParameter {
                 name: camel_case(name),
+                description: param.description.clone(),
                 constructor_type: param.parameter_type.to_string(),
                 default_value: default.map(|v| v.to_string()),
             })
@@ -31,6 +32,7 @@ impl Default for Constructor {
 
 pub struct ConstructorParameter {
     pub name: String,
+    pub description: Option<String>,
     pub constructor_type: String,
     pub default_value: Option<String>,
 }

@@ -5,6 +5,7 @@ use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::Structure;
 use indexmap::IndexMap;
+use std::collections::HashMap;
 use std::io;
 use voca_rs::case::camel_case;
 
@@ -47,40 +48,52 @@ impl Synthesizer for TypescriptSynthesizer {
             "export interface NoctStackProps extends cdk.StackProps {{",
         )?;
 
+        let mut default_props: HashMap<&str, String> =
+            HashMap::with_capacity(ir.constructor.inputs.len());
         for param in &ir.constructor.inputs {
+            writeln!(output, "  /**")?;
+            if let Some(description) = &param.description {
+                for line in description.split('\n') {
+                    writeln!(output, "   * {line}")?;
+                }
+            }
+            let question_mark_token = match &param.default_value {
+                None => "",
+                Some(value) => {
+                    let value = match param.constructor_type.as_str() {
+                        "String" => format!("{value:?}"),
+                        _ => value.clone(),
+                    };
+                    writeln!(output, "   * @default {value}",)?;
+                    default_props.insert(&param.name, value);
+                    "?"
+                }
+            };
+            writeln!(output, "   */")?;
             writeln!(
                 output,
-                "  readonly {}: {};",
+                "  readonly {}{question_mark_token}: {};",
                 pretty_name(&param.name),
                 pretty_name(&param.constructor_type),
             )?;
         }
-
         writeln!(output, "}}")?;
-
-        writeln!(output, "\n// Default parameters")?;
-        writeln!(output, "// {{")?;
-        for param in &ir.constructor.inputs {
-            let default_value: Option<&String> = param.default_value.as_ref();
-            if let Some(x) = default_value {
-                writeln!(
-                    output,
-                    "//   {}: {},",
-                    pretty_name(&param.name),
-                    match pretty_name(&param.constructor_type).as_str() {
-                        "string" => format!("{x:?}"),
-                        _ => pretty_name(x),
-                    }
-                )?;
-            }
-        }
-        writeln!(output, "// }}")?;
 
         writeln!(output, "\n// Stack")?;
         writeln!(output, "export class NoctStack extends cdk.Stack {{")?;
+        let default_props = if ir
+            .constructor
+            .inputs
+            .iter()
+            .all(|param| param.default_value.is_some())
+        {
+            " = {}"
+        } else {
+            ""
+        };
         writeln!(
             output,
-            "  constructor(scope: cdk.App, id: string, props: NoctStackProps) {{",
+            "  constructor(scope: cdk.App, id: string, props: NoctStackProps{default_props}) {{",
         )?;
         writeln!(output, "    super(scope, id, props);")?;
         writeln!(output, "\n    // Mappings")?;
@@ -161,21 +174,11 @@ impl Synthesizer for TypescriptSynthesizer {
                 )?;
             }
 
-            for (i, (name, prop)) in reference.properties.iter().enumerate() {
+            for (name, prop) in &reference.properties {
                 match to_string_ir(prop) {
                     None => {}
                     Some(x) => {
-                        writeln!(
-                            output,
-                            "      {}: {}{}",
-                            pretty_name(name),
-                            x,
-                            match i {
-                                // Remove trailing comma.
-                                x if x == reference.properties.len() - 1 => "",
-                                _ => ",",
-                            }
-                        )?;
+                        writeln!(output, "      {}: {},", pretty_name(name), x,)?;
                     }
                 }
             }

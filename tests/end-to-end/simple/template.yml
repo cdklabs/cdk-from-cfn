@@ -1,3 +1,9 @@
+Mappings:
+  Table:
+    Foo:
+      Bar:
+        Baz
+
 Parameters:
   BucketNamePrefix:
     Type: String
