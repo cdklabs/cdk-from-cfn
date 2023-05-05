@@ -342,8 +342,8 @@ pub struct ResourceInstruction {
 }
 
 impl ResourceInstruction {
-    pub(super) fn from(
-        parse_tree: IndexMap<String, ResourceAttributes>,
+    pub(super) fn from<S>(
+        parse_tree: IndexMap<String, ResourceAttributes, S>,
         origins: &ReferenceOrigins,
     ) -> Result<Vec<Self>, TransmuteError> {
         let specification = &Specification::default();

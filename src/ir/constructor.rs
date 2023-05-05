@@ -7,7 +7,7 @@ pub struct Constructor {
 }
 
 impl Constructor {
-    pub(super) fn from(parse_tree: IndexMap<String, Parameter>) -> Self {
+    pub(super) fn from<S>(parse_tree: IndexMap<String, Parameter, S>) -> Self {
         Self {
             inputs: parse_tree
                 .into_iter()

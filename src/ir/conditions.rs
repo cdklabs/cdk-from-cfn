@@ -17,7 +17,9 @@ pub struct ConditionInstruction {
 }
 
 impl ConditionInstruction {
-    pub(super) fn from(mut parse_tree: IndexMap<String, ConditionFunction>) -> Vec<Self> {
+    pub(super) fn from<S: std::hash::BuildHasher>(
+        mut parse_tree: IndexMap<String, ConditionFunction, S>,
+    ) -> Vec<Self> {
         let order: Vec<String> = determine_order(&parse_tree)
             .into_iter()
             .map(ToString::to_string)
@@ -113,7 +115,7 @@ impl ConditionValue {
 /**
  * Provides an ordering of conditions contained in the tree based on relative dependencies.
  */
-pub fn determine_order(conditions: &IndexMap<String, ConditionFunction>) -> Vec<&str> {
+pub fn determine_order<S>(conditions: &IndexMap<String, ConditionFunction, S>) -> Vec<&str> {
     let mut topo: TopologicalSort<&str> = TopologicalSort::new();
     // Identify condition dependencies
     for (name, value) in conditions {

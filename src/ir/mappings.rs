@@ -23,7 +23,9 @@ pub enum OutputType {
 }
 
 impl MappingInstruction {
-    pub(super) fn from(parse_tree: IndexMap<String, MappingTable>) -> Vec<MappingInstruction> {
+    pub(super) fn from<S>(
+        parse_tree: IndexMap<String, MappingTable, S>,
+    ) -> Vec<MappingInstruction> {
         parse_tree
             .into_iter()
             .map(|(name, MappingTable { mappings: map, .. })| MappingInstruction { name, map })

@@ -16,8 +16,8 @@ pub struct OutputInstruction {
 }
 
 impl OutputInstruction {
-    pub(super) fn from(
-        parse_tree: IndexMap<String, Output>,
+    pub(super) fn from<S>(
+        parse_tree: IndexMap<String, Output, S>,
         origins: &ReferenceOrigins,
     ) -> Result<Vec<Self>, TransmuteError> {
         let mut list = Vec::with_capacity(parse_tree.len());
