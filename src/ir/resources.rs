@@ -5,7 +5,7 @@ use crate::primitives::WrapperF64;
 use crate::specification::{CfnType, Specification, Structure};
 use crate::{CloudformationParseTree, TransmuteError};
 use indexmap::IndexMap;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use topological_sort::TopologicalSort;
 
@@ -67,7 +67,7 @@ pub struct ResourceInstruction {
     pub dependencies: Vec<String>,
     // Referrers are a meta concept of "anything other resource that ResourceInstruction references".
     // This could be in a property or dependency path.
-    pub referrers: Vec<String>,
+    pub referrers: HashSet<String>,
     pub resource_type: String,
     pub properties: IndexMap<String, ResourceIr>,
 }
@@ -112,7 +112,7 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
             update_policy,
 
             // Everything below this line will be blown away by "later updates".
-            referrers: Vec::new(),
+            referrers: HashSet::default(),
         };
         let references = generate_references(&resource_instruction);
         resource_instruction.referrers = references;
@@ -176,10 +176,10 @@ fn optional_ir_json(
     Ok(policy)
 }
 
-fn generate_references(resource_instruction: &ResourceInstruction) -> Vec<String> {
-    let mut references = Vec::with_capacity(resource_instruction.dependencies.len());
+fn generate_references(resource_instruction: &ResourceInstruction) -> HashSet<String> {
+    let mut references = HashSet::with_capacity(resource_instruction.dependencies.len());
     for dep in resource_instruction.dependencies.iter() {
-        references.push(dep.to_string());
+        references.insert(dep.clone());
     }
 
     for (_, property) in resource_instruction.properties.iter() {
@@ -612,6 +612,8 @@ fn find_ref(x: &str, parse_tree: &CloudformationParseTree) -> Reference {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use indexmap::IndexMap;
 
     use crate::ir::reference::{Origin, Reference};
@@ -627,7 +629,7 @@ mod tests {
             update_policy: Option::None,
             dependencies: Vec::new(),
             resource_type: "".to_string(),
-            referrers: Vec::new(),
+            referrers: HashSet::default(),
             properties: IndexMap::default(),
         };
 
@@ -639,7 +641,7 @@ mod tests {
             deletion_policy: Option::None,
             update_policy: Option::None,
             resource_type: "".to_string(),
-            referrers: Vec::new(),
+            referrers: HashSet::default(),
             properties: create_property(
                 "something",
                 ResourceIr::Ref(Reference::new("A", Origin::LogicalId)),
@@ -662,7 +664,7 @@ mod tests {
             update_policy: Option::None,
             dependencies: vec!["foo".to_string()],
             resource_type: "".to_string(),
-            referrers: Vec::new(),
+            referrers: HashSet::default(),
             properties: create_property(
                 "something",
                 ResourceIr::Ref(Reference::new("bar", Origin::LogicalId)),
@@ -670,7 +672,7 @@ mod tests {
         };
 
         let refs = generate_references(&ir_instruction);
-        assert_eq!(refs, vec!["foo", "bar"])
+        assert_eq!(refs, HashSet::from(["foo".into(), "bar".into()]));
     }
 
     fn create_property(name: &str, resource: ResourceIr) -> IndexMap<String, ResourceIr> {
