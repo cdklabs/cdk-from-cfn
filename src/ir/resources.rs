@@ -104,7 +104,7 @@ pub fn translates_resources(parse_tree: &CloudformationParseTree) -> Vec<Resourc
         let mut resource_instruction = ResourceInstruction {
             name: name.clone(),
             resource_type: resource.resource_type.to_string(),
-            dependencies: resource.dependencies.clone(),
+            dependencies: resource.depends_on.clone(),
             deletion_policy: resource.deletion_policy,
             condition: resource.condition.clone(),
             properties: props,

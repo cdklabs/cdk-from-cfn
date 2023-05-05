@@ -42,10 +42,9 @@ impl Synthesizer for TypescriptSynthesizer {
         }
         // Static imports with base assumptions (e.g. using base 64)
         writeln!(output, "import {{ Buffer }} from 'buffer';")?;
-        writeln!(output, "\n// Interfaces")?;
         writeln!(
             output,
-            "export interface NoctStackProps extends cdk.StackProps {{",
+            "\nexport interface NoctStackProps extends cdk.StackProps {{",
         )?;
 
         let mut default_props: HashMap<&str, String> =
@@ -77,11 +76,17 @@ impl Synthesizer for TypescriptSynthesizer {
                 pretty_name(&param.constructor_type),
             )?;
         }
-        writeln!(output, "}}")?;
+        writeln!(output, "}}\n")?;
 
-        writeln!(output, "\n// Stack")?;
+        if let Some(description) = &ir.description {
+            writeln!(output, "/**")?;
+            for line in description.split('\n') {
+                writeln!(output, " * {line}")?;
+            }
+            writeln!(output, " */")?;
+        }
         writeln!(output, "export class NoctStack extends cdk.Stack {{")?;
-        let default_props = if ir
+        let default_empty = if ir
             .constructor
             .inputs
             .iter()
@@ -93,30 +98,38 @@ impl Synthesizer for TypescriptSynthesizer {
         };
         writeln!(
             output,
-            "  constructor(scope: cdk.App, id: string, props: NoctStackProps{default_props}) {{",
+            "  public constructor(scope: cdk.App, id: string, props: NoctStackProps{default_empty}) {{",
         )?;
         writeln!(output, "    super(scope, id, props);")?;
+
+        if !default_props.is_empty() {
+            writeln!(output, "\n    // Applying default props")?;
+            writeln!(output, "    props = {{")?;
+            writeln!(output, "      ...props,")?;
+            for (name, value) in default_props {
+                writeln!(output, "      {name}: props.{name} ?? {value},")?;
+            }
+            writeln!(output, "    }};")?;
+        }
+
         writeln!(output, "\n    // Mappings")?;
 
         for mapping in ir.mappings.iter() {
-            let record_type = match mapping.output_type() {
+            let item_type = match mapping.output_type() {
                 OutputType::Consistent(inner_type) => match inner_type {
-                    MappingInnerValue::Number(_) | MappingInnerValue::Float(_) => {
-                        "Record<string, Record<string, number>>"
-                    }
-                    MappingInnerValue::Bool(_) => "Record<string, Record<string, bool>>",
-                    MappingInnerValue::String(_) => "Record<string, Record<string, string>>",
-                    MappingInnerValue::List(_) => "Record<string, Record<string, Array<string>>>",
+                    MappingInnerValue::Number(_) | MappingInnerValue::Float(_) => "number",
+                    MappingInnerValue::Bool(_) => "boolean",
+                    MappingInnerValue::String(_) => "string",
+                    MappingInnerValue::List(_) => "readonly string[]",
                 },
-                OutputType::Complex => "Record<string, Record<string, any>>",
+                OutputType::Complex => "any",
             };
 
             writeln!(
                 output,
-                "    const {}: {} = {};",
-                pretty_name(&mapping.name),
-                record_type,
-                synthesize_mapping_instruction(mapping),
+                "    const {var}: Record<string, Record<string, {item_type}>> = {table};",
+                var = pretty_name(&mapping.name),
+                table = synthesize_mapping_instruction(mapping),
             )?;
         }
 
@@ -400,7 +413,11 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
                 }
             }
 
-            Option::Some(format!("{}.join('{}')", strs.join(","), sep.escape_debug()))
+            Option::Some(format!(
+                "[{}].join('{}')",
+                strs.join(", "),
+                sep.escape_debug()
+            ))
         }
         ResourceIr::Split(sep, ir) => Option::Some(format!(
             "cdk.Fn.split({sep:?}, {})",

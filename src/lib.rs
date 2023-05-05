@@ -36,6 +36,11 @@ pub struct CdkBuilder {
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct CloudformationParseTree {
+    pub description: Option<String>,
+
+    #[serde(default, rename = "Transform")]
+    pub transforms: Vec<String>,
+
     #[serde(default)]
     pub conditions: IndexMap<String, ConditionFunction>,
     #[serde(default)]

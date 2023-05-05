@@ -16,6 +16,9 @@ pub mod resources;
 pub mod sub;
 
 pub struct CloudformationProgramIr {
+    pub description: Option<String>,
+    pub transforms: Vec<String>,
+
     pub imports: Vec<ImportInstruction>,
     pub constructor: Constructor,
     pub conditions: Vec<ConditionInstruction>,
@@ -27,6 +30,8 @@ pub struct CloudformationProgramIr {
 impl CloudformationProgramIr {
     fn new() -> CloudformationProgramIr {
         CloudformationProgramIr {
+            description: None,
+            transforms: Vec::new(),
             imports: Vec::new(),
             constructor: Constructor::new(),
             conditions: Vec::new(),
@@ -42,6 +47,8 @@ impl CloudformationProgramIr {
     pub fn new_from_parse_tree(
         parse_tree: &CloudformationParseTree,
     ) -> Result<CloudformationProgramIr, TransmuteError> {
+        let description = parse_tree.description.clone();
+        let transforms = parse_tree.transforms.clone();
         let conditions = conditions::translate_conditions(parse_tree);
         let imports = importer::Importer::translate(parse_tree);
         let constructor = constructor::Constructor::translate(parse_tree);
@@ -49,6 +56,8 @@ impl CloudformationProgramIr {
         let resources = resources::translates_resources(parse_tree);
         let outputs = outputs::translate(parse_tree);
         Ok(CloudformationProgramIr {
+            description,
+            transforms,
             imports,
             constructor,
             conditions,
