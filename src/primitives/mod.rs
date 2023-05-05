@@ -9,30 +9,27 @@ use std::fmt;
 /// default f64. Use this whenever referring to a floating point number in CFN standard.
 #[derive(Clone, Copy, Debug, serde::Deserialize)]
 #[serde(transparent)]
-pub struct WrapperF64 {
-    num: f64,
-}
+pub struct WrapperF64(f64);
 
 impl WrapperF64 {
     pub fn new(num: f64) -> WrapperF64 {
-        WrapperF64 { num }
+        WrapperF64(num)
     }
 }
 
 impl PartialEq for WrapperF64 {
     fn eq(&self, other: &Self) -> bool {
         // It's equal if the diff is very small
-        (self.num - other.num).abs() < 0.0000001
+        (self.0 - other.0).abs() < f64::EPSILON
     }
 }
 
 impl fmt::Display for WrapperF64 {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.num)
+        self.0.fmt(f)
     }
 }
-
-impl Eq for WrapperF64 {}
 
 impl From<f64> for WrapperF64 {
     fn from(num: f64) -> Self {
