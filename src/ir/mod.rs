@@ -28,19 +28,6 @@ pub struct CloudformationProgramIr {
 }
 
 impl CloudformationProgramIr {
-    fn new() -> CloudformationProgramIr {
-        CloudformationProgramIr {
-            description: None,
-            transforms: Vec::new(),
-            imports: Vec::new(),
-            constructor: Constructor::new(),
-            conditions: Vec::new(),
-            mappings: Vec::new(),
-            resources: Vec::new(),
-            outputs: Vec::new(),
-        }
-    }
-
     // new_from_parse_tree takes a parse tree and translates it fully into Intermediate representation.
     // because there could be incorrect semantics, Result::Error can only happen on semantic error,
     // not parsing errors.
