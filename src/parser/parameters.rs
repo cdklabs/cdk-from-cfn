@@ -3,7 +3,7 @@ use std::fmt;
 #[derive(Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Parameter {
-    pub allowed_values: Vec<String>,
+    pub allowed_values: Option<Vec<String>>,
     pub default: Option<String>,
     pub description: Option<String>,
     #[serde(rename = "Type")]
