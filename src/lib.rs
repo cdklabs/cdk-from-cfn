@@ -52,9 +52,3 @@ pub struct CloudformationParseTree {
 
     pub resources: IndexMap<String, ResourceAttributes>,
 }
-
-impl CloudformationParseTree {
-    pub fn contains_logical_id(&self, logical_id: &str) -> bool {
-        self.resources.contains_key(logical_id)
-    }
-}

@@ -17,7 +17,7 @@ macro_rules! test_case {
                     "/template.yml"
                 )))
                 .unwrap();
-                let ir = CloudformationProgramIr::new_from_parse_tree(&cfn).unwrap();
+                let ir = CloudformationProgramIr::from(cfn).unwrap();
                 ir.synthesize(&TypescriptSynthesizer {}, &mut output)
                     .unwrap();
                 String::from_utf8(output).unwrap()

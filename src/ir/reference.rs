@@ -1,6 +1,6 @@
 use voca_rs::case::{camel_case, pascal_case};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Reference {
     pub origin: Origin,
     pub name: String,
@@ -32,25 +32,10 @@ impl Reference {
             Origin::GetAttribute(x) => format!("{}.attr{}", camel_case(&self.name), pascal_case(x)),
         }
     }
-
-    pub fn match_pseudo_parameter(val: &str) -> Option<PseudoParameter> {
-        let pseudo = match val {
-            "AWS::Region" => PseudoParameter::Region,
-            "AWS::Partition" => PseudoParameter::Partition,
-            "AWS::StackName" => PseudoParameter::StackName,
-            "AWS::URLSuffix" => PseudoParameter::URLSuffix,
-            "AWS::StackId" => PseudoParameter::StackId,
-            "AWS::AccountId" => PseudoParameter::AccountId,
-            "AWS::NotificationARNs" => PseudoParameter::NotificationArns,
-            &_ => return Option::None,
-        };
-
-        Option::Some(pseudo)
-    }
 }
 
 // Origin for the ReferenceTable
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Origin {
     Parameter,
     LogicalId,
@@ -60,7 +45,13 @@ pub enum Origin {
     PseudoParameter(PseudoParameter),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl From<PseudoParameter> for Origin {
+    fn from(pseudo: PseudoParameter) -> Self {
+        Origin::PseudoParameter(pseudo)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PseudoParameter {
     Partition,
     Region,
@@ -71,30 +62,17 @@ pub enum PseudoParameter {
     NotificationArns,
 }
 
-#[test]
-fn test_match_pseudo_parameters() {
-    assert_eq!(
-        Reference::match_pseudo_parameter("AWS::Region"),
-        Option::Some(PseudoParameter::Region)
-    );
-    assert_eq!(
-        Reference::match_pseudo_parameter("AWS::Partition"),
-        Option::Some(PseudoParameter::Partition)
-    );
-    assert_eq!(
-        Reference::match_pseudo_parameter("AWS::StackName"),
-        Option::Some(PseudoParameter::StackName)
-    );
-    assert_eq!(
-        Reference::match_pseudo_parameter("AWS::StackId"),
-        Option::Some(PseudoParameter::StackId)
-    );
-    assert_eq!(
-        Reference::match_pseudo_parameter("AWS::URLSuffix"),
-        Option::Some(PseudoParameter::URLSuffix)
-    );
-    assert_eq!(
-        Reference::match_pseudo_parameter("hello_world"),
-        Option::None
-    );
+impl PseudoParameter {
+    pub(super) fn try_from(name: &str) -> Option<Self> {
+        match name {
+            "AWS::AccountId" => Some(PseudoParameter::AccountId),
+            "AWS::NotificationARNs" => Some(PseudoParameter::NotificationArns),
+            "AWS::Partition" => Some(PseudoParameter::Partition),
+            "AWS::Region" => Some(PseudoParameter::Region),
+            "AWS::StackId" => Some(PseudoParameter::StackId),
+            "AWS::StackName" => Some(PseudoParameter::StackName),
+            "AWS::URLSuffix" => Some(PseudoParameter::URLSuffix),
+            _ => None,
+        }
+    }
 }

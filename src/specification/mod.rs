@@ -36,10 +36,16 @@ pub enum Structure {
     Composite(String),
 }
 
+impl Default for Structure {
+    fn default() -> Self {
+        Self::Simple(CfnType::Json)
+    }
+}
+
 /// CfnType is the primitives in the CloudFormation specification.
 /// They are when CFN just "doesn't care anymore" and doesn't do anything
 /// outside of parse-classification-errors.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CfnType {
     Boolean,
     Integer,
@@ -50,7 +56,7 @@ pub enum CfnType {
     Json,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TypeRule {
     Primitive(CfnType),
     PropertyType(&'static str),
