@@ -1,8 +1,7 @@
 use indexmap::IndexMap;
 
 use crate::ir::mappings::OutputType::{Complex, Consistent};
-use crate::parser::lookup_table::MappingInnerValue;
-use crate::CloudformationParseTree;
+use crate::parser::lookup_table::{MappingInnerValue, MappingTable};
 
 pub struct MappingInstruction {
     pub name: String,
@@ -24,6 +23,15 @@ pub enum OutputType {
 }
 
 impl MappingInstruction {
+    pub(super) fn from<S>(
+        parse_tree: IndexMap<String, MappingTable, S>,
+    ) -> Vec<MappingInstruction> {
+        parse_tree
+            .into_iter()
+            .map(|(name, MappingTable { mappings: map, .. })| MappingInstruction { name, map })
+            .collect()
+    }
+
     pub fn output_type(&self) -> OutputType {
         let value = self.map.values().next().unwrap();
         let first_inner_value = value.values().next().unwrap();
@@ -38,16 +46,6 @@ impl MappingInstruction {
         }
         Consistent(first_inner_value.clone())
     }
-}
-pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<MappingInstruction> {
-    let mut instructions = Vec::with_capacity(parse_tree.mappings.len());
-    for (name, map) in &parse_tree.mappings {
-        instructions.push(MappingInstruction {
-            name: name.to_string(),
-            map: map.mappings.clone(),
-        })
-    }
-    instructions
 }
 
 #[cfg(test)]

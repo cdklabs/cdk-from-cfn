@@ -1,4 +1,5 @@
-use crate::CloudformationParseTree;
+use crate::parser::parameters::Parameter;
+use indexmap::IndexMap;
 use voca_rs::case::camel_case;
 
 pub struct Constructor {
@@ -6,27 +7,18 @@ pub struct Constructor {
 }
 
 impl Constructor {
-    pub fn new() -> Constructor {
-        Constructor { inputs: Vec::new() }
-    }
-
-    pub fn translate(parse_tree: &CloudformationParseTree) -> Constructor {
-        let mut inputs = Vec::with_capacity(parse_tree.parameters.len());
-        for (name, param) in &parse_tree.parameters {
-            let default: Option<&String> = param.default.as_ref();
-            inputs.push(ConstructorParameter {
-                name: camel_case(name),
-                description: param.description.clone(),
-                constructor_type: param.parameter_type.to_string(),
-                default_value: default.map(|v| v.to_string()),
-            })
+    pub(super) fn from<S>(parse_tree: IndexMap<String, Parameter, S>) -> Self {
+        Self {
+            inputs: parse_tree
+                .into_iter()
+                .map(|(name, param)| ConstructorParameter {
+                    name: camel_case(&name),
+                    description: param.description,
+                    constructor_type: param.parameter_type.to_string(),
+                    default_value: param.default,
+                })
+                .collect(),
         }
-        Constructor { inputs }
-    }
-}
-impl Default for Constructor {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

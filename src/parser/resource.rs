@@ -145,12 +145,18 @@ impl<'de> serde::de::Deserialize<'de> for ResourceValue {
 pub struct ResourceAttributes {
     #[serde(rename = "Type")]
     pub resource_type: String,
+
     pub condition: Option<String>,
+
     pub metadata: Option<ResourceValue>,
+
     #[serde(default)]
-    pub dependencies: Vec<String>,
+    pub depends_on: Vec<String>,
+
     pub update_policy: Option<ResourceValue>,
+
     pub deletion_policy: Option<DeletionPolicy>,
+
     #[serde(default)]
     pub properties: IndexMap<String, ResourceValue>,
 }

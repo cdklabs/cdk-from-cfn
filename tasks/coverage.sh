@@ -11,8 +11,8 @@ if ! command -v grcov >/dev/null; then
 fi
 
 if ! rustup component list --installed | grep -e '^llvm-tools' >/dev/null; then
-  echo 'Installing the llvm-tools-preview rustup component...'
-  rustup component add llvm-tools-preview
+  echo 'Installing the llvm-tools rustup component...'
+  rustup component add llvm-tools
 fi
 
 # We trap EXIT to collect coverage & clean-up profraw files...

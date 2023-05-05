@@ -36,6 +36,11 @@ pub struct CdkBuilder {
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct CloudformationParseTree {
+    pub description: Option<String>,
+
+    #[serde(default, rename = "Transform")]
+    pub transforms: Vec<String>,
+
     #[serde(default)]
     pub conditions: IndexMap<String, ConditionFunction>,
     #[serde(default)]
@@ -46,10 +51,4 @@ pub struct CloudformationParseTree {
     pub parameters: IndexMap<String, Parameter>,
 
     pub resources: IndexMap<String, ResourceAttributes>,
-}
-
-impl CloudformationParseTree {
-    pub fn contains_logical_id(&self, logical_id: &str) -> bool {
-        self.resources.contains_key(logical_id)
-    }
 }

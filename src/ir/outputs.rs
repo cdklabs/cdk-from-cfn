@@ -1,6 +1,11 @@
-use crate::ir::resources::{translate_resource, ResourceIr, ResourceTranslationInputs};
+use indexmap::IndexMap;
+
+use crate::ir::resources::{ResourceIr, ResourceTranslator};
+use crate::parser::output::Output;
 use crate::specification::{CfnType, Structure};
-use crate::CloudformationParseTree;
+use crate::TransmuteError;
+
+use super::ReferenceOrigins;
 
 pub struct OutputInstruction {
     pub name: String,
@@ -10,30 +15,37 @@ pub struct OutputInstruction {
     pub description: Option<String>,
 }
 
-pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<OutputInstruction> {
-    let mut instructions = Vec::with_capacity(parse_tree.outputs.len());
-    for (name, output) in &parse_tree.outputs {
-        let resource_translator = ResourceTranslationInputs {
-            parse_tree,
-            complexity: Structure::Simple(CfnType::Json),
-            resource_metadata: None,
-        };
+impl OutputInstruction {
+    pub(super) fn from<S>(
+        parse_tree: IndexMap<String, Output, S>,
+        origins: &ReferenceOrigins,
+    ) -> Result<Vec<Self>, TransmuteError> {
+        let mut list = Vec::with_capacity(parse_tree.len());
 
-        let value = translate_resource(&output.value, &resource_translator).unwrap();
-        let condition = output.condition.clone();
-        let description = output.description.clone();
-        let mut export = Option::None;
-        if let Some(x) = &output.export {
-            export = Option::Some(translate_resource(x, &resource_translator).unwrap());
+        for (name, output) in parse_tree {
+            let resource_translator = ResourceTranslator {
+                complexity: Structure::Simple(CfnType::Json),
+                origins,
+                resource_metadata: None,
+            };
+
+            let value = resource_translator.translate(output.value)?;
+            let condition = output.condition;
+            let description = output.description;
+            let export = match output.export {
+                Some(x) => Some(resource_translator.translate(x)?),
+                None => None,
+            };
+
+            list.push(Self {
+                name,
+                export,
+                value,
+                condition,
+                description,
+            })
         }
 
-        instructions.push(OutputInstruction {
-            name: name.to_string(),
-            export,
-            value,
-            condition,
-            description,
-        })
+        Ok(list)
     }
-    instructions
 }

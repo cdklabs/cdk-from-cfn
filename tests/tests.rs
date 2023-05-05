@@ -61,7 +61,7 @@ fn test_parse_tree_basics() {
         metadata: Option::None,
         update_policy: Option::None,
         deletion_policy: Option::None,
-        dependencies: vec![],
+        depends_on: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => ResourceValue::String("bob".into()),
@@ -95,7 +95,7 @@ fn test_basic_parse_tree_with_condition() {
         metadata: Option::None,
         update_policy: Option::None,
         deletion_policy: Option::None,
-        dependencies: vec![],
+        depends_on: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => ResourceValue::String("bob".into()),
@@ -133,7 +133,7 @@ fn test_basic_parse_tree_with_metadata() {
         })),
         update_policy: Option::None,
         deletion_policy: Option::None,
-        dependencies: vec![],
+        depends_on: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => ResourceValue::String("bob".into()),
@@ -167,7 +167,7 @@ fn test_parse_tree_basics_with_deletion_policy() {
         metadata: Option::None,
         update_policy: Option::None,
         deletion_policy: Option::Some(DeletionPolicy::Retain),
-        dependencies: vec![],
+        depends_on: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => ResourceValue::String("bob".into()),
@@ -199,7 +199,7 @@ fn test_parse_tree_sub_str() {
         metadata: Option::None,
         update_policy: Option::None,
         deletion_policy: Option::None,
-        dependencies: vec![],
+        depends_on: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => IntrinsicFunction::Sub{ string:"bobs-role-${AWS::Region}".into(), replaces: None }.into()
@@ -226,7 +226,7 @@ fn test_parse_tree_yaml_codes() {
         metadata: Option::None,
         update_policy: Option::None,
         deletion_policy: Option::None,
-        dependencies: vec![],
+        depends_on: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => IntrinsicFunction::Sub{ string: "bobs-role-${AWS::Region}".into(), replaces: None }.into()
@@ -252,7 +252,7 @@ fn test_parse_get_attr_shorthand() {
         metadata: Option::None,
         update_policy: Option::None,
         deletion_policy: Option::None,
-        dependencies: vec![],
+        depends_on: vec![],
         resource_type: "AWS::IAM::Role".into(),
         properties: map! {
             "RoleName" => IntrinsicFunction::GetAtt{logical_name:"Foo".into(), attribute_name:"Bar".into()}.into()
@@ -287,7 +287,7 @@ fn test_parse_tree_sub_list() {
         metadata: Option::None,
         update_policy: Option::None,
         deletion_policy: Option::None,
-        dependencies: vec![],
+        depends_on: vec![],
         properties: map! {
             "RoleName" => IntrinsicFunction::Sub{
                 string: "bobs-role-${Region}".into(),
@@ -349,7 +349,7 @@ fn test_parse_simple_json_template() {
                 metadata: Option::None,
                 update_policy: Option::None,
                 deletion_policy: Option::None,
-                dependencies: vec![],
+                depends_on: vec![],
                 properties: map! {
                     "ImageId" => ResourceValue::String("ami-0c55b159cbfafe1f0".into()),
                     "InstanceType" => ResourceValue::String("t2.micro".into()),
@@ -374,7 +374,7 @@ fn test_parse_simple_json_template() {
                 metadata: Option::None,
                 update_policy: Option::None,
                 deletion_policy: Option::None,
-                dependencies: vec![],
+                depends_on: vec![],
                 properties: map! {
                     "Size" => ResourceValue::Number(10),
                     "AvailabilityZone" => ResourceValue::String("us-east-1a".into()),
@@ -390,7 +390,7 @@ fn test_parse_simple_json_template() {
                 metadata: Option::None,
                 update_policy: Option::None,
                 deletion_policy: Option::None,
-                dependencies: vec![],
+                depends_on: vec![],
                 properties: map! {
                     "InstanceId" => ResourceValue::Null,
                     "VolumeId" => ResourceValue::Null,
@@ -401,6 +401,8 @@ fn test_parse_simple_json_template() {
     ]);
 
     let cfn_tree = CloudformationParseTree {
+        description: None,
+        transforms: vec![],
         parameters: IndexMap::default(),
         mappings: IndexMap::default(),
         conditions: IndexMap::default(),
@@ -436,7 +438,7 @@ fn test_parse_tree_with_fnjoin() {
         metadata: Option::None,
         update_policy: Option::None,
         deletion_policy: Option::None,
-        dependencies: vec![],
+        depends_on: vec![],
         properties: map! {
             "BucketName" => IntrinsicFunction::Join{
                 sep: "-".into(),
@@ -498,7 +500,7 @@ fn test_parse_tree_with_fnfindinmap() {
             metadata: Option::None,
             update_policy: Option::None,
             deletion_policy: Option::None,
-            dependencies: vec![],
+            depends_on: vec![],
             properties: map! {
                 "InstanceType" => IntrinsicFunction::FindInMap{
                     map_name:ResourceValue::String("InstanceTypes".into()),
@@ -515,6 +517,8 @@ fn test_parse_tree_with_fnfindinmap() {
     )]);
 
     let cfn_tree = CloudformationParseTree {
+        description: None,
+        transforms: vec![],
         parameters: IndexMap::default(),
         mappings: map! {
             "InstanceTypes" => MappingTable {
@@ -578,7 +582,7 @@ fn test_parse_tree_resource_with_floats() {
         metadata: Option::None,
         update_policy: Option::None,
         deletion_policy: Option::None,
-        dependencies: vec![],
+        depends_on: vec![],
         properties: map! {
             "AlarmName" => IntrinsicFunction::Sub{
                 string: "${Tag}-FrontendDistributedCacheTrafficImbalanceAlarm".into(),

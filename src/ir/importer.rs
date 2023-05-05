@@ -1,26 +1,46 @@
-use crate::CloudformationParseTree;
+use indexmap::IndexMap;
+
+use crate::parser::resource::ResourceAttributes;
+use crate::TransmuteError;
 use std::collections::HashSet;
 
-pub struct Importer {
-    type_names: HashSet<TypeName>,
+// ImportInstruction look something like:
+// import * as $name from '$path[0]/$path[1]...';
+// which should account for many import styles.
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
+pub struct ImportInstruction {
+    pub name: String,
+    pub path: Vec<String>,
 }
 
-impl Importer {
-    pub fn translate(parse_tree: &CloudformationParseTree) -> Vec<ImportInstruction> {
+impl ImportInstruction {
+    pub(super) fn from(
+        parse_tree: &IndexMap<String, ResourceAttributes>,
+    ) -> Result<Vec<Self>, TransmuteError> {
         let mut type_names = HashSet::new();
-        for (_, resource) in &parse_tree.resources {
-            let name = &resource.resource_type;
-            let mut split_ref = name.split("::");
+        for (_, resource) in parse_tree {
+            let type_name = &resource.resource_type;
+
+            let (organization, service, _) = if let Some(triple) =
+                type_name.split_once("::").and_then(|(organization, rest)| {
+                    rest.split_once("::")
+                        .map(|(service, resource)| (organization, service, resource))
+                }) {
+                triple
+            } else {
+                return Err(TransmuteError::new(format!(
+                    "invalid resource type name: {type_name}"
+                )));
+            };
 
             // These must always exist.
             // In CloudFormation, typenames are always of the form `<Organization>::<Service>::<Resource>
-            let organization = split_ref.next().unwrap().to_ascii_lowercase();
-            let service = split_ref.next().unwrap().to_ascii_lowercase();
-            let type_name = TypeName {
+            let organization = organization.to_ascii_lowercase();
+            let service = service.to_ascii_lowercase();
+            type_names.insert(TypeName {
                 organization,
                 service,
-            };
-            type_names.insert(type_name);
+            });
         }
 
         let mut import_instructions: Vec<ImportInstruction> = vec![
@@ -31,6 +51,7 @@ impl Importer {
             },
         ];
 
+        import_instructions.reserve(type_names.len());
         for type_name in type_names.iter() {
             import_instructions.push(ImportInstruction {
                 name: type_name.service.to_string(),
@@ -41,17 +62,10 @@ impl Importer {
             })
         }
 
-        import_instructions
-    }
-}
+        import_instructions.sort_by(|left, right| left.name.cmp(&right.name));
 
-// ImportInstruction look something like:
-// import * as $name from '$path[0]/$path[1]...';
-// which should account for many import styles.
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub struct ImportInstruction {
-    pub name: String,
-    pub path: Vec<String>,
+        Ok(import_instructions)
+    }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd)]

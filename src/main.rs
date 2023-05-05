@@ -36,7 +36,7 @@ fn main() -> anyhow::Result<()> {
         serde_yaml::from_reader(reader)?
     };
 
-    let ir = CloudformationProgramIr::new_from_parse_tree(&cfn_tree)?;
+    let ir = CloudformationProgramIr::from(cfn_tree)?;
     let synthesizer: &dyn Synthesizer = &TypescriptSynthesizer {};
 
     let mut output: Box<dyn io::Write> =
