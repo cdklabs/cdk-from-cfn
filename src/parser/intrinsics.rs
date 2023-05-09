@@ -98,13 +98,13 @@ impl IntrinsicFunction {
             }
             "GetAZs" => Self::GetAZs(data.newtype_variant()?),
             "If" => {
-                    let (condition_name, value_if_true, value_if_false) = data.newtype_variant()?;
-                    Self::If {
-                        condition_name,
-                        value_if_true,
-                        value_if_false,
-                    }
+                let (condition_name, value_if_true, value_if_false) = data.newtype_variant()?;
+                Self::If {
+                    condition_name,
+                    value_if_true,
+                    value_if_false,
                 }
+            }
             "ImportValue" => Self::ImportValue(data.newtype_variant()?),
             "Join" => {
                 let (sep, list) = data.newtype_variant()?;
@@ -159,13 +159,13 @@ impl IntrinsicFunction {
             }
             "!GetAZs" | "Fn::GetAZs" => Some(Self::GetAZs(data.next_value()?)),
             "!If" | "Fn::If" => Some({
-                    let (condition_name, value_if_true, value_if_false) = data.next_value()?;
-                    Self::If {
-                        condition_name,
-                        value_if_true,
-                        value_if_false,
-                    }
-                }),
+                let (condition_name, value_if_true, value_if_false) = data.next_value()?;
+                Self::If {
+                    condition_name,
+                    value_if_true,
+                    value_if_false,
+                }
+            }),
             "!ImportValue" | "Fn::ImportValue" => Some(Self::ImportValue(data.next_value()?)),
             "!Join" | "Fn::Join" => {
                 let (sep, list) = data.next_value()?;
