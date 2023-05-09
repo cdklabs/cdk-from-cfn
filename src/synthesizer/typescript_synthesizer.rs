@@ -1,5 +1,6 @@
 use crate::ir::conditions::ConditionIr;
 use crate::ir::mappings::{MappingInstruction, OutputType};
+use crate::ir::outputs::OutputInstruction;
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
@@ -9,6 +10,7 @@ use std::collections::HashMap;
 use std::io;
 use voca_rs::case::camel_case;
 
+use super::output::CodeSink;
 use super::Synthesizer;
 
 pub struct TypescriptSynthesizer {
@@ -32,279 +34,337 @@ impl Synthesizer for TypescriptSynthesizer {
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
     ) -> io::Result<()> {
-        for import in ir.imports {
-            writeln!(
-                output,
+        let mut output = CodeSink::typescript(output);
+
+        for import in &ir.imports {
+            output.write_text(&format!(
                 "import * as {} from '{}';",
                 import.name,
-                import.path.join("/")
-            )?;
+                import.path.join("/"),
+            ))?;
         }
         // Static imports with base assumptions (e.g. using base 64)
-        writeln!(output, "import {{ Buffer }} from 'buffer';")?;
-        writeln!(
-            output,
-            "\nexport interface NoctStackProps extends cdk.StackProps {{",
-        )?;
+        output.write_text("import { Buffer } from 'buffer';")?;
+        output.blank_line()?;
 
-        let mut default_props: HashMap<&str, String> =
-            HashMap::with_capacity(ir.constructor.inputs.len());
-        for param in &ir.constructor.inputs {
-            writeln!(output, "  /**")?;
-            if let Some(description) = &param.description {
-                for line in description.split('\n') {
-                    writeln!(output, "   * {line}")?;
+        output.write_line("export interface NoctStackProps extends cdk.StackProps {")?;
+        let default_props = {
+            let output = &mut output.indented();
+            let mut default_props: HashMap<&str, String> =
+                HashMap::with_capacity(ir.constructor.inputs.len());
+            for param in &ir.constructor.inputs {
+                output.write_text("/**")?;
+                if let Some(description) = &param.description {
+                    output.write_with_prefix(" * ", description)?;
                 }
+                let question_mark_token = match &param.default_value {
+                    None => "",
+                    Some(value) => {
+                        let value = match param.constructor_type.as_str() {
+                            "String" => format!("{value:?}"),
+                            _ => value.clone(),
+                        };
+                        output.write_line(&format!(" * @default {value}"))?;
+                        default_props.insert(&param.name, value);
+                        "?"
+                    }
+                };
+                output.write_line(" */")?;
+                output.write_line(&format!(
+                    "readonly {}{question_mark_token}: {};",
+                    pretty_name(&param.name),
+                    pretty_name(&param.constructor_type),
+                ))?;
             }
-            let question_mark_token = match &param.default_value {
-                None => "",
-                Some(value) => {
-                    let value = match param.constructor_type.as_str() {
-                        "String" => format!("{value:?}"),
-                        _ => value.clone(),
-                    };
-                    writeln!(output, "   * @default {value}",)?;
-                    default_props.insert(&param.name, value);
-                    "?"
-                }
-            };
-            writeln!(output, "   */")?;
-            writeln!(
-                output,
-                "  readonly {}{question_mark_token}: {};",
-                pretty_name(&param.name),
-                pretty_name(&param.constructor_type),
-            )?;
-        }
-        writeln!(output, "}}\n")?;
+            default_props
+        };
+        output.write_line("}")?;
+        output.blank_line()?;
 
         if let Some(description) = &ir.description {
-            writeln!(output, "/**")?;
-            for line in description.split('\n') {
-                writeln!(output, " * {line}")?;
-            }
-            writeln!(output, " */")?;
+            output.write_line("/**")?;
+            output.write_with_prefix(" * ", description)?;
+            output.write_line(" */")?;
         }
-        writeln!(output, "export class NoctStack extends cdk.Stack {{")?;
-        let default_empty = if ir
-            .constructor
-            .inputs
-            .iter()
-            .all(|param| param.default_value.is_some())
+        output.write_line("export class NoctStack extends cdk.Stack {")?;
         {
-            " = {}"
-        } else {
-            ""
-        };
-        writeln!(
-            output,
-            "  public constructor(scope: cdk.App, id: string, props: NoctStackProps{default_empty}) {{",
-        )?;
-        writeln!(output, "    super(scope, id, props);")?;
+            let output = &mut output.indented();
 
-        if !default_props.is_empty() {
-            writeln!(output, "\n    // Applying default props")?;
-            writeln!(output, "    props = {{")?;
-            writeln!(output, "      ...props,")?;
-            for (name, value) in default_props {
-                writeln!(output, "      {name}: props.{name} ?? {value},")?;
+            if !ir.outputs.is_empty() {
+                for op in &ir.outputs {
+                    if let Some(description) = &op.description {
+                        output.write_line("/**")?;
+                        output.write_with_prefix(" * ", description)?;
+                        output.write_line(" */")?;
+                    }
+                    // NOTE: the property type can be inferred by the compiler...
+                    output.write_line(&format!(
+                        "public readonly {name}{option};",
+                        name = pretty_name(&op.name),
+                        option = match &op.condition {
+                            Some(_) => "?",
+                            None => "",
+                        }
+                    ))?;
+                }
+                output.blank_line()?;
             }
-            writeln!(output, "    }};")?;
-        }
 
-        writeln!(output, "\n    // Mappings")?;
-
-        for mapping in ir.mappings.iter() {
-            let item_type = match mapping.output_type() {
-                OutputType::Consistent(inner_type) => match inner_type {
-                    MappingInnerValue::Number(_) | MappingInnerValue::Float(_) => "number",
-                    MappingInnerValue::Bool(_) => "boolean",
-                    MappingInnerValue::String(_) => "string",
-                    MappingInnerValue::List(_) => "readonly string[]",
-                },
-                OutputType::Complex => "any",
+            let default_empty = if ir
+                .constructor
+                .inputs
+                .iter()
+                .all(|param| param.default_value.is_some())
+            {
+                " = {}"
+            } else {
+                ""
             };
 
-            writeln!(
-                output,
-                "    const {var}: Record<string, Record<string, {item_type}>> = {table};",
-                var = pretty_name(&mapping.name),
-                table = synthesize_mapping_instruction(mapping),
-            )?;
-        }
+            output.write_line(&format!("public constructor(scope: cdk.App, id: string, props: NoctStackProps{default_empty}) {{"))?;
+            {
+                let mut output = output.indented();
 
-        writeln!(output, "\n    // Conditions")?;
+                output.write_line("super(scope, id, props);")?;
 
-        for cond in ir.conditions {
-            let synthed = synthesize_condition_recursive(&cond.value);
+                if !default_props.is_empty() {
+                    output.blank_line()?;
+                    output.write_line("// Applying default props")?;
+                    output.write_line("props = {")?;
+                    {
+                        let output = &mut output.indented();
+                        output.write_line("...props,")?;
+                        for (name, value) in default_props {
+                            output.write_line(&format!("{name}: props.{name} ?? {value},"))?;
+                        }
+                    }
+                    output.write_line("};")?;
+                }
 
-            writeln!(
-                output,
-                "    const {} = {};",
-                pretty_name(&cond.name),
-                synthed
-            )?;
-        }
+                if !ir.mappings.is_empty() {
+                    emit_mappings(&mut output, &ir.mappings)?;
+                }
 
-        writeln!(output, "\n    // Resources")?;
+                if !ir.conditions.is_empty() {
+                    output.blank_line()?;
+                    output.write_line("// Conditions")?;
 
-        for reference in ir.resources.iter() {
-            let mut split_ref = reference.resource_type.split("::");
-            let base_type = split_ref.next().unwrap();
-            let service: String;
-            let rtype: String;
-            if base_type.starts_with("Custom") {
-                service = String::from("CloudFormation").to_ascii_lowercase();
-                rtype = String::from("CustomResource");
-            } else {
-                service = split_ref.next().unwrap().to_ascii_lowercase();
-                rtype = String::from(split_ref.next().unwrap());
-            }
+                    for cond in &ir.conditions {
+                        let synthed = synthesize_condition_recursive(&cond.value);
+                        output.write_line(&format!(
+                            "const {} = {};",
+                            pretty_name(&cond.name),
+                            synthed
+                        ))?;
+                    }
+                }
 
-            if let Some(x) = &reference.condition {
-                writeln!(output, "    let {};", pretty_name(&reference.name))?;
-                writeln!(output, "    if ({}) {{", pretty_name(x))?;
+                output.blank_line()?;
+                output.write_line("// Resources")?;
 
-                append_references(output, reference)?;
+                let mut is_first_resource = true;
+                for reference in &ir.resources {
+                    if is_first_resource {
+                        is_first_resource = false;
+                    } else {
+                        output.blank_line()?;
+                    }
+                    emit_resource(&mut output, reference)?;
+                }
 
-                writeln!(
-                    output,
-                    "    {} = new {}.Cfn{}(this, '{}', {{",
-                    pretty_name(&reference.name),
-                    service,
-                    rtype,
-                    reference.name,
-                )?;
-            } else {
-                append_references(output, reference)?;
-                writeln!(
-                    output,
-                    "    const {} = new {}.Cfn{}(this, '{}', {{",
-                    pretty_name(&reference.name),
-                    service,
-                    rtype,
-                    reference.name,
-                )?;
-            }
+                if !ir.outputs.is_empty() {
+                    output.blank_line()?;
+                    output.write_line("// Outputs")?;
 
-            for (name, prop) in &reference.properties {
-                match to_string_ir(prop) {
-                    None => {}
-                    Some(x) => {
-                        writeln!(output, "      {}: {},", pretty_name(name), x,)?;
+                    for op in &ir.outputs {
+                        let var_name = pretty_name(&op.name);
+                        let val = to_string_ir(&op.value)
+                            .unwrap_or_else(|| format!("undefined as any /* {:?} */", &op.value));
+
+                        let cond = op.condition.as_ref().map(|s| pretty_name(s));
+
+                        if let Some(cond) = &cond {
+                            output.write_line(&format!(
+                                "this.{var_name} = {cond}",
+                                cond = pretty_name(cond)
+                            ))?;
+                            let output = &mut output.indented();
+                            output.write_line(&format!("? {val}"))?;
+                            output.write_line(": undefined;")?;
+                        } else {
+                            output.write_line(&format!("this.{var_name} = {val};"))?;
+                        }
+
+                        if let Some(export) = &op.export {
+                            if let Some(cond) = cond {
+                                output.write_line(&format!("if ({cond}) {{"))?;
+                                emit_cfn_output(output.indented(), op, export, &var_name)?;
+                                output.write_line("}")?;
+                            } else {
+                                emit_cfn_output(output.indented(), op, export, &var_name)?;
+                            }
+                        }
                     }
                 }
             }
-
-            writeln!(output, "    }});")?;
-
-            if let Some(metadata) = &reference.metadata {
-                write!(
-                    output,
-                    "    {}.addOverride('Metadata', ",
-                    pretty_name(&reference.name),
-                )?;
-
-                match to_string_ir(metadata) {
-                    None => panic!("This should never fail"),
-                    Some(x) => {
-                        write!(output, "{x}")?;
-                    }
-                };
-
-                writeln!(output, ");")?;
-            }
-
-            if let Some(update_policy) = &reference.update_policy {
-                writeln!(
-                    output,
-                    "{}.addOverride('UpdatePolicy', ",
-                    pretty_name(&reference.name),
-                )?;
-
-                match to_string_ir(update_policy) {
-                    None => panic!("This should never fail"),
-                    Some(x) => {
-                        writeln!(output, "{x}")?;
-                    }
-                };
-
-                writeln!(output, ");")?;
-            }
-
-            if let Some(deletion_policy) = &reference.deletion_policy {
-                writeln!(
-                    output,
-                    "{}.addOverride('DeletionPolicy', '{}');",
-                    pretty_name(&reference.name),
-                    deletion_policy,
-                )?;
-            }
-
-            if !reference.dependencies.is_empty() {
-                writeln!(
-                    output,
-                    "{}.addOverride('DependsOn', [",
-                    pretty_name(&reference.name)
-                )?;
-
-                let x: Vec<String> = reference
-                    .dependencies
-                    .iter()
-                    .map(|x| format!("'{x}'"))
-                    .collect();
-
-                writeln!(output, "{}", &x.join(","))?;
-                writeln!(output, "]);")?;
-            }
-
-            if let Some(_x) = &reference.condition {
-                writeln!(output, "}}")?;
-            }
+            output.write_line("}")?;
         }
-
-        writeln!(output, "\n    // Outputs")?;
-
-        for op in ir.outputs {
-            if let Some(x) = &op.condition {
-                writeln!(output, "    if ({}) {{", pretty_name(x))?;
-            }
-
-            writeln!(output, "    new cdk.CfnOutput(this, '{}', {{", op.name)?;
-
-            let export_str = op.export.and_then(|x| to_string_ir(&x));
-
-            if let Some(export) = export_str {
-                writeln!(output, "  exportName: {export},")?;
-            }
-
-            if let Some(x) = &op.description {
-                let formatted_str = x.replace("\\'", "'");
-                let formatted_str = formatted_str.escape_debug();
-                writeln!(output, "      description: '{formatted_str}',")?;
-            }
-
-            match to_string_ir(&op.value) {
-                None => {
-                    panic!("Can't happen")
-                }
-                Some(x) => {
-                    writeln!(output, "      value: {x}")?;
-                }
-            }
-
-            writeln!(output, "    }});")?;
-
-            if let Some(_x) = &op.condition {
-                writeln!(output, "}}")?;
-            }
-        }
-        //"if (x === undefined) { throw new Error(`A combination of conditions caused '${name}' to be undefined. Fixit.`); }"
-        writeln!(output, "  }}")?;
-        writeln!(output, "}}")?;
-
-        Ok(())
+        output.write_line("}")
     }
+}
+
+fn emit_cfn_output(
+    mut output: CodeSink,
+    op: &OutputInstruction,
+    export: &ResourceIr,
+    var_name: &str,
+) -> io::Result<()> {
+    output.write_line(&format!("new cdk.CfnOutput(this, '{}', {{", &op.name))?;
+
+    let props = &mut output.indented();
+    if let Some(description) = &op.description {
+        props.write_line(&format!("description: '{}',", description.escape_debug()))?;
+    }
+    props.write_line(&format!(
+        "exportName: {},",
+        to_string_ir(export).unwrap_or_else(|| format!("undefined /* {export:?} */"))
+    ))?;
+    props.write_line(&format!("value: this.{var_name},"))?;
+
+    output.write_line("});")
+}
+
+fn emit_resource(output: &mut CodeSink, reference: &ResourceInstruction) -> io::Result<()> {
+    let mut split_ref = reference.resource_type.split("::");
+    let base_type = split_ref.next().unwrap();
+    let service: String;
+    let rtype: String;
+    if base_type.starts_with("Custom") {
+        service = String::from("CloudFormation").to_ascii_lowercase();
+        rtype = String::from("CustomResource");
+    } else {
+        service = split_ref.next().unwrap().to_ascii_lowercase();
+        rtype = String::from(split_ref.next().unwrap());
+    }
+
+    let var_name = pretty_name(&reference.name);
+
+    let maybe_undefined = if let Some(cond) = &reference.condition {
+        append_references(output, reference)?;
+
+        output.write_line(&format!(
+            "const {var_name} = {cond}",
+            cond = pretty_name(cond)
+        ))?;
+
+        let mut output = output.indented();
+
+        output.write_line(&format!(
+            "? new {service}.Cfn{rtype}(this, '{}', {{",
+            reference.name.escape_debug(),
+        ))?;
+
+        let mid_output = &mut output.indented();
+        emit_resource_props(mid_output.indented(), &reference.properties)?;
+        mid_output.write_line("})")?;
+
+        output.write_line(": undefined;")?;
+
+        true
+    } else {
+        append_references(output, reference)?;
+        output.write_line(&format!(
+            "const {var_name} = new {service}.Cfn{rtype}(this, '{}', {{",
+            reference.name.escape_debug()
+        ))?;
+
+        emit_resource_props(output.indented(), &reference.properties)?;
+
+        output.write_line("});")?;
+
+        false
+    };
+
+    if maybe_undefined {
+        output.write_line(&format!("if ({var_name} != null) {{"))?;
+        emit_resource_attributes(&mut output.indented(), reference, &var_name)?;
+        output.write_line("}")?;
+    } else {
+        emit_resource_attributes(output, reference, &var_name)?;
+    }
+
+    Ok(())
+}
+
+fn emit_resource_attributes(
+    output: &mut CodeSink,
+    reference: &ResourceInstruction,
+    var_name: &str,
+) -> io::Result<()> {
+    if let Some(metadata) = &reference.metadata {
+        output.write_line(&format!("{var_name}.cfnOptions.metadata = {{"))?;
+
+        emit_resource_metadata(output.indented(), metadata)?;
+
+        output.write_line("};")?;
+    }
+
+    if let Some(update_policy) = &reference.update_policy {
+        output.write_line(&format!("{var_name}.cfnOptions.updatePolicy ="))?;
+
+        if let Some(code) = to_string_ir(update_policy) {
+            output.write_text(&code)?;
+        };
+
+        output.write_line(";")?;
+    }
+
+    if let Some(deletion_policy) = &reference.deletion_policy {
+        output.write_line(&format!(
+            "{var_name}.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.{deletion_policy};"
+        ))?;
+    }
+
+    if !reference.dependencies.is_empty() {
+        for dependency in &reference.dependencies {
+            output.write_line(&format!(
+                "{var_name}.addDependency({});",
+                pretty_name(dependency)
+            ))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn emit_resource_metadata(mut output: CodeSink, metadata: &ResourceIr) -> io::Result<()> {
+    match metadata {
+        ResourceIr::Object(_, entries) => {
+            for (name, value) in entries {
+                output.write_line(&format!(
+                    "{name}: {},",
+                    to_string_ir(value)
+                        .unwrap_or_else(|| format!("undefined as any /* {value:?} */"))
+                ))?;
+            }
+            Ok(())
+        }
+        unsupported => output.write_line(&format!("/* {unsupported:?} */")),
+    }
+}
+
+fn emit_resource_props<S>(
+    mut output: CodeSink,
+    props: &IndexMap<String, ResourceIr, S>,
+) -> io::Result<()> {
+    for (name, prop) in props {
+        output.write_line(&format!(
+            "{prop}: {val},",
+            prop = pretty_name(name),
+            val = to_string_ir(prop).unwrap_or_else(|| format!("undefined as any /* {prop:?} */"))
+        ))?;
+    }
+    Ok(())
 }
 
 // The indent generated by this method is not perfect. You have to copy the generated code to an IDE
@@ -454,10 +514,36 @@ pub fn to_string_ir(resource_value: &ResourceIr) -> Option<String> {
             let count_str = to_string_ir(count.as_ref()).unwrap();
             let cidr_bits_str = to_string_ir(cidr_bits.as_ref()).unwrap();
             Option::Some(format!(
-                "cdk.Fn.cidr({ip_block_str}, {count_str}, {cidr_bits_str})"
+                "cdk.Fn.cidr({ip_block_str}, {count_str}, '{cidr_bits_str}')"
             ))
         }
     }
+}
+
+fn emit_mappings(output: &mut CodeSink, mappings: &[MappingInstruction]) -> io::Result<()> {
+    output.blank_line()?;
+    output.write_line("// Mappings")?;
+
+    for mapping in mappings {
+        let item_type = match mapping.output_type() {
+            OutputType::Consistent(inner_type) => match inner_type {
+                MappingInnerValue::Number(_) | MappingInnerValue::Float(_) => "number",
+                MappingInnerValue::Bool(_) => "boolean",
+                MappingInnerValue::String(_) => "string",
+                MappingInnerValue::List(_) => "readonly string[]",
+            },
+            OutputType::Complex => "any",
+        };
+
+        output.write_line(&format!(
+            "const {var}: Record<string, Record<string, {item_type}>> = {{",
+            var = pretty_name(&mapping.name)
+        ))?;
+        emit_mapping_instruction(output.indented(), mapping)?;
+        output.write_line("};")?;
+    }
+
+    Ok(())
 }
 
 fn synthesize_condition_recursive(val: &ConditionIr) -> String {
@@ -508,43 +594,32 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
     }
 }
 
-fn synthesize_mapping_instruction(mapping_instruction: &MappingInstruction) -> String {
-    let mut mapping_parse_tree_ts = String::from("{\n");
-    let mut outer_records = Vec::with_capacity(mapping_instruction.map.len());
-    for (outer_mapping_key, inner_mapping) in mapping_instruction.map.iter() {
-        outer_records.push(format!(
-            "      '{}': {}",
-            outer_mapping_key,
-            synthesize_inner_mapping(inner_mapping)
-        ));
-    }
-
-    let outer = outer_records.join(",\n");
-    mapping_parse_tree_ts.push_str(&outer);
-    mapping_parse_tree_ts.push_str("\n    }");
-    mapping_parse_tree_ts
-}
-
-fn synthesize_inner_mapping(inner_mapping: &IndexMap<String, MappingInnerValue>) -> String {
-    let mut inner_mapping_ts_str = String::from("{\n");
-    let mut inner_mapping_entries = Vec::with_capacity(inner_mapping.len());
-    for (inner_mapping_key, inner_mapping_value) in inner_mapping {
-        inner_mapping_entries.push(format!(
-            "        '{inner_mapping_key}': {inner_mapping_value}"
-        ));
-    }
-    inner_mapping_ts_str.push_str(&inner_mapping_entries.join(",\n"));
-    inner_mapping_ts_str.push_str("\n      }");
-    inner_mapping_ts_str
-}
-
-fn append_references(
-    output: &mut dyn io::Write,
-    reference: &ResourceInstruction,
+fn emit_mapping_instruction(
+    mut output: CodeSink,
+    mapping_instruction: &MappingInstruction,
 ) -> io::Result<()> {
+    for (name, inner_mapping) in &mapping_instruction.map {
+        output.write_line(&format!("'{key}': {{", key = name.escape_debug()))?;
+        emit_inner_mapping(output.indented(), inner_mapping)?;
+        output.write_line("},")?;
+    }
+    Ok(())
+}
+
+fn emit_inner_mapping(
+    mut output: CodeSink,
+    inner_mapping: &IndexMap<String, MappingInnerValue>,
+) -> io::Result<()> {
+    for (name, value) in inner_mapping {
+        output.write_line(&format!("'{key}': {value},", key = name.escape_debug()))?;
+    }
+    Ok(())
+}
+
+fn append_references(output: &mut CodeSink, reference: &ResourceInstruction) -> io::Result<()> {
     if !reference.referrers.is_empty() {
         for dep in reference.referrers.iter() {
-            writeln!(output, "if ({dep} === undefined) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep))?;
+            output.write_line(&format!("if ({dep} === undefined) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep)))?;
         }
     }
     Ok(())

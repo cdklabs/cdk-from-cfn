@@ -16,6 +16,11 @@ export interface NoctStackProps extends cdk.StackProps {
  * CloudFormation template, but does not attempt to represent a realistic stack.
  */
 export class NoctStack extends cdk.Stack {
+  /**
+   * The ARN of the bucket in this template!
+   */
+  public readonly bucketArn?;
+
   public constructor(scope: cdk.App, id: string, props: NoctStackProps = {}) {
     super(scope, id, props);
 
@@ -28,34 +33,34 @@ export class NoctStack extends cdk.Stack {
     // Mappings
     const booleans: Record<string, Record<string, boolean>> = {
       'True': {
-        'true': true
+        'true': true,
       },
       'False': {
-        'false': false
-      }
+        'false': false,
+      },
     };
     const lists: Record<string, Record<string, readonly string[]>> = {
       'Candidates': {
         'Empty': [],
         'Singleton': ['One'],
-        'Pair': ['One','Two']
-      }
+        'Pair': ['One','Two'],
+      },
     };
     const numbers: Record<string, Record<string, number>> = {
       'Prime': {
         'Eleven': 11,
         'Thirteen': 13,
-        'Seventeen': 17
-      }
+        'Seventeen': 17,
+      },
     };
     const strings: Record<string, Record<string, string>> = {
       'Foos': {
         'Foo1': 'Foo1',
-        'Foo2': 'Foo2'
+        'Foo2': 'Foo2',
       },
       'Bars': {
-        'Bar': 'Bar'
-      }
+        'Bar': 'Bar',
+      },
     };
     const table: Record<string, Record<string, any>> = {
       'Values': {
@@ -63,8 +68,8 @@ export class NoctStack extends cdk.Stack {
         'Float': 3.14,
         'List': ['1','2','3'],
         'Number': 42,
-        'String': 'Baz'
-      }
+        'String': 'Baz',
+      },
     };
 
     // Conditions
@@ -74,26 +79,31 @@ export class NoctStack extends cdk.Stack {
     const queue = new sqs.CfnQueue(this, 'Queue', {
       queueName: [this.stackName, strings['Bars']['Bar'], cdk.Fn.select(1, cdk.Fn.getAzs(this.region))].join('-'),
     });
-    let bucket;
-    if (isUsEast1) {
-if (queue === undefined) { throw new Error(`A combination of conditions caused 'queue' to be undefined. Fixit.`); }
-    bucket = new s3.CfnBucket(this, 'Bucket', {
-      bucketName: `${props.bucketNamePrefix}-${this.stackName}-bucket`,
-    });
-    bucket.addOverride('Metadata', {
-CostCenter: 1337
-});
-bucket.addOverride('DeletionPolicy', 'Retain');
-bucket.addOverride('DependsOn', [
-'Queue'
-]);
-}
+
+    if (queue === undefined) { throw new Error(`A combination of conditions caused 'queue' to be undefined. Fixit.`); }
+    const bucket = isUsEast1
+      ? new s3.CfnBucket(this, 'Bucket', {
+          bucketName: `${props.bucketNamePrefix}-${this.stackName}-bucket`,
+        })
+      : undefined;
+    if (bucket != null) {
+      bucket.cfnOptions.metadata = {
+        CostCenter: 1337,
+      };
+      bucket.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.RETAIN;
+      bucket.addDependency(queue);
+    }
 
     // Outputs
+    this.bucketArn = isUsEast1
+      ? bucket.attrArn
+      : undefined;
     if (isUsEast1) {
-    new cdk.CfnOutput(this, 'BucketArn', {
-      value: bucket.attrArn
-    });
-}
+      new cdk.CfnOutput(this, 'BucketArn', {
+        description: 'The ARN of the bucket in this template!',
+        exportName: 'ExportName',
+        value: this.bucketArn,
+      });
+    }
   }
 }

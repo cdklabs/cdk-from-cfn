@@ -69,5 +69,7 @@ Resources:
 Outputs:
   BucketArn:
     Condition: IsUsEast1
+    Description: The ARN of the bucket in this template!
+    Export: ExportName
     Value:
       !GetAtt Bucket.Arn

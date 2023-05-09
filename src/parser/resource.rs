@@ -171,9 +171,9 @@ pub enum DeletionPolicy {
 impl fmt::Display for DeletionPolicy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Delete => write!(f, "Delete"),
-            Self::Retain => write!(f, "Retain"),
-            Self::Snapshot => write!(f, "Snapshot"),
+            Self::Delete => write!(f, "DELETE"),
+            Self::Retain => write!(f, "RETAIN"),
+            Self::Snapshot => write!(f, "SNAPSHOT"),
         }
     }
 }

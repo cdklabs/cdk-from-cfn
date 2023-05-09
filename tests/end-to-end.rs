@@ -26,6 +26,7 @@ macro_rules! test_case {
             let _update_snapshots = UpdateSnapshot::new(
                 concat!("end-to-end/", stringify!($name), "/app.ts"),
                 &actual,
+                &expected,
             );
 
             assert_eq!(expected, actual);
@@ -39,11 +40,16 @@ test_case!(vpc);
 struct UpdateSnapshot<'a> {
     path: &'static str,
     actual: &'a str,
+    expected: &'a str,
 }
 
 impl<'a> UpdateSnapshot<'a> {
-    fn new(path: &'static str, actual: &'a str) -> Self {
-        Self { path, actual }
+    fn new(path: &'static str, actual: &'a str, expected: &'a str) -> Self {
+        Self {
+            path,
+            actual,
+            expected,
+        }
     }
 }
 
@@ -53,7 +59,7 @@ impl Drop for UpdateSnapshot<'_> {
         use std::io::Write;
         use std::path::PathBuf;
 
-        if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
+        if std::env::var_os("UPDATE_SNAPSHOTS").is_some() && self.actual != self.expected {
             let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join("tests")
                 .join(self.path);
