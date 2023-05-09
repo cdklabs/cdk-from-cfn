@@ -1,4 +1,7 @@
+use std::vec;
+use noctilucent::parser::parameters::{Parameter, ParameterType};
 use indexmap::IndexMap;
+use noctilucent::parser::condition::{ConditionFunction, ConditionValue};
 use noctilucent::parser::lookup_table::{MappingInnerValue, MappingTable};
 use noctilucent::parser::resource::{DeletionPolicy, IntrinsicFunction};
 use noctilucent::parser::resource::{ResourceAttributes, ResourceValue};
@@ -595,4 +598,162 @@ fn test_parse_tree_resource_with_floats() {
         },
     };
     assert_resource_equal!("Alarm" => a, resource);
+}
+
+#[test]
+fn test_parse_tree_resource_with_fn_and() {
+    let cfn_template = json!({
+        "Conditions": {
+            "IsProduction": {
+                "Fn::Equals": [
+                    { "Ref": "Environment" },
+                    "prod"
+                ]
+            },
+            "HasDatabase": {
+                "Fn::Equals": [
+                    { "Ref": "DatabaseType" },
+                    "mysql"
+                ]
+            },
+            "UseEncryption": {
+                "Fn::And": [
+                    { "Condition": "IsProduction" },
+                    { "Condition": "HasDatabase" },
+                ]
+            }
+        },
+        "Resources": {
+            "MyApp": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId": {
+                        "Fn::If": [
+                            "UseEncryption",
+                            { "Ref": "EncryptedAmi" },
+                            { "Ref": "UnencryptedAmi" }
+                        ]
+                    }
+                }
+            }
+        },
+        "Parameters": {
+            "Environment": {
+                "Type": "String",
+                "AllowedValues": [ "dev", "test", "prod" ],
+                "Default": "dev"
+            },
+            "DatabaseType": {
+                "Type": "String",
+                "AllowedValues": [ "mysql", "postgresql" ],
+                "Default": "postgresql"
+            },
+            "UseEncryption": {
+                "Type": "String",
+                "AllowedValues": [ "true", "false" ],
+                "Default": "false"
+            },
+            "EncryptedAmi": {
+                "Type": "String",
+                "Default": "ami-1234567890abcdef0"
+            },
+            "UnencryptedAmi": {
+                "Type": "String",
+                "Default": "ami-0987654321fedcba0"
+            }
+        }
+    });
+
+
+    let resources = IndexMap::from([(
+        "MyApp".into(),
+        ResourceAttributes {
+            condition: Option::None,
+            resource_type: "AWS::EC2::Instance".into(),
+            metadata: Option::None,
+            update_policy: Option::None,
+            deletion_policy: Option::None,
+            dependencies: vec![],
+            properties: map! {
+                "ImageId" => IntrinsicFunction::If{
+                    condition_name: "UseEncryption".into(),
+                    value_if_true: ResourceValue::String("ami-1234567890abcdef0".into()),
+                    value_if_false: ResourceValue::String("ami-0987654321fedcba0".into())
+                }.into()
+            },
+        },
+    )]);
+
+    let cfn_tree = CloudformationParseTree {
+        parameters: IndexMap::from([
+            (
+                "Environment".into(),
+                Parameter {
+                    parameter_type: ParameterType::String,
+                    description: Option::None,
+                    allowed_values: Option::Some(vec![
+                        "dev".into(),
+                        "test".into(),
+                        "prod".into(),
+                    ]),
+                    default: Option::Some("dev".into()),
+                },
+            ),
+            (
+                "DatabaseType".into(),
+                Parameter {
+                    parameter_type: ParameterType::String,
+                    description: Option::None,
+                    allowed_values: Option::Some(vec![
+                        "mysql".into(),
+                        "postgresql".into(),
+                    ]),
+                    default: Option::Some("postgresql".into()),
+                }
+            ),
+            (
+                "UseEncryption".into(),
+                Parameter {
+                    parameter_type: ParameterType::String,
+                    description: Option::None,
+                    allowed_values: Option::Some(vec![
+                        "true".into(),
+                        "false".into(),
+                    ]),
+                    default: Option::Some("false".into()),
+                }
+            ),
+            (
+                "EncryptedAmi".into(),
+                Parameter {
+                    parameter_type: ParameterType::String,
+                    description: Option::None,
+                    allowed_values: Option::None,
+                    default: Option::Some("ami-1234567890abcdef0".into()),
+                }
+            ),
+            (
+                "UnencryptedAmi".into(),
+                Parameter {
+                    parameter_type: ParameterType::String,
+                    description: Option::None,
+                    allowed_values: Option::None,
+                    default: Option::Some("ami-0987654321fedcba0".into()),
+                }
+            )
+        ]),
+        mappings: IndexMap::default(),
+        conditions: map! {
+            "IsProduction" => ConditionFunction::Equals(ConditionValue::Ref("Environment".into()), ConditionValue::String("prod".into())),
+            "HasDatabase" => ConditionFunction::Equals(ConditionValue::Ref("DatabaseType".into()), ConditionValue::String("mysql".into())),
+            "UseEncryption" => ConditionFunction::And(vec![
+                ConditionValue::Condition("IsProduction".into()),
+                ConditionValue::Condition("HasDatabase".into())
+            ])
+        },
+        resources,
+        outputs: IndexMap::default(),
+    };
+
+    assert_template_equal!(cfn_template, cfn_tree)
 }
