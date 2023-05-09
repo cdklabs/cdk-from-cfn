@@ -503,12 +503,12 @@ fn test_parse_tree_with_fnfindinmap() {
             depends_on: vec![],
             properties: map! {
                 "InstanceType" => IntrinsicFunction::FindInMap{
-                    map_name:ResourceValue::String("InstanceTypes".into()),
+                    map_name:"InstanceTypes".into(),
                     top_level_key:IntrinsicFunction::Ref("Region".into()).into(),
                     second_level_key:ResourceValue::String("t2.micro".into()),
                 }.into(),
                 "ImageId" => IntrinsicFunction::FindInMap{
-                    map_name:ResourceValue::String("AMIIds".into()),
+                    map_name:"AMIIds".into(),
                     top_level_key:IntrinsicFunction::Ref("Region".into()).into(),
                     second_level_key: ResourceValue::String("AmazonLinuxAMI".into()),
                 }.into()

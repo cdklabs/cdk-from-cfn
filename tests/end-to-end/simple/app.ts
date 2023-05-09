@@ -20,6 +20,10 @@ export class NoctStack extends cdk.Stack {
    * The ARN of the bucket in this template!
    */
   public readonly bucketArn?;
+  /**
+   * The ARN of the SQS Queue
+   */
+  public readonly queueArn;
 
   public constructor(scope: cdk.App, id: string, props: NoctStackProps = {}) {
     super(scope, id, props);
@@ -77,13 +81,29 @@ export class NoctStack extends cdk.Stack {
 
     // Resources
     const queue = new sqs.CfnQueue(this, 'Queue', {
-      queueName: [this.stackName, strings['Bars']['Bar'], cdk.Fn.select(1, cdk.Fn.getAzs(this.region))].join('-'),
+      delaySeconds: 42.1337,
+      fifoQueue: false,
+      kmsMasterKeyId: cdk.Fn.importValue('Shared.KmsKeyArn'),
+      queueName: [
+        this.stackName,
+        strings['Bars']['Bar'],
+        cdk.Fn.select(1, cdk.Fn.getAzs(this.region)),
+      ].join('-'),
+      redrivePolicy: undefined,
+      visibilityTimeout: 120,
     });
 
     if (queue === undefined) { throw new Error(`A combination of conditions caused 'queue' to be undefined. Fixit.`); }
     const bucket = isUsEast1
       ? new s3.CfnBucket(this, 'Bucket', {
+          accessControl: 'private',
           bucketName: `${props.bucketNamePrefix}-${this.stackName}-bucket`,
+          tags: [
+            {
+              key: 'FancyTag',
+              value: isUsEast1 ? cdk.Fn.base64(table['Values']['String']) : Buffer.from('8CiMvAo=', 'base64').toString('binary'),
+            },
+          ],
         })
       : undefined;
     if (bucket != null) {
@@ -105,5 +125,6 @@ export class NoctStack extends cdk.Stack {
         value: this.bucketArn,
       });
     }
+    this.queueArn = queue.ref;
   }
 }

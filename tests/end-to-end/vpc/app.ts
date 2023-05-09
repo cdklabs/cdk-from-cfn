@@ -15,31 +15,31 @@ export class NoctStack extends cdk.Stack {
       enableDnsSupport: true,
       enableDnsHostnames: true,
       tags: [
-{
-key: 'cost-center',
-value: 1337
-}
-],
+        {
+          key: 'cost-center',
+          value: 1337,
+        },
+      ],
     });
 
     if (vpc === undefined) { throw new Error(`A combination of conditions caused 'vpc' to be undefined. Fixit.`); }
     const subnet1 = new ec2.CfnSubnet(this, 'Subnet1', {
-      availabilityZone: cdk.Fn.select(0, cdk.Fn.getAzs()),
-      cidrBlock: cdk.Fn.cidr(vpc.attrCidrBlock, 6, '8')[0],
+      availabilityZone: cdk.Fn.select(0, cdk.Fn.getAzs('')),
+      cidrBlock: cdk.Fn.select(0, cdk.Fn.cidr(vpc.attrCidrBlock, 6, String(8))),
       vpcId: vpc.ref,
     });
 
     if (vpc === undefined) { throw new Error(`A combination of conditions caused 'vpc' to be undefined. Fixit.`); }
     const subnet2 = new ec2.CfnSubnet(this, 'Subnet2', {
-      availabilityZone: cdk.Fn.select(1, cdk.Fn.getAzs()),
-      cidrBlock: cdk.Fn.cidr(vpc.attrCidrBlock, 6, '8')[1],
+      availabilityZone: cdk.Fn.select(1, cdk.Fn.getAzs('')),
+      cidrBlock: cdk.Fn.select(1, cdk.Fn.cidr(vpc.attrCidrBlock, 6, String(8))),
       vpcId: vpc.ref,
     });
 
     if (vpc === undefined) { throw new Error(`A combination of conditions caused 'vpc' to be undefined. Fixit.`); }
     const subnet3 = new ec2.CfnSubnet(this, 'Subnet3', {
-      availabilityZone: cdk.Fn.select(2, cdk.Fn.getAzs()),
-      cidrBlock: cdk.Fn.cidr(vpc.attrCidrBlock, 6, '8')[2],
+      availabilityZone: cdk.Fn.select(2, cdk.Fn.getAzs('')),
+      cidrBlock: cdk.Fn.select(2, cdk.Fn.cidr(vpc.attrCidrBlock, 6, String(8))),
       vpcId: vpc.ref,
     });
   }

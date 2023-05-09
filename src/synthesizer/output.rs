@@ -37,6 +37,32 @@ impl<'a> CodeSink<'a> {
         writeln!(self.writer)
     }
 
+    /// Writes the provided text with optional indentiation, and no added
+    /// newline at the end.
+    pub fn write_raw(&mut self, text: &str, indent: bool) -> io::Result<()> {
+        write!(
+            self.writer,
+            "{}{text}",
+            if indent { &self.indentation } else { "" }
+        )
+    }
+
+    /// Writes the provided text with optional indentation, and a new line added
+    /// at the end.
+    pub fn write_raw_line(&mut self, text: &str, indent: bool) -> io::Result<()> {
+        writeln!(
+            self.writer,
+            "{}{text}",
+            if indent { &self.indentation } else { "" }
+        )
+    }
+
+    /// Writes the provided text with the correct indentation at the begining
+    /// and no new line added tat the end.
+    pub fn write(&mut self, text: &str) -> io::Result<()> {
+        write!(self.writer, "{}{text}", self.indentation)
+    }
+
     /// Writes a single line to the underlying writer with indentation.
     pub fn write_line(&mut self, line: &str) -> io::Result<()> {
         writeln!(self.writer, "{}{line}", self.indentation)

@@ -49,7 +49,16 @@ Resources:
     Condition: IsUsEast1
     Type: AWS::S3::Bucket
     Properties:
+      AccessControl: !Base64 'cHJpdmF0ZQ=='
       BucketName: !Sub ${BucketNamePrefix}-${AWS::StackName}-bucket
+      Tags:
+        - Key: FancyTag
+          Value:
+            !If
+              - IsUsEast1
+              - Fn::Base64:
+                  !FindInMap [Table, Values, String]
+              - !Base64 8CiMvAo= # This is not valid UTF8
     DependsOn:
       - Queue
     DeletionPolicy: Retain
@@ -59,12 +68,22 @@ Resources:
   Queue:
     Type: AWS::SQS::Queue
     Properties:
+      DelaySeconds: 42.1337
+      FifoQueue: false
+      KmsMasterKeyId: !ImportValue Shared.KmsKeyArn
       QueueName:
         !Join
           - '-'
           - - { Ref: AWS::StackName }
             - !FindInMap [Strings, Bars, Bar]
             - !Select [1, Fn::GetAZs: { "!Ref": AWS::Region }]
+      RedrivePolicy: !Ref AWS::NoValue
+      VisibilityTimeout:
+        Fn::Select:
+          - 1
+          - - 60
+            - 120
+            - 240
 
 Outputs:
   BucketArn:
@@ -73,3 +92,7 @@ Outputs:
     Export: ExportName
     Value:
       !GetAtt Bucket.Arn
+
+  QueueArn:
+    Description: The ARN of the SQS Queue
+    Value: !Ref Queue
