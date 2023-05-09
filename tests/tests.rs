@@ -1,13 +1,13 @@
-use std::vec;
-use noctilucent::parser::parameters::{Parameter, ParameterType};
 use indexmap::IndexMap;
 use noctilucent::parser::condition::{ConditionFunction, ConditionValue};
 use noctilucent::parser::lookup_table::{MappingInnerValue, MappingTable};
+use noctilucent::parser::parameters::{Parameter, ParameterType};
 use noctilucent::parser::resource::{DeletionPolicy, IntrinsicFunction};
 use noctilucent::parser::resource::{ResourceAttributes, ResourceValue};
 use noctilucent::primitives::WrapperF64;
 use noctilucent::CloudformationParseTree;
 use serde_yaml::Value;
+use std::vec;
 
 mod json;
 
@@ -664,7 +664,6 @@ fn test_parse_tree_resource_with_fn_and() {
         }
     });
 
-
     let resources = IndexMap::from([(
         "MyApp".into(),
         ResourceAttributes {
@@ -673,12 +672,12 @@ fn test_parse_tree_resource_with_fn_and() {
             metadata: Option::None,
             update_policy: Option::None,
             deletion_policy: Option::None,
-            dependencies: vec![],
+            depends_on: vec![],
             properties: map! {
                 "ImageId" => IntrinsicFunction::If{
                     condition_name: "UseEncryption".into(),
-                    value_if_true: ResourceValue::String("ami-1234567890abcdef0".into()),
-                    value_if_false: ResourceValue::String("ami-0987654321fedcba0".into())
+                        value_if_true: IntrinsicFunction::Ref("EncryptedAmi".into()).into(),
+                        value_if_false: IntrinsicFunction::Ref("UnencryptedAmi".into()).into(),
                 }.into()
             },
         },
@@ -691,11 +690,7 @@ fn test_parse_tree_resource_with_fn_and() {
                 Parameter {
                     parameter_type: ParameterType::String,
                     description: Option::None,
-                    allowed_values: Option::Some(vec![
-                        "dev".into(),
-                        "test".into(),
-                        "prod".into(),
-                    ]),
+                    allowed_values: Option::Some(vec!["dev".into(), "test".into(), "prod".into()]),
                     default: Option::Some("dev".into()),
                 },
             ),
@@ -704,24 +699,18 @@ fn test_parse_tree_resource_with_fn_and() {
                 Parameter {
                     parameter_type: ParameterType::String,
                     description: Option::None,
-                    allowed_values: Option::Some(vec![
-                        "mysql".into(),
-                        "postgresql".into(),
-                    ]),
+                    allowed_values: Option::Some(vec!["mysql".into(), "postgresql".into()]),
                     default: Option::Some("postgresql".into()),
-                }
+                },
             ),
             (
                 "UseEncryption".into(),
                 Parameter {
                     parameter_type: ParameterType::String,
                     description: Option::None,
-                    allowed_values: Option::Some(vec![
-                        "true".into(),
-                        "false".into(),
-                    ]),
+                    allowed_values: Option::Some(vec!["true".into(), "false".into()]),
                     default: Option::Some("false".into()),
-                }
+                },
             ),
             (
                 "EncryptedAmi".into(),
@@ -730,7 +719,7 @@ fn test_parse_tree_resource_with_fn_and() {
                     description: Option::None,
                     allowed_values: Option::None,
                     default: Option::Some("ami-1234567890abcdef0".into()),
-                }
+                },
             ),
             (
                 "UnencryptedAmi".into(),
@@ -739,8 +728,8 @@ fn test_parse_tree_resource_with_fn_and() {
                     description: Option::None,
                     allowed_values: Option::None,
                     default: Option::Some("ami-0987654321fedcba0".into()),
-                }
-            )
+                },
+            ),
         ]),
         mappings: IndexMap::default(),
         conditions: map! {
@@ -753,6 +742,8 @@ fn test_parse_tree_resource_with_fn_and() {
         },
         resources,
         outputs: IndexMap::default(),
+        description: Option::None,
+        transforms: vec![],
     };
 
     assert_template_equal!(cfn_template, cfn_tree)
