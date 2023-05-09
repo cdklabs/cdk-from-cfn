@@ -425,10 +425,10 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruc
     for resource_instruction in resource_instructions {
         topo.insert(resource_instruction.name.to_string());
 
-        for dep in resource_instruction.dependencies.iter() {
+        for dep in &resource_instruction.dependencies {
             topo.add_dependency(dep, resource_instruction.name.to_string());
         }
-        for (_, property) in resource_instruction.properties.iter() {
+        for (_, property) in &resource_instruction.properties {
             find_dependencies(&resource_instruction.name, property, &mut topo)
         }
         hash.insert(resource_instruction.name.to_string(), resource_instruction);

@@ -611,16 +611,16 @@ fn emit_inner_mapping(
 
 fn append_references(output: &mut CodeSink, reference: &ResourceInstruction) -> io::Result<()> {
     if !reference.referrers.is_empty() {
-        for dep in reference.referrers.iter() {
-            output.write_line(&format!("if ({dep} === undefined) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep)))?;
+        for dep in &reference.referrers {
+            output.write_line(&format!("if ({dep} == null) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep)))?;
         }
     }
     Ok(())
 }
 
-struct SuffixFix<'a> {
-    suffix: &'a str,
-    fix: &'a str,
+struct SuffixFix {
+    suffix: &'static str,
+    fix: &'static str,
 }
 
 /// If you have stumbled across this lunacy, I still don't fully understand it myself.
@@ -628,7 +628,7 @@ struct SuffixFix<'a> {
 /// CDK folks decided to prettify a few names, e.g. ProviderARNs -> providerArns.
 /// This list is hand-maintained, but always refer to the original source:
 ///
-const SUFFIX_FIXES: &[SuffixFix] = &[
+static SUFFIX_FIXES: &[SuffixFix] = &[
     SuffixFix {
         suffix: "ARNs",
         fix: "Arns",
@@ -656,11 +656,11 @@ fn pretty_name(name: &str) -> String {
     }
 
     let mut end_str = name.to_string();
-    for hay in SUFFIX_FIXES.iter() {
+    for hay in SUFFIX_FIXES {
         if end_str.ends_with(hay.suffix) {
-            let temp = end_str.strip_suffix(hay.suffix).unwrap();
-            end_str = temp.to_string();
+            end_str = end_str[0..end_str.len() - hay.suffix.len()].to_string();
             end_str.push_str(hay.fix);
+            break;
         }
     }
 

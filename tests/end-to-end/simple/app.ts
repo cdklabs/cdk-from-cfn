@@ -93,7 +93,7 @@ export class NoctStack extends cdk.Stack {
       visibilityTimeout: 120,
     });
 
-    if (queue === undefined) { throw new Error(`A combination of conditions caused 'queue' to be undefined. Fixit.`); }
+    if (queue == null) { throw new Error(`A combination of conditions caused 'queue' to be undefined. Fixit.`); }
     const bucket = isUsEast1
       ? new s3.CfnBucket(this, 'Bucket', {
           accessControl: 'private',
