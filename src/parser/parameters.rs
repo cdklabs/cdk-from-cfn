@@ -33,7 +33,6 @@ impl fmt::Display for ParameterType {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
