@@ -197,11 +197,11 @@ impl<'t> ResourceTranslator<'t> {
                     }
                     IntrinsicFunction::GetAtt {
                         logical_name,
-                        attribute_name: attribute,
+                        attribute_name,
                     } => Ok(ResourceIr::Ref(Reference::new(
                         &logical_name,
                         Origin::GetAttribute {
-                            attribute,
+                            attribute: attribute_name,
                             conditional: self.origins.is_conditional(&logical_name),
                         },
                     ))),
