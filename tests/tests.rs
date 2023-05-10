@@ -6,7 +6,6 @@ use noctilucent::parser::resource::{DeletionPolicy, IntrinsicFunction};
 use noctilucent::parser::resource::{ResourceAttributes, ResourceValue};
 use noctilucent::primitives::WrapperF64;
 use noctilucent::CloudformationParseTree;
-use serde_yaml::Value;
 use std::vec;
 
 mod json;
@@ -46,7 +45,7 @@ macro_rules! assert_template_equal {
 
 #[test]
 fn test_parse_tree_basics() {
-    let a = json!({
+    let resource_template = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -74,12 +73,12 @@ fn test_parse_tree_basics() {
             "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
         },
     };
-    assert_resource_equal!("LogicalResource" => a, resource);
+    assert_resource_equal!("LogicalResource" => resource_template, resource);
 }
 
 #[test]
 fn test_basic_parse_tree_with_condition() {
-    let a: Value = json!({
+    let resource_template = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Condition": "SomeCondition",
@@ -108,12 +107,12 @@ fn test_basic_parse_tree_with_condition() {
             "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
         },
     };
-    assert_resource_equal!("LogicalResource" => a, resource);
+    assert_resource_equal!("LogicalResource" => resource_template, resource);
 }
 
 #[test]
 fn test_basic_parse_tree_with_metadata() {
-    let a: Value = json!({
+    let resource_template = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Metadata": {
@@ -146,12 +145,12 @@ fn test_basic_parse_tree_with_metadata() {
             "Array" => ResourceValue::Array(vec![ResourceValue::String("hi".into()), ResourceValue::String("there".into())])
         },
     };
-    assert_resource_equal!("LogicalResource" => a, resource);
+    assert_resource_equal!("LogicalResource" => resource_template, resource);
 }
 
 #[test]
 fn test_parse_tree_basics_with_deletion_policy() {
-    let a: Value = json!({
+    let resource_template = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "DeletionPolicy": "Retain",
@@ -181,12 +180,12 @@ fn test_parse_tree_basics_with_deletion_policy() {
         },
     };
 
-    assert_resource_equal!("LogicalResource" => a, resource);
+    assert_resource_equal!("LogicalResource" => resource_template, resource);
 }
 
 #[test]
 fn test_parse_tree_sub_str() {
-    let a = json!({
+    let resource_template = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -208,12 +207,12 @@ fn test_parse_tree_sub_str() {
             "RoleName" => IntrinsicFunction::Sub{ string:"bobs-role-${AWS::Region}".into(), replaces: None }.into()
         },
     };
-    assert_resource_equal!("LogicalResource" => a, resource);
+    assert_resource_equal!("LogicalResource" => resource_template, resource);
 }
 
 #[test]
 fn test_parse_tree_yaml_codes() {
-    let a = json!({
+    let resource_template = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -235,11 +234,11 @@ fn test_parse_tree_yaml_codes() {
             "RoleName" => IntrinsicFunction::Sub{ string: "bobs-role-${AWS::Region}".into(), replaces: None }.into()
         },
     };
-    assert_resource_equal!("LogicalResource" => a, resource);
+    assert_resource_equal!("LogicalResource" => resource_template, resource);
 }
 #[test]
 fn test_parse_get_attr_shorthand() {
-    let a = json!({
+    let resource_template = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -261,12 +260,12 @@ fn test_parse_get_attr_shorthand() {
             "RoleName" => IntrinsicFunction::GetAtt{logical_name:"Foo".into(), attribute_name:"Bar".into()}.into()
         },
     };
-    assert_resource_equal!("LogicalResource" => a, resource);
+    assert_resource_equal!("LogicalResource" => resource_template, resource);
 }
 
 #[test]
 fn test_parse_tree_sub_list() {
-    let a = json!({
+    let resource_template = json!({
         "LogicalResource": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -300,7 +299,7 @@ fn test_parse_tree_sub_list() {
             }.into()
         },
     };
-    assert_resource_equal!("LogicalResource" => a, resource);
+    assert_resource_equal!("LogicalResource" => resource_template, resource);
 }
 
 #[test]
@@ -418,7 +417,7 @@ fn test_parse_simple_json_template() {
 
 #[test]
 fn test_parse_tree_with_fnjoin() {
-    let a = json!({
+    let resource_template = json!({
             "MyBucket": {
                 "Type": "AWS::S3::Bucket",
                 "Properties": {
@@ -453,7 +452,7 @@ fn test_parse_tree_with_fnjoin() {
             }.into()
         },
     };
-    assert_resource_equal!("MyBucket" => a, resource);
+    assert_resource_equal!("MyBucket" => resource_template, resource);
 }
 
 #[test]
@@ -559,7 +558,7 @@ fn test_parse_tree_with_fnfindinmap() {
 
 #[test]
 fn test_parse_tree_resource_with_floats() {
-    let a = json!({
+    let resource_template = json!({
         "Alarm": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
@@ -597,7 +596,7 @@ fn test_parse_tree_resource_with_floats() {
             "Threshold" => ResourceValue::Double(WrapperF64::new(3.5))
         },
     };
-    assert_resource_equal!("Alarm" => a, resource);
+    assert_resource_equal!("Alarm" => resource_template, resource);
 }
 
 #[test]
