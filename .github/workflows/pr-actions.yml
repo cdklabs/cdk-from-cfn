@@ -49,8 +49,5 @@ jobs:
           directory: target/coverage
           fail_ci_if_error: true
           gcov: true
-          gcov_ignore:
-            - src/main.rs
-            - src/**/tests.rs
-            - tests/**
+          gcov_ignore: "src/main.rs,src/**/tests.rs,tests/**"
           token: ${{ secrets.CODECOV_TOKEN }}
