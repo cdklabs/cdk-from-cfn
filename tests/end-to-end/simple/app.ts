@@ -116,7 +116,7 @@ export class NoctStack extends cdk.Stack {
 
     // Outputs
     this.bucketArn = isUsEast1
-      ? bucket.attrArn
+      ? bucket?.attrArn
       : undefined;
     if (isUsEast1) {
       new cdk.CfnOutput(this, 'BucketArn', {
