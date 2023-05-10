@@ -1,0 +1,18 @@
+coverage:
+  precision: 1
+  round: nearest
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2% # Allow coverage to drop slightly
+        removed_code_behavior: adjust_base
+    patch:
+      default:
+        target: auto
+        only_pulls: true
+        removed_code_behavior: adjust_base
+
+comment:
+  layout: reach, diff, files
+  behavior: new
