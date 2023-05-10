@@ -1,18 +1,40 @@
 coverage:
   precision: 1
   round: nearest
-  status:
-    project:
-      default:
+
+comment:
+  layout: header, components, reach, diff, files, footer
+  behavior: new
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
         target: auto
         threshold: 2% # Allow coverage to drop slightly
         removed_code_behavior: adjust_base
-    patch:
-      default:
-        target: auto
+        branches: ['!main']
+      - type: patch
         only_pulls: true
         removed_code_behavior: adjust_base
-
-comment:
-  layout: reach, diff, files
-  behavior: new
+  individual_components:
+    - component_id: parser
+      name: Parser
+      paths:
+        - src/parser/**
+    - component_id: ir
+      name: Intermediate Representation
+      paths:
+        - src/ir/**
+    - component_id: synthesizer
+      name: Synthesizers
+      paths:
+        - src/synthesizer/**
+    - component_id: other
+      name: Other
+      paths:
+        - src/errors/**
+        - src/integrations/**
+        - src/primitives/**
+        - src/specification/**
+        - src/*.rs
