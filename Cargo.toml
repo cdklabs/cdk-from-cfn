@@ -38,4 +38,6 @@ opt-level = 3
 
 [profile.coverage]
 inherits = "test"
+codegen-units = 1
 incremental = false
+opt-level = 0
