@@ -171,9 +171,9 @@ pub enum DeletionPolicy {
 impl fmt::Display for DeletionPolicy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Delete => write!(f, "Delete"),
-            Self::Retain => write!(f, "Retain"),
-            Self::Snapshot => write!(f, "Snapshot"),
+            Self::Delete => write!(f, "DELETE"),
+            Self::Retain => write!(f, "RETAIN"),
+            Self::Snapshot => write!(f, "SNAPSHOT"),
         }
     }
 }
@@ -272,7 +272,7 @@ mod test {
             ResourceValue::from_value(json!({"Fn::FindInMap": [MAP_NAME, FIRST_KEY, SECOND_KEY]}))
                 .unwrap(),
             IntrinsicFunction::FindInMap {
-                map_name: ResourceValue::String(MAP_NAME.to_string()),
+                map_name: MAP_NAME.to_string(),
                 top_level_key: ResourceValue::String(FIRST_KEY.to_string()),
                 second_level_key: ResourceValue::String(SECOND_KEY.to_string())
             }
@@ -287,7 +287,7 @@ mod test {
             )
             .unwrap(),
             IntrinsicFunction::FindInMap {
-                map_name: ResourceValue::String(MAP_NAME.to_string()),
+                map_name: MAP_NAME.to_string(),
                 top_level_key: ResourceValue::String(FIRST_KEY.to_string()),
                 second_level_key: ResourceValue::String(SECOND_KEY.to_string())
             }
@@ -353,14 +353,14 @@ mod test {
         const SHARED_VALUE: &str = "SharedValue.ToImport";
         assert_eq!(
             ResourceValue::from_value(json!({ "Fn::ImportValue": SHARED_VALUE })).unwrap(),
-            IntrinsicFunction::ImportValue(ResourceValue::String(SHARED_VALUE.to_string())).into(),
+            IntrinsicFunction::ImportValue(SHARED_VALUE.into()).into(),
         );
         assert_eq!(
             ResourceValue::from_value(
                 serde_yaml::from_str(&format!("!ImportValue {SHARED_VALUE}")).unwrap()
             )
             .unwrap(),
-            IntrinsicFunction::ImportValue(ResourceValue::String(SHARED_VALUE.to_string())).into(),
+            IntrinsicFunction::ImportValue(SHARED_VALUE.into()).into(),
         );
     }
 

@@ -52,7 +52,7 @@ impl ImportInstruction {
         ];
 
         import_instructions.reserve(type_names.len());
-        for type_name in type_names.iter() {
+        for type_name in &type_names {
             import_instructions.push(ImportInstruction {
                 name: type_name.service.to_string(),
                 path: vec![

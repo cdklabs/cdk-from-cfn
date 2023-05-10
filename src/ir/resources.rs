@@ -9,6 +9,7 @@ use crate::TransmuteError;
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
+use std::convert::TryInto;
 use std::ops::Deref;
 use topological_sort::TopologicalSort;
 
@@ -37,11 +38,11 @@ pub enum ResourceIr {
     Split(String, Box<ResourceIr>),
     Ref(Reference),
     Sub(Vec<ResourceIr>),
-    Map(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
+    Map(String, Box<ResourceIr>, Box<ResourceIr>),
     Base64(Box<ResourceIr>),
-    ImportValue(Box<ResourceIr>),
+    ImportValue(String),
     GetAZs(Box<ResourceIr>),
-    Select(i64, Box<ResourceIr>),
+    Select(usize, Box<ResourceIr>),
     Cidr(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
 }
 
@@ -186,11 +187,10 @@ impl<'t> ResourceTranslator<'t> {
                         second_level_key,
                     } => {
                         let rt = self.with_complexity(Structure::Simple(CfnType::String));
-                        let map_name_str = rt.translate(map_name)?;
                         let top_level_key_str = rt.translate(top_level_key)?;
                         let second_level_key_str = rt.translate(second_level_key)?;
                         Ok(ResourceIr::Map(
-                            Box::new(map_name_str),
+                            map_name,
                             Box::new(top_level_key_str),
                             Box::new(second_level_key_str),
                         ))
@@ -240,19 +240,23 @@ impl<'t> ResourceTranslator<'t> {
                         let ir = self.translate(x)?;
                         Ok(ResourceIr::Base64(Box::new(ir)))
                     }
-                    IntrinsicFunction::ImportValue(x) => {
-                        let ir = self.translate(x)?;
-                        Ok(ResourceIr::ImportValue(Box::new(ir)))
-                    }
+                    IntrinsicFunction::ImportValue(name) => Ok(ResourceIr::ImportValue(name)),
                     IntrinsicFunction::Select { index, list } => {
                         let index = match index {
-                            ResourceValue::String(x) => match x.parse::<i64>() {
+                            ResourceValue::String(x) => match x.parse::<usize>() {
                                 Ok(x) => x,
                                 Err(_) => {
                                     return Err(TransmuteError::new("index must be int for Select"))
                                 }
                             },
-                            ResourceValue::Number(x) => x,
+                            ResourceValue::Number(x) => match x.try_into() {
+                                Ok(x) => x,
+                                Err(cause) => {
+                                    return Err(TransmuteError::new(format!(
+                                        "index is too large for Select: {cause}"
+                                    )))
+                                }
+                            },
                             _ => return Err(TransmuteError::new("index must be int for Select")),
                         };
 
@@ -421,10 +425,10 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruc
     for resource_instruction in resource_instructions {
         topo.insert(resource_instruction.name.to_string());
 
-        for dep in resource_instruction.dependencies.iter() {
+        for dep in &resource_instruction.dependencies {
             topo.add_dependency(dep, resource_instruction.name.to_string());
         }
-        for (_, property) in resource_instruction.properties.iter() {
+        for (_, property) in &resource_instruction.properties {
             find_dependencies(&resource_instruction.name, property, &mut topo)
         }
         hash.insert(resource_instruction.name.to_string(), resource_instruction);
@@ -452,7 +456,8 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
         | ResourceIr::Bool(_)
         | ResourceIr::Number(_)
         | ResourceIr::Double(_)
-        | ResourceIr::String(_) => Option::None,
+        | ResourceIr::String(_)
+        | ResourceIr::ImportValue(_) => None,
 
         ResourceIr::Array(_, arr) => {
             let mut v = Vec::with_capacity(arr.len());
@@ -462,7 +467,7 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
                 }
             }
 
-            Option::Some(v)
+            Some(v)
         }
         ResourceIr::Object(_, hash) => {
             let mut v = Vec::with_capacity(hash.len());
@@ -472,7 +477,7 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
                 }
             }
 
-            Option::Some(v)
+            Some(v)
         }
         ResourceIr::If(_, x, y) => {
             let mut v = Vec::with_capacity(2);
@@ -483,7 +488,7 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
                 v.extend(vec);
             }
 
-            Option::Some(v)
+            Some(v)
         }
         ResourceIr::Join(_, arr) => {
             let mut v = Vec::new();
@@ -493,13 +498,13 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
                 }
             }
 
-            Option::Some(v)
+            Some(v)
         }
         ResourceIr::Split(_, ir) => find_references(ir),
         ResourceIr::Ref(x) => match x.origin {
-            Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => Option::None,
-            Origin::LogicalId => Option::Some(vec![x.name.to_string()]),
-            Origin::GetAttribute(_) => Option::Some(vec![x.name.to_string()]),
+            Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => None,
+            Origin::LogicalId => Some(vec![x.name.to_string()]),
+            Origin::GetAttribute(_) => Some(vec![x.name.to_string()]),
         },
         ResourceIr::Sub(arr) => {
             let mut v = Vec::new();
@@ -509,23 +514,19 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
                 }
             }
 
-            Option::Some(v)
+            Some(v)
         }
-        ResourceIr::Map(x, y, z) => {
+        ResourceIr::Map(_, y, z) => {
             let mut v = Vec::new();
-            if let Some(vec) = find_references(x.deref()) {
-                v.extend(vec);
-            }
             if let Some(vec) = find_references(y.deref()) {
                 v.extend(vec);
             }
             if let Some(vec) = find_references(z.deref()) {
                 v.extend(vec);
             }
-            Option::Some(v)
+            Some(v)
         }
         ResourceIr::Base64(x) => find_references(x.deref()),
-        ResourceIr::ImportValue(x) => find_references(x.deref()),
         ResourceIr::Select(_, x) => find_references(x.deref()),
         ResourceIr::GetAZs(x) => find_references(x.deref()),
         ResourceIr::Cidr(x, y, z) => {
@@ -539,7 +540,7 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
             if let Some(vec) = find_references(z.deref()) {
                 v.extend(vec);
             }
-            Option::Some(v)
+            Some(v)
         }
     }
 }
@@ -554,7 +555,8 @@ fn find_dependencies(
         | ResourceIr::Bool(_)
         | ResourceIr::Number(_)
         | ResourceIr::Double(_)
-        | ResourceIr::String(_) => {}
+        | ResourceIr::String(_)
+        | ResourceIr::ImportValue(_) => {}
 
         ResourceIr::Array(_, arr) => {
             for x in arr {
@@ -590,15 +592,11 @@ fn find_dependencies(
                 find_dependencies(resource_name, x, topo);
             }
         }
-        ResourceIr::Map(x, y, z) => {
-            find_dependencies(resource_name, x.deref(), topo);
+        ResourceIr::Map(_, y, z) => {
             find_dependencies(resource_name, y.deref(), topo);
             find_dependencies(resource_name, z.deref(), topo);
         }
         ResourceIr::Base64(x) => {
-            find_dependencies(resource_name, x.deref(), topo);
-        }
-        ResourceIr::ImportValue(x) => {
             find_dependencies(resource_name, x.deref(), topo);
         }
         ResourceIr::Select(_, x) => {
@@ -629,9 +627,9 @@ mod tests {
         let ir_instruction = ResourceInstruction {
             name: "A".to_string(),
             condition: None,
-            metadata: Option::None,
-            deletion_policy: Option::None,
-            update_policy: Option::None,
+            metadata: None,
+            deletion_policy: None,
+            update_policy: None,
             dependencies: Vec::new(),
             resource_type: "".to_string(),
             referrers: HashSet::default(),
@@ -642,9 +640,9 @@ mod tests {
             name: "B".to_string(),
             condition: None,
             dependencies: Vec::new(),
-            metadata: Option::None,
-            deletion_policy: Option::None,
-            update_policy: Option::None,
+            metadata: None,
+            deletion_policy: None,
+            update_policy: None,
             resource_type: "".to_string(),
             referrers: HashSet::default(),
             properties: create_property(
@@ -664,9 +662,9 @@ mod tests {
         let mut ir_instruction = ResourceInstruction {
             name: "A".to_string(),
             condition: None,
-            metadata: Option::None,
-            deletion_policy: Option::None,
-            update_policy: Option::None,
+            metadata: None,
+            deletion_policy: None,
+            update_policy: None,
             dependencies: vec!["foo".to_string()],
             resource_type: "".to_string(),
             referrers: HashSet::default(),

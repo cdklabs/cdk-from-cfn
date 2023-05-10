@@ -11,7 +11,7 @@ pub enum IntrinsicFunction {
         cidr_bits: ResourceValue,
     },
     FindInMap {
-        map_name: ResourceValue,
+        map_name: String,
         top_level_key: ResourceValue,
         second_level_key: ResourceValue,
     },
@@ -25,7 +25,7 @@ pub enum IntrinsicFunction {
         value_if_true: ResourceValue,
         value_if_false: ResourceValue,
     },
-    ImportValue(ResourceValue),
+    ImportValue(String),
     Join {
         sep: String,
         list: ResourceValue,
@@ -58,6 +58,7 @@ static INTRINSIC_FUNCTION_TAGS: &[&str] = &[
     "FindInMap",
     "GetAtt",
     "GetAZs",
+    "If",
     "ImportValue",
     "Join",
     "Select",
