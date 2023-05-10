@@ -41,3 +41,4 @@ inherits = "test"
 codegen-units = 1
 incremental = false
 opt-level = 0
+panic = "abort"
