@@ -3,7 +3,7 @@ coverage:
   round: nearest
 
 comment:
-  layout: header, components, reach, diff, files, footer
+  layout: header, components, diff, files, footer
   behavior: new
 
 component_management:
