@@ -69,12 +69,14 @@ impl ReferenceOrigins {
                 .map(|(name, _)| (name.clone(), Origin::Parameter)),
         );
 
-        origins.extend(
-            parse_tree
-                .resources
-                .iter()
-                .map(|(name, _)| (name.clone(), Origin::LogicalId)),
-        );
+        origins.extend(parse_tree.resources.iter().map(|(name, res)| {
+            (
+                name.clone(),
+                Origin::LogicalId {
+                    conditional: res.condition.is_some(),
+                },
+            )
+        }));
 
         Self { origins }
     }
@@ -85,5 +87,14 @@ impl ReferenceOrigins {
         } else {
             self.origins.get(ref_name).cloned()
         }
+    }
+
+    fn is_conditional(&self, logical_id: &str) -> bool {
+        self.for_ref(logical_id)
+            .map(|orig| match orig {
+                Origin::LogicalId { conditional } => conditional,
+                _ => false,
+            })
+            .unwrap_or(false)
     }
 }

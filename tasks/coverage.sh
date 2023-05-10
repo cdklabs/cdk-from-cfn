@@ -10,16 +10,11 @@ if ! command -v grcov >/dev/null; then
   cargo install grcov
 fi
 
-if ! rustup component list --installed | grep -e '^llvm-tools' >/dev/null; then
-  echo 'Installing the llvm-tools rustup component...'
-  rustup component add llvm-tools
-fi
-
 # We trap EXIT to collect coverage & clean-up profraw files...
 function after_tests(){
   echo 'Generating coverage reports...'
-  grcov "${COVERAGE_ROOT}/profraw"                                              \
-    --binary-path "${COVERAGE_ROOT}/deps"                                       \
+  grcov "${COVERAGE_ROOT}"                                                      \
+    --binary-path "${COVERAGE_ROOT}"                                            \
     --source-dir "${PWD}"                                                       \
     --output-types "html,lcov"                                                  \
     --branch                                                                    \
@@ -34,11 +29,11 @@ function after_tests(){
   mv "${COVERAGE_ROOT}/lcov" "${COVERAGE_ROOT}/lcov.info"
 
   echo 'Cleaning up...'
-  rm -rf "${COVERAGE_ROOT}/profraw"
+  rm -rf "${COVERAGE_ROOT}/deps/*.gcda"
 }
 trap after_tests EXIT
 
 echo 'Running tests with coverage instrumentation...'
-RUSTFLAGS='-Cinstrument-coverage'                                               \
-LLVM_PROFILE_FILE="${COVERAGE_ROOT}/profraw/%p-%m.profraw"                      \
+RUSTC_BOOTSTRAP=1                                                               \
+RUSTFLAGS='-Zprofile -Clink-dead-code -Coverflow-checks=off'                    \
 cargo test --profile=coverage

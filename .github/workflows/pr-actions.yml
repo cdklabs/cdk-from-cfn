@@ -41,12 +41,13 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-          components: llvm-tools-preview
       - name: Tests with Coverage
         run: bash tasks/coverage.sh
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: target/coverage/lcov.info
+          directory: target/coverage
           fail_ci_if_error: true
+          gcov: true
+          gcov_ignore: "src/main.rs,src/**/tests.rs,tests/**"
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -18,7 +18,11 @@ impl Reference {
             Origin::Parameter => {
                 format!("props.{}", camel_case(&self.name))
             }
-            Origin::LogicalId => format!("{}.ref", camel_case(&self.name)),
+            Origin::LogicalId { conditional } => format!(
+                "{var}{chain}ref",
+                var = camel_case(&self.name),
+                chain = if *conditional { "?." } else { "." }
+            ),
             Origin::Condition => camel_case(&self.name),
             Origin::PseudoParameter(x) => match x {
                 PseudoParameter::Partition => String::from("this.partition"),
@@ -29,7 +33,15 @@ impl Reference {
                 PseudoParameter::AccountId => String::from("this.account"),
                 PseudoParameter::NotificationArns => String::from("this.notificationArns"),
             },
-            Origin::GetAttribute(x) => format!("{}.attr{}", camel_case(&self.name), pascal_case(x)),
+            Origin::GetAttribute {
+                conditional,
+                attribute,
+            } => format!(
+                "{var_name}{chain}attr{name}",
+                var_name = camel_case(&self.name),
+                chain = if *conditional { "?." } else { "." },
+                name = pascal_case(attribute)
+            ),
         }
     }
 }
@@ -38,10 +50,14 @@ impl Reference {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Origin {
     Parameter,
-    LogicalId,
+    LogicalId {
+        conditional: bool,
+    },
     Condition,
-    // String here is the attribute
-    GetAttribute(String),
+    GetAttribute {
+        attribute: String,
+        conditional: bool,
+    },
     PseudoParameter(PseudoParameter),
 }
 

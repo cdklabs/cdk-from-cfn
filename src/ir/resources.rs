@@ -200,7 +200,10 @@ impl<'t> ResourceTranslator<'t> {
                         attribute_name,
                     } => Ok(ResourceIr::Ref(Reference::new(
                         &logical_name,
-                        Origin::GetAttribute(attribute_name),
+                        Origin::GetAttribute {
+                            attribute: attribute_name,
+                            conditional: self.origins.is_conditional(&logical_name),
+                        },
                     ))),
                     IntrinsicFunction::If {
                         condition_name,
@@ -293,9 +296,15 @@ impl<'t> ResourceTranslator<'t> {
         if let Some(origin) = self.origins.for_ref(x) {
             Reference::new(x, origin)
         } else if let Some((name, attribute)) = x.split_once('.') {
-            Reference::new(name, Origin::GetAttribute(attribute.into()))
+            Reference::new(
+                name,
+                Origin::GetAttribute {
+                    attribute: attribute.into(),
+                    conditional: self.origins.is_conditional(name),
+                },
+            )
         } else {
-            Reference::new(x, Origin::LogicalId)
+            Reference::new(x, Origin::LogicalId { conditional: false })
         }
     }
 
@@ -503,8 +512,8 @@ fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
         ResourceIr::Split(_, ir) => find_references(ir),
         ResourceIr::Ref(x) => match x.origin {
             Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => None,
-            Origin::LogicalId => Some(vec![x.name.to_string()]),
-            Origin::GetAttribute(_) => Some(vec![x.name.to_string()]),
+            Origin::LogicalId { .. } => Some(vec![x.name.to_string()]),
+            Origin::GetAttribute { .. } => Some(vec![x.name.to_string()]),
         },
         ResourceIr::Sub(arr) => {
             let mut v = Vec::new();
@@ -580,10 +589,10 @@ fn find_dependencies(
         ResourceIr::Split(_, ir) => find_dependencies(resource_name, ir, topo),
         ResourceIr::Ref(x) => match x.origin {
             Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => {}
-            Origin::LogicalId => {
+            Origin::LogicalId { .. } => {
                 topo.add_dependency(x.name.to_string(), resource_name.to_string());
             }
-            Origin::GetAttribute(_) => {
+            Origin::GetAttribute { .. } => {
                 topo.add_dependency(x.name.to_string(), resource_name.to_string());
             }
         },
@@ -647,7 +656,10 @@ mod tests {
             referrers: HashSet::default(),
             properties: create_property(
                 "something",
-                ResourceIr::Ref(Reference::new("A", Origin::LogicalId)),
+                ResourceIr::Ref(Reference::new(
+                    "A",
+                    Origin::LogicalId { conditional: false },
+                )),
             ),
         };
 
@@ -670,7 +682,10 @@ mod tests {
             referrers: HashSet::default(),
             properties: create_property(
                 "something",
-                ResourceIr::Ref(Reference::new("bar", Origin::LogicalId)),
+                ResourceIr::Ref(Reference::new(
+                    "bar",
+                    Origin::LogicalId { conditional: false },
+                )),
             ),
         };
 

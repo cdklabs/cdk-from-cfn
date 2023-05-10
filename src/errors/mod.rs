@@ -16,12 +16,14 @@ impl TransmuteError {
 }
 
 impl From<serde_yaml::Error> for TransmuteError {
+    #[inline]
     fn from(val: serde_yaml::Error) -> Self {
         TransmuteError::new(val)
     }
 }
 
 impl fmt::Display for TransmuteError {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "TransmuteError: {}", self.details)
     }

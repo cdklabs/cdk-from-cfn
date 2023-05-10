@@ -52,6 +52,7 @@ pub enum ConditionIr {
 }
 
 impl ConditionIr {
+    #[inline]
     pub fn is_simple(&self) -> bool {
         matches!(self, Self::Str(_) | Self::Ref(_))
     }
