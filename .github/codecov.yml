@@ -1,22 +1,23 @@
 coverage:
   precision: 1
   round: nearest
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2% # Allow coverage to drop slightly
+        removed_code_behavior: adjust_base
+    patch:
+      default:
+        target: auto
+        threshold: 5% # Allow coverage to drop slightly
+        removed_code_behavior: adjust_base
 
 comment:
   layout: header, components, diff, files, footer
   behavior: new
 
 component_management:
-  default_rules:
-    statuses:
-      - type: project
-        target: auto
-        threshold: 2% # Allow coverage to drop slightly
-        removed_code_behavior: adjust_base
-        branches: ['!main']
-      - type: patch
-        only_pulls: true
-        removed_code_behavior: adjust_base
   individual_components:
     - component_id: parser
       name: Parser
