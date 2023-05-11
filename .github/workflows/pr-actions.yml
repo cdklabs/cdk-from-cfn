@@ -46,8 +46,6 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          directory: target/coverage
+          files: target/codecov.json
           fail_ci_if_error: true
-          gcov: true
-          gcov_ignore: "src/main.rs,src/**/tests.rs,tests/**"
           token: ${{ secrets.CODECOV_TOKEN }}

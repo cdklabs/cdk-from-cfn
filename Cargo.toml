@@ -35,10 +35,3 @@ serde_with = "2.0.0"
 codegen-units = 1
 lto = true
 opt-level = 3
-
-[profile.coverage]
-inherits = "test"
-codegen-units = 1
-incremental = false
-opt-level = 0
-panic = "abort"

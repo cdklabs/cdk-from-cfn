@@ -35,7 +35,6 @@ component_management:
       name: Other
       paths:
         - src/errors/**
-        - src/integrations/**
         - src/primitives/**
         - src/specification/**
         - src/*.rs

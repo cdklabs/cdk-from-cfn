@@ -7,6 +7,7 @@ use crate::TransmuteError;
 
 use super::ReferenceOrigins;
 
+#[derive(Debug, PartialEq)]
 pub struct OutputInstruction {
     pub name: String,
     pub export: Option<ResourceIr>,
@@ -49,3 +50,6 @@ impl OutputInstruction {
         Ok(list)
     }
 }
+
+#[cfg(test)]
+mod tests;

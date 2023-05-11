@@ -33,10 +33,11 @@ impl Rule {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Structure {
     Simple(CfnType),
-    Composite(String),
+    Composite(&'static str),
 }
 
 impl Default for Structure {
+    #[inline]
     fn default() -> Self {
         Self::Simple(CfnType::Json)
     }
@@ -45,7 +46,7 @@ impl Default for Structure {
 /// CfnType is the primitives in the CloudFormation specification.
 /// They are when CFN just "doesn't care anymore" and doesn't do anything
 /// outside of parse-classification-errors.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CfnType {
     Boolean,
     Integer,
@@ -65,18 +66,11 @@ pub enum TypeRule {
 }
 
 impl TypeRule {
-    fn to_primitive(self) -> Option<CfnType> {
-        match self {
-            Self::Primitive(cfn_type) => Some(cfn_type),
-            _ => None,
-        }
-    }
-
-    fn to_structure(self) -> Structure {
+    const fn to_structure(self) -> Structure {
         match self {
             Self::List(item_type) => item_type.as_structure(),
             Self::Map(item_type) => item_type.as_structure(),
-            Self::PropertyType(property_type) => Structure::Composite(property_type.to_string()),
+            Self::PropertyType(property_type) => Structure::Composite(property_type),
             Self::Primitive(primitive) => Structure::Simple(primitive),
         }
     }
@@ -107,16 +101,17 @@ impl PropertyRule {
     //   <enough about lists / maps>
     //    - If a "Type" exists, it is a Complex type.
     //    - Otherwise, it is simple and will always have a "PrimitiveType" (different from "PrimitiveItemType")
-    pub fn get_structure(&self) -> Structure {
+    #[inline]
+    pub const fn get_structure(&self) -> Structure {
         self.type_rule.to_structure()
     }
 }
 
 impl ItemTypeRule {
-    fn as_structure(&self) -> Structure {
+    const fn as_structure(&self) -> Structure {
         match self {
             Self::Primitive(primitive) => Structure::Simple(*primitive),
-            Self::PropertyType(property_type) => Structure::Composite(property_type.to_string()),
+            Self::PropertyType(property_type) => Structure::Composite(property_type),
         }
     }
 }
@@ -129,7 +124,7 @@ pub struct Specification {
 
 impl Specification {
     #[inline(always)]
-    fn new(
+    const fn new(
         property_types: phf::Map<&'static str, Rule>,
         resource_types: phf::Map<&'static str, phf::Map<&'static str, PropertyRule>>,
     ) -> Specification {
@@ -146,17 +141,13 @@ impl Specification {
     pub fn full_property_name(complexity: &Structure, resource_type: &str) -> Option<String> {
         match complexity {
             Structure::Simple(_) => Option::None,
-            Structure::Composite(x) => {
-                let mut full_rule_name = format!("{resource_type}.{x}");
+            Structure::Composite("Tag") => {
                 // Every type in CloudFormation has the form: {resource}.{resource_type}
                 // e.g. AWS::Iam::Role.Policy . Tag's lookup name in the specification is "Tag".
                 // no one can explain why. Thanks CFN.
-                if x == "Tag" {
-                    full_rule_name = "Tag".to_string();
-                }
-
-                Option::Some(full_rule_name)
+                Option::Some("Tag".into())
             }
+            Structure::Composite(x) => Option::Some(format!("{resource_type}.{x}")),
         }
     }
 
@@ -178,6 +169,7 @@ impl Specification {
 }
 
 impl Default for Specification {
+    #[inline]
     fn default() -> Self {
         Self::new(spec::PROPERTY_TYPES, spec::RESOURCE_TYPES)
     }
@@ -185,7 +177,7 @@ impl Default for Specification {
 
 // Internal enum to look specifically for CustomResources, as they have to be treated differently
 // in the CFN Spec.
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy, Debug)]
 enum ResourceType {
     Normal,
     Custom,
@@ -242,31 +234,5 @@ impl<'a> ResourceProperties<'a> {
     }
 }
 
-#[test]
-fn test_pull_json_spec() {
-    let specification = Specification::default();
-    let policy = specification
-        .property_types
-        .get("AWS::IAM::Role.Policy")
-        .unwrap();
-    let policy_properties = policy.as_properties().unwrap();
-
-    assert_eq!(
-        CfnType::Json,
-        policy_properties
-            .get("PolicyDocument")
-            .unwrap()
-            .type_rule
-            .to_primitive()
-            .unwrap()
-    );
-    assert_eq!(
-        CfnType::String,
-        policy_properties
-            .get("PolicyName")
-            .unwrap()
-            .type_rule
-            .to_primitive()
-            .unwrap()
-    );
-}
+#[cfg(test)]
+mod tests;
