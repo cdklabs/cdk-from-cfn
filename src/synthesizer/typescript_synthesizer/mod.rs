@@ -18,6 +18,7 @@ pub struct TypescriptSynthesizer {
 }
 
 impl TypescriptSynthesizer {
+    #[cfg_attr(coverage_nightly, no_coverage)]
     #[deprecated(note = "Prefer using the Synthesizer API instead")]
     pub fn output(ir: CloudformationProgramIr) -> String {
         let mut output = Vec::new();
@@ -668,16 +669,4 @@ fn pretty_name(name: &str) -> String {
 }
 
 #[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn pretty_name_fixes() {
-        assert_eq!("vpc", pretty_name("VPC"));
-        assert_eq!("objectAccess", pretty_name("GetObject"));
-        assert_eq!("equalTo", pretty_name("Equals"));
-        assert_eq!("providerArns", pretty_name("ProviderARNs"));
-        assert_eq!("targetAZs", pretty_name("TargetAZs"));
-        assert_eq!("diskSizeMBs", pretty_name("DiskSizeMBs"));
-    }
-}
+mod tests;
