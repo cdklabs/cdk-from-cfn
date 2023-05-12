@@ -11,7 +11,7 @@ homepage = "https://github.com/iph/noctilucent#readme"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "^1.0.70"
+anyhow = "^1.0.71"
 base64 = "^0.21.0"
 clap = "^4.2.7"
 indexmap = { version = "^1.9.3", features = ["serde"] }
