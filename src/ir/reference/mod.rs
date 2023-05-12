@@ -1,5 +1,3 @@
-use voca_rs::case::{camel_case, pascal_case};
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Reference {
     pub origin: Origin,
@@ -7,41 +5,11 @@ pub struct Reference {
 }
 
 impl Reference {
+    #[inline]
     pub fn new(name: &str, origin: Origin) -> Reference {
         Reference {
             name: name.to_string(),
             origin,
-        }
-    }
-    pub fn synthesize(&self) -> String {
-        match &self.origin {
-            Origin::Parameter => {
-                format!("props.{}", camel_case(&self.name))
-            }
-            Origin::LogicalId { conditional } => format!(
-                "{var}{chain}ref",
-                var = camel_case(&self.name),
-                chain = if *conditional { "?." } else { "." }
-            ),
-            Origin::Condition => camel_case(&self.name),
-            Origin::PseudoParameter(x) => match x {
-                PseudoParameter::Partition => String::from("this.partition"),
-                PseudoParameter::Region => String::from("this.region"),
-                PseudoParameter::StackId => String::from("this.stackId"),
-                PseudoParameter::StackName => String::from("this.stackName"),
-                PseudoParameter::URLSuffix => String::from("this.urlSuffix"),
-                PseudoParameter::AccountId => String::from("this.account"),
-                PseudoParameter::NotificationArns => String::from("this.notificationArns"),
-            },
-            Origin::GetAttribute {
-                conditional,
-                attribute,
-            } => format!(
-                "{var_name}{chain}attr{name}",
-                var_name = camel_case(&self.name),
-                chain = if *conditional { "?." } else { "." },
-                name = pascal_case(attribute)
-            ),
         }
     }
 }
@@ -62,6 +30,7 @@ pub enum Origin {
 }
 
 impl From<PseudoParameter> for Origin {
+    #[inline]
     fn from(pseudo: PseudoParameter) -> Self {
         Origin::PseudoParameter(pseudo)
     }

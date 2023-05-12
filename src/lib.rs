@@ -1,3 +1,5 @@
+#![cfg_attr(coverage_nightly, feature(no_coverage))]
+
 use indexmap::IndexMap;
 use parser::condition::ConditionFunction;
 use parser::lookup_table::MappingTable;

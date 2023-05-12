@@ -1,14 +1,16 @@
 use crate::ir::conditions::ConditionIr;
 use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::outputs::OutputInstruction;
+use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use base64::Engine;
 use indexmap::IndexMap;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
-use voca_rs::case::camel_case;
+use voca_rs::case::{camel_case, pascal_case};
 
 use super::output::CodeSink;
 use super::Synthesizer;
@@ -210,6 +212,40 @@ impl Synthesizer for TypescriptSynthesizer {
             output.write_line("}")?;
         }
         output.write_line("}")
+    }
+}
+
+impl Reference {
+    fn to_typescript(&self) -> Cow<'static, str> {
+        match &self.origin {
+            Origin::Parameter => format!("props.{}", camel_case(&self.name)).into(),
+            Origin::LogicalId { conditional } => format!(
+                "{var}{chain}ref",
+                var = camel_case(&self.name),
+                chain = if *conditional { "?." } else { "." }
+            )
+            .into(),
+            Origin::Condition => camel_case(&self.name).into(),
+            Origin::PseudoParameter(x) => match x {
+                PseudoParameter::Partition => "this.partition".into(),
+                PseudoParameter::Region => "this.region".into(),
+                PseudoParameter::StackId => "this.stackId".into(),
+                PseudoParameter::StackName => "this.stackName".into(),
+                PseudoParameter::URLSuffix => "this.urlSuffix".into(),
+                PseudoParameter::AccountId => "this.account".into(),
+                PseudoParameter::NotificationArns => "this.notificationArns".into(),
+            },
+            Origin::GetAttribute {
+                conditional,
+                attribute,
+            } => format!(
+                "{var_name}{chain}attr{name}",
+                var_name = camel_case(&self.name),
+                chain = if *conditional { "?." } else { "." },
+                name = pascal_case(attribute)
+            )
+            .into(),
+        }
     }
 }
 
@@ -504,7 +540,7 @@ fn emit_resource_ir(
         }
 
         // References
-        ResourceIr::Ref(reference) => output.write_raw(&reference.synthesize(), lead_indent)?,
+        ResourceIr::Ref(reference) => output.write_raw(&reference.to_typescript(), lead_indent)?,
     }
 
     if let Some(trailer) = trailer {
@@ -571,7 +607,7 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         ConditionIr::Str(x) => {
             format!("'{x}'")
         }
-        ConditionIr::Ref(x) => x.synthesize(),
+        ConditionIr::Ref(x) => x.to_typescript().into(),
         ConditionIr::Map(named_resource, l1, l2) => {
             let name = match named_resource.as_ref() {
                 ConditionIr::Str(x) => pretty_name(x),
