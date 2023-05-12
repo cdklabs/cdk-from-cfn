@@ -60,13 +60,15 @@ jobs:
     needs: [testing]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Download CodeCov artifact
         uses: actions/download-artifact@v3
         with:
           name: codecov.json
+          path: ${{ runner.temp }}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          files: codecov.json
+          files: ${{ runner.temp }}/codecov.json
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
