@@ -1,6 +1,7 @@
 use crate::ir::conditions::ConditionIr;
 use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::outputs::OutputInstruction;
+use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
@@ -8,7 +9,7 @@ use base64::Engine;
 use indexmap::IndexMap;
 use std::collections::HashMap;
 use std::io;
-use voca_rs::case::camel_case;
+use voca_rs::case::{camel_case, pascal_case};
 
 use super::output::CodeSink;
 use super::Synthesizer;
@@ -210,6 +211,40 @@ impl Synthesizer for TypescriptSynthesizer {
             output.write_line("}")?;
         }
         output.write_line("}")
+    }
+}
+
+impl Reference {
+    fn synthesize(&self) -> String {
+        match &self.origin {
+            Origin::Parameter => {
+                format!("props.{}", camel_case(&self.name))
+            }
+            Origin::LogicalId { conditional } => format!(
+                "{var}{chain}ref",
+                var = camel_case(&self.name),
+                chain = if *conditional { "?." } else { "." }
+            ),
+            Origin::Condition => camel_case(&self.name),
+            Origin::PseudoParameter(x) => match x {
+                PseudoParameter::Partition => String::from("this.partition"),
+                PseudoParameter::Region => String::from("this.region"),
+                PseudoParameter::StackId => String::from("this.stackId"),
+                PseudoParameter::StackName => String::from("this.stackName"),
+                PseudoParameter::URLSuffix => String::from("this.urlSuffix"),
+                PseudoParameter::AccountId => String::from("this.account"),
+                PseudoParameter::NotificationArns => String::from("this.notificationArns"),
+            },
+            Origin::GetAttribute {
+                conditional,
+                attribute,
+            } => format!(
+                "{var_name}{chain}attr{name}",
+                var_name = camel_case(&self.name),
+                chain = if *conditional { "?." } else { "." },
+                name = pascal_case(attribute)
+            ),
+        }
     }
 }
 

@@ -14,12 +14,20 @@ cargo llvm-cov                                                                  
   --all-features                                                                \
   --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$'                       \
   --no-fail-fast                                                                \
-  --codecov --output-path target/codecov.json
+  --lcov --output-path target/lcov.info                                         \
+  --remap-path-prefix
 
 cargo llvm-cov report                                                           \
   --hide-instantiations                                                         \
   --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$'                       \
-  --html --output-dir target/coverage
+  --codecov --output-path target/codecov.json                                   \
+  --remap-path-prefix
+
+cargo llvm-cov report                                                           \
+  --hide-instantiations                                                         \
+  --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$'                       \
+  --html --output-dir target/coverage                                           \
+  --remap-path-prefix
 
 cargo llvm-cov report                                                           \
   --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$'
