@@ -1,5 +1,3 @@
-#![cfg_attr(coverage_nightly, feature(no_coverage))]
-
 use crate::ir::conditions::ConditionIr;
 use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::outputs::OutputInstruction;
