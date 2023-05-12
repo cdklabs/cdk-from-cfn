@@ -13,7 +13,7 @@ homepage = "https://github.com/iph/noctilucent#readme"
 [dependencies]
 anyhow = "^1.0.70"
 base64 = "^0.21.0"
-clap = "^4.2.1"
+clap = "^4.2.7"
 indexmap = { version = "^1.9.3", features = ["serde"] }
 nom = "^7.0.0"
 numberkit = "^0.1.0"
