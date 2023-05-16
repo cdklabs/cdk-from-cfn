@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use indexmap::IndexMap;
 
 use crate::ir::reference::{Origin, Reference};
-use crate::ir::resources::{order, ResourceInstruction, ResourceIr};
+use crate::ir::resources::{order, ResourceInstruction, ResourceIr, ResourceType};
 
 #[test]
 fn test_ir_ordering() {
@@ -14,8 +14,8 @@ fn test_ir_ordering() {
         deletion_policy: None,
         update_policy: None,
         dependencies: Vec::new(),
-        resource_type: "".to_string(),
-        referrers: HashSet::default(),
+        resource_type: ResourceType::Custom("Dummy".into()),
+        references: HashSet::default(),
         properties: IndexMap::default(),
     };
 
@@ -26,8 +26,8 @@ fn test_ir_ordering() {
         metadata: None,
         deletion_policy: None,
         update_policy: None,
-        resource_type: "".to_string(),
-        referrers: HashSet::default(),
+        resource_type: ResourceType::Custom("Dummy".into()),
+        references: HashSet::default(),
         properties: create_property(
             "something",
             ResourceIr::Ref(Reference::new(
@@ -52,8 +52,8 @@ fn test_ref_links() {
         deletion_policy: None,
         update_policy: None,
         dependencies: vec!["foo".to_string()],
-        resource_type: "".to_string(),
-        referrers: HashSet::default(),
+        resource_type: ResourceType::Custom("Dummy".into()),
+        references: HashSet::default(),
         properties: create_property(
             "something",
             ResourceIr::Ref(Reference::new(
@@ -66,7 +66,7 @@ fn test_ref_links() {
     ir_instruction.generate_references();
 
     assert_eq!(
-        ir_instruction.referrers,
+        ir_instruction.references,
         HashSet::from(["foo".into(), "bar".into()])
     );
 }

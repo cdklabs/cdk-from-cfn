@@ -2,8 +2,9 @@ use std::io;
 
 use crate::ir::CloudformationProgramIr;
 
+pub mod golang;
 mod output;
-pub mod typescript_synthesizer;
+pub mod typescript;
 
 pub trait Synthesizer {
     fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write) -> io::Result<()>;
