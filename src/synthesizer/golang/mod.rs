@@ -1,3 +1,5 @@
+#![allow(unused_variables)]
+
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
 use crate::ir::importer::ImportInstruction;
