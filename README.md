@@ -5,12 +5,31 @@ JSON/YAML into beautiful typescript...until now.
 Noctilucent will take your JSON/YAML and output the equivalent typescript.
 
 ## User Guide
+```console
+$ cargo build --release
+$ ./target/release/noctilucent [INPUT] [OUTPUT]
 ```
-cargo build --release
-./target/release/noctilucent <INPUT> [OUTPUT]
+* `INPUT` is the input file path (STDIN by default).
+* `OUTPUT` is the output file path; if not specified, output will be printed on your command line (STDOUT by default).
+
+### Cargo Features
+
+Name         | Enabled by default | Description
+-------------|:------------------:|---------------------------------------------
+`typescript` | :heavy_check_mark: | Enables support for TypeScript output
+`golang`     |                    | Enables support for Go output
+
+You can enable experimental languages (not enabled by default) by enabling the relevant feature:
+```console
+$ cargo build --release --features=golang
+Finished release [optimized] target(s) in 0.17s
 ```
-* `INPUT` is the input file path.
-* `OUTPUT` is the output file path; if not specified, output will be printed on your command line.
+
+If you want to disable on-by-default languages, you can pass `--no-default-features`:
+```console
+$ cargo build --release --no-default-features --features=golang
+Finished release [optimized] target(s) in 0.17s
+```
 
 ## Implemented
 

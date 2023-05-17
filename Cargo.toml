@@ -1,9 +1,14 @@
 [package]
 name = "noctilucent"
 version = "0.2.0"
-edition = "2018"
-description = "Library for parsing and reconstructing cloudformation json into cdk"
+edition = "2021"
+description = "Turn AWS CloudFormation templates into AWS CDK applications"
 license = "MIT"
+
+authors = [
+  "Sean Tyler Myers <seanmyers0608@gmail.com>",
+  "The noctilucent contributors",
+]
 
 repository = "https://github.com/iph/noctilucent.git"
 homepage = "https://github.com/iph/noctilucent#readme"
@@ -18,7 +23,7 @@ golang = []
 [dependencies]
 anyhow = "^1.0.71"
 base64 = "^0.21.0"
-clap = "^4.2.7"
+clap = { version = "^4.2.7", features = ["cargo"] }
 indexmap = { version = "^1.9.3", features = ["serde"] }
 nom = "^7.0.0"
 numberkit = "^0.1.0"
