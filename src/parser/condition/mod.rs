@@ -115,11 +115,7 @@ pub enum ConditionValue {
     Function(Box<ConditionFunction>),
 
     // Cloudformation meta-functions
-    FindInMap(
-        Box<ConditionValue>,
-        Box<ConditionValue>,
-        Box<ConditionValue>,
-    ),
+    FindInMap(String, Box<ConditionValue>, Box<ConditionValue>),
 
     // End of recursion, the base primitives to work with
     String(String),

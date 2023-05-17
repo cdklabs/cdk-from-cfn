@@ -5,7 +5,6 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use base64::Engine;
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -15,23 +14,21 @@ use voca_rs::case::{camel_case, pascal_case};
 use super::output::CodeSink;
 use super::Synthesizer;
 
-pub struct TypescriptSynthesizer {
+pub struct Typescript {
     // TODO: Put options in here for different outputs in typescript
 }
 
-impl TypescriptSynthesizer {
+impl Typescript {
     #[cfg_attr(coverage_nightly, no_coverage)]
     #[deprecated(note = "Prefer using the Synthesizer API instead")]
     pub fn output(ir: CloudformationProgramIr) -> String {
         let mut output = Vec::new();
-        TypescriptSynthesizer {}
-            .synthesize(ir, &mut output)
-            .unwrap();
+        Typescript {}.synthesize(ir, &mut output).unwrap();
         String::from_utf8(output).unwrap()
     }
 }
 
-impl Synthesizer for TypescriptSynthesizer {
+impl Synthesizer for Typescript {
     fn synthesize(
         &self,
         ir: CloudformationProgramIr,
@@ -269,19 +266,8 @@ fn emit_cfn_output(
 }
 
 fn emit_resource(output: &mut CodeSink, reference: &ResourceInstruction) -> io::Result<()> {
-    let mut split_ref = reference.resource_type.split("::");
-    let base_type = split_ref.next().unwrap();
-    let service: String;
-    let rtype: String;
-    if base_type.starts_with("Custom") {
-        service = String::from("CloudFormation").to_ascii_lowercase();
-        rtype = String::from("CustomResource");
-    } else {
-        service = split_ref.next().unwrap().to_ascii_lowercase();
-        rtype = String::from(split_ref.next().unwrap());
-    }
-
     let var_name = pretty_name(&reference.name);
+    let service = reference.resource_type.service().to_lowercase();
 
     let maybe_undefined = if let Some(cond) = &reference.condition {
         append_references(output, reference)?;
@@ -296,6 +282,7 @@ fn emit_resource(output: &mut CodeSink, reference: &ResourceInstruction) -> io::
         output.write_line(&format!(
             "? new {service}.Cfn{rtype}(this, '{}', {{",
             reference.name.escape_debug(),
+            rtype = reference.resource_type.type_name(),
         ))?;
 
         let mid_output = &mut output.indented();
@@ -309,7 +296,8 @@ fn emit_resource(output: &mut CodeSink, reference: &ResourceInstruction) -> io::
         append_references(output, reference)?;
         output.write_line(&format!(
             "const {var_name} = new {service}.Cfn{rtype}(this, '{}', {{",
-            reference.name.escape_debug()
+            reference.name.escape_debug(),
+            rtype = reference.resource_type.type_name(),
         ))?;
 
         emit_resource_props(output.indented(), &reference.properties)?;
@@ -427,28 +415,13 @@ fn emit_resource_ir(
 
         // Intrinsics
         ResourceIr::Base64(base64) => match base64.as_ref() {
-            ResourceIr::String(b64) => {
-                match base64::engine::general_purpose::STANDARD.decode(b64) {
-                    Ok(plain) => match String::from_utf8(plain) {
-                        Ok(plain) => {
-                            output.write_raw(&format!("'{}'", plain.escape_debug()), lead_indent)?
-                        }
-                        Err(_) => output.write_raw(
-                            &format!(
-                                "Buffer.from('{}', 'base64').toString('binary')",
-                                b64.escape_debug()
-                            ),
-                            lead_indent,
-                        )?,
-                    },
-                    Err(cause) => {
-                        return Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            format!("invalid base64: {b64:?} -- {cause}"),
-                        ))
-                    }
-                }
-            }
+            ResourceIr::String(b64) => output.write_raw(
+                &format!(
+                    "Buffer.from('{}', 'base64').toString('binary')",
+                    b64.escape_debug()
+                ),
+                lead_indent,
+            )?,
             other => {
                 output.write_raw("cdk.Fn.base64(", lead_indent)?;
                 emit_resource_ir(output, other, false, None)?;
@@ -609,14 +582,9 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         }
         ConditionIr::Ref(x) => x.to_typescript().into(),
         ConditionIr::Map(named_resource, l1, l2) => {
-            let name = match named_resource.as_ref() {
-                ConditionIr::Str(x) => pretty_name(x),
-                &_ => synthesize_condition_recursive(named_resource.as_ref()),
-            };
-
             format!(
                 "{}[{}][{}]",
-                name,
+                pretty_name(named_resource),
                 synthesize_condition_recursive(l1.as_ref()),
                 synthesize_condition_recursive(l2.as_ref())
             )
@@ -647,8 +615,8 @@ fn emit_inner_mapping(
 }
 
 fn append_references(output: &mut CodeSink, reference: &ResourceInstruction) -> io::Result<()> {
-    if !reference.referrers.is_empty() {
-        for dep in &reference.referrers {
+    if !reference.references.is_empty() {
+        for dep in &reference.references {
             output.write_line(&format!("if ({dep} == null) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep)))?;
         }
     }

@@ -167,7 +167,7 @@ fn condition_function_not() {
 #[test]
 fn condition_find_in_map() {
     let expected = ConditionValue::FindInMap(
-        Box::new(ConditionValue::String("Map".into())),
+        "Map".into(),
         Box::new(ConditionValue::String("TLK".into())),
         Box::new(ConditionValue::String("SLK".into())),
     );

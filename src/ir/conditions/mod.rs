@@ -44,7 +44,7 @@ pub enum ConditionIr {
     Or(Vec<ConditionIr>),
 
     // Cloudformation meta-functions
-    Map(Box<ConditionIr>, Box<ConditionIr>, Box<ConditionIr>),
+    Map(String, Box<ConditionIr>, Box<ConditionIr>),
 
     // End of recursion, the base primitives to work with
     Str(String),
@@ -89,11 +89,10 @@ impl ConditionValue {
         match self {
             Self::Function(function) => function.into_ir(),
             Self::FindInMap(name, x, y) => {
-                let name = name.into_ir();
                 let x = x.into_ir();
                 let y = y.into_ir();
 
-                ConditionIr::Map(Box::new(name), Box::new(x), Box::new(y))
+                ConditionIr::Map(name, Box::new(x), Box::new(y))
             }
             Self::String(x) => ConditionIr::Str(x),
             Self::Ref(name) => {
@@ -177,8 +176,7 @@ impl ConditionValue {
             Self::Condition(cond) => {
                 topo_sort.add_dependency(cond.as_str(), logical_id);
             }
-            Self::FindInMap(name, key1, key2) => {
-                name.find_dependencies(logical_id, topo_sort);
+            Self::FindInMap(_, key1, key2) => {
                 key1.find_dependencies(logical_id, topo_sort);
                 key2.find_dependencies(logical_id, topo_sort);
             }

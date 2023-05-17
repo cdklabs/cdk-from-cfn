@@ -6,10 +6,12 @@ use crate::parser::resource::{
 use crate::primitives::WrapperF64;
 use crate::specification::{CfnType, Specification, Structure};
 use crate::TransmuteError;
+use base64::Engine;
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
+use std::fmt;
 use std::ops::Deref;
 use topological_sort::TopologicalSort;
 
@@ -128,7 +130,7 @@ impl<'t> ResourceTranslator<'t> {
 
                             let opt = Specification::full_property_name(
                                 &property_rule.get_structure(),
-                                resource_metadata.resource_type,
+                                &resource_metadata.resource_type.to_string(),
                             );
 
                             self.with_complexity_and_metadata(
@@ -239,10 +241,25 @@ impl<'t> ResourceTranslator<'t> {
                         Ok(ResourceIr::Split(sep, Box::new(ir)))
                     }
                     IntrinsicFunction::Ref(x) => Ok(ResourceIr::Ref(self.translate_ref(&x))),
-                    IntrinsicFunction::Base64(x) => {
-                        let ir = self.translate(x)?;
-                        Ok(ResourceIr::Base64(Box::new(ir)))
-                    }
+                    IntrinsicFunction::Base64(x) => match x {
+                        ResourceValue::String(b64) => {
+                            match base64::engine::general_purpose::STANDARD.decode(&b64) {
+                                Ok(decoded) => match String::from_utf8(decoded) {
+                                    Ok(text) => Ok(ResourceIr::String(text)),
+                                    Err(_) => {
+                                        Ok(ResourceIr::Base64(Box::new(ResourceIr::String(b64))))
+                                    }
+                                },
+                                Err(cause) => Err(TransmuteError::new(format!(
+                                    "invalid base64: {b64:?} -- {cause}"
+                                ))),
+                            }
+                        }
+                        x => {
+                            let ir = self.translate(x)?;
+                            Ok(ResourceIr::Base64(Box::new(ir)))
+                        }
+                    },
                     IntrinsicFunction::ImportValue(name) => Ok(ResourceIr::ImportValue(name)),
                     IntrinsicFunction::Select { index, list } => {
                         let index = match index {
@@ -335,7 +352,7 @@ impl<'t> ResourceTranslator<'t> {
 pub struct ResourceMetadata<'t> {
     specification: &'t Specification,
     property_type: Option<Cow<'t, str>>,
-    resource_type: &'t str,
+    resource_type: &'t ResourceType,
 }
 
 // ResourceInstruction is all the information needed to output a resource assignment.
@@ -347,11 +364,12 @@ pub struct ResourceInstruction {
     pub update_policy: Option<ResourceIr>,
     pub deletion_policy: Option<DeletionPolicy>,
     pub dependencies: Vec<String>,
-    // Referrers are a meta concept of "anything other resource that ResourceInstruction references".
-    // This could be in a property or dependency path.
-    pub referrers: HashSet<String>,
-    pub resource_type: String,
+    pub resource_type: ResourceType,
     pub properties: IndexMap<String, ResourceIr>,
+
+    /// `references` identify the logical ID of all other template entities that this resource
+    /// contains a reference to (i.e: it uses them).
+    pub references: HashSet<String>,
 }
 
 impl ResourceInstruction {
@@ -365,7 +383,7 @@ impl ResourceInstruction {
 
         for (name, attributes) in parse_tree {
             let resource_spec = specification.get_resource(&attributes.resource_type);
-            let resource_type = attributes.resource_type;
+            let resource_type = ResourceType::parse(&attributes.resource_type)?;
 
             let metadata = if let Some(metadata) = attributes.metadata {
                 Some(ResourceTranslator::json(origins).translate(metadata)?)
@@ -385,14 +403,15 @@ impl ResourceInstruction {
                     .as_ref()
                     .and_then(|spec| spec.structure(&name))
                     .unwrap_or_default();
-                let property_type = Specification::full_property_name(&complexity, &resource_type);
+                let property_type =
+                    Specification::full_property_name(&complexity, &resource_type.to_string());
                 let translator = ResourceTranslator {
                     complexity,
                     origins,
                     resource_metadata: Some(ResourceMetadata {
                         specification,
                         property_type: property_type.map(Into::into),
-                        resource_type: resource_type.as_str(),
+                        resource_type: &resource_type,
                     }),
                 };
                 properties.insert(name, translator.translate(prop)?);
@@ -405,9 +424,9 @@ impl ResourceInstruction {
                 update_policy,
                 deletion_policy: attributes.deletion_policy,
                 dependencies: attributes.depends_on,
-                referrers: HashSet::default(),
                 resource_type,
                 properties,
+                references: HashSet::default(),
             };
             instruction.generate_references();
             instructions.push(instruction);
@@ -417,13 +436,93 @@ impl ResourceInstruction {
     }
 
     fn generate_references(&mut self) {
-        self.referrers.extend(self.dependencies.iter().cloned());
-
+        self.references.extend(self.dependencies.iter().cloned());
         for (_, property) in &self.properties {
-            let opt_refs = find_references(property);
-            if let Some(x) = opt_refs {
-                self.referrers.extend(x)
+            self.references.extend(find_references(property));
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ResourceType {
+    /// A standard resource type (AWS::<service>::<type_name>)
+    AWS { service: String, type_name: String },
+    /// A custom resource type (Custom::<something>)
+    Custom(String),
+}
+
+impl ResourceType {
+    fn parse(from: &str) -> Result<Self, TransmuteError> {
+        let mut parts = from.split("::");
+        let first = parts.next().unwrap();
+
+        match first {
+            "Custom" => {
+                let name = match parts.next() {
+                    Some("") | None => {
+                        return Err(TransmuteError::new(format!(
+                            "invalid resource type: {from:?}"
+                        )))
+                    }
+                    Some(name) => name,
+                };
+                if parts.next().is_some() {
+                    return Err(TransmuteError::new(format!(
+                        "invalid resource type: {from:?} (only two segments expected)"
+                    )));
+                }
+                Ok(Self::Custom(name.into()))
             }
+            "AWS" => {
+                let service = match parts.next() {
+                    Some("") | None => {
+                        return Err(TransmuteError::new(format!(
+                            "invalid resource type: {from:?} (missing service name)"
+                        )))
+                    }
+                    Some(service) => service.into(),
+                };
+                let type_name = match parts.next() {
+                    Some("") | None => {
+                        return Err(TransmuteError::new(format!(
+                            "invalid resource type: {from:?} (missing resource type name)"
+                        )))
+                    }
+                    Some(type_name) => type_name.into(),
+                };
+                if parts.next().is_some() {
+                    return Err(TransmuteError::new(format!(
+                        "invalid resource type: {from:?} (only three segments expected)"
+                    )));
+                }
+                Ok(Self::AWS { service, type_name })
+            }
+            other => Err(TransmuteError::new(format!(
+                "unknown resource type namespace: {other} (in {from:?})"
+            ))),
+        }
+    }
+
+    pub fn service(&self) -> &str {
+        match self {
+            Self::AWS { service, .. } => service,
+            Self::Custom(_) => "CloudFormation",
+        }
+    }
+
+    pub fn type_name(&self) -> &str {
+        match self {
+            Self::AWS { type_name, .. } => type_name,
+            Self::Custom(_) => "CustomResource",
+        }
+    }
+}
+
+impl fmt::Display for ResourceType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AWS { service, type_name } => write!(f, "AWS::{}::{}", service, type_name),
+            Self::Custom(name) => write!(f, "Custom::{}", name),
         }
     }
 }
@@ -459,99 +558,64 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruc
     sorted_instructions
 }
 
-fn find_references(resource: &ResourceIr) -> Option<Vec<String>> {
+pub(crate) fn find_references(resource: &ResourceIr) -> HashSet<String> {
+    let mut set = HashSet::default();
+
     match resource {
         ResourceIr::Null
         | ResourceIr::Bool(_)
         | ResourceIr::Number(_)
         | ResourceIr::Double(_)
         | ResourceIr::String(_)
-        | ResourceIr::ImportValue(_) => None,
+        | ResourceIr::ImportValue(_) => { /* No references */ }
 
         ResourceIr::Array(_, arr) => {
-            let mut v = Vec::with_capacity(arr.len());
             for resource in arr {
-                if let Some(vec) = find_references(resource) {
-                    v.extend(vec);
-                }
+                set.extend(find_references(resource));
             }
-
-            Some(v)
         }
         ResourceIr::Object(_, hash) => {
-            let mut v = Vec::with_capacity(hash.len());
             for resource in hash.values() {
-                if let Some(vec) = find_references(resource) {
-                    v.extend(vec);
-                }
+                set.extend(find_references(resource));
             }
-
-            Some(v)
         }
         ResourceIr::If(_, x, y) => {
-            let mut v = Vec::with_capacity(2);
-            if let Some(vec) = find_references(x.deref()) {
-                v.extend(vec);
-            }
-            if let Some(vec) = find_references(y.deref()) {
-                v.extend(vec);
-            }
-
-            Some(v)
+            set.extend(find_references(x.deref()));
+            set.extend(find_references(y.deref()));
         }
         ResourceIr::Join(_, arr) => {
-            let mut v = Vec::new();
             for resource in arr {
-                if let Some(vec) = find_references(resource) {
-                    v.extend(vec);
-                }
+                set.extend(find_references(resource));
             }
-
-            Some(v)
         }
-        ResourceIr::Split(_, ir) => find_references(ir),
+        ResourceIr::Split(_, ir) => set = find_references(ir),
         ResourceIr::Ref(x) => match x.origin {
-            Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => None,
-            Origin::LogicalId { .. } => Some(vec![x.name.to_string()]),
-            Origin::GetAttribute { .. } => Some(vec![x.name.to_string()]),
+            Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => { /* No references */
+            }
+            Origin::GetAttribute { .. } | Origin::LogicalId { .. } => {
+                set.insert(x.name.clone());
+            }
         },
         ResourceIr::Sub(arr) => {
-            let mut v = Vec::new();
             for resource in arr {
-                if let Some(vec) = find_references(resource) {
-                    v.extend(vec);
-                }
+                set.extend(find_references(resource));
             }
-
-            Some(v)
         }
         ResourceIr::Map(_, y, z) => {
-            let mut v = Vec::new();
-            if let Some(vec) = find_references(y.deref()) {
-                v.extend(vec);
-            }
-            if let Some(vec) = find_references(z.deref()) {
-                v.extend(vec);
-            }
-            Some(v)
+            set.extend(find_references(y.deref()));
+            set.extend(find_references(z.deref()));
         }
-        ResourceIr::Base64(x) => find_references(x.deref()),
-        ResourceIr::Select(_, x) => find_references(x.deref()),
-        ResourceIr::GetAZs(x) => find_references(x.deref()),
+        ResourceIr::Base64(x) => set = find_references(x.deref()),
+        ResourceIr::Select(_, x) => set = find_references(x.deref()),
+        ResourceIr::GetAZs(x) => set = find_references(x.deref()),
         ResourceIr::Cidr(x, y, z) => {
-            let mut v = Vec::new();
-            if let Some(vec) = find_references(x.deref()) {
-                v.extend(vec);
-            }
-            if let Some(vec) = find_references(y.deref()) {
-                v.extend(vec);
-            }
-            if let Some(vec) = find_references(z.deref()) {
-                v.extend(vec);
-            }
-            Some(v)
+            set.extend(find_references(x.deref()));
+            set.extend(find_references(y.deref()));
+            set.extend(find_references(z.deref()));
         }
     }
+
+    set
 }
 
 fn find_dependencies(
