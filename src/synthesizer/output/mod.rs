@@ -16,12 +16,14 @@ impl<'a> CodeSink<'a> {
     }
 
     /// Creates a new CodeSink configured for emitting Go.
+    #[cfg(feature = "golang")]
     #[inline(always)]
     pub fn golang(writer: &'a mut dyn io::Write) -> Self {
         Self::new(CodeSinkConfig::golang(), writer)
     }
 
     /// Creates a new CodeSink configured for emitting TypeScript.
+    #[cfg(feature = "typescript")]
     #[inline(always)]
     pub fn typescript(writer: &'a mut dyn io::Write) -> Self {
         Self::new(CodeSinkConfig::typescript(), writer)
@@ -99,10 +101,12 @@ struct CodeSinkConfig {
 }
 
 impl CodeSinkConfig {
+    #[cfg(feature = "typescript")]
     const fn typescript() -> Self {
         Self { indent: "  " }
     }
 
+    #[cfg(feature = "golang")]
     const fn golang() -> Self {
         Self { indent: "\t" }
     }

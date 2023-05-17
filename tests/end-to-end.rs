@@ -1,6 +1,7 @@
 use noctilucent::ir::CloudformationProgramIr;
-use noctilucent::synthesizer::golang::Golang;
-use noctilucent::synthesizer::typescript::Typescript;
+#[cfg(feature = "golang")]
+use noctilucent::synthesizer::Golang;
+use noctilucent::synthesizer::Typescript;
 use noctilucent::CloudformationParseTree;
 
 macro_rules! test_case {
@@ -8,6 +9,7 @@ macro_rules! test_case {
         mod $name {
             use super::*;
 
+            #[cfg(feature = "golang")]
             #[test]
             fn golang() {
                 let expected = include_str!(concat!("end-to-end/", stringify!($name), "/app.go"));

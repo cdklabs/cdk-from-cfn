@@ -2,9 +2,19 @@ use std::io;
 
 use crate::ir::CloudformationProgramIr;
 
-pub mod golang;
+#[cfg(feature = "golang")]
+mod golang;
+#[cfg(feature = "golang")]
+#[doc(inline)]
+pub use golang::*;
+
+#[cfg(feature = "typescript")]
+mod typescript;
+#[cfg(feature = "typescript")]
+#[doc(inline)]
+pub use typescript::*;
+
 mod output;
-pub mod typescript;
 
 pub trait Synthesizer {
     fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write) -> io::Result<()>;

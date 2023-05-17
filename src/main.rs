@@ -1,10 +1,11 @@
 use clap::{Arg, ArgAction, Command};
 use noctilucent::ir::CloudformationProgramIr;
-use noctilucent::synthesizer::golang::Golang;
-use noctilucent::synthesizer::typescript::Typescript;
-use noctilucent::synthesizer::Synthesizer;
+use noctilucent::synthesizer::*;
 use noctilucent::CloudformationParseTree;
 use std::{fs, io};
+
+#[cfg(not(any(feature = "typescript", feature = "golang")))]
+compile_error!("At least one language target feature must be enabled!");
 
 fn main() -> anyhow::Result<()> {
     let matches = Command::new("Translates cfn templates to cdk typescript")
@@ -25,17 +26,31 @@ fn main() -> anyhow::Result<()> {
                 .required(false)
                 .index(2)
                 .action(ArgAction::Set),
-        )
-        .arg(
-            Arg::new("language")
-                .long("language")
-                .short('l')
-                .help("Sets the output language to use")
-                .default_value("typescript")
-                .value_parser(["typescript", "go"])
-                .action(ArgAction::Set),
-        )
-        .get_matches();
+        );
+    #[cfg(feature = "typescript")]
+    let matches = matches.arg(
+        Arg::new("language")
+            .long("language")
+            .short('l')
+            .help("Sets the output language to use (defaults to typescript)")
+            .required(false)
+            .value_parser(["typescript"])
+            .action(ArgAction::Set),
+    );
+    #[cfg(feature = "golang")]
+    let matches = matches.arg(
+        Arg::new("experimental-language")
+            .long("experimental-language")
+            .help("Sets the output language to use with an experimental target")
+            .required(false)
+            .value_parser(Vec::<&str>::from([
+                #[cfg(feature = "golang")]
+                "go",
+            ]))
+            .conflicts_with("language")
+            .action(ArgAction::Set),
+    );
+    let matches = matches.get_matches();
 
     let cfn_tree: CloudformationParseTree = {
         let reader: Box<dyn std::io::Read> =
@@ -60,10 +75,13 @@ fn main() -> anyhow::Result<()> {
 
     let synthesizer: Box<dyn Synthesizer> = match matches
         .get_one::<String>("language")
+        .or_else(|| matches.get_one("experimental-language"))
         .map(String::as_str)
         .unwrap_or("typescript")
     {
+        #[cfg(feature = "typescript")]
         "typescript" => Box::new(Typescript {}),
+        #[cfg(feature = "golang")]
         "go" => Box::<Golang>::default(),
         unsupported => panic!("unsupported language: {}", unsupported),
     };
