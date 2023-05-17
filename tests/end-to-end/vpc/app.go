@@ -1,8 +1,6 @@
 package vpc
 
 import (
-	"fmt"
-
 	cdk "github.com/aws/aws-cdk-go/awscdk/v2"
 	ec2 "github.com/aws/aws-cdk-go/awscdk/v2/awsec2"
 	"github.com/aws/constructs-go/constructs/v10"
@@ -28,7 +26,7 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 			EnableDnsSupport: jsii.Bool(true),
 			EnableDnsHostnames: jsii.Bool(true),
 			Tags: &[]*cdk.CfnTag{
-				{
+				&cdk.CfnTag{
 					Key: jsii.String("cost-center"),
 					Value: jsii.Number(1337),
 				},
@@ -41,7 +39,7 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		jsii.String("Subnet1"),
 		&ec2.CfnSubnetProps{
 			AvailabilityZone: cdk.Fn_Select(jsii.Number(0), cdk.Fn_GetAzs(jsii.String(""))),
-			CidrBlock: cdk.Fn_Select(jsii.Number(0), cdk.Fn_Cidr(vpc.AttrCidrBlock(), jsii.Number(6), jsii.Number(8))),
+			CidrBlock: cdk.Fn_Select(jsii.Number(0), cdk.Fn_Cidr(vpc.AttrCidrBlock(), jsii.Number(6), jsii.String("8"))),
 			VpcId: vpc.Ref(),
 		},
 	)
@@ -51,7 +49,7 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		jsii.String("Subnet2"),
 		&ec2.CfnSubnetProps{
 			AvailabilityZone: cdk.Fn_Select(jsii.Number(1), cdk.Fn_GetAzs(jsii.String(""))),
-			CidrBlock: cdk.Fn_Select(jsii.Number(1), cdk.Fn_Cidr(vpc.AttrCidrBlock(), jsii.Number(6), jsii.Number(8))),
+			CidrBlock: cdk.Fn_Select(jsii.Number(1), cdk.Fn_Cidr(vpc.AttrCidrBlock(), jsii.Number(6), jsii.String("8"))),
 			VpcId: vpc.Ref(),
 		},
 	)
@@ -61,11 +59,10 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		jsii.String("Subnet3"),
 		&ec2.CfnSubnetProps{
 			AvailabilityZone: cdk.Fn_Select(jsii.Number(2), cdk.Fn_GetAzs(jsii.String(""))),
-			CidrBlock: cdk.Fn_Select(jsii.Number(2), cdk.Fn_Cidr(vpc.AttrCidrBlock(), jsii.Number(6), jsii.Number(8))),
+			CidrBlock: cdk.Fn_Select(jsii.Number(2), cdk.Fn_Cidr(vpc.AttrCidrBlock(), jsii.Number(6), jsii.String("8"))),
 			VpcId: vpc.Ref(),
 		},
 	)
-
 
 	return &NoctStack{
 		Stack: stack,

@@ -582,14 +582,9 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         }
         ConditionIr::Ref(x) => x.to_typescript().into(),
         ConditionIr::Map(named_resource, l1, l2) => {
-            let name = match named_resource.as_ref() {
-                ConditionIr::Str(x) => pretty_name(x),
-                &_ => synthesize_condition_recursive(named_resource.as_ref()),
-            };
-
             format!(
                 "{}[{}][{}]",
-                name,
+                pretty_name(named_resource),
                 synthesize_condition_recursive(l1.as_ref()),
                 synthesize_condition_recursive(l2.as_ref())
             )

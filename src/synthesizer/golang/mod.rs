@@ -5,7 +5,7 @@ use crate::ir::constructor::ConstructorParameter;
 use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::OutputType;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
-use crate::ir::resources::{find_references, ResourceIr};
+use crate::ir::resources::{find_references, ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::{CfnType, Structure};
@@ -43,9 +43,23 @@ impl Synthesizer for Golang {
 
         output.write_line("import (")?;
         let imports = &mut output.indented();
-        imports.write_line("\"fmt\"")?;
-        imports.blank_line()?;
-        for import in ir.imports {
+        {
+            let mut insert_blank = if ir.requires_fmt() {
+                imports.write_line("\"fmt\"")?;
+                true
+            } else {
+                false
+            };
+            if ir.requires_time() {
+                imports.write_line("\"time\"")?;
+                insert_blank = true;
+            }
+            if insert_blank {
+                imports.blank_line()?;
+            }
+        }
+
+        for import in &ir.imports {
             imports.write_line(&import.to_golang())?;
         }
         // The usual imports of constructs library & jsii runtime
@@ -77,9 +91,9 @@ impl Synthesizer for Golang {
                 class.write_with_prefix("/// ", description)?;
             }
             class.write_line(&format!(
-                "{name} interface{{}}",
+                "{name} interface{{}} // TODO: fix to appropriate type",
                 name = golang_identifier(&output.name, IdentifierKind::Exported)
-            ))?; // TODO: Type?
+            ))?
         }
         output.write_line("}")?;
         output.blank_line()?;
@@ -99,6 +113,12 @@ impl Synthesizer for Golang {
                     MappingInnerValue::List(_) => "[]*string",
                 },
             };
+
+            let used = ir.uses_map_table(&mapping.name);
+            if !used {
+                // Go is merciless about dead stores... so we comment out unused maps...
+                ctor.write_line("/*")?;
+            }
             ctor.write_line(&format!(
                 "{} := map[*string]map[*string]{leaf_type}{{",
                 golang_identifier(&mapping.name, IdentifierKind::Unexported)
@@ -136,6 +156,9 @@ impl Synthesizer for Golang {
                 map.write_line("},")?;
             }
             ctor.write_line("}")?;
+            if !used {
+                ctor.write_line("*/")?;
+            }
             ctor.blank_line()?;
         }
 
@@ -189,7 +212,25 @@ impl Synthesizer for Golang {
             ctor.write_line(")")?;
             ctor.blank_line()?;
         }
-        ctor.blank_line()?;
+
+        for output in &ir.outputs {
+            if let Some(export) = &output.export {
+                ctor.write_line(&format!(
+                    "cdk.NewCfnOutput(stack, jsii.String({name:?}), &cdk.CfnOutputProps{{",
+                    name = output.name
+                ))?;
+                let props = &mut ctor.indented();
+                if let Some(description) = &output.description {
+                    props.write_line(&format!("Description: jsii.String({description:?}),"))?;
+                }
+                props.write("ExportName: ")?;
+                export.emit_golang(props, false, Some(","))?;
+                props.write("Value: ")?;
+                output.value.emit_golang(props, false, Some(","))?;
+                ctor.write_line("})")?;
+                ctor.blank_line()?;
+            }
+        }
 
         ctor.write_line("return &NoctStack{")?;
         let fields = &mut ctor.indented();
@@ -206,6 +247,198 @@ impl Synthesizer for Golang {
         output.write_line("}")?;
 
         Ok(())
+    }
+}
+
+trait Inspectable {
+    /// Whether the rendered code for this entity requires importing "fmt"
+    fn requires_fmt(&self) -> bool;
+    /// Whether the rendered code for this entity requires importing "time"
+    fn requires_time(&self) -> bool;
+
+    /// Whether the rendered code for this entity uses the named mapping table.
+    fn uses_map_table(&self, name: &str) -> bool;
+}
+
+impl Inspectable for CloudformationProgramIr {
+    fn requires_fmt(&self) -> bool {
+        self.resources.iter().any(Inspectable::requires_fmt)
+            || self.outputs.iter().any(|out| out.value.requires_fmt())
+    }
+
+    fn requires_time(&self) -> bool {
+        self.resources.iter().any(Inspectable::requires_time)
+            || self.outputs.iter().any(|out| out.value.requires_time())
+    }
+
+    fn uses_map_table(&self, name: &str) -> bool {
+        self.conditions
+            .iter()
+            .any(|cond| cond.value.uses_map_table(name))
+            || self.resources.iter().any(|res| res.uses_map_table(name))
+            || self
+                .outputs
+                .iter()
+                .any(|out| out.value.uses_map_table(name))
+    }
+}
+
+impl Inspectable for ConditionIr {
+    #[cfg_attr(coverage_nightly, no_coverage)]
+    #[inline]
+    fn requires_fmt(&self) -> bool {
+        false
+    }
+
+    #[cfg_attr(coverage_nightly, no_coverage)]
+    #[inline]
+    fn requires_time(&self) -> bool {
+        false
+    }
+
+    fn uses_map_table(&self, name: &str) -> bool {
+        match self {
+            ConditionIr::Equals(lhs, rhs) => lhs.uses_map_table(name) || rhs.uses_map_table(name),
+            ConditionIr::Not(cond) => cond.uses_map_table(name),
+            ConditionIr::And(list) | ConditionIr::Or(list) => {
+                list.iter().any(|cond| cond.uses_map_table(name))
+            }
+            ConditionIr::Map(map_name, _, _) => map_name == name,
+            ConditionIr::Str(_) | ConditionIr::Ref(_) => false,
+        }
+    }
+}
+
+impl Inspectable for ResourceInstruction {
+    fn requires_fmt(&self) -> bool {
+        self.properties.values().any(Inspectable::requires_fmt)
+            || self
+                .metadata
+                .as_ref()
+                .map(Inspectable::requires_fmt)
+                .unwrap_or(false)
+            || self
+                .update_policy
+                .as_ref()
+                .map(Inspectable::requires_fmt)
+                .unwrap_or(false)
+    }
+
+    fn requires_time(&self) -> bool {
+        self.properties.values().any(Inspectable::requires_time)
+            || self
+                .metadata
+                .as_ref()
+                .map(Inspectable::requires_time)
+                .unwrap_or(false)
+            || self
+                .update_policy
+                .as_ref()
+                .map(Inspectable::requires_time)
+                .unwrap_or(false)
+    }
+
+    fn uses_map_table(&self, name: &str) -> bool {
+        self.properties.values().any(|val| val.uses_map_table(name))
+            || self
+                .metadata
+                .as_ref()
+                .map(|val| val.uses_map_table(name))
+                .unwrap_or(false)
+            || self
+                .update_policy
+                .as_ref()
+                .map(|val| val.uses_map_table(name))
+                .unwrap_or(false)
+    }
+}
+
+impl Inspectable for ResourceIr {
+    fn requires_fmt(&self) -> bool {
+        match self {
+            Self::Sub(_) => true,
+            Self::Array(_, list) => list.iter().any(Inspectable::requires_fmt),
+            Self::Object(_, props) => props.values().any(Inspectable::requires_fmt),
+            Self::Cidr(range, count, mask) => {
+                range.requires_fmt() || count.requires_fmt() || mask.requires_fmt()
+            }
+            Self::GetAZs(region) => region.requires_fmt(),
+            Self::If(_, when_true, when_false) => {
+                when_true.requires_fmt() || when_false.requires_fmt()
+            }
+            Self::Join(_, parts) => parts.iter().any(Inspectable::requires_fmt),
+            Self::Map(_, tlk, slk) => tlk.requires_fmt() || slk.requires_fmt(),
+            Self::Select(_, list) => list.requires_fmt(),
+            Self::Split(_, text) => text.requires_fmt(),
+            Self::Base64(value) => value.requires_fmt(),
+            Self::Null
+            | Self::Bool(_)
+            | Self::String(_)
+            | Self::Number(_)
+            | Self::Double(_)
+            | Self::Ref(_)
+            | Self::ImportValue(_) => false,
+        }
+    }
+
+    fn requires_time(&self) -> bool {
+        match self {
+            Self::Array(Structure::Simple(CfnType::Timestamp), ..)
+            | Self::Object(Structure::Simple(CfnType::Timestamp), ..) => true,
+            Self::Sub(list) => list.iter().any(Inspectable::requires_time),
+            Self::Array(_, list) => list.iter().any(Inspectable::requires_time),
+            Self::Object(_, props) => props.values().any(Inspectable::requires_time),
+            Self::Cidr(range, count, mask) => {
+                range.requires_time() || count.requires_time() || mask.requires_time()
+            }
+            Self::GetAZs(region) => region.requires_time(),
+            Self::If(_, when_true, when_false) => {
+                when_true.requires_time() || when_false.requires_time()
+            }
+            Self::Join(_, parts) => parts.iter().any(Inspectable::requires_time),
+            Self::Map(_, tlk, slk) => tlk.requires_time() || slk.requires_time(),
+            Self::Select(_, list) => list.requires_time(),
+            Self::Split(_, text) => text.requires_time(),
+            Self::Base64(value) => value.requires_time(),
+            Self::Null
+            | Self::Bool(_)
+            | Self::String(_)
+            | Self::Number(_)
+            | Self::Double(_)
+            | Self::Ref(_)
+            | Self::ImportValue(_) => false,
+        }
+    }
+
+    fn uses_map_table(&self, name: &str) -> bool {
+        match self {
+            Self::Sub(list) => list.iter().any(|val| val.uses_map_table(name)),
+            Self::Array(_, list) => list.iter().any(|val| val.uses_map_table(name)),
+            Self::Object(_, props) => props.values().any(|val| val.uses_map_table(name)),
+            Self::Cidr(range, count, mask) => {
+                range.uses_map_table(name)
+                    || count.uses_map_table(name)
+                    || mask.uses_map_table(name)
+            }
+            Self::GetAZs(region) => region.uses_map_table(name),
+            Self::If(_, when_true, when_false) => {
+                when_true.uses_map_table(name) || when_false.uses_map_table(name)
+            }
+            Self::Join(_, parts) => parts.iter().any(|val| val.uses_map_table(name)),
+            Self::Map(map_name, tlk, slk) => {
+                map_name == name || tlk.uses_map_table(name) || slk.uses_map_table(name)
+            }
+            Self::Select(_, list) => list.uses_map_table(name),
+            Self::Split(_, text) => text.uses_map_table(name),
+            Self::Base64(value) => value.uses_map_table(name),
+            Self::Null
+            | Self::Bool(_)
+            | Self::String(_)
+            | Self::Number(_)
+            | Self::Double(_)
+            | Self::Ref(_)
+            | Self::ImportValue(_) => false,
+        }
     }
 }
 
@@ -236,8 +469,8 @@ impl ConstructorParameter {
             "{name} {type}",
             name = golang_identifier(&self.name, IdentifierKind::Exported),
             r#type = match self.constructor_type.as_ref() {
-                "String" => "*string",
-                other => unimplemented!("parameter type: {other}"),
+                "String" => "*string".into(),
+                other => format!("interface{{/* {other} */}}"),
             }
         )
     }
@@ -260,14 +493,48 @@ impl GolangEmitter for ConditionIr {
         trailer: Option<&str>,
     ) -> io::Result<()> {
         match self {
+            Self::Ref(reference) => reference.emit_golang(output, indent_lead, None)?,
+            Self::Str(str) => output.write_raw(&format!("jsii.String({str:?})"), indent_lead)?,
+
+            Self::And(list) => {
+                for (idx, cond) in list.iter().enumerate() {
+                    if idx > 0 {
+                        output.write_raw(" && ", false)?;
+                    }
+                    cond.emit_golang(output, indent_lead && idx == 0, None)?;
+                }
+            }
+            Self::Or(list) => {
+                for (idx, cond) in list.iter().enumerate() {
+                    if idx > 0 {
+                        output.write_raw(" || ", false)?;
+                    }
+                    cond.emit_golang(output, indent_lead && idx == 0, None)?;
+                }
+            }
+
+            Self::Not(cond) => {
+                output.write_raw("!", indent_lead)?;
+                cond.emit_golang(output, false, None)?;
+            }
+
             Self::Equals(lhs, rhs) => {
                 lhs.emit_golang(output, indent_lead, None)?;
                 output.write_raw(" == ", false)?;
                 rhs.emit_golang(output, false, None)?
             }
-            Self::Ref(reference) => reference.emit_golang(output, indent_lead, None)?,
-            Self::Str(str) => output.write_raw(&format!("jsii.String({str:?})"), indent_lead)?,
-            other => output.write_raw(&format!("nil /* {other:?} */"), indent_lead)?,
+
+            Self::Map(map, tlk, slk) => {
+                output.write_raw(
+                    &golang_identifier(map, IdentifierKind::Unexported),
+                    indent_lead,
+                )?;
+                output.write_raw("[", false)?;
+                tlk.emit_golang(output, false, None)?;
+                output.write_raw("][", false)?;
+                slk.emit_golang(output, false, None)?;
+                output.write_raw("]", false)?;
+            }
         }
         if let Some(trailer) = trailer {
             output.write_raw_line(trailer, false)
@@ -305,14 +572,14 @@ impl GolangEmitter for ResourceIr {
                 let value_type: Cow<str> = match structure {
                     Structure::Composite(name) => match *name {
                         "Tag" => "*cdk.CfnTag".into(),
-                        name => todo!("Composite Array of {name}"),
+                        name => format!("*{name} /* FIXME */").into(),
                     },
                     Structure::Simple(simple) => match simple {
                         CfnType::Boolean => "*bool".into(),
                         CfnType::Double | CfnType::Integer | CfnType::Long => "*float64".into(),
                         CfnType::Json => "interface{}".into(),
                         CfnType::String => "*string".into(),
-                        CfnType::Timestamp => "time.Date".into(),
+                        CfnType::Timestamp => "time.Time".into(),
                     },
                 };
 
@@ -327,10 +594,14 @@ impl GolangEmitter for ResourceIr {
             Self::Object(structure, properties) => {
                 match structure {
                     Structure::Composite(name) => match *name {
-                        "Tag" => output.write_raw_line("{", indent_lead)?,
-                        name => todo!("Composite Object of {name}"),
+                        "Tag" => output.write_raw_line("&cdk.CfnTag{", indent_lead)?,
+                        name => {
+                            output.write_raw_line(&format!("&{name}/* FIXME */{{"), indent_lead)?;
+                        }
                     },
-                    Structure::Simple(_) => unreachable!(),
+                    Structure::Simple(cfn) => {
+                        unreachable!("object with simple structure ({:?})", cfn)
+                    }
                 }
                 let props = &mut output.indented();
                 for (name, val) in properties {
@@ -358,8 +629,19 @@ impl GolangEmitter for ResourceIr {
                 output.write_raw(", ", false)?;
                 count.emit_golang(output, false, None)?;
                 output.write_raw(", ", false)?;
-                // TODO: This should be a string for some reason...
-                mask.emit_golang(output, false, None)?;
+                match mask.as_ref() {
+                    ResourceIr::Number(mask) => {
+                        output.write_raw(&format!("jsii.String(\"{mask}\")"), false)?;
+                    }
+                    ResourceIr::String(mask) => {
+                        output.write_raw(&format!("jsii.String({mask:?})"), false)?;
+                    }
+                    mask => {
+                        output.write_raw("jsii.String(fmt.Sprintf(\"%v\", ", false)?;
+                        mask.emit_golang(output, false, None)?;
+                        output.write_raw("))", false)?;
+                    }
+                }
                 output.write_raw(")", false)?;
             }
             Self::GetAZs(region) => {
@@ -368,8 +650,10 @@ impl GolangEmitter for ResourceIr {
                 output.write_raw(")", false)?;
             }
             Self::If(cond, when_true, when_false) => {
-                // TODO: This needs to return the appropriate value type...
-                output.write_raw_line("func() interface{} {", indent_lead)?;
+                output.write_raw_line(
+                    "func() interface{} { // TODO: fix to appropriate value type",
+                    indent_lead,
+                )?;
                 let body = &mut output.indented();
                 body.write_line(&format!(
                     "if {cond} {{",
@@ -424,6 +708,11 @@ impl GolangEmitter for ResourceIr {
                     output.write_raw(")", false)?;
                 }
             },
+            Self::Split(sep, str) => {
+                output.write_raw(&format!("cdk.Fn_Split(jsii.String({sep:?}), "), indent_lead)?;
+                str.emit_golang(output, false, None)?;
+                output.write_raw(")", false)?;
+            }
             Self::Sub(parts) => {
                 let pattern = parts
                     .iter()
@@ -453,9 +742,6 @@ impl GolangEmitter for ResourceIr {
 
             // References
             Self::Ref(reference) => reference.emit_golang(output, indent_lead, None)?,
-
-            // TODO: Drop this
-            other => output.write_raw(&format!("nil /* {other:?} */"), indent_lead)?,
         }
 
         if let Some(trailer) = trailer {
@@ -474,7 +760,10 @@ impl GolangEmitter for Reference {
         trailer: Option<&str>,
     ) -> io::Result<()> {
         match &self.origin {
-            Origin::Condition => todo!(),
+            Origin::Condition => output.write_raw(
+                &golang_identifier(&self.name, IdentifierKind::Unexported),
+                indent_lead,
+            )?,
             Origin::GetAttribute {
                 attribute,
                 conditional,
@@ -524,8 +813,11 @@ impl GolangEmitter for Reference {
 
 #[derive(Clone, Copy)]
 enum IdentifierKind {
+    /// The identifier is exported. It'll be named using PascalCase.
     Exported,
+    /// The identifier is unexported. It'll be named using camelCase.
     Unexported,
+    /// The identifier is a module symbol. It'll be named using snake_case.
     ModuleName,
 }
 

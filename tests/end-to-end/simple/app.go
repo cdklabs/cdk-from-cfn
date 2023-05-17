@@ -21,12 +21,13 @@ type NoctStackProps struct {
 type NoctStack struct {
 	cdk.Stack
 	/// The ARN of the bucket in this template!
-	BucketArn interface{}
+	BucketArn interface{} // TODO: fix to appropriate type
 	/// The ARN of the SQS Queue
-	QueueArn interface{}
+	QueueArn interface{} // TODO: fix to appropriate type
 }
 
 func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *NoctStack {
+	/*
 	booleans := map[*string]map[*string]*bool{
 		jsii.String("True"): map[*string]*bool{
 			jsii.String("true"): jsii.Bool(true),
@@ -35,7 +36,9 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 			jsii.String("false"): jsii.Bool(false),
 		},
 	}
+	*/
 
+	/*
 	lists := map[*string]map[*string][]*string{
 		jsii.String("Candidates"): map[*string][]*string{
 			jsii.String("Empty"): []*string{
@@ -49,7 +52,9 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 			},
 		},
 	}
+	*/
 
+	/*
 	numbers := map[*string]map[*string]*float64{
 		jsii.String("Prime"): map[*string]*float64{
 			jsii.String("Eleven"): jsii.Number(11),
@@ -57,6 +62,7 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 			jsii.String("Seventeen"): jsii.Number(17),
 		},
 	}
+	*/
 
 	strings := map[*string]map[*string]*string{
 		jsii.String("Foos"): map[*string]*string{
@@ -110,9 +116,9 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 			AccessControl: jsii.String("private"),
 			BucketName: jsii.String(fmt.Sprintf("%v-%v-bucket", props.BucketNamePrefix, stack.StackName())),
 			Tags: &[]*cdk.CfnTag{
-				{
+				&cdk.CfnTag{
 					Key: jsii.String("FancyTag"),
-					Value: func() interface{} {
+					Value: func() interface{} { // TODO: fix to appropriate value type
 						if isUsEast1 {
 							return cdk.Fn_Base64(table[jsii.String("Values")][jsii.String("String")])
 						} else {
@@ -124,6 +130,11 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		},
 	)
 
+	cdk.NewCfnOutput(stack, jsii.String("BucketArn"), &cdk.CfnOutputProps{
+		Description: jsii.String("The ARN of the bucket in this template!"),
+		ExportName: jsii.String("ExportName"),
+		Value: bucket.AttrArn(),
+	})
 
 	return &NoctStack{
 		Stack: stack,
