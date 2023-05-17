@@ -458,12 +458,13 @@ impl ResourceType {
 
         match first {
             "Custom" => {
-                let name = if let Some(name) = parts.next() {
-                    name
-                } else {
-                    return Err(TransmuteError::new(format!(
-                        "invalid resource type: {from:?}"
-                    )));
+                let name = match parts.next() {
+                    Some("") | None => {
+                        return Err(TransmuteError::new(format!(
+                            "invalid resource type: {from:?}"
+                        )))
+                    }
+                    Some(name) => name,
                 };
                 if parts.next().is_some() {
                     return Err(TransmuteError::new(format!(
@@ -473,19 +474,21 @@ impl ResourceType {
                 Ok(Self::Custom(name.into()))
             }
             "AWS" => {
-                let service = if let Some(service) = parts.next() {
-                    service.into()
-                } else {
-                    return Err(TransmuteError::new(format!(
-                        "invalid resource type: {from:?} (missing service name)"
-                    )));
+                let service = match parts.next() {
+                    Some("") | None => {
+                        return Err(TransmuteError::new(format!(
+                            "invalid resource type: {from:?} (missing service name)"
+                        )))
+                    }
+                    Some(service) => service.into(),
                 };
-                let type_name = if let Some(type_name) = parts.next() {
-                    type_name.into()
-                } else {
-                    return Err(TransmuteError::new(format!(
-                        "invalid resource type: {from:?} (missing resource type name)"
-                    )));
+                let type_name = match parts.next() {
+                    Some("") | None => {
+                        return Err(TransmuteError::new(format!(
+                            "invalid resource type: {from:?} (missing resource type name)"
+                        )))
+                    }
+                    Some(type_name) => type_name.into(),
                 };
                 if parts.next().is_some() {
                     return Err(TransmuteError::new(format!(
