@@ -22,7 +22,7 @@ golang = []
 
 [dependencies]
 anyhow = "^1.0.71"
-base64 = "^0.21.0"
+base64 = "^0.21.2"
 clap = { version = "^4.3.0", features = ["cargo"] }
 indexmap = { version = "^1.9.3", features = ["serde"] }
 nom = "^7.0.0"
