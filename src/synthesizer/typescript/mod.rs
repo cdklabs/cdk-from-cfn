@@ -1,3 +1,4 @@
+use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::outputs::OutputInstruction;
@@ -9,10 +10,12 @@ use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
+use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case};
 
-use super::output::CodeSink;
 use super::Synthesizer;
+
+const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
 pub struct Typescript {
     // TODO: Put options in here for different outputs in typescript
@@ -34,28 +37,32 @@ impl Synthesizer for Typescript {
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
     ) -> io::Result<()> {
-        let mut output = CodeSink::typescript(output);
+        let code = CodeBuffer::default();
 
+        let imports = code.section(true);
         for import in &ir.imports {
-            output.write_text(&format!(
+            imports.line(format!(
                 "import * as {} from '{}';",
                 import.name,
                 import.path.join("/"),
-            ))?;
+            ));
         }
-        // Static imports with base assumptions (e.g. using base 64)
-        output.write_text("import { Buffer } from 'buffer';")?;
-        output.blank_line()?;
 
-        output.write_line("export interface NoctStackProps extends cdk.StackProps {")?;
+        let context = &mut TypescriptContext::with_imports(imports);
+
+        let iface_props = code.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("export interface NoctStackProps extends cdk.StackProps {".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
         let default_props = {
-            let output = &mut output.indented();
             let mut default_props: HashMap<&str, String> =
                 HashMap::with_capacity(ir.constructor.inputs.len());
             for param in &ir.constructor.inputs {
-                output.write_text("/**")?;
+                let comment = iface_props.tsdoc();
                 if let Some(description) = &param.description {
-                    output.write_with_prefix(" * ", description)?;
+                    comment.line(description.to_owned());
                 }
                 let question_mark_token = match &param.default_value {
                     None => "",
@@ -64,151 +71,169 @@ impl Synthesizer for Typescript {
                             "String" => format!("{value:?}"),
                             _ => value.clone(),
                         };
-                        output.write_line(&format!(" * @default {value}"))?;
+                        comment.line(format!("@default {value}"));
                         default_props.insert(&param.name, value);
                         "?"
                     }
                 };
-                output.write_line(" */")?;
-                output.write_line(&format!(
+                iface_props.line(format!(
                     "readonly {}{question_mark_token}: {};",
                     pretty_name(&param.name),
                     pretty_name(&param.constructor_type),
-                ))?;
+                ));
             }
             default_props
         };
-        output.write_line("}")?;
-        output.blank_line()?;
+        code.newline();
 
         if let Some(description) = &ir.description {
-            output.write_line("/**")?;
-            output.write_with_prefix(" * ", description)?;
-            output.write_line(" */")?;
+            let comment = code.tsdoc();
+            comment.line(description.to_owned());
         }
-        output.write_line("export class NoctStack extends cdk.Stack {")?;
+        let class = code.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("export class NoctStack extends cdk.Stack {".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+        if !ir.outputs.is_empty() {
+            for op in &ir.outputs {
+                if let Some(description) = &op.description {
+                    let comment = class.tsdoc();
+                    comment.line(description.to_owned());
+                }
+                // NOTE: the property type can be inferred by the compiler...
+                class.line(format!(
+                    "public readonly {name}{option};",
+                    name = pretty_name(&op.name),
+                    option = match &op.condition {
+                        Some(_) => "?",
+                        None => "",
+                    }
+                ));
+            }
+            class.newline();
+        }
+
+        let default_empty = if ir
+            .constructor
+            .inputs
+            .iter()
+            .all(|param| param.default_value.is_some())
         {
-            let output = &mut output.indented();
+            " = {}"
+        } else {
+            ""
+        };
 
-            if !ir.outputs.is_empty() {
-                for op in &ir.outputs {
-                    if let Some(description) = &op.description {
-                        output.write_line("/**")?;
-                        output.write_with_prefix(" * ", description)?;
-                        output.write_line(" */")?;
-                    }
-                    // NOTE: the property type can be inferred by the compiler...
-                    output.write_line(&format!(
-                        "public readonly {name}{option};",
-                        name = pretty_name(&op.name),
-                        option = match &op.condition {
-                            Some(_) => "?",
-                            None => "",
-                        }
-                    ))?;
-                }
-                output.blank_line()?;
+        let  ctor = class.indent_with_options(IndentOptions{
+            indent: INDENT,
+            leading: Some(format!("public constructor(scope: cdk.App, id: string, props: NoctStackProps{default_empty}) {{").into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+        ctor.line("super(scope, id, props);");
+
+        if !default_props.is_empty() {
+            ctor.newline();
+            ctor.line("// Applying default props");
+            let obj = ctor.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("props = {".into()),
+                trailing: Some("};".into()),
+                trailing_newline: true,
+            });
+            obj.line("...props,");
+            for (name, value) in default_props {
+                obj.line(format!("{name}: props.{name} ?? {value},"));
             }
-
-            let default_empty = if ir
-                .constructor
-                .inputs
-                .iter()
-                .all(|param| param.default_value.is_some())
-            {
-                " = {}"
-            } else {
-                ""
-            };
-
-            output.write_line(&format!("public constructor(scope: cdk.App, id: string, props: NoctStackProps{default_empty}) {{"))?;
-            {
-                let mut output = output.indented();
-
-                output.write_line("super(scope, id, props);")?;
-
-                if !default_props.is_empty() {
-                    output.blank_line()?;
-                    output.write_line("// Applying default props")?;
-                    output.write_line("props = {")?;
-                    {
-                        let output = &mut output.indented();
-                        output.write_line("...props,")?;
-                        for (name, value) in default_props {
-                            output.write_line(&format!("{name}: props.{name} ?? {value},"))?;
-                        }
-                    }
-                    output.write_line("};")?;
-                }
-
-                if !ir.mappings.is_empty() {
-                    emit_mappings(&mut output, &ir.mappings)?;
-                }
-
-                if !ir.conditions.is_empty() {
-                    output.blank_line()?;
-                    output.write_line("// Conditions")?;
-
-                    for cond in &ir.conditions {
-                        let synthed = synthesize_condition_recursive(&cond.value);
-                        output.write_line(&format!(
-                            "const {} = {};",
-                            pretty_name(&cond.name),
-                            synthed
-                        ))?;
-                    }
-                }
-
-                output.blank_line()?;
-                output.write_line("// Resources")?;
-
-                let mut is_first_resource = true;
-                for reference in &ir.resources {
-                    if is_first_resource {
-                        is_first_resource = false;
-                    } else {
-                        output.blank_line()?;
-                    }
-                    emit_resource(&mut output, reference)?;
-                }
-
-                if !ir.outputs.is_empty() {
-                    output.blank_line()?;
-                    output.write_line("// Outputs")?;
-
-                    for op in &ir.outputs {
-                        let var_name = pretty_name(&op.name);
-                        let cond = op.condition.as_ref().map(|s| pretty_name(s));
-
-                        if let Some(cond) = &cond {
-                            output.write_line(&format!(
-                                "this.{var_name} = {cond}",
-                                cond = pretty_name(cond)
-                            ))?;
-                            let output = &mut output.indented();
-                            output.write_raw("? ", true)?;
-                            emit_resource_ir(&mut output.indented(), &op.value, false, Some(""))?;
-                            output.write_line(": undefined;")?;
-                        } else {
-                            output.write_raw(&format!("this.{var_name} = "), true)?;
-                            emit_resource_ir(&mut output, &op.value, false, Some(";"))?;
-                        }
-
-                        if let Some(export) = &op.export {
-                            if let Some(cond) = cond {
-                                output.write_line(&format!("if ({cond}) {{"))?;
-                                emit_cfn_output(output.indented(), op, export, &var_name)?;
-                                output.write_line("}")?;
-                            } else {
-                                emit_cfn_output(output.indented(), op, export, &var_name)?;
-                            }
-                        }
-                    }
-                }
-            }
-            output.write_line("}")?;
         }
-        output.write_line("}")
+
+        emit_mappings(&ctor, &ir.mappings);
+
+        if !ir.conditions.is_empty() {
+            ctor.newline();
+            ctor.line("// Conditions");
+
+            for cond in &ir.conditions {
+                let synthed = synthesize_condition_recursive(&cond.value);
+                ctor.line(format!("const {} = {};", pretty_name(&cond.name), synthed));
+            }
+        }
+
+        ctor.newline();
+        ctor.line("// Resources");
+
+        let mut is_first_resource = true;
+        for reference in &ir.resources {
+            if is_first_resource {
+                is_first_resource = false;
+            } else {
+                ctor.newline();
+            }
+            emit_resource(context, &ctor, reference);
+        }
+
+        if !ir.outputs.is_empty() {
+            ctor.newline();
+            ctor.line("// Outputs");
+
+            for op in &ir.outputs {
+                let var_name = pretty_name(&op.name);
+                let cond = op.condition.as_ref().map(|s| pretty_name(s));
+
+                if let Some(cond) = &cond {
+                    ctor.line(format!(
+                        "this.{var_name} = {cond}",
+                        cond = pretty_name(cond)
+                    ));
+                    ctor.text(format!("{INDENT}? "));
+                    let indented = ctor.indent(INDENT);
+                    emit_resource_ir(context, &indented, &op.value, Some("\n"));
+                    ctor.line(format!("{INDENT}: undefined;"));
+                } else {
+                    ctor.text(format!("this.{var_name} = "));
+                    emit_resource_ir(context, &ctor, &op.value, Some(";\n"));
+                }
+
+                if let Some(export) = &op.export {
+                    if let Some(cond) = cond {
+                        let indented = ctor.indent_with_options(IndentOptions {
+                            indent: INDENT,
+                            leading: Some(format!("if ({cond}) {{").into()),
+                            trailing: Some("}".into()),
+                            trailing_newline: true,
+                        });
+                        emit_cfn_output(context, &indented, op, export, &var_name);
+                    } else {
+                        emit_cfn_output(context, &ctor, op, export, &var_name);
+                    }
+                }
+            }
+        }
+
+        code.write(output)
+    }
+}
+
+struct TypescriptContext {
+    imports: Rc<CodeBuffer>,
+    imports_buffer: bool,
+}
+impl TypescriptContext {
+    const fn with_imports(imports: Rc<CodeBuffer>) -> Self {
+        Self {
+            imports,
+            imports_buffer: false,
+        }
+    }
+
+    fn import_buffer(&mut self) {
+        if self.imports_buffer {
+            return;
+        }
+        self.imports.line("import { Buffer } from 'buffer';");
+        self.imports_buffer = true;
     }
 }
 
@@ -247,285 +272,300 @@ impl Reference {
 }
 
 fn emit_cfn_output(
-    mut output: CodeSink,
+    context: &mut TypescriptContext,
+    output: &CodeBuffer,
     op: &OutputInstruction,
     export: &ResourceIr,
     var_name: &str,
-) -> io::Result<()> {
-    output.write_line(&format!("new cdk.CfnOutput(this, '{}', {{", &op.name))?;
+) {
+    let output = output.indent_with_options(IndentOptions {
+        indent: INDENT,
+        leading: Some(format!("new cdk.CfnOutput(this, '{}', {{", &op.name).into()),
+        trailing: Some("});".into()),
+        trailing_newline: true,
+    });
 
-    let props = &mut output.indented();
     if let Some(description) = &op.description {
-        props.write_line(&format!("description: '{}',", description.escape_debug()))?;
+        output.line(format!("description: '{}',", description.escape_debug()));
     }
-    props.write_raw("exportName: ", true)?;
-    emit_resource_ir(props, export, false, Some(","))?;
-    props.write_line(&format!("value: this.{var_name},"))?;
-
-    output.write_line("});")
+    output.text("exportName: ");
+    emit_resource_ir(context, &output, export, Some(",\n"));
+    output.line(format!("value: this.{var_name},"));
 }
 
-fn emit_resource(output: &mut CodeSink, reference: &ResourceInstruction) -> io::Result<()> {
+fn emit_resource(
+    context: &mut TypescriptContext,
+    output: &CodeBuffer,
+    reference: &ResourceInstruction,
+) {
     let var_name = pretty_name(&reference.name);
     let service = reference.resource_type.service().to_lowercase();
 
     let maybe_undefined = if let Some(cond) = &reference.condition {
-        append_references(output, reference)?;
+        append_references(output, reference);
 
-        output.write_line(&format!(
+        output.line(format!(
             "const {var_name} = {cond}",
             cond = pretty_name(cond)
-        ))?;
+        ));
 
-        let mut output = output.indented();
+        let output = output.indent(INDENT);
 
-        output.write_line(&format!(
+        output.line(format!(
             "? new {service}.Cfn{rtype}(this, '{}', {{",
             reference.name.escape_debug(),
             rtype = reference.resource_type.type_name(),
-        ))?;
+        ));
 
-        let mid_output = &mut output.indented();
-        emit_resource_props(mid_output.indented(), &reference.properties)?;
-        mid_output.write_line("})")?;
+        let mid_output = output.indent(INDENT);
+        emit_resource_props(context, mid_output.indent(INDENT), &reference.properties);
+        mid_output.line("})");
 
-        output.write_line(": undefined;")?;
+        output.line(": undefined;");
 
         true
     } else {
-        append_references(output, reference)?;
-        output.write_line(&format!(
+        append_references(output, reference);
+        output.line(format!(
             "const {var_name} = new {service}.Cfn{rtype}(this, '{}', {{",
             reference.name.escape_debug(),
             rtype = reference.resource_type.type_name(),
-        ))?;
+        ));
 
-        emit_resource_props(output.indented(), &reference.properties)?;
+        emit_resource_props(context, output.indent(INDENT), &reference.properties);
 
-        output.write_line("});")?;
+        output.line("});");
 
         false
     };
 
     if maybe_undefined {
-        output.write_line(&format!("if ({var_name} != null) {{"))?;
-        emit_resource_attributes(&mut output.indented(), reference, &var_name)?;
-        output.write_line("}")?;
+        output.line(format!("if ({var_name} != null) {{"));
+        let indented = output.indent(INDENT);
+        emit_resource_attributes(context, &indented, reference, &var_name);
+        output.line("}");
     } else {
-        emit_resource_attributes(output, reference, &var_name)?;
+        emit_resource_attributes(context, output, reference, &var_name);
     }
-
-    Ok(())
 }
 
 fn emit_resource_attributes(
-    output: &mut CodeSink,
+    context: &mut TypescriptContext,
+    output: &CodeBuffer,
     reference: &ResourceInstruction,
     var_name: &str,
-) -> io::Result<()> {
+) {
     if let Some(metadata) = &reference.metadata {
-        output.write_line(&format!("{var_name}.cfnOptions.metadata = {{"))?;
-
-        emit_resource_metadata(output.indented(), metadata)?;
-
-        output.write_line("};")?;
+        let md = output.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(format!("{var_name}.cfnOptions.metadata = {{").into()),
+            trailing: Some("};".into()),
+            trailing_newline: true,
+        });
+        emit_resource_metadata(context, md, metadata);
     }
 
     if let Some(update_policy) = &reference.update_policy {
-        output.write_line(&format!("{var_name}.cfnOptions.updatePolicy = "))?;
-        emit_resource_ir(output, update_policy, false, Some(";"))?;
+        output.text(format!("{var_name}.cfnOptions.updatePolicy = "));
+        emit_resource_ir(context, output, update_policy, Some(";"));
     }
 
     if let Some(deletion_policy) = &reference.deletion_policy {
-        output.write_line(&format!(
+        output.line(format!(
             "{var_name}.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.{deletion_policy};"
-        ))?;
+        ));
     }
 
     if !reference.dependencies.is_empty() {
         for dependency in &reference.dependencies {
-            output.write_line(&format!(
+            output.line(format!(
                 "{var_name}.addDependency({});",
                 pretty_name(dependency)
-            ))?;
+            ));
         }
     }
-
-    Ok(())
 }
 
-fn emit_resource_metadata(mut output: CodeSink, metadata: &ResourceIr) -> io::Result<()> {
+fn emit_resource_metadata(
+    context: &mut TypescriptContext,
+    output: Rc<CodeBuffer>,
+    metadata: &ResourceIr,
+) {
     match metadata {
         ResourceIr::Object(_, entries) => {
             for (name, value) in entries {
-                output.write_raw(&format!("{name}: "), true)?;
-                emit_resource_ir(&mut output, value, false, Some(","))?;
+                output.text(format!("{name}: "));
+                emit_resource_ir(context, &output, value, Some(",\n"));
             }
-            Ok(())
         }
-        unsupported => output.write_line(&format!("/* {unsupported:?} */")),
+        unsupported => output.line(format!("/* {unsupported:?} */")),
     }
 }
 
 fn emit_resource_props<S>(
-    mut output: CodeSink,
+    context: &mut TypescriptContext,
+    output: Rc<CodeBuffer>,
     props: &IndexMap<String, ResourceIr, S>,
-) -> io::Result<()> {
+) {
     for (name, prop) in props {
-        output.write(&format!("{}: ", pretty_name(name)))?;
-        emit_resource_ir(&mut output, prop, false, Some(","))?;
+        output.text(format!("{}: ", pretty_name(name)));
+        emit_resource_ir(context, &output, prop, Some(",\n"));
     }
-    Ok(())
 }
 
 fn emit_resource_ir(
-    output: &mut CodeSink,
+    context: &mut TypescriptContext,
+    output: &CodeBuffer,
     value: &ResourceIr,
-    lead_indent: bool,
     trailer: Option<&str>,
-) -> io::Result<()> {
+) {
     match value {
         // Literal values
-        ResourceIr::Null => output.write_raw("undefined", lead_indent)?,
-        ResourceIr::Bool(bool) => output.write_raw(&bool.to_string(), lead_indent)?,
-        ResourceIr::Double(float) => output.write_raw(&format!("{float}"), lead_indent)?,
-        ResourceIr::Number(int) => output.write_raw(&int.to_string(), lead_indent)?,
-        ResourceIr::String(str) => {
-            output.write_raw(&format!("'{}'", str.escape_debug()), lead_indent)?
-        }
+        ResourceIr::Null => output.text("undefined"),
+        ResourceIr::Bool(bool) => output.text(bool.to_string()),
+        ResourceIr::Double(float) => output.text(format!("{float}")),
+        ResourceIr::Number(int) => output.text(int.to_string()),
+        ResourceIr::String(str) => output.text(format!("'{}'", str.escape_debug())),
 
         // Collection values
         ResourceIr::Array(_, array) => {
-            output.write_raw_line("[", lead_indent)?;
-            let items = &mut output.indented();
+            let arr = output.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("[".into()),
+                trailing: Some("]".into()),
+                trailing_newline: false,
+            });
             for item in array {
-                emit_resource_ir(items, item, true, Some(","))?;
+                emit_resource_ir(context, &arr, item, Some(",\n"));
             }
-            output.write("]")?
         }
         ResourceIr::Object(_, entries) => {
-            output.write_raw_line("{", lead_indent)?;
-            let items = &mut output.indented();
+            let obj = output.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("{".into()),
+                trailing: Some("}".into()),
+                trailing_newline: false,
+            });
             for (name, value) in entries {
-                items.write(&format!("{key}: ", key = pretty_name(name)))?;
-                emit_resource_ir(items, value, false, Some(","))?;
+                obj.text(format!("{key}: ", key = pretty_name(name)));
+                emit_resource_ir(context, &obj, value, Some(",\n"));
             }
-            output.write("}")?;
         }
 
         // Intrinsics
         ResourceIr::Base64(base64) => match base64.as_ref() {
-            ResourceIr::String(b64) => output.write_raw(
-                &format!(
+            ResourceIr::String(b64) => {
+                context.import_buffer();
+                output.text(format!(
                     "Buffer.from('{}', 'base64').toString('binary')",
                     b64.escape_debug()
-                ),
-                lead_indent,
-            )?,
+                ))
+            }
             other => {
-                output.write_raw("cdk.Fn.base64(", lead_indent)?;
-                emit_resource_ir(output, other, false, None)?;
-                output.write_raw(")", false)?
+                output.text("cdk.Fn.base64(");
+                emit_resource_ir(context, output, other, None);
+                output.text(")")
             }
         },
         ResourceIr::Cidr(ip_range, count, mask) => {
-            output.write_raw("cdk.Fn.cidr(", lead_indent)?;
-            emit_resource_ir(output, ip_range, false, None)?;
-            output.write_raw(", ", false)?;
-            emit_resource_ir(output, count, false, None)?;
-            output.write_raw(", String(", false)?;
-            emit_resource_ir(output, mask, false, None)?;
-            output.write_raw("))", false)?;
+            output.text("cdk.Fn.cidr(");
+            emit_resource_ir(context, output, ip_range, None);
+            output.text(", ");
+            emit_resource_ir(context, output, count, None);
+            output.text(", String(");
+            emit_resource_ir(context, output, mask, None);
+            output.text("))")
         }
         ResourceIr::GetAZs(region) => {
-            output.write_raw("cdk.Fn.getAzs(", lead_indent)?;
-            emit_resource_ir(output, region, false, None)?;
-            output.write_raw(")", false)?;
+            output.text("cdk.Fn.getAzs(");
+            emit_resource_ir(context, output, region, None);
+            output.text(")")
         }
         ResourceIr::If(cond_name, if_true, if_false) => {
-            output.write_raw(&format!("{} ? ", pretty_name(cond_name)), lead_indent)?;
-            emit_resource_ir(output, if_true, false, None)?;
-            output.write_raw(" : ", false)?;
-            emit_resource_ir(output, if_false, false, None)?;
+            output.text(format!("{} ? ", pretty_name(cond_name)));
+            emit_resource_ir(context, output, if_true, None);
+            output.text(" : ");
+            emit_resource_ir(context, output, if_false, None)
         }
-        ResourceIr::ImportValue(name) => output.write_raw(
-            &format!("cdk.Fn.importValue('{}')", name.escape_debug()),
-            lead_indent,
-        )?,
+        ResourceIr::ImportValue(name) => {
+            output.text(format!("cdk.Fn.importValue('{}')", name.escape_debug()))
+        }
         ResourceIr::Join(sep, list) => {
-            output.write_raw_line("[", lead_indent)?;
-            let items = &mut output.indented();
+            let items = output.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("[".into()),
+                trailing: Some(format!("].join('{sep}')", sep = sep.escape_debug()).into()),
+                trailing_newline: false,
+            });
             for item in list {
-                emit_resource_ir(items, item, true, Some(","))?;
+                emit_resource_ir(context, &items, item, Some(",\n"));
             }
-            output.write_raw(&format!("].join('{sep}')", sep = sep.escape_debug()), true)?
         }
         ResourceIr::Map(name, tlk, slk) => {
-            output.write_raw(&format!("{}[", pretty_name(name)), lead_indent)?;
-            emit_resource_ir(output, tlk, false, None)?;
-            output.write_raw("][", false)?;
-            emit_resource_ir(output, slk, false, None)?;
-            output.write_raw("]", false)?
+            output.text(format!("{}[", pretty_name(name)));
+            emit_resource_ir(context, output, tlk, None);
+            output.text("][");
+            emit_resource_ir(context, output, slk, None);
+            output.text("]")
         }
         ResourceIr::Select(idx, list) => match list.as_ref() {
             ResourceIr::Array(_, array) => {
                 if *idx <= array.len() {
-                    emit_resource_ir(output, &array[*idx], lead_indent, None)?
+                    emit_resource_ir(context, output, &array[*idx], None)
                 } else {
-                    output.write_raw("undefined", lead_indent)?
+                    output.text("undefined")
                 }
             }
             other => {
-                output.write_raw("cdk.Fn.select(", lead_indent)?;
-                output.write_raw(&idx.to_string(), false)?;
-                output.write_raw(", ", false)?;
-                emit_resource_ir(output, other, false, None)?;
-                output.write_raw(")", false)?
+                output.text("cdk.Fn.select(");
+                output.text(idx.to_string());
+                output.text(", ");
+                emit_resource_ir(context, output, other, None);
+                output.text(")")
             }
         },
         ResourceIr::Split(sep, str) => match str.as_ref() {
             ResourceIr::String(str) => {
-                output.write_raw(&format!("'{str}'", str = str.escape_debug(),), lead_indent)?;
-                output.write_raw(&format!(".split('{sep}')", sep = sep.escape_debug()), false)?
+                output.text(format!("'{str}'", str = str.escape_debug()));
+                output.text(format!(".split('{sep}')", sep = sep.escape_debug()))
             }
             other => {
-                output.write_raw(
-                    &format!("cdk.Fn.split('{sep}', ", sep = sep.escape_debug()),
-                    lead_indent,
-                )?;
-                emit_resource_ir(output, other, false, None)?;
-                output.write_raw(")", false)?
+                output.text(format!("cdk.Fn.split('{sep}', ", sep = sep.escape_debug()));
+                emit_resource_ir(context, output, other, None);
+                output.text(")")
             }
         },
         ResourceIr::Sub(parts) => {
-            output.write_raw("`", lead_indent)?;
+            output.text("`");
             for part in parts {
                 match part {
-                    ResourceIr::String(lit) => output.write_raw(lit, false)?,
+                    ResourceIr::String(lit) => output.text(lit.clone()),
                     other => {
-                        output.write_raw("${", false)?;
-                        emit_resource_ir(output, other, false, None)?;
-                        output.write_raw("}", false)?;
+                        output.text("${");
+                        emit_resource_ir(context, output, other, None);
+                        output.text("}");
                     }
                 }
             }
-            output.write_raw("`", false)?
+            output.text("`")
         }
 
         // References
-        ResourceIr::Ref(reference) => output.write_raw(&reference.to_typescript(), lead_indent)?,
+        ResourceIr::Ref(reference) => output.text(reference.to_typescript()),
     }
 
     if let Some(trailer) = trailer {
-        output.write_raw_line(trailer, false)
-    } else {
-        Ok(())
+        output.text(trailer.to_owned())
     }
 }
 
-fn emit_mappings(output: &mut CodeSink, mappings: &[MappingInstruction]) -> io::Result<()> {
-    output.blank_line()?;
-    output.write_line("// Mappings")?;
+fn emit_mappings(output: &CodeBuffer, mappings: &[MappingInstruction]) {
+    if mappings.is_empty() {
+        return;
+    }
+
+    output.newline();
+    output.line("// Mappings");
 
     for mapping in mappings {
         let item_type = match mapping.output_type() {
@@ -538,15 +578,21 @@ fn emit_mappings(output: &mut CodeSink, mappings: &[MappingInstruction]) -> io::
             OutputType::Complex => "any",
         };
 
-        output.write_line(&format!(
-            "const {var}: Record<string, Record<string, {item_type}>> = {{",
-            var = pretty_name(&mapping.name)
-        ))?;
-        emit_mapping_instruction(output.indented(), mapping)?;
-        output.write_line("};")?;
-    }
+        let output = output.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(
+                format!(
+                    "const {var}: Record<string, Record<string, {item_type}>> = {{",
+                    var = pretty_name(&mapping.name)
+                )
+                .into(),
+            ),
+            trailing: Some("};".into()),
+            trailing_newline: true,
+        });
 
-    Ok(())
+        emit_mapping_instruction(output, mapping);
+    }
 }
 
 fn synthesize_condition_recursive(val: &ConditionIr) -> String {
@@ -592,35 +638,28 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
     }
 }
 
-fn emit_mapping_instruction(
-    mut output: CodeSink,
-    mapping_instruction: &MappingInstruction,
-) -> io::Result<()> {
+fn emit_mapping_instruction(output: Rc<CodeBuffer>, mapping_instruction: &MappingInstruction) {
     for (name, inner_mapping) in &mapping_instruction.map {
-        output.write_line(&format!("'{key}': {{", key = name.escape_debug()))?;
-        emit_inner_mapping(output.indented(), inner_mapping)?;
-        output.write_line("},")?;
+        let output = output.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(format!("'{key}': {{", key = name.escape_debug()).into()),
+            trailing: Some("},".into()),
+            trailing_newline: true,
+        });
+        emit_inner_mapping(output, inner_mapping);
     }
-    Ok(())
 }
 
-fn emit_inner_mapping(
-    mut output: CodeSink,
-    inner_mapping: &IndexMap<String, MappingInnerValue>,
-) -> io::Result<()> {
+fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, MappingInnerValue>) {
     for (name, value) in inner_mapping {
-        output.write_line(&format!("'{key}': {value},", key = name.escape_debug()))?;
+        output.line(format!("'{key}': {value},", key = name.escape_debug()));
     }
-    Ok(())
 }
 
-fn append_references(output: &mut CodeSink, reference: &ResourceInstruction) -> io::Result<()> {
-    if !reference.references.is_empty() {
-        for dep in &reference.references {
-            output.write_line(&format!("if ({dep} == null) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep)))?;
-        }
+fn append_references(output: &CodeBuffer, reference: &ResourceInstruction) {
+    for dep in &reference.references {
+        output.line(format!("if ({dep} == null) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep)));
     }
-    Ok(())
 }
 
 struct SuffixFix {
@@ -670,6 +709,22 @@ fn pretty_name(name: &str) -> String {
     }
 
     camel_case(&end_str)
+}
+
+trait TypescriptCodeBuffer {
+    fn tsdoc(&self) -> Rc<CodeBuffer>;
+}
+
+impl TypescriptCodeBuffer for CodeBuffer {
+    #[inline]
+    fn tsdoc(&self) -> Rc<CodeBuffer> {
+        self.indent_with_options(IndentOptions {
+            indent: " * ".into(),
+            leading: Some("/**".into()),
+            trailing: Some(" */".into()),
+            trailing_newline: true,
+        })
+    }
 }
 
 #[cfg(test)]

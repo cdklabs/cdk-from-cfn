@@ -14,8 +14,6 @@ mod typescript;
 #[doc(inline)]
 pub use typescript::*;
 
-mod output;
-
 pub trait Synthesizer {
     fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write) -> io::Result<()>;
 }

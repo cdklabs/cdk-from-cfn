@@ -14,6 +14,8 @@ pub mod primitives;
 pub mod specification;
 pub mod synthesizer;
 
+mod code;
+
 #[doc(inline)]
 pub use errors::*;
 
