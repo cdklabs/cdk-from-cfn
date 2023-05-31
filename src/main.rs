@@ -3,6 +3,7 @@ use noctilucent::ir::CloudformationProgramIr;
 use noctilucent::synthesizer::*;
 use noctilucent::CloudformationParseTree;
 use std::{fs, io};
+use wasm_bindgen::prelude::*;
 
 // Ensure at least one target language is enabled...
 #[cfg(not(any(feature = "typescript", feature = "golang")))]
@@ -82,4 +83,31 @@ fn main() -> anyhow::Result<()> {
     ir.synthesize(synthesizer.as_ref(), &mut output)?;
 
     Ok(())
+}
+
+#[wasm_bindgen]
+pub fn lib_nocti(input_file: String, output_file: String, language: String) {
+    let cfn_tree: CloudformationParseTree = {
+        let reader= Box::new(fs::File::open(input_file).unwrap());
+
+        serde_yaml::from_reader(reader).unwrap()
+    };
+
+    let ir = CloudformationProgramIr::from(cfn_tree).unwrap();
+
+    let mut output: Box<dyn io::Write> = match output_file.as_str() {
+        "-" => Box::new(io::stdout()),
+        output_file => Box::new(fs::File::create(output_file).unwrap()),
+    };
+
+    let synthesizer: Box<dyn Synthesizer> = match language.as_str() {
+        #[cfg(feature = "typescript")]
+        "typescript" => Box::new(Typescript {}),
+        #[cfg(feature = "golang")]
+        "go" => Box::<Golang>::default(),
+        unsupported => panic!("unsupported language: {}", unsupported),
+    };
+
+    ir.synthesize(synthesizer.as_ref(), &mut output).unwrap();
+    // Ok(())
 }
