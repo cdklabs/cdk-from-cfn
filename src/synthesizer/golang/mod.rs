@@ -1,5 +1,6 @@
 #![allow(unused_variables)]
 
+use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
 use crate::ir::importer::ImportInstruction;
@@ -11,10 +12,12 @@ use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::{CfnType, Structure};
 use std::borrow::Cow;
 use std::io;
+use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case, snake_case};
 
-use super::output::CodeSink;
 use super::Synthesizer;
+
+const INDENT: Cow<'static, str> = Cow::Borrowed("\t");
 
 pub struct Golang {
     package_name: String,
@@ -36,72 +39,75 @@ impl Default for Golang {
 
 impl Synthesizer for Golang {
     fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write) -> io::Result<()> {
-        let mut output = CodeSink::golang(into);
+        let code = CodeBuffer::default();
 
-        output.write_line(&format!("package {}", self.package_name))?;
-        output.blank_line()?;
+        code.line(format!("package {}", self.package_name));
+        code.newline();
 
-        output.write_line("import (")?;
-        let imports = &mut output.indented();
-        {
-            let mut insert_blank = if ir.requires_fmt() {
-                imports.write_line("\"fmt\"")?;
-                true
-            } else {
-                false
-            };
-            if ir.requires_time() {
-                imports.write_line("\"time\"")?;
-                insert_blank = true;
-            }
-            if insert_blank {
-                imports.blank_line()?;
-            }
-        }
+        let imports = code.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("import (".into()),
+            trailing: Some(")".into()),
+            trailing_newline: true,
+        });
+        let context = &mut {
+            let fmt = imports.section(false);
+            let time = imports.section(false);
+            let blank = imports.section(false);
+            GoContext::new(fmt, time, blank)
+        };
 
         for import in &ir.imports {
-            imports.write_line(&import.to_golang())?;
+            imports.line(import.to_golang());
         }
         // The usual imports of constructs library & jsii runtime
-        imports.write_line("\"github.com/aws/constructs-go/constructs/v10\"")?;
-        imports.write_line("\"github.com/aws/jsii-runtime-go\"")?;
-        output.write_line(")")?;
-        output.blank_line()?;
+        imports.line("\"github.com/aws/constructs-go/constructs/v10\"");
+        imports.line("\"github.com/aws/jsii-runtime-go\"");
 
-        output.write_line("type NoctStackProps struct {")?;
-        let props = &mut output.indented();
-        props.write_line("cdk.StackProps")?; // Extends cdk.StackProps
+        code.newline();
+
+        let props = code.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("type NoctStackProps struct {".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+        props.line("cdk.StackProps"); // Extends cdk.StackProps
         for param in &ir.constructor.inputs {
             if let Some(description) = &param.description {
-                props.write_with_prefix("/// ", description)?;
+                props.indent("/// ".into()).line(description.to_owned());
             }
-            props.write_line(&param.to_golang_field())?;
+            props.line(param.to_golang_field());
         }
-        output.write_line("}")?;
-        output.blank_line()?;
+        code.newline();
 
         if let Some(description) = &ir.description {
-            output.write_with_prefix("/// ", description)?;
+            code.indent("/// ".into()).line(description.to_owned());
         }
-        output.write_line("type NoctStack struct {")?;
-        let class = &mut output.indented();
-        class.write_line("cdk.Stack")?;
+        let class = code.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("type NoctStack struct {".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+        class.line("cdk.Stack");
         for output in &ir.outputs {
             if let Some(description) = &output.description {
-                class.write_with_prefix("/// ", description)?;
+                class.indent("/// ".into()).line(description.to_owned());
             }
-            class.write_line(&format!(
+            class.line(format!(
                 "{name} interface{{}} // TODO: fix to appropriate type",
                 name = golang_identifier(&output.name, IdentifierKind::Exported)
-            ))?
+            ));
         }
-        output.write_line("}")?;
-        output.blank_line()?;
+        code.newline();
 
-        output.write_line(
-            "func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *NoctStack {",
-        )?;
-        let ctor = &mut output.indented();
+        let ctor = code.indent_with_options(IndentOptions{
+            indent: INDENT,
+            leading: Some("func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *NoctStack {".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
 
         for mapping in &ir.mappings {
             let leaf_type = match mapping.output_type() {
@@ -117,62 +123,76 @@ impl Synthesizer for Golang {
             let used = ir.uses_map_table(&mapping.name);
             if !used {
                 // Go is merciless about dead stores... so we comment out unused maps...
-                ctor.write_line("/*")?;
+                ctor.line("/*");
             }
-            ctor.write_line(&format!(
-                "{} := map[*string]map[*string]{leaf_type}{{",
-                golang_identifier(&mapping.name, IdentifierKind::Unexported)
-            ))?;
-            let map = &mut ctor.indented();
+            let map = ctor.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some(
+                    format!(
+                        "{} := map[*string]map[*string]{leaf_type}{{",
+                        golang_identifier(&mapping.name, IdentifierKind::Unexported)
+                    )
+                    .into(),
+                ),
+                trailing: Some("}".into()),
+                trailing_newline: true,
+            });
             for (key, inner) in &mapping.map {
-                map.write_line(&format!("jsii.String({key:?}): map[*string]{leaf_type}{{"))?;
-                let inner_map = &mut map.indented();
+                let inner_map = map.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some(
+                        format!("jsii.String({key:?}): map[*string]{leaf_type}{{").into(),
+                    ),
+                    trailing: Some("},".into()),
+                    trailing_newline: true,
+                });
                 for (key, value) in inner {
-                    inner_map.write(&format!("jsii.String({key:?}): "))?;
+                    inner_map.text(format!("jsii.String({key:?}): "));
                     match value {
                         MappingInnerValue::Bool(bool) => {
-                            inner_map.write_raw(&format!("jsii.Bool({bool})"), false)?
+                            inner_map.text(format!("jsii.Bool({bool})"))
                         }
                         MappingInnerValue::Number(num) => {
-                            inner_map.write_raw(&format!("jsii.Number({num})"), false)?
+                            inner_map.text(format!("jsii.Number({num})"))
                         }
                         MappingInnerValue::Float(num) => {
-                            inner_map.write_raw(&format!("jsii.Number({num})"), false)?
+                            inner_map.text(format!("jsii.Number({num})"))
                         }
                         MappingInnerValue::String(str) => {
-                            inner_map.write_raw(&format!("jsii.String({str:?})"), false)?
+                            inner_map.text(format!("jsii.String({str:?})"))
                         }
                         MappingInnerValue::List(items) => {
-                            inner_map.write_raw_line("[]*string{", false)?;
-                            let list = &mut inner_map.indented();
+                            let list = inner_map.indent_with_options(IndentOptions {
+                                indent: INDENT,
+                                leading: Some("[]*string{".into()),
+                                trailing: Some("}".into()),
+                                trailing_newline: false,
+                            });
                             for item in items {
-                                list.write_line(&format!("jsii.String({item:?}),"))?;
+                                list.line(format!("jsii.String({item:?}),"));
                             }
-                            inner_map.write("}")?;
                         }
                     }
-                    inner_map.write_raw_line(",", false)?;
+                    inner_map.line(",");
                 }
-                map.write_line("},")?;
             }
-            ctor.write_line("}")?;
             if !used {
-                ctor.write_line("*/")?;
+                ctor.line("*/");
             }
-            ctor.blank_line()?;
+            ctor.newline();
         }
 
-        ctor.write_line("stack := cdk.NewStack(scope, &id, &props.StackProps)")?;
-        ctor.blank_line()?;
+        ctor.line("stack := cdk.NewStack(scope, &id, &props.StackProps)");
+        ctor.newline();
 
         for condition in &ir.conditions {
-            ctor.write(&format!(
+            ctor.text(format!(
                 "{name} := ",
                 name = golang_identifier(&condition.name, IdentifierKind::Unexported)
-            ))?;
-            condition.value.emit_golang(ctor, false, None)?;
-            ctor.blank_line()?;
-            ctor.blank_line()?;
+            ));
+            condition.value.emit_golang(context, &ctor, None);
+            ctor.newline();
+            ctor.newline();
         }
 
         for resource in &ir.resources {
@@ -194,83 +214,131 @@ impl Synthesizer for Golang {
             } else {
                 "".into()
             };
-            ctor.write_line(&format!("{prefix}{ns}.NewCfn{class}("))?;
-            let params = &mut ctor.indented();
-            params.write_line("stack,")?;
-            params.write_line(&format!("jsii.String({:?}),", resource.name))?;
-            params.write_line(&format!("&{ns}.Cfn{class}Props{{"))?;
-            let props = &mut params.indented();
+            let params = ctor.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some(format!("{prefix}{ns}.NewCfn{class}(").into()),
+                trailing: Some(")".into()),
+                trailing_newline: true,
+            });
+            params.line("stack,");
+            params.line(format!("jsii.String({:?}),", resource.name));
+            let props = params.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some(format!("&{ns}.Cfn{class}Props{{").into()),
+                trailing: Some("},".into()),
+                trailing_newline: true,
+            });
             for (name, value) in &resource.properties {
-                props.write(&format!(
+                props.text(format!(
                     "{}: ",
                     golang_identifier(name, IdentifierKind::Exported)
-                ))?;
-                value.emit_golang(props, false, None)?;
-                props.write_raw_line(",", false)?;
+                ));
+                value.emit_golang(context, &props, None);
+                props.line(",");
             }
-            params.write_line("},")?;
-            ctor.write_line(")")?;
-            ctor.blank_line()?;
+            ctor.newline();
         }
 
         for output in &ir.outputs {
             if let Some(export) = &output.export {
-                ctor.write_line(&format!(
-                    "cdk.NewCfnOutput(stack, jsii.String({name:?}), &cdk.CfnOutputProps{{",
-                    name = output.name
-                ))?;
-                let props = &mut ctor.indented();
+                let props = ctor.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some(
+                        format!(
+                            "cdk.NewCfnOutput(stack, jsii.String({name:?}), &cdk.CfnOutputProps{{",
+                            name = output.name
+                        )
+                        .into(),
+                    ),
+                    trailing: Some("})".into()),
+                    trailing_newline: true,
+                });
                 if let Some(description) = &output.description {
-                    props.write_line(&format!("Description: jsii.String({description:?}),"))?;
+                    props.line(format!("Description: jsii.String({description:?}),"));
                 }
-                props.write("ExportName: ")?;
-                export.emit_golang(props, false, Some(","))?;
-                props.write("Value: ")?;
-                output.value.emit_golang(props, false, Some(","))?;
-                ctor.write_line("})")?;
-                ctor.blank_line()?;
+                props.text("ExportName: ");
+                export.emit_golang(context, &props, Some(","));
+                props.text("Value: ");
+                output.value.emit_golang(context, &props, Some(","));
+                ctor.newline();
             }
         }
 
-        ctor.write_line("return &NoctStack{")?;
-        let fields = &mut ctor.indented();
-        fields.write_line("Stack: stack,")?;
+        let fields = ctor.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("return &NoctStack{".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+        fields.line("Stack: stack,");
         for output in &ir.outputs {
-            fields.write(&format!(
+            fields.text(format!(
                 "{name}: ",
                 name = golang_identifier(&output.name, IdentifierKind::Exported)
-            ))?;
-            output.value.emit_golang(fields, false, None)?;
-            fields.write_raw_line(",", false)?;
+            ));
+            output.value.emit_golang(context, &fields, None);
+            fields.line(",");
         }
-        ctor.write_line("}")?;
-        output.write_line("}")?;
 
-        Ok(())
+        code.write(into)
+    }
+}
+
+struct GoContext {
+    fmt: Rc<CodeBuffer>,
+    time: Rc<CodeBuffer>,
+    blank: Rc<CodeBuffer>,
+    has_fmt: bool,
+    has_time: bool,
+    has_blank: bool,
+}
+impl GoContext {
+    const fn new(fmt: Rc<CodeBuffer>, time: Rc<CodeBuffer>, blank: Rc<CodeBuffer>) -> Self {
+        Self {
+            fmt,
+            time,
+            blank,
+            has_fmt: false,
+            has_time: false,
+            has_blank: false,
+        }
+    }
+
+    fn import_fmt(&mut self) {
+        if self.has_fmt {
+            return;
+        }
+        self.fmt.line("\"fmt\"");
+        self.has_fmt = true;
+
+        self.insert_blank();
+    }
+
+    fn import_time(&mut self) {
+        if self.has_time {
+            return;
+        }
+        self.time.line("\"time\"");
+        self.has_time = true;
+
+        self.insert_blank();
+    }
+
+    fn insert_blank(&mut self) {
+        if self.has_blank {
+            return;
+        }
+        self.blank.newline();
+        self.has_blank = true;
     }
 }
 
 trait Inspectable {
-    /// Whether the rendered code for this entity requires importing "fmt"
-    fn requires_fmt(&self) -> bool;
-    /// Whether the rendered code for this entity requires importing "time"
-    fn requires_time(&self) -> bool;
-
     /// Whether the rendered code for this entity uses the named mapping table.
     fn uses_map_table(&self, name: &str) -> bool;
 }
 
 impl Inspectable for CloudformationProgramIr {
-    fn requires_fmt(&self) -> bool {
-        self.resources.iter().any(Inspectable::requires_fmt)
-            || self.outputs.iter().any(|out| out.value.requires_fmt())
-    }
-
-    fn requires_time(&self) -> bool {
-        self.resources.iter().any(Inspectable::requires_time)
-            || self.outputs.iter().any(|out| out.value.requires_time())
-    }
-
     fn uses_map_table(&self, name: &str) -> bool {
         self.conditions
             .iter()
@@ -284,18 +352,6 @@ impl Inspectable for CloudformationProgramIr {
 }
 
 impl Inspectable for ConditionIr {
-    #[cfg_attr(coverage_nightly, no_coverage)]
-    #[inline]
-    fn requires_fmt(&self) -> bool {
-        false
-    }
-
-    #[cfg_attr(coverage_nightly, no_coverage)]
-    #[inline]
-    fn requires_time(&self) -> bool {
-        false
-    }
-
     fn uses_map_table(&self, name: &str) -> bool {
         match self {
             ConditionIr::Equals(lhs, rhs) => lhs.uses_map_table(name) || rhs.uses_map_table(name),
@@ -310,34 +366,6 @@ impl Inspectable for ConditionIr {
 }
 
 impl Inspectable for ResourceInstruction {
-    fn requires_fmt(&self) -> bool {
-        self.properties.values().any(Inspectable::requires_fmt)
-            || self
-                .metadata
-                .as_ref()
-                .map(Inspectable::requires_fmt)
-                .unwrap_or(false)
-            || self
-                .update_policy
-                .as_ref()
-                .map(Inspectable::requires_fmt)
-                .unwrap_or(false)
-    }
-
-    fn requires_time(&self) -> bool {
-        self.properties.values().any(Inspectable::requires_time)
-            || self
-                .metadata
-                .as_ref()
-                .map(Inspectable::requires_time)
-                .unwrap_or(false)
-            || self
-                .update_policy
-                .as_ref()
-                .map(Inspectable::requires_time)
-                .unwrap_or(false)
-    }
-
     fn uses_map_table(&self, name: &str) -> bool {
         self.properties.values().any(|val| val.uses_map_table(name))
             || self
@@ -354,62 +382,6 @@ impl Inspectable for ResourceInstruction {
 }
 
 impl Inspectable for ResourceIr {
-    fn requires_fmt(&self) -> bool {
-        match self {
-            Self::Sub(_) => true,
-            Self::Array(_, list) => list.iter().any(Inspectable::requires_fmt),
-            Self::Object(_, props) => props.values().any(Inspectable::requires_fmt),
-            Self::Cidr(range, count, mask) => {
-                range.requires_fmt() || count.requires_fmt() || mask.requires_fmt()
-            }
-            Self::GetAZs(region) => region.requires_fmt(),
-            Self::If(_, when_true, when_false) => {
-                when_true.requires_fmt() || when_false.requires_fmt()
-            }
-            Self::Join(_, parts) => parts.iter().any(Inspectable::requires_fmt),
-            Self::Map(_, tlk, slk) => tlk.requires_fmt() || slk.requires_fmt(),
-            Self::Select(_, list) => list.requires_fmt(),
-            Self::Split(_, text) => text.requires_fmt(),
-            Self::Base64(value) => value.requires_fmt(),
-            Self::Null
-            | Self::Bool(_)
-            | Self::String(_)
-            | Self::Number(_)
-            | Self::Double(_)
-            | Self::Ref(_)
-            | Self::ImportValue(_) => false,
-        }
-    }
-
-    fn requires_time(&self) -> bool {
-        match self {
-            Self::Array(Structure::Simple(CfnType::Timestamp), ..)
-            | Self::Object(Structure::Simple(CfnType::Timestamp), ..) => true,
-            Self::Sub(list) => list.iter().any(Inspectable::requires_time),
-            Self::Array(_, list) => list.iter().any(Inspectable::requires_time),
-            Self::Object(_, props) => props.values().any(Inspectable::requires_time),
-            Self::Cidr(range, count, mask) => {
-                range.requires_time() || count.requires_time() || mask.requires_time()
-            }
-            Self::GetAZs(region) => region.requires_time(),
-            Self::If(_, when_true, when_false) => {
-                when_true.requires_time() || when_false.requires_time()
-            }
-            Self::Join(_, parts) => parts.iter().any(Inspectable::requires_time),
-            Self::Map(_, tlk, slk) => tlk.requires_time() || slk.requires_time(),
-            Self::Select(_, list) => list.requires_time(),
-            Self::Split(_, text) => text.requires_time(),
-            Self::Base64(value) => value.requires_time(),
-            Self::Null
-            | Self::Bool(_)
-            | Self::String(_)
-            | Self::Number(_)
-            | Self::Double(_)
-            | Self::Ref(_)
-            | Self::ImportValue(_) => false,
-        }
-    }
-
     fn uses_map_table(&self, name: &str) -> bool {
         match self {
             Self::Sub(list) => list.iter().any(|val| val.uses_map_table(name)),
@@ -477,94 +449,74 @@ impl ConstructorParameter {
 }
 
 trait GolangEmitter {
-    fn emit_golang(
-        &self,
-        output: &mut CodeSink,
-        indent_lead: bool,
-        trailer: Option<&str>,
-    ) -> io::Result<()>;
+    fn emit_golang(&self, context: &mut GoContext, output: &CodeBuffer, trailer: Option<&str>);
 }
 
 impl GolangEmitter for ConditionIr {
-    fn emit_golang(
-        &self,
-        output: &mut CodeSink,
-        indent_lead: bool,
-        trailer: Option<&str>,
-    ) -> io::Result<()> {
+    fn emit_golang(&self, context: &mut GoContext, output: &CodeBuffer, trailer: Option<&str>) {
         match self {
-            Self::Ref(reference) => reference.emit_golang(output, indent_lead, None)?,
-            Self::Str(str) => output.write_raw(&format!("jsii.String({str:?})"), indent_lead)?,
+            Self::Ref(reference) => reference.emit_golang(context, output, None),
+            Self::Str(str) => output.text(format!("jsii.String({str:?})")),
 
             Self::And(list) => {
                 for (idx, cond) in list.iter().enumerate() {
                     if idx > 0 {
-                        output.write_raw(" && ", false)?;
+                        output.text(" && ");
                     }
-                    cond.emit_golang(output, indent_lead && idx == 0, None)?;
+                    cond.emit_golang(context, output, None);
                 }
             }
             Self::Or(list) => {
                 for (idx, cond) in list.iter().enumerate() {
                     if idx > 0 {
-                        output.write_raw(" || ", false)?;
+                        output.text(" || ");
                     }
-                    cond.emit_golang(output, indent_lead && idx == 0, None)?;
+                    cond.emit_golang(context, output, None);
                 }
             }
 
             Self::Not(cond) => {
-                output.write_raw("!", indent_lead)?;
-                cond.emit_golang(output, false, None)?;
+                output.text("!");
+                cond.emit_golang(context, output, None);
             }
 
             Self::Equals(lhs, rhs) => {
-                lhs.emit_golang(output, indent_lead, None)?;
-                output.write_raw(" == ", false)?;
-                rhs.emit_golang(output, false, None)?
+                lhs.emit_golang(context, output, None);
+                output.text(" == ");
+                rhs.emit_golang(context, output, None)
             }
 
             Self::Map(map, tlk, slk) => {
-                output.write_raw(
-                    &golang_identifier(map, IdentifierKind::Unexported),
-                    indent_lead,
-                )?;
-                output.write_raw("[", false)?;
-                tlk.emit_golang(output, false, None)?;
-                output.write_raw("][", false)?;
-                slk.emit_golang(output, false, None)?;
-                output.write_raw("]", false)?;
+                output.text(golang_identifier(map, IdentifierKind::Unexported));
+                output.text("[");
+                tlk.emit_golang(context, output, None);
+                output.text("][");
+                slk.emit_golang(context, output, None);
+                output.text("]");
             }
         }
         if let Some(trailer) = trailer {
-            output.write_raw_line(trailer, false)
-        } else {
-            Ok(())
+            output.text(trailer.to_owned())
         }
     }
 }
 
 impl GolangEmitter for ResourceIr {
-    fn emit_golang(
-        &self,
-        output: &mut CodeSink,
-        indent_lead: bool,
-        trailer: Option<&str>,
-    ) -> io::Result<()> {
+    fn emit_golang(&self, context: &mut GoContext, output: &CodeBuffer, trailer: Option<&str>) {
         match self {
             // Canonical nil
-            Self::Null => output.write_raw("nil", indent_lead)?,
+            Self::Null => output.text("nil"),
 
             // Literal values
-            Self::Bool(bool) => output.write_raw(&format!("jsii.Bool({bool})"), indent_lead)?,
+            Self::Bool(bool) => output.text(format!("jsii.Bool({bool})")),
             Self::Double(double) => {
-                output.write_raw(&format!("jsii.Number({double})"), indent_lead)?;
+                output.text(format!("jsii.Number({double})"));
             }
             Self::Number(number) => {
-                output.write_raw(&format!("jsii.Number({number})"), indent_lead)?;
+                output.text(format!("jsii.Number({number})"));
             }
             Self::String(text) => {
-                output.write_raw(&format!("jsii.String({text:?})"), indent_lead)?;
+                output.text(format!("jsii.String({text:?})"));
             }
 
             // Composites
@@ -579,139 +531,152 @@ impl GolangEmitter for ResourceIr {
                         CfnType::Double | CfnType::Integer | CfnType::Long => "*float64".into(),
                         CfnType::Json => "interface{}".into(),
                         CfnType::String => "*string".into(),
-                        CfnType::Timestamp => "time.Time".into(),
+                        CfnType::Timestamp => {
+                            context.import_time();
+                            "time.Time".into()
+                        }
                     },
                 };
 
-                output.write_raw_line(&format!("&[]{value_type}{{"), indent_lead)?;
-                let items = &mut output.indented();
+                let items = output.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some(format!("&[]{value_type}{{").into()),
+                    trailing: Some("}".into()),
+                    trailing_newline: false,
+                });
                 for item in array {
-                    item.emit_golang(items, true, None)?;
-                    items.write_raw_line(",", false)?;
+                    item.emit_golang(context, &items, None);
+                    items.line(",");
                 }
-                output.write_raw("}", true)?;
             }
             Self::Object(structure, properties) => {
-                match structure {
-                    Structure::Composite(name) => match *name {
-                        "Tag" => output.write_raw_line("&cdk.CfnTag{", indent_lead)?,
-                        name => {
-                            output.write_raw_line(&format!("&{name}/* FIXME */{{"), indent_lead)?;
+                let props = output.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some(match structure {
+                        Structure::Composite(name) => match *name {
+                            "Tag" => "&cdk.CfnTag{".into(),
+                            name => format!("&{name}/* FIXME */{{").into(),
+                        },
+                        Structure::Simple(cfn) => {
+                            unreachable!("object with simple structure ({:?})", cfn)
                         }
-                    },
-                    Structure::Simple(cfn) => {
-                        unreachable!("object with simple structure ({:?})", cfn)
-                    }
-                }
-                let props = &mut output.indented();
+                    }),
+                    trailing: Some("}".into()),
+                    trailing_newline: false,
+                });
                 for (name, val) in properties {
-                    props.write_raw(
-                        &format!(
-                            "{name}: ",
-                            name = golang_identifier(name, IdentifierKind::Exported)
-                        ),
-                        true,
-                    )?;
-                    val.emit_golang(props, false, Some(","))?;
+                    props.text(format!(
+                        "{name}: ",
+                        name = golang_identifier(name, IdentifierKind::Exported)
+                    ));
+                    val.emit_golang(context, &props, Some(","));
                 }
-                output.write_raw("}", true)?;
             }
 
             // Intrinsic functions
             Self::Base64(value) => {
-                output.write_raw("cdk.Fn_Base64(", indent_lead)?;
-                value.emit_golang(output, false, None)?;
-                output.write_raw(")", false)?;
+                output.text("cdk.Fn_Base64(");
+                value.emit_golang(context, output, None);
+                output.text(")");
             }
             Self::Cidr(cidr_block, count, mask) => {
-                output.write_raw("cdk.Fn_Cidr(", indent_lead)?;
-                cidr_block.emit_golang(output, false, None)?;
-                output.write_raw(", ", false)?;
-                count.emit_golang(output, false, None)?;
-                output.write_raw(", ", false)?;
+                output.text("cdk.Fn_Cidr(");
+                cidr_block.emit_golang(context, output, None);
+                output.text(", ");
+                count.emit_golang(context, output, None);
+                output.text(", ");
                 match mask.as_ref() {
                     ResourceIr::Number(mask) => {
-                        output.write_raw(&format!("jsii.String(\"{mask}\")"), false)?;
+                        output.text(format!("jsii.String(\"{mask}\")"));
                     }
                     ResourceIr::String(mask) => {
-                        output.write_raw(&format!("jsii.String({mask:?})"), false)?;
+                        output.text(format!("jsii.String({mask:?})"));
                     }
                     mask => {
-                        output.write_raw("jsii.String(fmt.Sprintf(\"%v\", ", false)?;
-                        mask.emit_golang(output, false, None)?;
-                        output.write_raw("))", false)?;
+                        context.import_fmt();
+                        output.text("jsii.String(fmt.Sprintf(\"%v\", ");
+                        mask.emit_golang(context, output, None);
+                        output.text("))");
                     }
                 }
-                output.write_raw(")", false)?;
+                output.text(")");
             }
             Self::GetAZs(region) => {
-                output.write_raw("cdk.Fn_GetAzs(", indent_lead)?;
-                region.emit_golang(output, false, None)?;
-                output.write_raw(")", false)?;
+                output.text("cdk.Fn_GetAzs(");
+                region.emit_golang(context, output, None);
+                output.text(")");
             }
             Self::If(cond, when_true, when_false) => {
-                output.write_raw_line(
-                    "func() interface{} { // TODO: fix to appropriate value type",
-                    indent_lead,
-                )?;
-                let body = &mut output.indented();
-                body.write_line(&format!(
-                    "if {cond} {{",
-                    cond = golang_identifier(cond, IdentifierKind::Unexported)
-                ))?;
-                let case = &mut body.indented();
-                case.write_raw("return ", true)?;
-                when_true.emit_golang(case, false, Some(""))?;
-                body.write_line("} else {")?;
-                let case = &mut body.indented();
-                case.write_raw("return ", true)?;
-                when_false.emit_golang(case, false, Some(""))?;
-                body.write_line("}")?;
-                output.write("}()")?;
+                let body = output.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some(
+                        "func() interface{} { // TODO: fix to appropriate value type".into(),
+                    ),
+                    trailing: Some("}()".into()),
+                    trailing_newline: false,
+                });
+                let case = body.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some(
+                        format!(
+                            "if {cond} {{",
+                            cond = golang_identifier(cond, IdentifierKind::Unexported)
+                        )
+                        .into(),
+                    ),
+                    trailing: Some("} else {".into()),
+                    trailing_newline: true,
+                });
+                case.text("return ");
+                when_true.emit_golang(context, &case, Some(""));
+
+                let case = body.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: None,
+                    trailing: Some("}".into()),
+                    trailing_newline: true,
+                });
+                case.text("return ");
+                when_false.emit_golang(context, &case, Some(""));
             }
-            Self::ImportValue(import) => output.write_raw(
-                &format!("cdk.Fn_ImportValue(jsii.String({import:?}))"),
-                indent_lead,
-            )?,
+            Self::ImportValue(import) => {
+                output.text(format!("cdk.Fn_ImportValue(jsii.String({import:?}))"))
+            }
             Self::Join(sep, list) => {
-                output.write_raw_line(
-                    &format!("cdk.Fn_Join(jsii.String({sep:?}), &[]*string{{"),
-                    indent_lead,
-                )?;
-                let items = &mut output.indented();
+                let items = output.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some(format!("cdk.Fn_Join(jsii.String({sep:?}), &[]*string{{").into()),
+                    trailing: Some("})".into()),
+                    trailing_newline: false,
+                });
                 for item in list {
-                    item.emit_golang(items, true, Some(","))?;
+                    item.emit_golang(context, &items, Some(","));
                 }
-                output.write_raw("})", true)?;
             }
             Self::Map(table, tlk, slk) => {
-                output.write_raw(
-                    &format!(
-                        "{table}[",
-                        table = golang_identifier(table, IdentifierKind::Unexported)
-                    ),
-                    indent_lead,
-                )?;
-                tlk.emit_golang(output, false, None)?;
-                output.write_raw("][", false)?;
-                slk.emit_golang(output, false, None)?;
-                output.write_raw("]", false)?;
+                output.text(format!(
+                    "{table}[",
+                    table = golang_identifier(table, IdentifierKind::Unexported)
+                ));
+                tlk.emit_golang(context, output, None);
+                output.text("][");
+                slk.emit_golang(context, output, None);
+                output.text("]");
             }
             Self::Select(idx, list) => match list.as_ref() {
                 ResourceIr::Array(_, items) => {
-                    items[*idx].emit_golang(output, indent_lead, None)?;
+                    items[*idx].emit_golang(context, output, None);
                 }
                 list => {
-                    output
-                        .write_raw(&format!("cdk.Fn_Select(jsii.Number({idx}), "), indent_lead)?;
-                    list.emit_golang(output, false, None)?;
-                    output.write_raw(")", false)?;
+                    output.text(format!("cdk.Fn_Select(jsii.Number({idx}), "));
+                    list.emit_golang(context, output, None);
+                    output.text(")");
                 }
             },
             Self::Split(sep, str) => {
-                output.write_raw(&format!("cdk.Fn_Split(jsii.String({sep:?}), "), indent_lead)?;
-                str.emit_golang(output, false, None)?;
-                output.write_raw(")", false)?;
+                output.text(format!("cdk.Fn_Split(jsii.String({sep:?}), "));
+                str.emit_golang(context, output, None);
+                output.text(")");
             }
             Self::Sub(parts) => {
                 let pattern = parts
@@ -724,7 +689,8 @@ impl GolangEmitter for ResourceIr {
                         _ => "%v".into(),
                     })
                     .collect::<String>();
-                output.write_raw(&format!("jsii.String(fmt.Sprintf({pattern:?}"), indent_lead)?;
+                context.import_fmt();
+                output.text(format!("jsii.String(fmt.Sprintf({pattern:?}"));
                 for part in parts {
                     match part {
                         ResourceIr::Bool(_)
@@ -732,63 +698,46 @@ impl GolangEmitter for ResourceIr {
                         | ResourceIr::Number(_)
                         | ResourceIr::String(_) => {}
                         part => {
-                            output.write_raw(", ", false)?;
-                            part.emit_golang(output, false, None)?;
+                            output.text(", ");
+                            part.emit_golang(context, output, None);
                         }
                     }
                 }
-                output.write_raw("))", false)?;
+                output.text("))");
             }
 
             // References
-            Self::Ref(reference) => reference.emit_golang(output, indent_lead, None)?,
+            Self::Ref(reference) => reference.emit_golang(context, output, None),
         }
 
         if let Some(trailer) = trailer {
-            output.write_raw_line(trailer, false)
-        } else {
-            Ok(())
+            output.line(trailer.to_owned())
         }
     }
 }
 
 impl GolangEmitter for Reference {
-    fn emit_golang(
-        &self,
-        output: &mut CodeSink,
-        indent_lead: bool,
-        trailer: Option<&str>,
-    ) -> io::Result<()> {
+    fn emit_golang(&self, context: &mut GoContext, output: &CodeBuffer, trailer: Option<&str>) {
         match &self.origin {
-            Origin::Condition => output.write_raw(
-                &golang_identifier(&self.name, IdentifierKind::Unexported),
-                indent_lead,
-            )?,
+            Origin::Condition => {
+                output.text(golang_identifier(&self.name, IdentifierKind::Unexported))
+            }
             Origin::GetAttribute {
                 attribute,
                 conditional,
-            } => output.write_raw(
-                &format!(
-                    "{name}.Attr{attribute}()",
-                    name = golang_identifier(&self.name, IdentifierKind::Unexported),
-                    attribute = golang_identifier(attribute, IdentifierKind::Exported),
-                ),
-                indent_lead,
-            )?,
-            Origin::LogicalId { conditional } => output.write_raw(
-                &format!(
-                    "{name}.Ref()",
-                    name = golang_identifier(&self.name, IdentifierKind::Unexported)
-                ),
-                indent_lead,
-            )?,
-            Origin::Parameter => output.write_raw(
-                &format!(
-                    "props.{name}",
-                    name = golang_identifier(&self.name, IdentifierKind::Exported)
-                ),
-                indent_lead,
-            )?,
+            } => output.text(format!(
+                "{name}.Attr{attribute}()",
+                name = golang_identifier(&self.name, IdentifierKind::Unexported),
+                attribute = golang_identifier(attribute, IdentifierKind::Exported),
+            )),
+            Origin::LogicalId { conditional } => output.text(format!(
+                "{name}.Ref()",
+                name = golang_identifier(&self.name, IdentifierKind::Unexported)
+            )),
+            Origin::Parameter => output.text(format!(
+                "props.{name}",
+                name = golang_identifier(&self.name, IdentifierKind::Exported)
+            )),
             Origin::PseudoParameter(pseudo) => {
                 let pseudo = match pseudo {
                     PseudoParameter::AccountId => "Account",
@@ -799,14 +748,12 @@ impl GolangEmitter for Reference {
                     PseudoParameter::URLSuffix => "UrlSuffix",
                     PseudoParameter::NotificationArns => "NotificationArns",
                 };
-                output.write_raw(&format!("stack.{pseudo}()"), indent_lead)?;
+                output.text(format!("stack.{pseudo}()"));
             }
         }
 
         if let Some(trailer) = trailer {
-            output.write_raw_line(trailer, false)
-        } else {
-            Ok(())
+            output.line(trailer.to_owned())
         }
     }
 }
