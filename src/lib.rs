@@ -6,6 +6,7 @@ use parser::lookup_table::MappingTable;
 use parser::output::Output;
 use parser::parameters::Parameter;
 use parser::resource::ResourceAttributes;
+use wasm_bindgen::prelude::*;
 
 pub mod errors;
 pub mod ir;
@@ -37,4 +38,29 @@ pub struct CloudformationParseTree {
     pub parameters: IndexMap<String, Parameter>,
 
     pub resources: IndexMap<String, ResourceAttributes>,
+}
+
+#[wasm_bindgen]
+pub fn lib_nocti(template: &str, language: &str) -> String {
+    let cfn_tree: CloudformationParseTree = serde_yaml::from_str(template).unwrap();
+    let ir = crate::ir::CloudformationProgramIr::from(cfn_tree).unwrap();
+    let mut output = Vec::new();
+
+    let synthesizer: Box<dyn crate::synthesizer::Synthesizer> = match language {
+        #[cfg(feature = "typescript")]
+        "typescript" => Box::new(crate::synthesizer::Typescript {}),
+        #[cfg(feature = "golang")]
+        "go" => Box::<crate::synthesizer::Golang>::default(),
+        unsupported => panic!("unsupported language: {}", unsupported),
+    };
+
+    ir.synthesize(synthesizer.as_ref(), &mut output).unwrap();
+
+    String::from_utf8(output).unwrap()
+}
+
+#[cfg(feature = "console_error_panic_hook")]
+#[wasm_bindgen(start)]
+fn wasm_init() {
+    console_error_panic_hook::set_once();
 }
