@@ -16,9 +16,12 @@ homepage = "https://github.com/iph/noctilucent#readme"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["typescript"]
+default = ["console_error_panic_hook", "typescript"]
 typescript = []
 golang = []
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+console_error_panic_hook = { version = "^0.1.7", optional = true }
 
 [lib]
 crate-type = ["cdylib", "lib"]
@@ -27,7 +30,6 @@ crate-type = ["cdylib", "lib"]
 anyhow = "^1.0.71"
 base64 = "^0.21.2"
 clap = { version = "^4.3.0", features = ["cargo"] }
-console_error_panic_hook = { version = "^0.1.7", optional = true }
 indexmap = { version = "^1.9.3", features = ["serde"] }
 nom = "^7.0.0"
 numberkit = "^0.1.0"
