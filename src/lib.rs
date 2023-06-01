@@ -41,9 +41,9 @@ pub struct CloudformationParseTree {
 }
 
 #[wasm_bindgen]
-pub fn lib_nocti(template: &str, language: &str) -> String {
-    let cfn_tree: CloudformationParseTree = serde_yaml::from_str(template).unwrap();
-    let ir = crate::ir::CloudformationProgramIr::from(cfn_tree).unwrap();
+pub fn transmute(template: &str, language: &str) -> Result<String, JsError> {
+    let cfn_tree: CloudformationParseTree = serde_yaml::from_str(template)?;
+    let ir = crate::ir::CloudformationProgramIr::from(cfn_tree)?;
     let mut output = Vec::new();
 
     let synthesizer: Box<dyn crate::synthesizer::Synthesizer> = match language {
@@ -54,11 +54,12 @@ pub fn lib_nocti(template: &str, language: &str) -> String {
         unsupported => panic!("unsupported language: {}", unsupported),
     };
 
-    ir.synthesize(synthesizer.as_ref(), &mut output).unwrap();
+    ir.synthesize(synthesizer.as_ref(), &mut output)?;
 
-    String::from_utf8(output).unwrap()
+    String::from_utf8(output).map_err(Into::into)
 }
 
+#[cfg(target_family = "wasm")]
 #[cfg(feature = "console_error_panic_hook")]
 #[wasm_bindgen(start)]
 fn wasm_init() {
