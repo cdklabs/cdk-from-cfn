@@ -635,6 +635,14 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
                 synthesize_condition_recursive(l2.as_ref())
             )
         }
+        ConditionIr::Split(sep, l1) => {
+            let str = synthesize_condition_recursive(l1.as_ref());
+            format!(
+                "'${str}'.split('{sep}')",
+                str = str.escape_debug(),
+                sep = sep.escape_debug()
+            )
+        }
     }
 }
 

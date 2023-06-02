@@ -116,7 +116,7 @@ pub enum ConditionValue {
 
     // Cloudformation meta-functions
     FindInMap(String, Box<ConditionValue>, Box<ConditionValue>),
-
+    Split(String, Box<ConditionValue>),
     // End of recursion, the base primitives to work with
     String(String),
     Ref(String),
@@ -159,6 +159,10 @@ impl<'de> serde::Deserialize<'de> for ConditionValue {
                             top_level_key,
                             second_level_key,
                         ))
+                    }
+                    "Split" => {
+                        let (delimiter, source_string) = data.newtype_variant()?;
+                        Ok(Self::Value::Split(delimiter, source_string))
                     }
                     "Ref" => Ok(Self::Value::Ref(data.newtype_variant()?)),
                     other => Ok(ConditionFunction::from_variant_access(other, data)?.into()),

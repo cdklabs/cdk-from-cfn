@@ -494,6 +494,11 @@ impl GolangEmitter for ConditionIr {
                 slk.emit_golang(context, output, None);
                 output.text("]");
             }
+            ConditionIr::Split(sep, str) => {
+                output.text(format!("cdk.Fn_Split(jsii.String({sep:?}), "));
+                str.emit_golang(context, output, None);
+                output.text(")");
+            }
         }
         if let Some(trailer) = trailer {
             output.text(trailer.to_owned())
