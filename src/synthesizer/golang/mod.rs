@@ -360,6 +360,7 @@ impl Inspectable for ConditionIr {
                 list.iter().any(|cond| cond.uses_map_table(name))
             }
             ConditionIr::Map(map_name, _, _) => map_name == name,
+            ConditionIr::Split(_, cond) => cond.uses_map_table(name),
             ConditionIr::Str(_) | ConditionIr::Ref(_) => false,
         }
     }
