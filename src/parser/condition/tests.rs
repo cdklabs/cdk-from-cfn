@@ -236,7 +236,8 @@ fn condition_ref() {
 #[test]
 fn condition_function_failure() {
     let x: serde_yaml::Result<ConditionFunction> = serde_yaml::from_str("!Ref LogicalID");
-    let y: serde_yaml::Result<ConditionFunction> = serde_yaml::from_str("Fn::Cidr: [\"192.168.0.0/24\", 6, 5]");
+    let y: serde_yaml::Result<ConditionFunction> =
+        serde_yaml::from_str("Fn::Cidr: [\"192.168.0.0/24\", 6, 5]");
     let x = x.err().unwrap().to_string();
     let y = y.err().unwrap().to_string();
 
