@@ -198,6 +198,13 @@ impl<'de> serde::Deserialize<'de> for ConditionValue {
                             top_level_key,
                             second_level_key,
                         ))
+                    },
+                    "!Split" | "Fn::Split" => {
+                        let (delimiter, split_str) = data.next_value()?;
+                        Ok(Self::Value::Split(
+                            delimiter,
+                            split_str,
+                        ))
                     }
                     "!Ref" | "Ref" => Ok(Self::Value::Ref(data.next_value()?)),
                     other => Ok(ConditionFunction::from_map_access(other, &mut data)?.into()),
