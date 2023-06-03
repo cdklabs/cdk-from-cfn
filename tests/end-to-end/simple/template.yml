@@ -33,6 +33,8 @@ Mappings:
       String: Baz
 
 Conditions:
+  IsLargeRegion:
+    Condition: IsUsEast1
   IsUsEast1:
     Fn::Equals:
       - !Ref AWS::Region

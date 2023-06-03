@@ -360,7 +360,7 @@ impl Inspectable for ConditionIr {
                 list.iter().any(|cond| cond.uses_map_table(name))
             }
             ConditionIr::Map(map_name, _, _) => map_name == name,
-            ConditionIr::Str(_) | ConditionIr::Ref(_) => false,
+            ConditionIr::Condition(_) | ConditionIr::Str(_) | ConditionIr::Ref(_) => false,
         }
     }
 }
@@ -457,6 +457,7 @@ impl GolangEmitter for ConditionIr {
         match self {
             Self::Ref(reference) => reference.emit_golang(context, output, None),
             Self::Str(str) => output.text(format!("jsii.String({str:?})")),
+            Self::Condition(x) => output.text(format!("{x}",x=golang_identifier(x, IdentifierKind::Unexported))),
 
             Self::And(list) => {
                 for (idx, cond) in list.iter().enumerate() {

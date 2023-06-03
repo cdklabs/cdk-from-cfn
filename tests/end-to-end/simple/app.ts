@@ -78,6 +78,7 @@ export class NoctStack extends cdk.Stack {
 
     // Conditions
     const isUsEast1 = this.region === 'us-east-1';
+    const isLargeRegion = isUsEast1;
 
     // Resources
     const queue = new sqs.CfnQueue(this, 'Queue', {

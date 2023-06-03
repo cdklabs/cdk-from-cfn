@@ -92,6 +92,8 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 
 	isUsEast1 := stack.Region() == jsii.String("us-east-1")
 
+	isLargeRegion := isUsEast1
+
 	queue := sqs.NewCfnQueue(
 		stack,
 		jsii.String("Queue"),
