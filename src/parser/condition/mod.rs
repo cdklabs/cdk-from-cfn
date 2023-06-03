@@ -11,7 +11,7 @@ pub enum ConditionFunction {
         if_false: ConditionValue,
     },
     Not(ConditionValue),
-    Condition(String)
+    Condition(String),
 }
 
 impl ConditionFunction {
@@ -67,7 +67,14 @@ impl ConditionFunction {
             "!Not" | "Fn::Not" => Ok(Self::Not(data.next_value::<Singleton>()?.unwrap())),
             unknown => Err(A::Error::unknown_variant(
                 unknown,
-                &["Fn::And", "Fn::Or", "Fn::Equals", "Fn::If", "Fn::Not", "Condition"],
+                &[
+                    "Fn::And",
+                    "Fn::Or",
+                    "Fn::Equals",
+                    "Fn::If",
+                    "Fn::Not",
+                    "Condition",
+                ],
             )),
         }
     }

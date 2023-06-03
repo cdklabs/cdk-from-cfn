@@ -80,9 +80,7 @@ impl ConditionFunction {
                 let or_list = x.into_iter().map(ConditionValue::into_ir).collect();
                 ConditionIr::Or(or_list)
             }
-            Self::Condition(x) => {
-                ConditionIr::Condition(x)
-            }
+            Self::Condition(x) => ConditionIr::Condition(x),
             Self::If { .. } => unimplemented!(),
         }
     }

@@ -457,7 +457,7 @@ impl GolangEmitter for ConditionIr {
         match self {
             Self::Ref(reference) => reference.emit_golang(context, output, None),
             Self::Str(str) => output.text(format!("jsii.String({str:?})")),
-            Self::Condition(x) => output.text(format!("{x}",x=golang_identifier(x, IdentifierKind::Unexported))),
+            Self::Condition(x) => output.text(golang_identifier(x, IdentifierKind::Unexported)),
 
             Self::And(list) => {
                 for (idx, cond) in list.iter().enumerate() {

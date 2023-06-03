@@ -626,9 +626,7 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         ConditionIr::Str(x) => {
             format!("'{x}'")
         }
-        ConditionIr::Condition(x) => {
-            format!("{x}", x=pretty_name(x))
-        }
+        ConditionIr::Condition(x) => pretty_name(x),
         ConditionIr::Ref(x) => x.to_typescript().into(),
         ConditionIr::Map(named_resource, l1, l2) => {
             format!(
