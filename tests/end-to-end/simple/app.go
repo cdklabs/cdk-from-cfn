@@ -1,4 +1,4 @@
-package simple
+package main
 
 import (
 	"fmt"
@@ -89,6 +89,8 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 	}
 
 	stack := cdk.NewStack(scope, &id, &props.StackProps)
+
+	isUs := cdk.Fn_Select(jsii.Number("0"), cdk.Fn_Split(jsii.String("-"), stack.Region())) == jsii.String("us")
 
 	isUsEast1 := stack.Region() == jsii.String("us-east-1")
 
