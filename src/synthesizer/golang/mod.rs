@@ -361,6 +361,9 @@ impl Inspectable for ConditionIr {
             }
             ConditionIr::Map(map_name, _, _) => map_name == name,
             ConditionIr::Condition(_) | ConditionIr::Str(_) | ConditionIr::Ref(_) => false,
+            ConditionIr::Split(_, cond) => cond.uses_map_table(name),
+            ConditionIr::Select(_, cond) => cond.uses_map_table(name),
+            ConditionIr::Str(_) | ConditionIr::Ref(_) => false,
         }
     }
 }
@@ -494,6 +497,16 @@ impl GolangEmitter for ConditionIr {
                 output.text("][");
                 slk.emit_golang(context, output, None);
                 output.text("]");
+            }
+            ConditionIr::Split(sep, str) => {
+                output.text(format!("cdk.Fn_Split(jsii.String({sep:?}), "));
+                str.emit_golang(context, output, None);
+                output.text(")");
+            }
+            ConditionIr::Select(index, str) => {
+                output.text(format!("cdk.Fn_Select(jsii.Number({index:?}), "));
+                str.emit_golang(context, output, None);
+                output.text(")");
             }
         }
         if let Some(trailer) = trailer {
