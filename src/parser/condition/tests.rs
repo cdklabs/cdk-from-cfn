@@ -182,6 +182,22 @@ fn condition_find_in_map() {
 }
 
 #[test]
+fn condition_split() {
+    let expected = ConditionValue::Split(
+        ",".into(),
+        Box::new(ConditionValue::String("hello,world".into())),
+    );
+    assert_eq!(
+        expected,
+        serde_yaml::from_str("!Split [\",\", \"hello,world\"]").unwrap()
+    );
+    assert_eq!(
+        expected,
+        serde_yaml::from_str("Fn::Split: [\",\", \"hello,world\"]").unwrap()
+    );
+}
+
+#[test]
 fn condition_str_bool() {
     let expected = ConditionValue::String("true".into());
     assert_eq!(expected, serde_yaml::from_str("true").unwrap());

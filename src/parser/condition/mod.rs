@@ -116,7 +116,8 @@ pub enum ConditionValue {
 
     // Cloudformation meta-functions
     FindInMap(String, Box<ConditionValue>, Box<ConditionValue>),
-
+    Split(String, Box<ConditionValue>),
+    Select(String, Box<ConditionValue>),
     // End of recursion, the base primitives to work with
     String(String),
     Ref(String),
@@ -160,6 +161,14 @@ impl<'de> serde::Deserialize<'de> for ConditionValue {
                             second_level_key,
                         ))
                     }
+                    "Split" => {
+                        let (delimiter, source_string) = data.newtype_variant()?;
+                        Ok(Self::Value::Split(delimiter, source_string))
+                    }
+                    "Select" => {
+                        let (index, source_array) = data.newtype_variant()?;
+                        Ok(Self::Value::Select(index, source_array))
+                    }
                     "Ref" => Ok(Self::Value::Ref(data.newtype_variant()?)),
                     other => Ok(ConditionFunction::from_variant_access(other, data)?.into()),
                 }
@@ -194,6 +203,14 @@ impl<'de> serde::Deserialize<'de> for ConditionValue {
                             top_level_key,
                             second_level_key,
                         ))
+                    }
+                    "!Split" | "Fn::Split" => {
+                        let (delimiter, split_str) = data.next_value()?;
+                        Ok(Self::Value::Split(delimiter, split_str))
+                    }
+                    "!Select" | "Fn::Select" => {
+                        let (index, array) = data.next_value()?;
+                        Ok(Self::Value::Select(index, array))
                     }
                     "!Ref" | "Ref" => Ok(Self::Value::Ref(data.next_value()?)),
                     other => Ok(ConditionFunction::from_map_access(other, &mut data)?.into()),

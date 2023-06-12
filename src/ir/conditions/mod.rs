@@ -45,6 +45,8 @@ pub enum ConditionIr {
 
     // Cloudformation meta-functions
     Map(String, Box<ConditionIr>, Box<ConditionIr>),
+    Split(String, Box<ConditionIr>),
+    Select(String, Box<ConditionIr>),
 
     // End of recursion, the base primitives to work with
     Str(String),
@@ -93,6 +95,14 @@ impl ConditionValue {
                 let y = y.into_ir();
 
                 ConditionIr::Map(name, Box::new(x), Box::new(y))
+            }
+            Self::Split(delimiter, x) => {
+                let x = x.into_ir();
+                ConditionIr::Split(delimiter, Box::new(x))
+            }
+            Self::Select(index, x) => {
+                let x = x.into_ir();
+                ConditionIr::Select(index, Box::new(x))
             }
             Self::String(x) => ConditionIr::Str(x),
             Self::Ref(name) => {
@@ -179,6 +189,12 @@ impl ConditionValue {
             Self::FindInMap(_, key1, key2) => {
                 key1.find_dependencies(logical_id, topo_sort);
                 key2.find_dependencies(logical_id, topo_sort);
+            }
+            Self::Split(_, key1) => {
+                key1.find_dependencies(logical_id, topo_sort);
+            }
+            Self::Select(_, key1) => {
+                key1.find_dependencies(logical_id, topo_sort);
             }
             Self::Function(func) => func.find_dependencies(logical_id, topo_sort),
             Self::Ref(_) | Self::String(_) => {}
