@@ -42,6 +42,7 @@ pub enum ConditionIr {
     Equals(Box<ConditionIr>, Box<ConditionIr>),
     Not(Box<ConditionIr>),
     Or(Vec<ConditionIr>),
+    Condition(String),
 
     // Cloudformation meta-functions
     Map(String, Box<ConditionIr>, Box<ConditionIr>),
@@ -81,6 +82,7 @@ impl ConditionFunction {
                 let or_list = x.into_iter().map(ConditionValue::into_ir).collect();
                 ConditionIr::Or(or_list)
             }
+            Self::Condition(x) => ConditionIr::Condition(x),
             Self::If { .. } => unimplemented!(),
         }
     }
@@ -160,6 +162,9 @@ impl ConditionFunction {
             Self::Equals(a, b) => {
                 a.find_dependencies(logical_id, topo_sort);
                 b.find_dependencies(logical_id, topo_sort);
+            }
+            Self::Condition(x) => {
+                topo_sort.add_dependency(x.as_str(), logical_id);
             }
             Self::Not(cond) => cond.find_dependencies(logical_id, topo_sort),
             Self::If {

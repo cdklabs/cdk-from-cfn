@@ -247,6 +247,20 @@ fn condition_ref() {
     assert_eq!(expected, serde_yaml::from_str("Ref: LogicalID").unwrap());
 }
 
+// Functions are boolean operators and Conditions top level must end in a boolean, so this tests
+// confirm failures for using intrinsics incorrectly.
+#[test]
+fn condition_function_failure() {
+    let x: serde_yaml::Result<ConditionFunction> = serde_yaml::from_str("!Ref LogicalID");
+    let y: serde_yaml::Result<ConditionFunction> =
+        serde_yaml::from_str("Fn::Cidr: [\"192.168.0.0/24\", 6, 5]");
+    let x = x.err().unwrap().to_string();
+    let y = y.err().unwrap().to_string();
+
+    assert!(x.contains("unknown variant"));
+    assert!(y.contains("unknown variant"));
+}
+
 #[test]
 fn condition_condition() {
     let expected = ConditionValue::Condition("LogicalID".into());

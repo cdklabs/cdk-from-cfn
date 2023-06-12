@@ -11,6 +11,7 @@ pub enum ConditionFunction {
         if_false: ConditionValue,
     },
     Not(ConditionValue),
+    Condition(String),
 }
 
 impl ConditionFunction {
@@ -34,9 +35,11 @@ impl ConditionFunction {
                 })
             }
             "Not" => Ok(Self::Not(data.newtype_variant::<Singleton>()?.unwrap())),
+            "Condition" => Ok(Self::Condition(data.newtype_variant()?)),
+
             unknown => Err(A::Error::unknown_variant(
                 unknown,
-                &["And", "Or", "Equals", "If", "Not"],
+                &["And", "Or", "Equals", "If", "Not", "Condition"],
             )),
         }
     }
@@ -48,6 +51,7 @@ impl ConditionFunction {
         match variant {
             "!And" | "Fn::And" => Ok(Self::And(data.next_value()?)),
             "!Or" | "Fn::Or" => Ok(Self::Or(data.next_value()?)),
+            "Condition" => Ok(Self::Condition(data.next_value()?)),
             "!Equals" | "Fn::Equals" => {
                 let (left, right) = data.next_value()?;
                 Ok(Self::Equals(left, right))
@@ -63,7 +67,14 @@ impl ConditionFunction {
             "!Not" | "Fn::Not" => Ok(Self::Not(data.next_value::<Singleton>()?.unwrap())),
             unknown => Err(A::Error::unknown_variant(
                 unknown,
-                &["Fn::And", "Fn::Or", "Fn::Equals", "Fn::If", "Fn::Not"],
+                &[
+                    "Fn::And",
+                    "Fn::Or",
+                    "Fn::Equals",
+                    "Fn::If",
+                    "Fn::Not",
+                    "Condition",
+                ],
             )),
         }
     }
