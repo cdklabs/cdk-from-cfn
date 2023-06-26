@@ -30,7 +30,7 @@ clap = { version = "^4.3.4", features = ["cargo"] }
 indexmap = { version = "^1.9.3", features = ["serde"] }
 nom = "^7.0.0"
 numberkit = "^0.1.0"
-phf = "^0.11.1"
+phf = "^0.11.2"
 serde = { version = "^1.0.164", features = ["derive"] }
 serde-enum-str = "^0.3.2"
 serde_with = "^3.0.0"
