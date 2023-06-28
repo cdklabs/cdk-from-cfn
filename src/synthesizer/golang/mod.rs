@@ -363,7 +363,6 @@ impl Inspectable for ConditionIr {
             ConditionIr::Condition(_) | ConditionIr::Str(_) | ConditionIr::Ref(_) => false,
             ConditionIr::Split(_, cond) => cond.uses_map_table(name),
             ConditionIr::Select(_, cond) => cond.uses_map_table(name),
-            ConditionIr::Str(_) | ConditionIr::Ref(_) => false,
         }
     }
 }
