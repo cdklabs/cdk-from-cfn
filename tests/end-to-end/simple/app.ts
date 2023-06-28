@@ -24,6 +24,10 @@ export class NoctStack extends cdk.Stack {
    * The ARN of the SQS Queue
    */
   public readonly queueArn;
+  /**
+   * Whether this is a large region or not
+   */
+  public readonly isLarge;
 
   public constructor(scope: cdk.App, id: string, props: NoctStackProps = {}) {
     super(scope, id, props);
@@ -128,5 +132,6 @@ export class NoctStack extends cdk.Stack {
       });
     }
     this.queueArn = queue.ref;
+    this.isLarge = isLargeRegion ? true : false;
   }
 }
