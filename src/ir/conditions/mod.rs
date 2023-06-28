@@ -47,7 +47,7 @@ pub enum ConditionIr {
     // Cloudformation meta-functions
     Map(String, Box<ConditionIr>, Box<ConditionIr>),
     Split(String, Box<ConditionIr>),
-    Select(String, Box<ConditionIr>),
+    Select(usize, Box<ConditionIr>),
 
     // End of recursion, the base primitives to work with
     Str(String),
