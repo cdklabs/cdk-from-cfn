@@ -24,6 +24,8 @@ type NoctStack struct {
 	BucketArn interface{} // TODO: fix to appropriate type
 	/// The ARN of the SQS Queue
 	QueueArn interface{} // TODO: fix to appropriate type
+	/// Whether this is a large region or not
+	IsLarge interface{} // TODO: fix to appropriate type
 }
 
 func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *NoctStack {
@@ -90,7 +92,7 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 
 	stack := cdk.NewStack(scope, &id, &props.StackProps)
 
-	isUs := cdk.Fn_Select(jsii.Number("0"), cdk.Fn_Split(jsii.String("-"), stack.Region())) == jsii.String("us")
+	isUs := cdk.Fn_Select(jsii.Number(0), cdk.Fn_Split(jsii.String("-"), stack.Region())) == jsii.String("us")
 
 	isUsEast1 := stack.Region() == jsii.String("us-east-1")
 
@@ -122,13 +124,11 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 			Tags: &[]*cdk.CfnTag{
 				&cdk.CfnTag{
 					Key: jsii.String("FancyTag"),
-					Value: func() interface{} { // TODO: fix to appropriate value type
-						if isUsEast1 {
-							return cdk.Fn_Base64(table[jsii.String("Values")][jsii.String("String")])
-						} else {
-							return cdk.Fn_Base64(jsii.String("8CiMvAo="))
-						}
-					}(),
+					Value: ifCondition(
+						isUsEast1,
+						cdk.Fn_Base64(table[jsii.String("Values")][jsii.String("String")]),
+						cdk.Fn_Base64(jsii.String("8CiMvAo=")),
+					),
 				},
 			},
 		},
@@ -144,5 +144,21 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		Stack: stack,
 		BucketArn: bucket.AttrArn(),
 		QueueArn: queue.Ref(),
+		IsLarge: ifCondition(
+			isLargeRegion,
+			jsii.Bool(true),
+			jsii.Bool(false),
+		),
 	}
+}
+
+/// ifCondition is a helper function that replicates the ternary
+/// operator that can be found in other languages. It is conceptually
+/// equivalent to writing `cond ? whenTrue : whenFalse`, meaning it
+/// returns `whenTrue` if `cond` is `true`, and `whenFalse` otherwise.
+func ifCondition[T any](cond bool, whenTrue T, whenFalse T) T {
+	if cond {
+		return whenTrue
+	}
+	return whenFalse
 }

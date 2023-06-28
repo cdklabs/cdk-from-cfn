@@ -18,6 +18,7 @@ use voca_rs::case::{camel_case, pascal_case, snake_case};
 use super::Synthesizer;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("\t");
+const TERNARY: &str = "ifCondition";
 
 pub struct Golang {
     package_name: String,
@@ -50,12 +51,7 @@ impl Synthesizer for Golang {
             trailing: Some(")".into()),
             trailing_newline: true,
         });
-        let context = &mut {
-            let fmt = imports.section(false);
-            let time = imports.section(false);
-            let blank = imports.section(false);
-            GoContext::new(fmt, time, blank)
-        };
+        let stdlib_imports = imports.section(false);
 
         for import in &ir.imports {
             imports.line(import.to_golang());
@@ -108,6 +104,14 @@ impl Synthesizer for Golang {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
+
+        let context = &mut {
+            let fmt = stdlib_imports.section(false);
+            let time = stdlib_imports.section(false);
+            let blank = stdlib_imports.section(false);
+            let ternary = code.section(false);
+            GoContext::new(fmt, time, blank, ternary)
+        };
 
         for mapping in &ir.mappings {
             let leaf_type = match mapping.output_type() {
@@ -288,19 +292,28 @@ struct GoContext {
     fmt: Rc<CodeBuffer>,
     time: Rc<CodeBuffer>,
     blank: Rc<CodeBuffer>,
+    ternary: Rc<CodeBuffer>,
     has_fmt: bool,
     has_time: bool,
     has_blank: bool,
+    has_ternary: bool,
 }
 impl GoContext {
-    const fn new(fmt: Rc<CodeBuffer>, time: Rc<CodeBuffer>, blank: Rc<CodeBuffer>) -> Self {
+    const fn new(
+        fmt: Rc<CodeBuffer>,
+        time: Rc<CodeBuffer>,
+        blank: Rc<CodeBuffer>,
+        ternary: Rc<CodeBuffer>,
+    ) -> Self {
         Self {
             fmt,
             time,
             blank,
+            ternary,
             has_fmt: false,
             has_time: false,
             has_blank: false,
+            has_ternary: false,
         }
     }
 
@@ -330,6 +343,39 @@ impl GoContext {
         }
         self.blank.newline();
         self.has_blank = true;
+    }
+
+    fn insert_ternary(&mut self) {
+        if self.has_ternary {
+            return;
+        }
+
+        self.ternary.newline();
+        let comment = self.ternary.indent("/// ".into());
+        comment.line("ifCondition is a helper function that replicates the ternary");
+        comment.line("operator that can be found in other languages. It is conceptually");
+        comment.line("equivalent to writing `cond ? whenTrue : whenFalse`, meaning it");
+        comment.line("returns `whenTrue` if `cond` is `true`, and `whenFalse` otherwise.");
+        let block = self.ternary.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(
+                format!("func {TERNARY}[T any](cond bool, whenTrue T, whenFalse T) T {{").into(),
+            ),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+
+        block
+            .indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("if cond {".into()),
+                trailing: Some("}".into()),
+                trailing_newline: true,
+            })
+            .line("return whenTrue");
+        block.line("return whenFalse");
+
+        self.has_ternary = true;
     }
 }
 
@@ -620,37 +666,21 @@ impl GolangEmitter for ResourceIr {
                 output.text(")");
             }
             Self::If(cond, when_true, when_false) => {
-                let body = output.indent_with_options(IndentOptions {
+                // Ensure the ternary function is there...
+                context.insert_ternary();
+
+                let call = output.indent_with_options(IndentOptions {
                     indent: INDENT,
-                    leading: Some(
-                        "func() interface{} { // TODO: fix to appropriate value type".into(),
-                    ),
-                    trailing: Some("}()".into()),
+                    leading: Some(format!("{TERNARY}(").into()),
+                    trailing: Some(")".into()),
                     trailing_newline: false,
                 });
-                let case = body.indent_with_options(IndentOptions {
-                    indent: INDENT,
-                    leading: Some(
-                        format!(
-                            "if {cond} {{",
-                            cond = golang_identifier(cond, IdentifierKind::Unexported)
-                        )
-                        .into(),
-                    ),
-                    trailing: Some("} else {".into()),
-                    trailing_newline: true,
-                });
-                case.text("return ");
-                when_true.emit_golang(context, &case, Some(""));
-
-                let case = body.indent_with_options(IndentOptions {
-                    indent: INDENT,
-                    leading: None,
-                    trailing: Some("}".into()),
-                    trailing_newline: true,
-                });
-                case.text("return ");
-                when_false.emit_golang(context, &case, Some(""));
+                call.line(format!(
+                    "{cond},",
+                    cond = golang_identifier(cond, IdentifierKind::Unexported)
+                ));
+                when_true.emit_golang(context, &call, Some(","));
+                when_false.emit_golang(context, &call, Some(","));
             }
             Self::ImportValue(import) => {
                 output.text(format!("cdk.Fn_ImportValue(jsii.String({import:?}))"))
