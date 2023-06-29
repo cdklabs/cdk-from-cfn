@@ -7,7 +7,7 @@ use crate::ir::resources::ResourceIr;
 use crate::ir::conditions::ConditionIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::{CfnType};
-use std::any::type_name;
+use std::any::{type_name};
 use std::borrow::Cow;
 use std::fmt::{Debug};
 use std::io;
@@ -15,7 +15,7 @@ use std::rc::Rc;
 use super::Synthesizer;
 use voca_rs::case::{camel_case};
 use crate::ir::outputs::OutputInstruction;
-use crate::ir::reference::Reference;
+use crate::ir::reference::{Origin, Reference};
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("\t");
 
@@ -65,6 +65,7 @@ impl Java {
         code.line("import software.amazon.awscdk.*;");
         code.line("import software.amazon.awscdk.Fn.*;");
         code.line("import software.amazon.awscdk.CfnMapping;");
+        code.line("import software.amazon.awscdk.CfnTag;");
         code.line("import software.amazon.awscdk.Stack;");
         code.line("import software.amazon.awscdk.StackProps;");
         code.newline();
@@ -149,40 +150,43 @@ class Mapping<T> {
             let map_name = name(&mapping.name);
 
             for (outer_key, inner) in mapping.map.iter() {
+                let values: Vec<&MappingInnerValue> = inner.values().collect();
+                let (mix_types, inner_type): (bool, &str) = check_type(values);
+
                 for (inner_key, value) in inner.iter() {
                     if !mapping_init {
-                        let inner_type = Self::get_type(value);
-                        // map.line(format!("final Map<String,Map<String,{inner_type}>> {map_name}Map = new TreeMap<>();", ));
-                        map.line(format!("final Mapping<{inner_type}> {map_name} = new Mapping<{inner_type}>(this, \"{}\");", &mapping.name));
+                        map.line(format!("final Mapping<{inner_type}> {map_name} = new Mapping<>(this, \"{}\");", &mapping.name));
                         mapping_init = true;
                     }
                     map.text(format!("{map_name}.put(\"{outer_key}\", \"{inner_key}\", "));
 
                     match value {
                         MappingInnerValue::Bool(bool) => {
-                            map.line(format!("{}", if *bool { "true));" } else { "false);" }))
+                            map.text(format!("{}", if *bool { "true" } else { "false" }))
                         }
                         MappingInnerValue::Number(num) => {
-                            map.line(format!("{num});"))
+                            map.text(format!("{num}"))
                         }
                         MappingInnerValue::Float(num) => {
-                            map.line(format!("{num});"))
+                            map.text(format!("{num}"))
                         }
                         MappingInnerValue::String(str) => {
-                            map.line(format!("{str:?});"))
+                            map.text(format!("{str:?}"))
                         }
                         MappingInnerValue::List(items) => {
                             let list = map.indent_with_options(IndentOptions {
                                 indent: INDENT,
-                                leading: Some("List.of(".into()),
-                                trailing: Some("));".into()),
+                                leading: Some(format!("new GenericList<String>()").into()),
+                                trailing: Some("\n".into()),
                                 trailing_newline: false,
                             });
                             for item in items {
-                                list.line(format!("{item:?},"));
+                                list.text(format!(".add({item:?})"));
                             }
+                            list.line(".get()");
                         }
                     }
+                    map.line(");")
                 }
             }
             map.line(format!(
@@ -192,17 +196,32 @@ class Mapping<T> {
         }
         map.line("} // End Mapping section\n");
     }
+}
 
-    fn get_type(value: &MappingInnerValue) -> &str {
-        let inner_type = match value {
-            MappingInnerValue::Bool(bool) => "Boolean",
-            MappingInnerValue::Number(num) => "Integer",
-            MappingInnerValue::Float(num) => "Double",
-            MappingInnerValue::String(str) => "String",
-            MappingInnerValue::List(items) => "List<String>",
-        };
-        inner_type
+fn get_type(value: &MappingInnerValue) -> &str {
+    let inner_type = match value {
+        MappingInnerValue::Bool(bool) => "Boolean",
+        MappingInnerValue::Number(num) => "Integer",
+        MappingInnerValue::Float(num) => "Double",
+        MappingInnerValue::String(str) => "String",
+        MappingInnerValue::List(items) => "List<String>",
+    };
+    inner_type
+}
+
+fn check_type(values: Vec<&MappingInnerValue>) -> (bool, &str) {
+    let mut found_type = "Object";
+    let mut current_type;
+    for (index, value) in values.iter().enumerate() {
+        current_type = get_type(value);
+        if index < 1 {
+            found_type = current_type;
+        }
+        if !current_type.eq(found_type) {
+            return (false, "Object");
+        }
     }
+    return (true, found_type);
 }
 
 impl Default for Java {
@@ -247,7 +266,7 @@ impl Synthesizer for Java {
         ctor.line("super(scope, id, props);");
 
         Self::write_mappings(&ir, &ctor.clone());
-
+        /*
         let resource_def = ctor.clone();
         for resource in &ir.resources {
             let class = resource.resource_type.type_name();
@@ -275,6 +294,7 @@ impl Synthesizer for Java {
         for output in &ir.outputs {
             emit_output(output, &output_def, None);
         }
+        */
         code.write(into)
     }
 }
@@ -386,8 +406,14 @@ fn emit_conditions(reference: ConditionIr, writer: &CodeBuffer, trailer: Option<
     }
 }
 
-fn emit_reference(reference: Reference, writer: &CodeBuffer, trailer: Option<&str>) {
-    writer.text(format!("/* TODO */"));
+fn emit_reference(reference: Reference, writer: &CodeBuffer, trailer: Option<&str>) -> String {
+    let mut res = "Fn.ref(".to_string();
+    let origin = reference.origin;
+    match origin {
+        Origin::LogicalId { conditional } => res = format!("{res}{}", reference.name),
+        _ => res = format!("{res}/* TODO: */")
+    }
+    return format!("{res})");
 }
 
 fn get_condition(output: &CodeBuffer, list: Vec<ConditionIr>) {
@@ -398,7 +424,6 @@ fn get_condition(output: &CodeBuffer, list: Vec<ConditionIr>) {
         emit_conditions(cond.clone(), output, None);
     }
 }
-
 
 fn emit_output(output: &OutputInstruction, writer: &CodeBuffer, trailer: Option<&str>) {
     let indented = writer.indent_with_options(IndentOptions {
@@ -422,12 +447,14 @@ fn emit_output(output: &OutputInstruction, writer: &CodeBuffer, trailer: Option<
     }
 
     let condition = &output.condition;
-    if let Some(value) =  condition {
+    if let Some(value) = condition {
         indented.line(format!(".condition(\"{value}\")"));
     }
 }
 
 fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> String {
+    // debug(this.clone());
+
     match this {
         // Base cases
         ResourceIr::Null => "null".to_string(),
@@ -442,10 +469,40 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
         ResourceIr::Number(number) => format!("\"{number}\""),
         ResourceIr::Double(number) => format!("\"{number}\""),
         ResourceIr::Sub(res_vec) => {
-            // { "Fn::Sub" : [ String, { Var1Name: Var1Value, Var2Name: Var2Value } ] } TODO
-            "".to_string()
+            let body = res_vec.get(0);
+            if let Some(body_val) = body {
+                let map_body: Vec<ResourceIr> = res_vec.split_at(1).1.to_vec();
+                let sub_body = emit_java(body_val.clone(), writer, None);
+                if map_body.is_empty() {
+                    format!("Fn.sub({})", sub_body)
+                } else {
+                    let mut res = format!("Fn.sub({}, new GenericMap<String, String >()\n", sub_body);
+                    let pairs = map_body.chunks(2);
+
+                    for pair in pairs {
+                        if pair.len() == 2 {
+                            if let Some(key) = pair.get(0) {
+                                if let Some(value) = pair.get(1) {
+                                    res = format!("{res}.add({key:?}, {value:?})\n");
+                                }
+                            }
+                        } else {
+                            panic!("Intrinsic sub map should have both key and value in a pair")
+                        }
+                    }
+                    format!("{res}\n.get());")
+                }
+            } else {
+                panic!("Intrinsic sub does not have a body")
+            }
         }
 
+        ResourceIr::If(cond_id, val_true, val_false) => {
+            format!("Fn.conditionIf(\"{}\", {}, {})", cond_id, emit_java(*val_true, writer, None), emit_java(*val_false, writer, None))
+        }
+        ResourceIr::Ref(reference) => {
+            emit_reference(reference, writer, None)
+        }
         _ => "".to_string()
     }
 }
