@@ -18,6 +18,7 @@ Name         | Enabled by default | Description
 -------------|:------------------:|---------------------------------------------
 `typescript` | :heavy_check_mark: | Enables support for TypeScript output
 `golang`     |                    | Enables support for Go output
+`java`       |                    | Enables support for Java output
 
 You can enable experimental languages (not enabled by default) by enabling the relevant feature:
 ```console
