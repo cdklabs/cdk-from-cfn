@@ -42,14 +42,9 @@ impl Synthesizer for Python {
         // no judgement allowed lol, still trying to understand the synthesizer
         let imports = code.section(true);
         for import in &ir.imports {
-            imports.line(format!(
-
-            ));
+            imports.line(format!("# TODO: {import:?}"));
         }
+
+        code.write(output)
     }
-
-
-
-
 }
-

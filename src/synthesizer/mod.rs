@@ -14,6 +14,12 @@ mod typescript;
 #[doc(inline)]
 pub use typescript::*;
 
+#[cfg(feature = "python")]
+mod python;
+#[cfg(feature = "python")]
+#[doc(inline)]
+pub use python::*;
+
 pub trait Synthesizer {
     fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write) -> io::Result<()>;
 }
