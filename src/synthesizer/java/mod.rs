@@ -6,14 +6,14 @@ use crate::ir::importer::ImportInstruction;
 use crate::ir::resources::ResourceIr;
 use crate::ir::conditions::ConditionIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::specification::{CfnType};
+use crate::specification::{CfnType, Structure};
 use std::any::{type_name};
 use std::borrow::Cow;
 use std::fmt::{Debug};
 use std::io;
 use std::rc::Rc;
 use super::Synthesizer;
-use voca_rs::case::{camel_case};
+use voca_rs::case::camel_case;
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, Reference};
 
@@ -34,9 +34,9 @@ macro_rules! fill {
     };
 }
 
-fn debug<T: Debug>(value: T) {
+fn debug<T: Debug>(value: T, prefix: Option<&str>) {
     let type_name = type_name::<T>();
-    println!("🔎 {}: {:?}", type_name, value);
+    println!("[🔎] {:?}: ({type_name}) {:?}", prefix, value);
 }
 
 pub struct Java {
@@ -226,7 +226,7 @@ fn check_type(values: Vec<&MappingInnerValue>) -> (bool, &str) {
 
 impl Default for Java {
     fn default() -> Self {
-        Self::new("com.myorg")
+        Self::new("com.acme.test.simple")
     }
 }
 
@@ -266,7 +266,6 @@ impl Synthesizer for Java {
         ctor.line("super(scope, id, props);");
 
         Self::write_mappings(&ir, &ctor.clone());
-        /*
         let resource_def = ctor.clone();
         for resource in &ir.resources {
             let class = resource.resource_type.type_name();
@@ -284,6 +283,7 @@ impl Synthesizer for Java {
             resource_def.newline();
         }
 
+
         let condition_def = ctor.clone();
         for condition in &ir.conditions {
             let val = condition.value.clone();
@@ -294,7 +294,7 @@ impl Synthesizer for Java {
         for output in &ir.outputs {
             emit_output(output, &output_def, None);
         }
-        */
+
         code.write(into)
     }
 }
@@ -330,22 +330,14 @@ impl ImportInstruction {
     }
 }
 
-
-trait JavaEmitter {
-    fn match_cfn_type(input: &CfnType) -> String;
-    // fn emit_java(&self, output: &CodeBuffer, trailer: Option<&str>);
-}
-
-impl JavaEmitter for ResourceIr {
-    fn match_cfn_type(input: &CfnType) -> String {
-        String::from(match input {
-            CfnType::Boolean => "Boolean",
-            CfnType::Double | CfnType::Integer | CfnType::Long => "Double",
-            CfnType::Json => "JsonNode jsonNode = objectMapper.readTree(jsonString);",
-            CfnType::String => "String",
-            CfnType::Timestamp => "/*TODO*/"
-        })
-    }
+fn match_cfn_type(input: &CfnType) -> String {
+    String::from(match input {
+        CfnType::Boolean => "Boolean",
+        CfnType::Double | CfnType::Integer | CfnType::Long => "Double",
+        CfnType::Json => "JsonNode jsonNode = objectMapper.readTree(jsonString);",
+        CfnType::String => "String",
+        CfnType::Timestamp => "/*TODO*/"
+    })
 }
 
 fn emit_conditions(reference: ConditionIr, writer: &CodeBuffer, trailer: Option<&str>) {
@@ -407,13 +399,15 @@ fn emit_conditions(reference: ConditionIr, writer: &CodeBuffer, trailer: Option<
 }
 
 fn emit_reference(reference: Reference, writer: &CodeBuffer, trailer: Option<&str>) -> String {
-    let mut res = "Fn.ref(".to_string();
     let origin = reference.origin;
+    let name = reference.name;
     match origin {
-        Origin::LogicalId { conditional } => res = format!("{res}{}", reference.name),
-        _ => res = format!("{res}/* TODO: */")
+        Origin::LogicalId { conditional } => format!("Fn.ref({name})"),
+        Origin::GetAttribute { attribute, conditional } => format!("Fn.getAtt({attribute}, {name})"),
+        Origin::Parameter {} => format!("Fn.getValueFromLookup({name})"),
+        Origin::Condition => format!("new CfnCondition(this, {name})"),
+        Origin::PseudoParameter(_) => format!("/* TODO pseudo-param {name}!*/")
     }
-    return format!("{res})");
 }
 
 fn get_condition(output: &CodeBuffer, list: Vec<ConditionIr>) {
@@ -433,7 +427,7 @@ fn emit_output(output: &OutputInstruction, writer: &CodeBuffer, trailer: Option<
         trailing_newline: true,
     });
     let val = output.value.clone();
-    indented.line(format!(".value({})", emit_java(val, &*indented, None)));
+    indented.line(format!(".value(String.valueOf({}))", emit_java(val, &*indented, None)));
 
     let exp = &output.export;
     if let Some(value) = exp {
@@ -453,47 +447,40 @@ fn emit_output(output: &OutputInstruction, writer: &CodeBuffer, trailer: Option<
 }
 
 fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> String {
-    // debug(this.clone());
+    debug(this.clone(), None);
 
     match this {
         // Base cases
         ResourceIr::Null => "null".to_string(),
-        ResourceIr::String(text) | ResourceIr::ImportValue(text) => format!("\"{text}\""),
-        ResourceIr::Bool(bool) => {
-            if bool {
-                "true".to_string()
-            } else {
-                "false".to_string()
-            }
-        }
-        ResourceIr::Number(number) => format!("\"{number}\""),
-        ResourceIr::Double(number) => format!("\"{number}\""),
-        ResourceIr::Sub(res_vec) => {
-            let body = res_vec.get(0);
-            if let Some(body_val) = body {
-                let map_body: Vec<ResourceIr> = res_vec.split_at(1).1.to_vec();
-                let sub_body = emit_java(body_val.clone(), writer, None);
-                if map_body.is_empty() {
-                    format!("Fn.sub({})", sub_body)
-                } else {
-                    let mut res = format!("Fn.sub({}, new GenericMap<String, String >()\n", sub_body);
-                    let pairs = map_body.chunks(2);
+        ResourceIr::Bool(bool) => bool.to_string(),
+        ResourceIr::Number(number) => format!("{number}"),
+        ResourceIr::Double(number) => format!("{number}"),
+        ResourceIr::String(text) => format!("{text}"),
+        ResourceIr::ImportValue(text) => format!("\"{text}\""),
 
-                    for pair in pairs {
-                        if pair.len() == 2 {
-                            if let Some(key) = pair.get(0) {
-                                if let Some(value) = pair.get(1) {
-                                    res = format!("{res}.add({key:?}, {value:?})\n");
-                                }
-                            }
-                        } else {
-                            panic!("Intrinsic sub map should have both key and value in a pair")
-                        }
-                    }
-                    format!("{res}\n.get());")
+        ResourceIr::Object(obj, indexmap) => {
+            let mut res = format!("new GenericMap<String, Object>()");
+            for (key, value) in &indexmap {
+                res = format!("{res}\n.add({},{})", key, emit_java((*value).clone(), writer, None))
+            }
+            res
+        }
+        ResourceIr::Array(struc, vect) => {
+            match struc {
+                Structure::Simple(simple) => {
+                    format!("{}", match_cfn_type(&simple))
                 }
-            } else {
-                panic!("Intrinsic sub does not have a body")
+                Structure::Composite(com_struc) => {
+                    if !com_struc.eq_ignore_ascii_case("Tag") {
+                        panic!("/*🚨TODO composite structure, not tag!*/");
+                    }
+
+                    let mut res = format!("new GenericList<Object>()\n");
+                    for element in vect.iter() {
+                        res = format!("{res}\n{INDENT}.add({})", emit_java(element.clone(), writer, trailer));
+                    }
+                    return format!("{res}\n.getTags()\n");
+                }
             }
         }
 
@@ -503,7 +490,45 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
         ResourceIr::Ref(reference) => {
             emit_reference(reference, writer, None)
         }
-        _ => "".to_string()
+        ResourceIr::Join(delimiter, resources) => {
+            let mut res = format!("Fn.join(\"{delimiter}\", new GenericList<String>()");
+            for resource in resources {
+                res = format!("{res}\n{INDENT}.add({})", emit_java(resource, writer, None))
+            }
+            format!("{res}\n{INDENT}.get()")
+        }
+        ResourceIr::Split(string, resource) => {
+            format!("Fn.split({}, String.valueOf({})", string, emit_java(*resource, writer, None))
+        }
+        ResourceIr::Base64(resource) => {
+            format!("Fn.base64(\"{}\")", emit_java(*resource, writer, None))
+        }
+        ResourceIr::GetAZs(resource) => {
+            format!("Fn.getAz(\"{}\")", emit_java(*resource, writer, None))
+        }
+        ResourceIr::Sub(resources) => {
+            if let Some((first_elem, vect)) = resources.split_first() {
+                let mut res = format!("Fn.sub(\"{}\", ", emit_java(first_elem.clone(), writer, None));
+                for resource in vect {
+                    res = format!("{res}\n{}", emit_java(resource.clone(), writer, None));
+                }
+                return format!("{res})\n");
+            }
+            panic!("🚨 Fn::Sub improperly formatted")
+        }
+        ResourceIr::Map(resource, key, value) => {
+            format!("/* TODO map */")
+        }
+        ResourceIr::Cidr(p0, p1, p2) => {
+            format!("Fn.cidr(\"{}\", {}, String.valueOf({}))",
+                    emit_java(*p0, writer, None),
+                    emit_java(*p1, writer, None),
+                    emit_java(*p2, writer, None)
+            )
+        }
+        ResourceIr::Select(size, resource) => {
+            format!("Fn.select({},{})", size, emit_java(*resource, writer, None))
+        }
     }
 }
 
