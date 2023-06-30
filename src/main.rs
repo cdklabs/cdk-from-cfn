@@ -5,7 +5,7 @@ use noctilucent::CloudformationParseTree;
 use std::{fs, io};
 
 // Ensure at least one target language is enabled...
-#[cfg(not(any(feature = "typescript", feature = "golang")))]
+#[cfg(not(any(feature = "typescript", feature = "golang", feature = "python")))]
 compile_error!("At least one language target feature must be enabled!");
 
 fn main() -> anyhow::Result<()> {
@@ -14,6 +14,8 @@ fn main() -> anyhow::Result<()> {
         "typescript",
         #[cfg(feature = "golang")]
         "go",
+        #[cfg(feature = "python")]
+        "python",
     ];
 
     let matches = Command::new(env!("CARGO_BIN_NAME"))
@@ -76,6 +78,8 @@ fn main() -> anyhow::Result<()> {
         "typescript" => Box::new(Typescript {}),
         #[cfg(feature = "golang")]
         "go" => Box::<Golang>::default(),
+        #[cfg(feature = "golang")]
+        "python" => Box::<Python>::default(),
         unsupported => panic!("unsupported language: {}", unsupported),
     };
 
