@@ -34,9 +34,9 @@ macro_rules! fill {
     };
 }
 
-fn debug<T: Debug>(value: T, prefix: Option<&str>) {
+fn debug<T: Debug>(value: T, prefix: &str) {
     let type_name = type_name::<T>();
-    println!("[🔎] {:?}: ({type_name}) {:?}", prefix, value);
+    println!("[{:?}]: {:?}", prefix, value);
 }
 
 pub struct Java {
@@ -90,6 +90,11 @@ class GenericList<T> {
 
     public GenericList<T> add(final T object) {
         this.list.add(object);
+        return this;
+    }
+
+    public GenericList<T> add(final List<T> collection) {
+        this.list.addAll(collection);
         return this;
     }
     public List<T> get() {
@@ -447,41 +452,63 @@ fn emit_output(output: &OutputInstruction, writer: &CodeBuffer, trailer: Option<
 }
 
 fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> String {
-    debug(this.clone(), None);
-
     match this {
         // Base cases
         ResourceIr::Null => "null".to_string(),
         ResourceIr::Bool(bool) => bool.to_string(),
         ResourceIr::Number(number) => format!("{number}"),
         ResourceIr::Double(number) => format!("{number}"),
-        ResourceIr::String(text) => format!("{text}"),
+        ResourceIr::String(text) => {
+            if text.is_empty() {
+                format!("")
+            } else {
+                format!("\"{text}\"")
+            }
+        }
         ResourceIr::ImportValue(text) => format!("\"{text}\""),
 
-        ResourceIr::Object(obj, indexmap) => {
-            let mut res = format!("new GenericMap<String, Object>()");
-            for (key, value) in &indexmap {
-                res = format!("{res}\n.add({},{})", key, emit_java((*value).clone(), writer, None))
-            }
-            res
-        }
-        ResourceIr::Array(struc, vect) => {
-            match struc {
-                Structure::Simple(simple) => {
-                    format!("{}", match_cfn_type(&simple))
-                }
-                Structure::Composite(com_struc) => {
-                    if !com_struc.eq_ignore_ascii_case("Tag") {
-                        panic!("/*🚨TODO composite structure, not tag!*/");
+        ResourceIr::Object(structure, indexmap) => {
+            match structure {
+                Structure::Composite(str) => {
+                    let mut res = format!("new GenericMap<String, Object>()");
+                    for (key, value) in &indexmap {
+                        if key.eq_ignore_ascii_case("Key") {
+                            res = format!("{res}\n.add({}", emit_java((*value).clone(), writer, None))
+                        }
+                        if key.eq_ignore_ascii_case("Value") {
+                            res = format!("{res},{})", emit_java((*value).clone(), writer, None))
+                        }
                     }
+                    format!("{res}\n.getTags()")
+                }
 
-                    let mut res = format!("new GenericList<Object>()\n");
-                    for element in vect.iter() {
-                        res = format!("{res}\n{INDENT}.add({})", emit_java(element.clone(), writer, trailer));
+                Structure::Simple(cfn_type) => {
+                    let mut res = format!("new GenericMap<String, {}>()", match_cfn_type(&cfn_type));
+                    for (key, value) in &indexmap {
+                        res = format!("{res}\n{INDENT}.add({}, {})",
+                                      emit_java((*value).clone(), writer, None),
+                                      emit_java((*value).clone(), writer, None));
                     }
-                    return format!("{res}\n.getTags()\n");
+                    format!("{res}\n.get()")
                 }
             }
+        }
+
+        ResourceIr::Array(structure, vect) => {
+            let mut res: String;
+            match structure {
+                Structure::Composite(cfn_type) => {
+                    res = format!("new GenericList<CfnTag>()\n");
+                }
+
+                Structure::Simple(cfn_type) => {
+                    res = format!("new GenericList<{}>()\n", match_cfn_type(&cfn_type));
+                }
+            }
+            for res_ir in vect {
+                res = format!("{res}\n{INDENT}.add({})", emit_java(res_ir.clone(), writer, trailer));
+            }
+            format!("{res}\n.get()\n")
         }
 
         ResourceIr::If(cond_id, val_true, val_false) => {
@@ -504,7 +531,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             format!("Fn.base64(\"{}\")", emit_java(*resource, writer, None))
         }
         ResourceIr::GetAZs(resource) => {
-            format!("Fn.getAz(\"{}\")", emit_java(*resource, writer, None))
+            format!("Fn.getAzs(\"{}\")", emit_java(*resource, writer, None))
         }
         ResourceIr::Sub(resources) => {
             if let Some((first_elem, vect)) = resources.split_first() {
@@ -517,7 +544,11 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             panic!("🚨 Fn::Sub improperly formatted")
         }
         ResourceIr::Map(resource, key, value) => {
-            format!("/* TODO map */")
+            format!("{}, new GenericMap<String, Object>().add({}, {}).get()",
+                    resource,
+                    emit_java(*key, writer, None),
+                    emit_java(*value, writer, None),
+            )
         }
         ResourceIr::Cidr(p0, p1, p2) => {
             format!("Fn.cidr(\"{}\", {}, String.valueOf({}))",
