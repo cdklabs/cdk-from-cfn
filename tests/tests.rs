@@ -342,7 +342,7 @@ fn test_parse_simple_json_template() {
         }
     });
 
-    let resources = IndexMap::from([
+    let resources = IndexMap::from_iter([
         (
             "EC2Instance".into(),
             ResourceAttributes {
@@ -494,7 +494,7 @@ fn test_parse_tree_with_fnfindinmap() {
 
     );
 
-    let resources = IndexMap::from([(
+    let resources = IndexMap::from_iter([(
         "MyInstance".into(),
         ResourceAttributes {
             condition: Option::None,
@@ -663,7 +663,7 @@ fn test_parse_tree_resource_with_fn_and() {
         }
     });
 
-    let resources = IndexMap::from([(
+    let resources = IndexMap::from_iter([(
         "MyApp".into(),
         ResourceAttributes {
             condition: Option::None,
@@ -683,7 +683,7 @@ fn test_parse_tree_resource_with_fn_and() {
     )]);
 
     let cfn_tree = CloudformationParseTree {
-        parameters: IndexMap::from([
+        parameters: IndexMap::from_iter([
             (
                 "Environment".into(),
                 Parameter {

@@ -1,11 +1,14 @@
-use crate::primitives::WrapperF64;
-use indexmap::IndexMap;
 use std::fmt::{Display, Formatter};
+
+use indexmap::IndexMap;
+
+use crate::primitives::WrapperF64;
+use crate::util::Hasher;
 
 #[derive(Clone, Debug, PartialEq, serde::Deserialize)]
 #[serde(transparent)]
 pub struct MappingTable {
-    pub mappings: IndexMap<String, IndexMap<String, MappingInnerValue>>,
+    pub mappings: IndexMap<String, IndexMap<String, MappingInnerValue, Hasher>, Hasher>,
 }
 
 /**

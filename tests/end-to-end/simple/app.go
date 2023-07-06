@@ -3,7 +3,7 @@ package simple
 import (
 	"fmt"
 
-	cdk "github.com/aws/aws-cdk-go/awscdk/v2"
+	"github.com/aws/aws-cdk-go/awscdk/v2"
 	s3 "github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	sqs "github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
 	"github.com/aws/constructs-go/constructs/v10"
@@ -11,7 +11,7 @@ import (
 )
 
 type NoctStackProps struct {
-	cdk.StackProps
+	awscdk.StackProps
 	/// The prefix for the bucket name
 	BucketNamePrefix *string
 }
@@ -19,7 +19,7 @@ type NoctStackProps struct {
 /// An example stack that uses many of the syntax elements permitted in a
 /// CloudFormation template, but does not attempt to represent a realistic stack.
 type NoctStack struct {
-	cdk.Stack
+	awscdk.Stack
 	/// The ARN of the bucket in this template!
 	BucketArn interface{} // TODO: fix to appropriate type
 	/// The ARN of the SQS Queue
@@ -90,9 +90,9 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		},
 	}
 
-	stack := cdk.NewStack(scope, &id, &props.StackProps)
+	stack := awscdk.NewStack(scope, &id, &props.StackProps)
 
-	isUs := cdk.Fn_Select(jsii.Number(0), cdk.Fn_Split(jsii.String("-"), stack.Region())) == jsii.String("us")
+	isUs := awscdk.Fn_Select(jsii.Number(0), awscdk.Fn_Split(jsii.String("-"), stack.Region())) == jsii.String("us")
 
 	isUsEast1 := stack.Region() == jsii.String("us-east-1")
 
@@ -104,11 +104,11 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		&sqs.CfnQueueProps{
 			DelaySeconds: jsii.Number(42.1337),
 			FifoQueue: jsii.Bool(false),
-			KmsMasterKeyId: cdk.Fn_ImportValue(jsii.String("Shared.KmsKeyArn")),
-			QueueName: cdk.Fn_Join(jsii.String("-"), &[]*string{
+			KmsMasterKeyId: awscdk.Fn_ImportValue(jsii.String("Shared.KmsKeyArn")),
+			QueueName: awscdk.Fn_Join(jsii.String("-"), &[]*string{
 				stack.StackName(),
 				strings[jsii.String("Bars")][jsii.String("Bar")],
-				cdk.Fn_Select(jsii.Number(1), cdk.Fn_GetAzs(stack.Region())),
+				awscdk.Fn_Select(jsii.Number(1), awscdk.Fn_GetAzs(stack.Region())),
 			}),
 			RedrivePolicy: nil,
 			VisibilityTimeout: jsii.Number(120),
@@ -121,20 +121,20 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		&s3.CfnBucketProps{
 			AccessControl: jsii.String("private"),
 			BucketName: jsii.String(fmt.Sprintf("%v-%v-bucket", props.BucketNamePrefix, stack.StackName())),
-			Tags: &[]*cdk.CfnTag{
-				&cdk.CfnTag{
+			Tags: &[]*awscdk.CfnTag{
+				&awscdk.CfnTag{
 					Key: jsii.String("FancyTag"),
 					Value: ifCondition(
 						isUsEast1,
-						cdk.Fn_Base64(table[jsii.String("Values")][jsii.String("String")]),
-						cdk.Fn_Base64(jsii.String("8CiMvAo=")),
+						awscdk.Fn_Base64(table[jsii.String("Values")][jsii.String("String")]),
+						awscdk.Fn_Base64(jsii.String("8CiMvAo=")),
 					),
 				},
 			},
 		},
 	)
 
-	cdk.NewCfnOutput(stack, jsii.String("BucketArn"), &cdk.CfnOutputProps{
+	awscdk.NewCfnOutput(stack, jsii.String("BucketArn"), &awscdk.CfnOutputProps{
 		Description: jsii.String("The ARN of the bucket in this template!"),
 		ExportName: jsii.String("ExportName"),
 		Value: bucket.AttrArn(),

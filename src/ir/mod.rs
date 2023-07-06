@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::cdk::Schema;
 use crate::ir::conditions::ConditionInstruction;
 use crate::ir::constructor::Constructor;
 use crate::ir::importer::ImportInstruction;
@@ -37,6 +38,7 @@ impl CloudformationProgramIr {
     // not parsing errors.
     pub fn from(
         parse_tree: CloudformationParseTree,
+        schema: &Schema,
     ) -> Result<CloudformationProgramIr, TransmuteError> {
         let origins = ReferenceOrigins::new(&parse_tree);
 
@@ -47,8 +49,8 @@ impl CloudformationProgramIr {
             imports: ImportInstruction::from(&parse_tree.resources)?,
             constructor: Constructor::from(parse_tree.parameters),
             mappings: MappingInstruction::from(parse_tree.mappings),
-            resources: ResourceInstruction::from(parse_tree.resources, &origins)?,
-            outputs: OutputInstruction::from(parse_tree.outputs, &origins)?,
+            resources: ResourceInstruction::from(parse_tree.resources, schema, &origins)?,
+            outputs: OutputInstruction::from(parse_tree.outputs, schema, &origins)?,
         })
     }
 }

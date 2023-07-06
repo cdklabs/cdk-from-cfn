@@ -1,5 +1,6 @@
 #![allow(unused_variables)]
 
+use crate::cdk::{Primitive, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
@@ -9,7 +10,6 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{find_references, ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::specification::{CfnType, Structure};
 use std::borrow::Cow;
 use std::io;
 use std::rc::Rc;
@@ -20,25 +20,28 @@ use super::Synthesizer;
 const INDENT: Cow<'static, str> = Cow::Borrowed("\t");
 const TERNARY: &str = "ifCondition";
 
-pub struct Golang {
+pub struct Golang<'a> {
+    schema: &'a Schema,
     package_name: String,
 }
 
-impl Golang {
-    pub fn new(package_name: impl Into<String>) -> Self {
+impl<'a> Golang<'a> {
+    pub fn new(schema: &'a Schema, package_name: impl Into<String>) -> Self {
         Self {
+            schema,
             package_name: package_name.into(),
         }
     }
 }
 
-impl Default for Golang {
+#[cfg(feature = "cdk-schema-default")]
+impl Default for Golang<'_> {
     fn default() -> Self {
-        Self::new("main")
+        Self::new(Schema::default(), "main")
     }
 }
 
-impl Synthesizer for Golang {
+impl Synthesizer for Golang<'_> {
     fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write) -> io::Result<()> {
         let code = CodeBuffer::default();
 
@@ -68,7 +71,7 @@ impl Synthesizer for Golang {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        props.line("cdk.StackProps"); // Extends cdk.StackProps
+        props.line("awscdk.StackProps"); // Extends cdk.StackProps
         for param in &ir.constructor.inputs {
             if let Some(description) = &param.description {
                 props.indent("/// ".into()).line(description.to_owned());
@@ -86,7 +89,7 @@ impl Synthesizer for Golang {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        class.line("cdk.Stack");
+        class.line("awscdk.Stack");
         for output in &ir.outputs {
             if let Some(description) = &output.description {
                 class.indent("/// ".into()).line(description.to_owned());
@@ -110,7 +113,7 @@ impl Synthesizer for Golang {
             let time = stdlib_imports.section(false);
             let blank = stdlib_imports.section(false);
             let ternary = code.section(false);
-            GoContext::new(fmt, time, blank, ternary)
+            GoContext::new(self.schema, fmt, time, blank, ternary)
         };
 
         for mapping in &ir.mappings {
@@ -186,7 +189,7 @@ impl Synthesizer for Golang {
             ctor.newline();
         }
 
-        ctor.line("stack := cdk.NewStack(scope, &id, &props.StackProps)");
+        ctor.line("stack := awscdk.NewStack(scope, &id, &props.StackProps)");
         ctor.newline();
 
         for condition in &ir.conditions {
@@ -249,7 +252,7 @@ impl Synthesizer for Golang {
                     indent: INDENT,
                     leading: Some(
                         format!(
-                            "cdk.NewCfnOutput(stack, jsii.String({name:?}), &cdk.CfnOutputProps{{",
+                            "awscdk.NewCfnOutput(stack, jsii.String({name:?}), &awscdk.CfnOutputProps{{",
                             name = output.name
                         )
                         .into(),
@@ -288,7 +291,8 @@ impl Synthesizer for Golang {
     }
 }
 
-struct GoContext {
+struct GoContext<'a> {
+    schema: &'a Schema,
     fmt: Rc<CodeBuffer>,
     time: Rc<CodeBuffer>,
     blank: Rc<CodeBuffer>,
@@ -298,14 +302,16 @@ struct GoContext {
     has_blank: bool,
     has_ternary: bool,
 }
-impl GoContext {
+impl<'a> GoContext<'a> {
     const fn new(
+        schema: &'a Schema,
         fmt: Rc<CodeBuffer>,
         time: Rc<CodeBuffer>,
         blank: Rc<CodeBuffer>,
         ternary: Rc<CodeBuffer>,
     ) -> Self {
         Self {
+            schema,
             fmt,
             time,
             blank,
@@ -475,11 +481,15 @@ impl ImportInstruction {
                 .into()
         }));
 
-        format!(
-            "{name} {module:?}",
-            name = self.name,
-            module = parts.join("/")
-        )
+        if self.name == "cdk" {
+            format!("{module:?}", module = parts.join("/"))
+        } else {
+            format!(
+                "{name} {module:?}",
+                name = self.name,
+                module = parts.join("/")
+            )
+        }
     }
 }
 
@@ -494,6 +504,10 @@ impl ConstructorParameter {
             }
         )
     }
+}
+
+trait AsGolang {
+    fn as_golang(&self, schema: &Schema) -> Cow<'static, str>;
 }
 
 trait GolangEmitter {
@@ -544,12 +558,12 @@ impl GolangEmitter for ConditionIr {
                 output.text("]");
             }
             ConditionIr::Split(sep, str) => {
-                output.text(format!("cdk.Fn_Split(jsii.String({sep:?}), "));
+                output.text(format!("awscdk.Fn_Split(jsii.String({sep:?}), "));
                 str.emit_golang(context, output, None);
                 output.text(")");
             }
             ConditionIr::Select(index, str) => {
-                output.text(format!("cdk.Fn_Select(jsii.Number({index:?}), "));
+                output.text(format!("awscdk.Fn_Select(jsii.Number({index:?}), "));
                 str.emit_golang(context, output, None);
                 output.text(")");
             }
@@ -581,20 +595,28 @@ impl GolangEmitter for ResourceIr {
             // Composites
             Self::Array(structure, array) => {
                 let value_type: Cow<str> = match structure {
-                    Structure::Composite(name) => match *name {
-                        "Tag" => "*cdk.CfnTag".into(),
+                    TypeReference::Named(name) => match name.as_ref() {
+                        "aws-cdk-lib.CfnTag" => "*awscdk.CfnTag".into(),
                         name => format!("*{name} /* FIXME */").into(),
                     },
-                    Structure::Simple(simple) => match simple {
-                        CfnType::Boolean => "*bool".into(),
-                        CfnType::Double | CfnType::Integer | CfnType::Long => "*float64".into(),
-                        CfnType::Json => "interface{}".into(),
-                        CfnType::String => "*string".into(),
-                        CfnType::Timestamp => {
+                    TypeReference::Primitive(simple) => match simple {
+                        Primitive::Boolean => "*bool".into(),
+                        Primitive::Number => "*float64".into(),
+                        Primitive::Json => "interface{}".into(),
+                        Primitive::String => "*string".into(),
+                        Primitive::Timestamp => {
                             context.import_time();
                             "time.Time".into()
                         }
+                        Primitive::Unknown => "awscdk.IResolvable".into(),
                     },
+                    TypeReference::List(item_type) => {
+                        format!("[]{}", item_type.as_golang(context.schema)).into()
+                    }
+                    TypeReference::Map(item_type) => {
+                        format!("map[string]{}", item_type.as_golang(context.schema)).into()
+                    }
+                    TypeReference::Union(item_type) => "interface{}".into(),
                 };
 
                 let items = output.indent_with_options(IndentOptions {
@@ -612,13 +634,18 @@ impl GolangEmitter for ResourceIr {
                 let props = output.indent_with_options(IndentOptions {
                     indent: INDENT,
                     leading: Some(match structure {
-                        Structure::Composite(name) => match *name {
-                            "Tag" => "&cdk.CfnTag{".into(),
-                            name => format!("&{name}/* FIXME */{{").into(),
-                        },
-                        Structure::Simple(cfn) => {
+                        TypeReference::Named(name) => {
+                            let spec = context.schema.type_named(name).unwrap();
+                            let name = &spec.name.golang;
+                            format!("&{}.{}{{", name.package, name.name).into()
+                        }
+                        TypeReference::Primitive(cfn) => {
                             unreachable!("object with simple structure ({:?})", cfn)
                         }
+                        TypeReference::List(item_type) => {
+                            format!("&[]{}{{", item_type.as_golang(context.schema)).into()
+                        }
+                        other => unimplemented!("{other:?}"),
                     }),
                     trailing: Some("}".into()),
                     trailing_newline: false,
@@ -634,12 +661,12 @@ impl GolangEmitter for ResourceIr {
 
             // Intrinsic functions
             Self::Base64(value) => {
-                output.text("cdk.Fn_Base64(");
+                output.text("awscdk.Fn_Base64(");
                 value.emit_golang(context, output, None);
                 output.text(")");
             }
             Self::Cidr(cidr_block, count, mask) => {
-                output.text("cdk.Fn_Cidr(");
+                output.text("awscdk.Fn_Cidr(");
                 cidr_block.emit_golang(context, output, None);
                 output.text(", ");
                 count.emit_golang(context, output, None);
@@ -661,7 +688,7 @@ impl GolangEmitter for ResourceIr {
                 output.text(")");
             }
             Self::GetAZs(region) => {
-                output.text("cdk.Fn_GetAzs(");
+                output.text("awscdk.Fn_GetAzs(");
                 region.emit_golang(context, output, None);
                 output.text(")");
             }
@@ -683,12 +710,14 @@ impl GolangEmitter for ResourceIr {
                 when_false.emit_golang(context, &call, Some(","));
             }
             Self::ImportValue(import) => {
-                output.text(format!("cdk.Fn_ImportValue(jsii.String({import:?}))"))
+                output.text(format!("awscdk.Fn_ImportValue(jsii.String({import:?}))"))
             }
             Self::Join(sep, list) => {
                 let items = output.indent_with_options(IndentOptions {
                     indent: INDENT,
-                    leading: Some(format!("cdk.Fn_Join(jsii.String({sep:?}), &[]*string{{").into()),
+                    leading: Some(
+                        format!("awscdk.Fn_Join(jsii.String({sep:?}), &[]*string{{").into(),
+                    ),
                     trailing: Some("})".into()),
                     trailing_newline: false,
                 });
@@ -711,13 +740,13 @@ impl GolangEmitter for ResourceIr {
                     items[*idx].emit_golang(context, output, None);
                 }
                 list => {
-                    output.text(format!("cdk.Fn_Select(jsii.Number({idx}), "));
+                    output.text(format!("awscdk.Fn_Select(jsii.Number({idx}), "));
                     list.emit_golang(context, output, None);
                     output.text(")");
                 }
             },
             Self::Split(sep, str) => {
-                output.text(format!("cdk.Fn_Split(jsii.String({sep:?}), "));
+                output.text(format!("awscdk.Fn_Split(jsii.String({sep:?}), "));
                 str.emit_golang(context, output, None);
                 output.text(")");
             }
@@ -756,6 +785,37 @@ impl GolangEmitter for ResourceIr {
         if let Some(trailer) = trailer {
             output.line(trailer.to_owned())
         }
+    }
+}
+
+impl AsGolang for TypeReference {
+    fn as_golang(&self, schema: &Schema) -> Cow<'static, str> {
+        match self {
+            Self::Named(name) if name == "aws-cdk-lib.CfnTag" => "*awscdk.CfnTag".into(),
+            Self::Named(name) => {
+                let spec = schema.type_named(name).unwrap();
+                let name = &spec.name.golang;
+                format!("*{}.{}", name.package, name.name).into()
+            }
+            Self::Primitive(primitive) => primitive.as_golang(schema),
+            Self::List(items) => format!("*[]{}", items.as_golang(schema)).into(),
+            Self::Map(items) => format!("*map[string]{}", items.as_golang(schema)).into(),
+            Self::Union(_) => "interface{}".into(),
+        }
+    }
+}
+
+impl AsGolang for Primitive {
+    fn as_golang(&self, _schema: &Schema) -> Cow<'static, str> {
+        match self {
+            Self::Boolean => "*bool",
+            Self::Number => "*float64",
+            Self::String => "*string",
+            Self::Timestamp => "*time.Time",
+            Self::Json => "interface{}",
+            Self::Unknown => "awscdk.IResolvable",
+        }
+        .into()
     }
 }
 

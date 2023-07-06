@@ -1,7 +1,9 @@
 use clap::{Arg, ArgAction, Command};
+use noctilucent::cdk::Schema;
 use noctilucent::ir::CloudformationProgramIr;
 use noctilucent::synthesizer::*;
 use noctilucent::CloudformationParseTree;
+use std::borrow::Cow;
 use std::{fs, io};
 
 // Ensure at least one target language is enabled...
@@ -44,6 +46,14 @@ fn main() -> anyhow::Result<()> {
                 .value_parser(targets)
                 .action(ArgAction::Set),
         )
+        .arg(
+            Arg::new("schema")
+                .long("cdk-schema")
+                .short('S')
+                .help("Path to a CDK Schema JSON document to use to drive code generation")
+                .required(!cfg!(feature = "cdk-schema-default"))
+                .action(ArgAction::Set),
+        )
         .get_matches();
 
     let cfn_tree: CloudformationParseTree = {
@@ -56,7 +66,17 @@ fn main() -> anyhow::Result<()> {
         serde_yaml::from_reader(reader)?
     };
 
-    let ir = CloudformationProgramIr::from(cfn_tree)?;
+    let schema = match matches.get_one::<String>("schema") {
+        Some(schema_path) => {
+            let file = fs::File::open(schema_path)?;
+            Cow::Owned(serde_yaml::from_reader(file)?)
+        }
+        #[cfg(feature = "cdk-schema-default")]
+        None => Cow::Borrowed(Schema::default()),
+        #[cfg(not(feature = "cdk-schema-default"))]
+        None => unreachable!(),
+    };
+    let ir = CloudformationProgramIr::from(cfn_tree, &schema)?;
 
     let mut output: Box<dyn io::Write> = match matches
         .get_one::<String>("OUTPUT")
@@ -75,7 +95,7 @@ fn main() -> anyhow::Result<()> {
         #[cfg(feature = "typescript")]
         "typescript" => Box::new(Typescript {}),
         #[cfg(feature = "golang")]
-        "go" => Box::<Golang>::default(),
+        "go" => Box::new(Golang::new(&schema, "main")),
         unsupported => panic!("unsupported language: {}", unsupported),
     };
 

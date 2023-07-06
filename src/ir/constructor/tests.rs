@@ -5,7 +5,7 @@ use parser::parameters::ParameterType;
 
 #[test]
 fn test_constructor_from() {
-    let mut parse_tree = IndexMap::new();
+    let mut parse_tree = IndexMap::default();
     parse_tree.insert(
         "param1".to_string(),
         Parameter {

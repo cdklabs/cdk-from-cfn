@@ -1,4 +1,5 @@
 use crate::parser::parameters::Parameter;
+use crate::util::Hasher;
 use indexmap::IndexMap;
 use voca_rs::case::camel_case;
 
@@ -7,7 +8,7 @@ pub struct Constructor {
 }
 
 impl Constructor {
-    pub(super) fn from<S>(parse_tree: IndexMap<String, Parameter, S>) -> Self {
+    pub(super) fn from(parse_tree: IndexMap<String, Parameter, Hasher>) -> Self {
         Self {
             inputs: parse_tree
                 .into_iter()

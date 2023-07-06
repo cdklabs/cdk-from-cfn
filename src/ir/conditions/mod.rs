@@ -1,9 +1,11 @@
-use crate::ir::reference::{Origin, Reference};
-use crate::parser::condition::{ConditionFunction, ConditionValue};
 use indexmap::IndexMap;
 use topological_sort::TopologicalSort;
 
 use super::reference::PseudoParameter;
+
+use crate::ir::reference::{Origin, Reference};
+use crate::parser::condition::{ConditionFunction, ConditionValue};
+use crate::util::Hasher;
 
 // ConditionInstructions are simple assignment + boolean
 // clauses, as conditions are based on those composite values.
@@ -17,9 +19,7 @@ pub struct ConditionInstruction {
 }
 
 impl ConditionInstruction {
-    pub(super) fn from<S: std::hash::BuildHasher>(
-        mut parse_tree: IndexMap<String, ConditionFunction, S>,
-    ) -> Vec<Self> {
+    pub(super) fn from(mut parse_tree: IndexMap<String, ConditionFunction, Hasher>) -> Vec<Self> {
         let order: Vec<String> = determine_order(&parse_tree)
             .into_iter()
             .map(ToString::to_string)
@@ -127,7 +127,9 @@ impl ConditionValue {
 /**
  * Provides an ordering of conditions contained in the tree based on relative dependencies.
  */
-pub fn determine_order<S>(conditions: &IndexMap<String, ConditionFunction, S>) -> Vec<&str> {
+pub fn determine_order<S>(
+    conditions: &indexmap::IndexMap<String, ConditionFunction, S>,
+) -> Vec<&str> {
     let mut topo: TopologicalSort<&str> = TopologicalSort::new();
     // Identify condition dependencies
     for (name, value) in conditions {

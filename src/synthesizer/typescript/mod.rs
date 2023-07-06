@@ -1,3 +1,11 @@
+use std::borrow::Cow;
+use std::collections::HashMap;
+use std::io;
+use std::rc::Rc;
+
+use indexmap::IndexMap;
+use voca_rs::case::{camel_case, pascal_case};
+
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::mappings::{MappingInstruction, OutputType};
@@ -6,12 +14,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use indexmap::IndexMap;
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::io;
-use std::rc::Rc;
-use voca_rs::case::{camel_case, pascal_case};
+use crate::util::Hasher;
 
 use super::Synthesizer;
 
@@ -402,10 +405,10 @@ fn emit_resource_metadata(
     }
 }
 
-fn emit_resource_props<S>(
+fn emit_resource_props(
     context: &mut TypescriptContext,
     output: Rc<CodeBuffer>,
-    props: &IndexMap<String, ResourceIr, S>,
+    props: &IndexMap<String, ResourceIr, Hasher>,
 ) {
     for (name, prop) in props {
         output.text(format!("{}: ", pretty_name(name)));
@@ -663,7 +666,10 @@ fn emit_mapping_instruction(output: Rc<CodeBuffer>, mapping_instruction: &Mappin
     }
 }
 
-fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, MappingInnerValue>) {
+fn emit_inner_mapping(
+    output: Rc<CodeBuffer>,
+    inner_mapping: &IndexMap<String, MappingInnerValue, Hasher>,
+) {
     for (name, value) in inner_mapping {
         output.line(format!("'{key}': {value},", key = name.escape_debug()));
     }

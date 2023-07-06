@@ -1,6 +1,8 @@
+use noctilucent::cdk::Schema;
 use noctilucent::ir::CloudformationProgramIr;
 #[cfg(feature = "golang")]
 use noctilucent::synthesizer::Golang;
+#[cfg(feature = "typescript")]
 use noctilucent::synthesizer::Typescript;
 use noctilucent::CloudformationParseTree;
 
@@ -22,8 +24,11 @@ macro_rules! test_case {
                             concat!("end-to-end/", stringify!($name), "/template.yml")
                         ))
                         .unwrap();
-                        let ir = CloudformationProgramIr::from(cfn).unwrap();
-                        ir.synthesize(&Golang::new(stringify!($name)), &mut output)
+
+                        let schema = Schema::default();
+
+                        let ir = CloudformationProgramIr::from(cfn, &schema).unwrap();
+                        ir.synthesize(&Golang::new(&schema, stringify!($name)), &mut output)
                             .unwrap();
                         String::from_utf8(output).unwrap()
                     };
@@ -37,6 +42,7 @@ macro_rules! test_case {
                 assert_eq!(expected, actual);
             }
 
+            #[cfg(feature = "typescript")]
             #[test]
             fn typescript() {
                 let expected = include_str!(concat!("end-to-end/", stringify!($name), "/app.ts"));
@@ -49,7 +55,7 @@ macro_rules! test_case {
                             concat!("end-to-end/", stringify!($name), "/template.yml")
                         ))
                         .unwrap();
-                        let ir = CloudformationProgramIr::from(cfn).unwrap();
+                        let ir = CloudformationProgramIr::from(cfn, Schema::default()).unwrap();
                         ir.synthesize(&Typescript {}, &mut output).unwrap();
                         String::from_utf8(output).unwrap()
                     };
