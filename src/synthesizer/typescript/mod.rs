@@ -439,6 +439,7 @@ fn emit_resource_props<S>(
         output.text(format!("{}: ", prop_name));
         let keep_prop_name = 
             prop_name.to_lowercase() == "assumerolepolicydocument" || 
+            prop_name.to_lowercase() == "policies" || 
             prop_name.to_lowercase() == "policydocument";
         emit_resource_ir(context, &output, prop, Some(",\n"), keep_prop_name);
     }

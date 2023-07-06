@@ -27,6 +27,12 @@ impl ImportInstruction {
                         .map(|(service, resource)| (organization, service, resource))
                 }) {
                 triple
+            // In CloudFormation, custom typenames are always of the form `Custom::<Resource>`
+            } else if let Some(double) =
+                type_name.split_once("::")
+                    .map(|(custom, resource)| (custom, resource, ""))
+            {
+                double
             } else {
                 return Err(TransmuteError::new(format!(
                     "invalid resource type name: {type_name}"
@@ -34,7 +40,7 @@ impl ImportInstruction {
             };
 
             // These must always exist.
-            // In CloudFormation, typenames are always of the form `<Organization>::<Service>::<Resource>
+            // In CloudFormation, typenames are always of the form `<Organization>::<Service>::<Resource>`
             let organization = organization.to_ascii_lowercase();
             let service = service.to_ascii_lowercase();
             type_names.insert(TypeName {
