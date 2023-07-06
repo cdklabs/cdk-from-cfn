@@ -616,9 +616,10 @@ impl GolangEmitter for ResourceIr {
                             "Tag" => "&cdk.CfnTag{".into(),
                             name => format!("&{name}/* FIXME */{{").into(),
                         },
-                        Structure::Simple(cfn) => {
-                            unreachable!("object with simple structure ({:?})", cfn)
-                        }
+                        Structure::Simple(simple) => match simple {
+                            CfnType::Json => "interface{}{".into(),
+                            _ => unreachable!("object with simple structure ({:?})", simple)
+                        },
                     }),
                     trailing: Some("}".into()),
                     trailing_newline: false,

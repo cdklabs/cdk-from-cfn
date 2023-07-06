@@ -68,6 +68,7 @@ macro_rules! test_case {
 
 test_case!(simple);
 test_case!(vpc);
+test_case!(role);
 
 struct UpdateSnapshot<'a> {
     path: &'static str,

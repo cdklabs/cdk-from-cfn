@@ -189,11 +189,11 @@ impl Synthesizer for Typescript {
                     ));
                     ctor.text(format!("{INDENT}? "));
                     let indented = ctor.indent(INDENT);
-                    emit_resource_ir(context, &indented, &op.value, Some("\n"));
+                    emit_resource_ir(context, &indented, &op.value, Some("\n"), false);
                     ctor.line(format!("{INDENT}: undefined;"));
                 } else {
                     ctor.text(format!("this.{var_name} = "));
-                    emit_resource_ir(context, &ctor, &op.value, Some(";\n"));
+                    emit_resource_ir(context, &ctor, &op.value, Some(";\n"), false);
                 }
 
                 if let Some(export) = &op.export {
@@ -289,8 +289,27 @@ fn emit_cfn_output(
         output.line(format!("description: '{}',", description.escape_debug()));
     }
     output.text("exportName: ");
-    emit_resource_ir(context, &output, export, Some(",\n"));
-    output.line(format!("value: this.{var_name},"));
+    // Here, we unwrap the first entry (most likely 'name') of the 'export' object as a string
+    // because CfnOutput's exportName takes a string not an object
+    // e.g.
+    //   Input
+    //     "Export":
+    //       "Name": "MyExportName"
+    //   Output
+    //     exportName: "MyExportName"
+    match export {
+        ResourceIr::Object(_, entries) => {
+            for (_, value) in entries {
+                emit_resource_ir(context, &output, value, Some(",\n"), false);
+                break;
+            }
+        },
+        other => {
+            emit_resource_ir(context, &output, other, Some(",\n"), false);
+        }
+    }
+    // Append ! at the end because CfnOutput's value takes a string not a string | undefined
+    output.line(format!("value: this.{var_name}!,"));
 }
 
 fn emit_resource(
@@ -367,7 +386,7 @@ fn emit_resource_attributes(
 
     if let Some(update_policy) = &reference.update_policy {
         output.text(format!("{var_name}.cfnOptions.updatePolicy = "));
-        emit_resource_ir(context, output, update_policy, Some(";"));
+        emit_resource_ir(context, output, update_policy, Some(";"), false);
     }
 
     if let Some(deletion_policy) = &reference.deletion_policy {
@@ -394,8 +413,14 @@ fn emit_resource_metadata(
     match metadata {
         ResourceIr::Object(_, entries) => {
             for (name, value) in entries {
-                output.text(format!("{name}: "));
-                emit_resource_ir(context, &output, value, Some(",\n"));
+                // Wrap the prop name with quotes ('') to support special characters in it
+                output.text(format!("'{name}': "));
+                // We want to keep the original prop name in metadata props to avoid the following cdk diff output
+                //   └─ [~] .cfn-lint:
+                //       └─ [~] .config:
+                //           ├─ [+] Added: .ignoreChecks
+                //           └─ [-] Removed: .ignore_checks
+                emit_resource_ir(context, &output, value, Some(",\n"), true);
             }
         }
         unsupported => output.line(format!("/* {unsupported:?} */")),
@@ -408,8 +433,14 @@ fn emit_resource_props<S>(
     props: &IndexMap<String, ResourceIr, S>,
 ) {
     for (name, prop) in props {
-        output.text(format!("{}: ", pretty_name(name)));
-        emit_resource_ir(context, &output, prop, Some(",\n"));
+        // In some properties such as 'policyDocument' and 'assumerolepolicydocument',
+        // keeping the original prop names is important to avoid unnecessary update or replace
+        let prop_name = pretty_name(name);
+        output.text(format!("{}: ", prop_name));
+        let keep_prop_name = 
+            prop_name.to_lowercase() == "assumerolepolicydocument" || 
+            prop_name.to_lowercase() == "policydocument";
+        emit_resource_ir(context, &output, prop, Some(",\n"), keep_prop_name);
     }
 }
 
@@ -418,6 +449,7 @@ fn emit_resource_ir(
     output: &CodeBuffer,
     value: &ResourceIr,
     trailer: Option<&str>,
+    keep_prop_name: bool,
 ) {
     match value {
         // Literal values
@@ -436,7 +468,7 @@ fn emit_resource_ir(
                 trailing_newline: false,
             });
             for item in array {
-                emit_resource_ir(context, &arr, item, Some(",\n"));
+                emit_resource_ir(context, &arr, item, Some(",\n"), keep_prop_name);
             }
         }
         ResourceIr::Object(_, entries) => {
@@ -447,8 +479,12 @@ fn emit_resource_ir(
                 trailing_newline: false,
             });
             for (name, value) in entries {
-                obj.text(format!("{key}: ", key = pretty_name(name)));
-                emit_resource_ir(context, &obj, value, Some(",\n"));
+                if keep_prop_name { 
+                    obj.text(format!("'{}': ", name));
+                } else {
+                    obj.text(format!("{}: ", pretty_name(name)));
+                }
+                emit_resource_ir(context, &obj, value, Some(",\n"), keep_prop_name);
             }
         }
 
@@ -463,29 +499,29 @@ fn emit_resource_ir(
             }
             other => {
                 output.text("cdk.Fn.base64(");
-                emit_resource_ir(context, output, other, None);
+                emit_resource_ir(context, output, other, None, keep_prop_name);
                 output.text(")")
             }
         },
         ResourceIr::Cidr(ip_range, count, mask) => {
             output.text("cdk.Fn.cidr(");
-            emit_resource_ir(context, output, ip_range, None);
+            emit_resource_ir(context, output, ip_range, None, keep_prop_name);
             output.text(", ");
-            emit_resource_ir(context, output, count, None);
+            emit_resource_ir(context, output, count, None, keep_prop_name);
             output.text(", String(");
-            emit_resource_ir(context, output, mask, None);
+            emit_resource_ir(context, output, mask, None, keep_prop_name);
             output.text("))")
         }
         ResourceIr::GetAZs(region) => {
             output.text("cdk.Fn.getAzs(");
-            emit_resource_ir(context, output, region, None);
+            emit_resource_ir(context, output, region, None, keep_prop_name);
             output.text(")")
         }
         ResourceIr::If(cond_name, if_true, if_false) => {
             output.text(format!("{} ? ", pretty_name(cond_name)));
-            emit_resource_ir(context, output, if_true, None);
+            emit_resource_ir(context, output, if_true, None, keep_prop_name);
             output.text(" : ");
-            emit_resource_ir(context, output, if_false, None)
+            emit_resource_ir(context, output, if_false, None, keep_prop_name)
         }
         ResourceIr::ImportValue(name) => {
             output.text(format!("cdk.Fn.importValue('{}')", name.escape_debug()))
@@ -498,20 +534,20 @@ fn emit_resource_ir(
                 trailing_newline: false,
             });
             for item in list {
-                emit_resource_ir(context, &items, item, Some(",\n"));
+                emit_resource_ir(context, &items, item, Some(",\n"), keep_prop_name);
             }
         }
         ResourceIr::Map(name, tlk, slk) => {
             output.text(format!("{}[", pretty_name(name)));
-            emit_resource_ir(context, output, tlk, None);
+            emit_resource_ir(context, output, tlk, None, keep_prop_name);
             output.text("][");
-            emit_resource_ir(context, output, slk, None);
+            emit_resource_ir(context, output, slk, None, keep_prop_name);
             output.text("]")
         }
         ResourceIr::Select(idx, list) => match list.as_ref() {
             ResourceIr::Array(_, array) => {
                 if *idx <= array.len() {
-                    emit_resource_ir(context, output, &array[*idx], None)
+                    emit_resource_ir(context, output, &array[*idx], None, keep_prop_name)
                 } else {
                     output.text("undefined")
                 }
@@ -520,7 +556,7 @@ fn emit_resource_ir(
                 output.text("cdk.Fn.select(");
                 output.text(idx.to_string());
                 output.text(", ");
-                emit_resource_ir(context, output, other, None);
+                emit_resource_ir(context, output, other, None, keep_prop_name);
                 output.text(")")
             }
         },
@@ -531,7 +567,7 @@ fn emit_resource_ir(
             }
             other => {
                 output.text(format!("cdk.Fn.split('{sep}', ", sep = sep.escape_debug()));
-                emit_resource_ir(context, output, other, None);
+                emit_resource_ir(context, output, other, None, keep_prop_name);
                 output.text(")")
             }
         },
@@ -542,7 +578,7 @@ fn emit_resource_ir(
                     ResourceIr::String(lit) => output.text(lit.clone()),
                     other => {
                         output.text("${");
-                        emit_resource_ir(context, output, other, None);
+                        emit_resource_ir(context, output, other, None, keep_prop_name);
                         output.text("}");
                     }
                 }

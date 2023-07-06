@@ -1,0 +1,17 @@
+Resources:
+  MyRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Condition:
+              StringLike:
+                'kms:ViaService':
+                  'Fn::Sub': 's3.us-east-1.amazonaws.com'
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+        Version: '2012-10-17'
