@@ -43,7 +43,7 @@ jobs:
           # Optional version of wasm-pack to install(eg. 'v0.9.1', 'latest')
           version: 'latest'
       - name: Build
-        run: wasm-pack build --target=nodejs --out-name=index
+        run: wasm-pack build --all-features --target=nodejs --out-name=index
       - name: Zip
         run: (cd pkg && zip -r ../wasm-pack.zip .)
       - name: Upload to release
