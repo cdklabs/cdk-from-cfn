@@ -17,8 +17,8 @@ homepage = "https://github.com/iph/noctilucent#readme"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["cdk-schema-default", "typescript"]
-cdk-schema-default = []
+default = ["builtin-schema", "typescript"]
+builtin-schema = []
 fxhash = ["rustc-hash"]
 # Language sypport
 typescript = []

@@ -7,7 +7,7 @@ pub fn none() {
     assert_eq!(
         OutputInstruction::from(
             IndexMap::default(),
-            Schema::default(),
+            Schema::builtin(),
             &ReferenceOrigins::new(&CloudformationParseTree {
                 description: None,
                 transforms: vec![],

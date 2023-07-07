@@ -2,7 +2,7 @@ use std::io;
 use std::process::Command;
 
 fn main() -> io::Result<()> {
-    #[cfg(feature = "cdk-schema-default")]
+    #[cfg(feature = "builtin-schema")]
     cdk::bake_in()?;
 
     // Install some TypeScript stuff in the right places for IDE comfort. Silently ignore if failing...
@@ -28,7 +28,7 @@ mod util {
     include!("src/util.rs");
 }
 
-#[cfg(feature = "cdk-schema-default")]
+#[cfg(feature = "builtin-schema")]
 #[allow(unused)]
 mod cdk {
     use std::io::Write;
@@ -141,10 +141,10 @@ mod cdk {
         writeln!(file, "impl Schema {{")?;
         writeln!(
             file,
-            "    /// The baked-in version of the CDK resources schema"
+            "    /// The built-in version of the CDK resources schema"
         )?;
         writeln!(file, "    #[inline]")?;
-        writeln!(file, "    pub fn default() -> &'static Self {{")?;
+        writeln!(file, "    pub fn builtin() -> &'static Self {{")?;
         writeln!(file, "        &SCHEMA")?;
         writeln!(file, "    }}")?;
         writeln!(file, "}}")?;

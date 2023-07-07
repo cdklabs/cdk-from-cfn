@@ -51,7 +51,7 @@ fn main() -> anyhow::Result<()> {
                 .long("cdk-schema")
                 .short('S')
                 .help("Path to a CDK Schema JSON document to use to drive code generation")
-                .required(!cfg!(feature = "cdk-schema-default"))
+                .required(!cfg!(feature = "builtin-schema"))
                 .action(ArgAction::Set),
         )
         .get_matches();
@@ -71,9 +71,9 @@ fn main() -> anyhow::Result<()> {
             let file = fs::File::open(schema_path)?;
             Cow::Owned(serde_yaml::from_reader(file)?)
         }
-        #[cfg(feature = "cdk-schema-default")]
-        None => Cow::Borrowed(Schema::default()),
-        #[cfg(not(feature = "cdk-schema-default"))]
+        #[cfg(feature = "builtin-schema")]
+        None => Cow::Borrowed(Schema::builtin()),
+        #[cfg(not(feature = "builtin-schema"))]
         None => unreachable!(),
     };
     let ir = CloudformationProgramIr::from(cfn_tree, &schema)?;

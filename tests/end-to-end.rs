@@ -25,7 +25,7 @@ macro_rules! test_case {
                         ))
                         .unwrap();
 
-                        let schema = Schema::default();
+                        let schema = Schema::builtin();
 
                         let ir = CloudformationProgramIr::from(cfn, &schema).unwrap();
                         ir.synthesize(&Golang::new(&schema, stringify!($name)), &mut output)
@@ -55,7 +55,7 @@ macro_rules! test_case {
                             concat!("end-to-end/", stringify!($name), "/template.yml")
                         ))
                         .unwrap();
-                        let ir = CloudformationProgramIr::from(cfn, Schema::default()).unwrap();
+                        let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
                         ir.synthesize(&Typescript {}, &mut output).unwrap();
                         String::from_utf8(output).unwrap()
                     };

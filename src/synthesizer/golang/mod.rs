@@ -34,10 +34,10 @@ impl<'a> Golang<'a> {
     }
 }
 
-#[cfg(feature = "cdk-schema-default")]
+#[cfg(feature = "builtin-schema")]
 impl Default for Golang<'_> {
     fn default() -> Self {
-        Self::new(Schema::default(), "main")
+        Self::new(Schema::builtin(), "main")
     }
 }
 
