@@ -17,7 +17,7 @@ homepage = "https://github.com/iph/noctilucent#readme"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["typescript"]
+default = ["typescript","python"]
 golang = []
 python = []
 typescript = []
