@@ -41,8 +41,37 @@ impl Synthesizer for Python {
         let code = CodeBuffer::default();
 
         let imports = code.section(true);
+        imports.line("from aws_cdk import Stack");
         for import in &ir.imports {
             imports.line(import.to_python());
+        }
+        imports.line("from constructs import Construct");
+
+        let context = &mut PythonContext::with_imports(imports);
+
+        if let Some(description) = &ir.description {
+            let comment = code.pydoc();
+            comment.line(description.to_owned());
+        }
+        let class = code.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("class PythonStack(Stack):".into()),
+            trailing: Some("".into()),
+            trailing_newline: true,
+        });
+        if !ir.outputs.is_empty() {
+            for op in &ir.outputs {
+                if let Some(description) = &op.description {
+                    let comment = class.pydoc();
+                    comment.line(description.to_owned());
+                }
+                // NOTE: the property type can be inferred by the compiler...
+                class.line(format!(
+                    "global {name}",
+                    name = pretty_name(&op.name)
+                ));
+            }
+            class.newline();
         }
         
         code.write(output)
@@ -96,5 +125,32 @@ impl PythonContext {
         }
         self.imports.line("import buffer as _buffer"); 
         self.imports_buffer = true;
+    }
+}
+
+fn pretty_name(name: &str) -> String {
+    let mut pretty = String::new();
+    for (i, ch) in name.chars().enumerate() {
+        if ch.is_uppercase() && i != 0 {
+            pretty.push('_');
+        }
+        pretty.push(ch.to_lowercase().next().unwrap());
+    }
+    pretty
+}
+
+trait PythonCodeBuffer {
+    fn pydoc(&self) -> Rc<CodeBuffer>;
+}
+
+impl PythonCodeBuffer for CodeBuffer {
+    #[inline]
+    fn pydoc(&self) -> Rc<CodeBuffer> {
+        self.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("\"\"\"".into()),
+            trailing: Some("\"\"\"".into()),
+            trailing_newline: true,
+        })
     }
 }
