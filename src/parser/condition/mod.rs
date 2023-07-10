@@ -220,7 +220,9 @@ impl<'de> serde::Deserialize<'de> for ConditionValue {
                         Ok(Self::Value::Split(delimiter, split_str))
                     }
                     "!Select" | "Fn::Select" => {
-                        let (index, array) = data.next_value()?;
+                        let (index_wrapped, array) =
+                            data.next_value::<(StringOrUsize, Box<ConditionValue>)>()?;
+                        let index = index_wrapped.into()?;
                         Ok(Self::Value::Select(index, array))
                     }
                     "!Ref" | "Ref" => Ok(Self::Value::Ref(data.next_value()?)),
@@ -257,6 +259,32 @@ impl Singleton {
         match self {
             Self::Value(value) => value,
             Self::SingletonTuple((value,)) => value,
+        }
+    }
+}
+
+// We want to eventually parse to actual types in intrinsics/conditions. Valid CFN templates will do a lot of the heavy lifting
+// of moving strings to valid types. Right now our only use of a valid type is usize, so this type translates to that.
+//
+// TODO - we may want to simplify this into a generic type if we find more valid typed use cases. E.g. StringToOther<T>
+#[derive(Debug, serde::Deserialize)]
+#[serde(untagged)]
+enum StringOrUsize {
+    String(String),
+    Usize(usize),
+}
+
+impl StringOrUsize {
+    fn into<E: serde::de::Error>(self) -> Result<usize, E> {
+        match self {
+            Self::String(string) => match string.parse::<usize>() {
+                Ok(usize) => Ok(usize),
+                Err(_) => Err(E::invalid_value(
+                    serde::de::Unexpected::Str(&string),
+                    &"couldn't parse string",
+                )),
+            },
+            Self::Usize(usize) => Ok(usize),
         }
     }
 }

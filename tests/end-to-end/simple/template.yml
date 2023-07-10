@@ -42,7 +42,7 @@ Conditions:
   IsUs:
     Fn::Equals:
       - Fn::Select:
-        - 0
+        - "0"
         - Fn::Split:
           - "-"
           - "!Ref": AWS::Region
@@ -89,7 +89,7 @@ Resources:
       RedrivePolicy: !Ref AWS::NoValue
       VisibilityTimeout:
         Fn::Select:
-          - 1
+          - "1"
           - - 60
             - 120
             - 240
