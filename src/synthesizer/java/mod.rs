@@ -9,7 +9,7 @@ use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::{CfnType, Structure};
 use std::any::{type_name};
 use std::borrow::Cow;
-use std::fmt::{Debug};
+use std::fmt::{Debug, format};
 use std::io;
 use std::rc::Rc;
 use super::Synthesizer;
@@ -18,6 +18,7 @@ use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, Reference};
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("\t");
+const STACK_NAME: Cow<'static, str> = Cow::Borrowed("NoctStack");
 
 macro_rules! fill {
     ($code:ident; $leading:expr; $($lines:expr),* ; $trailing:expr) => {
@@ -64,28 +65,47 @@ impl Java {
         code.line("import java.util.*;");
         code.line("import software.amazon.awscdk.*;");
         code.line("import software.amazon.awscdk.Fn.*;");
+        code.line("import software.amazon.awscdk.App;");
         code.line("import software.amazon.awscdk.CfnMapping;");
         code.line("import software.amazon.awscdk.CfnTag;");
         code.line("import software.amazon.awscdk.Stack;");
         code.line("import software.amazon.awscdk.StackProps;");
         code.newline();
     }
+    fn write_app(&self, writer: &CodeBuffer, description: &Option<String>) {
+        let app_name = "NoctApp";
+        let class = &writer.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(format!("public class {} {{", app_name).into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+        let main = &class.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("public static void main(final String[] args) {".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+        main.line(format!("App app = new App();"));
+        let stack_prop = main.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("StackProps props = StackProps.builder()".into()),
+            trailing: Some(".build();".into()),
+            trailing_newline: true,
+        });
+        match description {
+            Some(desc) => {
+                stack_prop.line(format!(".description(\"{}\")", desc.replace("\n", "\" + \n \"")))
+            }
+            None => stack_prop.line(format!("\"\"")),
+        };
+        main.line(format!("new {}(app, \"MyProjectStack\", props);", STACK_NAME));
+        main.line("app.synth();");
+    }
 
     fn write_helpers(&self, code: &CodeBuffer) {
-        const UTILS: &str = "class GenericSet<T> {
-    private final Set<T> set = new HashSet<>();
-
-    public GenericSet<T> add(final T object) {
-        this.set.add(object);
-        return this;
-    }
-
-    public Set<T> get() {
-        return this.set;
-    }
-}
-
-class GenericList<T> {
+        const UTILS: &str =
+            "class GenericList<T> {
     private final List<T> list = new LinkedList<>();
 
     public GenericList<T> add(final T object) {
@@ -117,7 +137,10 @@ class GenericMap<T, S> {
     public List<CfnTag> getTags() {
         final List<CfnTag> tags = new LinkedList<>();
         for(Map.Entry<T,S> entry : this.map.entrySet()) {
-            tags.add(CfnTag.builder().key(String.valueOf(entry.getKey())).value(String.valueOf(entry.getValue())).build());
+            tags.add(CfnTag.builder()
+                .key(String.valueOf(entry.getKey()))
+                .value(String.valueOf(entry.getValue()))
+            .build());
         }
         return tags;
     }
@@ -246,56 +269,58 @@ impl Synthesizer for Java {
         }
         code.newline();
 
-        fill!(code; "interface NoctStackProps extends StackProps {";; "}" );
-
         self.write_helpers(&code);
+
+        self.write_app(&code, &ir.description);
+
+        fill!(code; format!("interface {}Props extends StackProps {{", STACK_NAME);; "}" );
 
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some("public class NoctStack extends Stack {".into()),
+            leading: Some(format!("public class {} extends Stack {{", STACK_NAME).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
 
         fill!(class;
-            "public NoctStack(final Construct scope, final String id) {";
+            format!("public {}(final Construct scope, final String id) {{", STACK_NAME);
             "super(scope, id, null);";
             "}" );
 
-        let ctor = class.indent_with_options(IndentOptions {
+        let writer = class.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some("public NoctStack(final Construct scope, final String id, final StackProps props) {".into()),
+            leading: Some(
+                format!("public {}(final Construct scope, final String id, final StackProps props) {{", STACK_NAME)
+                    .into()
+            ),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        ctor.line("super(scope, id, props);");
+        writer.line("super(scope, id, props);");
 
-        Self::write_mappings(&ir, &ctor.clone());
-        let resource_def = ctor.clone();
+        Self::write_mappings(&ir, &writer.clone());
         for resource in &ir.resources {
             let class = resource.resource_type.type_name();
             let res_name = &resource.name;
-            resource_def.newline();
-            let params = resource_def.indent_with_options(IndentOptions {
+            writer.newline();
+            let params = writer.indent_with_options(IndentOptions {
                 indent: INDENT,
                 leading: Some(format!("Cfn{class} {} = Cfn{class}.Builder.create(this, \"{res_name}\")", name(&res_name)).into()),
                 trailing: Some(".build();".into()),
                 trailing_newline: true,
             });
             for (key, value) in &resource.properties {
-                params.text(format!(".{}({})", camel_case(key.as_str()), emit_java(value.clone(), &params, None)));
+                params.line(format!(".{}({})", camel_case(key.as_str()), emit_java(value.clone(), &params, None)));
             }
-            resource_def.newline();
+            writer.newline();
         }
 
-
-        let condition_def = ctor.clone();
         for condition in &ir.conditions {
             let val = condition.value.clone();
-            emit_conditions(val, &condition_def, None);
+            emit_conditions(val, &writer, None);
         }
 
-        let output_def = ctor.clone();
+        let output_def = writer.clone();
         for output in &ir.outputs {
             emit_output(output, &output_def, None);
         }
@@ -345,39 +370,57 @@ fn match_cfn_type(input: &CfnType) -> String {
     })
 }
 
-fn emit_conditions(reference: ConditionIr, writer: &CodeBuffer, trailer: Option<&str>) {
-    match reference {
-        ConditionIr::Ref(reference) => {
-            writer.text("Fn.ref(");
-            emit_reference(reference, writer, None);
-            writer.text(")");
-        }
+fn emit_conditions(condition: ConditionIr, writer: &CodeBuffer, trailer: Option<&str>) {
+    /*
+      IsUs:
+    Fn::Equals:
+      - Fn::Select:
+        - 0
+        - Fn::Split:
+          - "-"
+          - "!Ref": AWS::Region
+      - us
+     */
+    match condition {
+        ConditionIr::Ref(reference) => match reference.origin {
+            Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => {}
+            Origin::LogicalId { .. } => {
+                writer.line(format!("Fn.ref({})", reference.name));
+            }
+            Origin::GetAttribute { attribute, conditional } => {
+                writer.line(format!("Fn.getAtt(\"{}\", \"{}\")", reference.name, attribute));
+            }
+        },
         ConditionIr::Str(str) => writer.text(format!("{str:?}")),
-        ConditionIr::Condition(x) => writer.text(format!("\"{x:?}\"")),
+        ConditionIr::Condition(x) => writer.line(format!("// {x:?}")),
 
         ConditionIr::And(list) => {
             writer.text("Fn.conditionAnd(");
             get_condition(writer, list);
-            writer.text(")");
+            writer.line(")");
         }
         ConditionIr::Or(list) => {
             writer.text("Fn.conditionOr(");
             get_condition(writer, list);
-            writer.text(")");
+            writer.line(")");
         }
 
         ConditionIr::Not(cond) => {
             writer.text("Fn.conditionNot(");
             emit_conditions(*cond, writer, None);
-            writer.text(")");
+            writer.line(")");
         }
 
         ConditionIr::Equals(lhs, rhs) => {
-            writer.text("Fn.conditionEquals(");
-            emit_conditions(*lhs, writer, None);
-            writer.text(", ");
-            emit_conditions(*rhs, writer, None);
-            writer.text(")");
+            let indented = writer.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("Fn.conditionEquals(".into()),
+                trailing: Some(")".into()),
+                trailing_newline: true,
+            });
+            emit_conditions(*lhs, &indented, None);
+            indented.text(", ");
+            emit_conditions(*rhs, &indented, None);
         }
 
         ConditionIr::Map(map, tlk, slk) => {
@@ -385,33 +428,39 @@ fn emit_conditions(reference: ConditionIr, writer: &CodeBuffer, trailer: Option<
             emit_conditions(*tlk, writer, None);
             writer.text(", ");
             emit_conditions(*slk, writer, None);
-            writer.text(")");
+            writer.line(")");
         }
         ConditionIr::Split(sep, str) => {
-            writer.text(format!("Fn.split({sep:?}), "));
-            emit_conditions(*str, writer, None);
-            writer.text(")");
+            debug(str.clone(), "⏲️ ");
+            let indented = writer.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some(format!("Fn.split({sep:?}), ").into()),
+                trailing: Some(")".into()),
+                trailing_newline: true,
+            });
+            emit_conditions(*str, &indented, None);
         }
         ConditionIr::Select(index, str) => {
             writer.text(format!("Fn.select({index:?}, "));
             emit_conditions(*str, writer, None);
-            writer.text(")");
+            writer.line(")");
         }
     }
-    if let Some(trailer) = trailer {
-        writer.text(trailer.to_owned())
-    }
+    // if let Some(trailer) = trailer {
+    //     writer.text(trailer.to_owned())
+    // }
 }
 
 fn emit_reference(reference: Reference, writer: &CodeBuffer, trailer: Option<&str>) -> String {
+    debug(reference.clone(), "🎃");
     let origin = reference.origin;
     let name = reference.name;
     match origin {
-        Origin::LogicalId { conditional } => format!("Fn.ref({name})"),
-        Origin::GetAttribute { attribute, conditional } => format!("Fn.getAtt({attribute}, {name})"),
-        Origin::Parameter {} => format!("Fn.getValueFromLookup({name})"),
-        Origin::Condition => format!("new CfnCondition(this, {name})"),
-        Origin::PseudoParameter(_) => format!("/* TODO pseudo-param {name}!*/")
+        Origin::LogicalId { conditional } => format!("\"{name}\""),
+        Origin::GetAttribute { attribute, conditional } => {
+            format!("Fn.getAtt(\"{name}\", \"{attribute}\")")
+        }
+        Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => "".into()
     }
 }
 
@@ -470,7 +519,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
         ResourceIr::Object(structure, indexmap) => {
             match structure {
                 Structure::Composite(str) => {
-                    let mut res = format!("new GenericMap<String, Object>()");
+                    let mut res = format!("new GenericMap<String, Object>()\n");
                     for (key, value) in &indexmap {
                         if key.eq_ignore_ascii_case("Key") {
                             res = format!("{res}\n.add({}", emit_java((*value).clone(), writer, None))
@@ -483,7 +532,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
                 }
 
                 Structure::Simple(cfn_type) => {
-                    let mut res = format!("new GenericMap<String, {}>()", match_cfn_type(&cfn_type));
+                    let mut res = format!("new GenericMap<String, {}>()\n", match_cfn_type(&cfn_type));
                     for (key, value) in &indexmap {
                         res = format!("{res}\n{INDENT}.add({}, {})",
                                       emit_java((*value).clone(), writer, None),
@@ -528,7 +577,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             format!("Fn.split({}, String.valueOf({})", string, emit_java(*resource, writer, None))
         }
         ResourceIr::Base64(resource) => {
-            format!("Fn.base64(\"{}\")", emit_java(*resource, writer, None))
+            format!("Fn.base64({})", emit_java(*resource, writer, None))
         }
         ResourceIr::GetAZs(resource) => {
             format!("Fn.getAzs(\"{}\")", emit_java(*resource, writer, None))
@@ -551,7 +600,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             )
         }
         ResourceIr::Cidr(p0, p1, p2) => {
-            format!("Fn.cidr(\"{}\", {}, String.valueOf({}))",
+            format!("Fn.cidr(String.valueOf({}), {}, String.valueOf({}))",
                     emit_java(*p0, writer, None),
                     emit_java(*p1, writer, None),
                     emit_java(*p2, writer, None)
