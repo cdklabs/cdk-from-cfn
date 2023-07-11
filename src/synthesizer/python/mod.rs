@@ -74,6 +74,15 @@ impl Synthesizer for Python {
             class.newline();
         }
         
+        let  ctor = class.indent_with_options(IndentOptions{
+            indent: INDENT,
+            leading: Some(format!("def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:").into()),
+            trailing: Some("".into()),
+            trailing_newline: true,
+        });
+        ctor.line("super().__init__(scope, construct_id, **kwargs)");
+        
+
         code.write(output)
     }
 }
