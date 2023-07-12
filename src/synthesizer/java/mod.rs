@@ -293,11 +293,26 @@ impl Synthesizer for Java {
         writer.line("super(scope, id, props);");
 
         Self::write_mappings(&ir, &writer.clone());
+
+        for input in &ir.constructor.inputs {
+            let name = camel_case(&input.name);
+            writer.line(format!("CfnParameter {name} = CfnParameter.Builder.create(this, \"{}\")", &input.name));
+            match &input.description {
+                Some(descr) => writer.line(format!(".description(\"{}\")", descr)),
+                None => {}
+            };
+            match &input.default_value {
+                Some(val) => writer.line(format!(".defaultValue({}.valueOf(\"{}\"))", &input.constructor_type, val)),
+                None => {}
+            };
+            writer.line(".build();")
+        }
+
         for resource in &ir.resources {
             let class = resource.resource_type.type_name();
             let res_name = &resource.name;
             writer.newline();
-            let params = writer.indent_with_options(IndentOptions {
+            let res_info = writer.indent_with_options(IndentOptions {
                 indent: INDENT,
                 leading: Some(format!("Cfn{class} {} = Cfn{class}.Builder.create(this, \"{res_name}\")", name(&res_name)).into()),
                 trailing: Some(".build();".into()),
@@ -305,8 +320,8 @@ impl Synthesizer for Java {
             });
             for (key, value) in &resource.properties {
                 let property = camel_case(key.as_str());
-                let value = emit_java(value.clone(), &params, None);
-                params.line(format!(".{property}({value})"));
+                let value = emit_java(value.clone(), &res_info, None);
+                res_info.line(format!(".{property}({value})"));
             }
             writer.newline();
         }
@@ -583,13 +598,17 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             format!("Fn.base64({})", emit_java(*resource, writer, None))
         }
         ResourceIr::GetAZs(resource) => {
-            format!("Fn.getAzs(\"{}\")", emit_java(*resource, writer, None))
+            format!("Fn.getAzs(String.valueOf({}))", emit_java(*resource, writer, None))
         }
         ResourceIr::Sub(resources) => {
+            // Fn::sub(String body, Map<String, String> variables)
             if let Some((first_elem, vect)) = resources.split_first() {
-                let mut res = format!("Fn.sub(\"{}\", ", emit_java(first_elem.clone(), writer, None));
+                let mut res = format!("Fn.sub(String.valueOf({}), ", emit_java(first_elem.clone(), writer, None));
                 for resource in vect {
-                    res = format!("{res}\n{}", emit_java(resource.clone(), writer, None));
+                    let element = emit_java(resource.clone(), writer, None);
+                    if !element.is_empty() {
+                        res = format!("{res}\n{}", element);
+                    }
                 }
                 return format!("{res})\n");
             }
