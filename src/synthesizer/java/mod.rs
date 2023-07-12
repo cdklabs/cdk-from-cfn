@@ -63,6 +63,7 @@ impl Java {
         code.line("import software.constructs.Construct;");
         code.newline();
         code.line("import java.util.*;");
+        code.line("import java.util.stream.Collectors;");
         code.line("import software.amazon.awscdk.*;");
         code.line("import software.amazon.awscdk.Fn.*;");
         code.line("import software.amazon.awscdk.App;");
@@ -72,6 +73,7 @@ impl Java {
         code.line("import software.amazon.awscdk.StackProps;");
         code.newline();
     }
+
     fn write_app(&self, writer: &CodeBuffer, description: &Option<String>) {
         let app_name = "NoctApp";
         let class = &writer.indent_with_options(IndentOptions {
@@ -97,7 +99,7 @@ impl Java {
             Some(desc) => {
                 stack_prop.line(format!(".description(\"{}\")", desc.replace("\n", "\" + \n \"")))
             }
-            None => stack_prop.line(format!("\"\"")),
+            None => stack_prop.line("\"\""),
         };
         main.line(format!("new {}(app, \"MyProjectStack\", props);", STACK_NAME));
         main.line("app.synth();");
@@ -105,42 +107,35 @@ impl Java {
 
     fn write_helpers(&self, code: &CodeBuffer) {
         const UTILS: &str =
-            "class GenericList<T> {
-    private final List<T> list = new LinkedList<>();
-
-    public GenericList<T> add(final T object) {
-        this.list.add(object);
+            "class GenericList<T> extends LinkedList<T> {
+    public GenericList<T> extend(final T object) {
+        this.addLast(object);
         return this;
     }
 
-    public GenericList<T> add(final List<T> collection) {
-        this.list.addAll(collection);
+    public GenericList<T> extend(final List<T> collection) {
+        this.addAll(collection);
         return this;
     }
-    public List<T> get() {
-        return this.list;
+
+    public List<String> get() {
+        return this.stream().map(String::valueOf).collect(Collectors.toList());
     }
 }
 
-class GenericMap<T, S> {
-    private final Map<T, S> map = new HashMap<>();
-
-    public GenericMap<T, S> add(final T key, final S value) {
-        this.map.put(key, value);
+class GenericMap<T, S> extends HashMap<T, S> {
+    public GenericMap<T, S> extend(final T key, final S value) {
+        this.put(key, value);
         return this;
-    }
-
-    public Map<T, S> get() {
-        return this.map;
     }
 
     public List<CfnTag> getTags() {
         final List<CfnTag> tags = new LinkedList<>();
-        for(Map.Entry<T,S> entry : this.map.entrySet()) {
+        for (Map.Entry<T, S> entry : this.entrySet()) {
             tags.add(CfnTag.builder()
-                .key(String.valueOf(entry.getKey()))
-                .value(String.valueOf(entry.getValue()))
-            .build());
+                    .key(String.valueOf(entry.getKey()))
+                    .value(String.valueOf(entry.getValue()))
+                    .build());
         }
         return tags;
     }
@@ -209,9 +204,8 @@ class Mapping<T> {
                                 trailing_newline: false,
                             });
                             for item in items {
-                                list.text(format!(".add({item:?})"));
+                                list.text(format!(".extend({item:?})"));
                             }
-                            list.line(".get()");
                         }
                     }
                     map.line(");")
@@ -310,7 +304,9 @@ impl Synthesizer for Java {
                 trailing_newline: true,
             });
             for (key, value) in &resource.properties {
-                params.line(format!(".{}({})", camel_case(key.as_str()), emit_java(value.clone(), &params, None)));
+                let property = camel_case(key.as_str());
+                let value = emit_java(value.clone(), &params, None);
+                params.line(format!(".{property}({value})"));
             }
             writer.newline();
         }
@@ -324,6 +320,16 @@ impl Synthesizer for Java {
         for output in &ir.outputs {
             emit_output(output, &output_def, None);
         }
+
+        class.newline();
+
+        let static_helper = class.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("public static <T> List<String> get(final List<T> input) {".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+        static_helper.line("return input.stream().map(String::valueOf).collect(Collectors.toList());");
 
         code.write(into)
     }
@@ -363,7 +369,9 @@ impl ImportInstruction {
 fn match_cfn_type(input: &CfnType) -> String {
     String::from(match input {
         CfnType::Boolean => "Boolean",
-        CfnType::Double | CfnType::Integer | CfnType::Long => "Double",
+        CfnType::Double => "Double",
+        CfnType::Integer => "Integer",
+        CfnType::Long => "Long",
         CfnType::Json => "JsonNode jsonNode = objectMapper.readTree(jsonString);",
         CfnType::String => "String",
         CfnType::Timestamp => "/*TODO*/"
@@ -371,16 +379,6 @@ fn match_cfn_type(input: &CfnType) -> String {
 }
 
 fn emit_conditions(condition: ConditionIr, writer: &CodeBuffer, trailer: Option<&str>) {
-    /*
-      IsUs:
-    Fn::Equals:
-      - Fn::Select:
-        - 0
-        - Fn::Split:
-          - "-"
-          - "!Ref": AWS::Region
-      - us
-     */
     match condition {
         ConditionIr::Ref(reference) => match reference.origin {
             Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => {}
@@ -441,9 +439,9 @@ fn emit_conditions(condition: ConditionIr, writer: &CodeBuffer, trailer: Option<
             emit_conditions(*str, &indented, None);
         }
         ConditionIr::Select(index, str) => {
-            writer.text(format!("Fn.select({index:?}, "));
+            writer.text(format!("Fn.select({index:?}, get("));
             emit_conditions(*str, writer, None);
-            writer.line(")");
+            writer.line("))");
         }
     }
     // if let Some(trailer) = trailer {
@@ -486,7 +484,7 @@ fn emit_output(output: &OutputInstruction, writer: &CodeBuffer, trailer: Option<
     let exp = &output.export;
     if let Some(value) = exp {
         // Value exists, use it
-        indented.line(format!(".export(\"{}\")", emit_java(value.clone(), &*indented, None)));
+        indented.line(format!(".exportName({})", emit_java(value.clone(), &*indented, None)));
     }
 
     let description = &output.description;
@@ -496,7 +494,7 @@ fn emit_output(output: &OutputInstruction, writer: &CodeBuffer, trailer: Option<
 
     let condition = &output.condition;
     if let Some(value) = condition {
-        indented.line(format!(".condition(\"{value}\")"));
+        indented.line(format!(".condition(CfnCondition.Builder.create(this, \"{}\").expression(/* TODO {} */ null).build())", &output.name, value));
     }
 }
 
@@ -522,7 +520,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
                     let mut res = format!("new GenericMap<String, Object>()\n");
                     for (key, value) in &indexmap {
                         if key.eq_ignore_ascii_case("Key") {
-                            res = format!("{res}\n.add({}", emit_java((*value).clone(), writer, None))
+                            res = format!("{res}\n.extend({}", emit_java((*value).clone(), writer, None))
                         }
                         if key.eq_ignore_ascii_case("Value") {
                             res = format!("{res},{})", emit_java((*value).clone(), writer, None))
@@ -534,11 +532,11 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
                 Structure::Simple(cfn_type) => {
                     let mut res = format!("new GenericMap<String, {}>()\n", match_cfn_type(&cfn_type));
                     for (key, value) in &indexmap {
-                        res = format!("{res}\n{INDENT}.add({}, {})",
+                        res = format!("{res}\n{INDENT}.extend({}, {})",
                                       emit_java((*value).clone(), writer, None),
                                       emit_java((*value).clone(), writer, None));
                     }
-                    format!("{res}\n.get()")
+                    res
                 }
             }
         }
@@ -551,13 +549,17 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
                 }
 
                 Structure::Simple(cfn_type) => {
-                    res = format!("new GenericList<{}>()\n", match_cfn_type(&cfn_type));
+                    let current_type = match_cfn_type;
+                    res = format!("new GenericList<{}>()", current_type(&cfn_type));
                 }
             }
             for res_ir in vect {
-                res = format!("{res}\n{INDENT}.add({})", emit_java(res_ir.clone(), writer, trailer));
+                let element = emit_java(res_ir.clone(), writer, trailer);
+                if !element.is_empty() {
+                    res = format!("{res}\n{INDENT}.extend({})", element);
+                }
             }
-            format!("{res}\n.get()\n")
+            res
         }
 
         ResourceIr::If(cond_id, val_true, val_false) => {
@@ -567,11 +569,12 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             emit_reference(reference, writer, None)
         }
         ResourceIr::Join(delimiter, resources) => {
+            // Fn: String join(String delimiter, List<String> listOfValues)
             let mut res = format!("Fn.join(\"{delimiter}\", new GenericList<String>()");
             for resource in resources {
-                res = format!("{res}\n{INDENT}.add({})", emit_java(resource, writer, None))
+                res = format!("{res}\n{INDENT}.extend({})", emit_java(resource, writer, None))
             }
-            format!("{res}\n{INDENT}.get()")
+            res
         }
         ResourceIr::Split(string, resource) => {
             format!("Fn.split({}, String.valueOf({})", string, emit_java(*resource, writer, None))
@@ -593,7 +596,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             panic!("🚨 Fn::Sub improperly formatted")
         }
         ResourceIr::Map(resource, key, value) => {
-            format!("{}, new GenericMap<String, Object>().add({}, {}).get()",
+            format!("{}, new GenericMap<String, Object>().extend({}, {})",
                     resource,
                     emit_java(*key, writer, None),
                     emit_java(*value, writer, None),
@@ -607,7 +610,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             )
         }
         ResourceIr::Select(size, resource) => {
-            format!("Fn.select({},{})", size, emit_java(*resource, writer, None))
+            format!("Fn.select({},get({}))", size, emit_java(*resource, writer, None))
         }
     }
 }
