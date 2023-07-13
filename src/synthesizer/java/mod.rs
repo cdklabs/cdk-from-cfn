@@ -1,5 +1,3 @@
-#![allow(unused_variables)]
-
 use super::Synthesizer;
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
@@ -10,14 +8,12 @@ use crate::ir::resources::ResourceIr;
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::{CfnType, Structure};
-use std::any::type_name;
 use std::borrow::Cow;
-use std::fmt::Debug;
 use std::io;
 use std::rc::Rc;
 use voca_rs::case::camel_case;
 
-const INDENT: Cow<'static, str> = Cow::Borrowed("\t");
+const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 const STACK_NAME: Cow<'static, str> = Cow::Borrowed("NoctStack");
 
 macro_rules! fill {
@@ -33,11 +29,6 @@ macro_rules! fill {
             $(class.line(format!($lines));)*
         }
     };
-}
-
-fn debug<T: Debug>(value: T, prefix: &str) {
-    let type_name = type_name::<T>();
-    println!("[{:?}]: {:?}", prefix, value);
 }
 
 pub struct Java {
@@ -170,7 +161,7 @@ class Mapping<T> {
 
             for (outer_key, inner) in mapping.map.iter() {
                 let values: Vec<&MappingInnerValue> = inner.values().collect();
-                let (mix_types, inner_type): (bool, &str) = check_type(values);
+                let inner_type: &str = check_type(values);
 
                 for (inner_key, value) in inner.iter() {
                     if !mapping_init {
@@ -287,23 +278,23 @@ class Mapping<T> {
     fn write_outputs(ir: &CloudformationProgramIr, writer: Rc<CodeBuffer>) {
         let output_def = writer.clone();
         for output in &ir.outputs {
-            emit_output(output, &output_def, None);
+            emit_output(output, &output_def);
         }
     }
 }
 
 fn get_type(value: &MappingInnerValue) -> &str {
     let inner_type = match value {
-        MappingInnerValue::Bool(bool) => "Boolean",
-        MappingInnerValue::Number(num) => "Integer",
-        MappingInnerValue::Float(num) => "Double",
-        MappingInnerValue::String(str) => "String",
-        MappingInnerValue::List(items) => "List<String>",
+        MappingInnerValue::Bool(_) => "Boolean",
+        MappingInnerValue::Number(_) => "Integer",
+        MappingInnerValue::Float(_) => "Double",
+        MappingInnerValue::String(_) => "String",
+        MappingInnerValue::List(_) => "List<String>",
     };
     inner_type
 }
 
-fn check_type(values: Vec<&MappingInnerValue>) -> (bool, &str) {
+fn check_type(values: Vec<&MappingInnerValue>) -> &str {
     let mut found_type = "Object";
     let mut current_type;
     for (index, value) in values.iter().enumerate() {
@@ -312,10 +303,10 @@ fn check_type(values: Vec<&MappingInnerValue>) -> (bool, &str) {
             found_type = current_type;
         }
         if !current_type.eq(found_type) {
-            return (false, "Object");
+            return "Object";
         }
     }
-    return (true, found_type);
+    return found_type;
 }
 
 impl Default for Java {
@@ -334,8 +325,6 @@ impl Synthesizer for Java {
             code.line(import.to_java());
         }
         code.newline();
-
-        self.write_helpers(&code);
 
         self.write_app(&code, &ir.description);
 
@@ -374,6 +363,7 @@ impl Synthesizer for Java {
         Self::write_outputs(&ir, writer);
 
         Self::write_methods(class);
+        self.write_helpers(&code);
 
         code.write(into)
     }
@@ -443,7 +433,7 @@ fn emit_conditions(condition: ConditionIr) -> String {
                 emit_conditions(*rhs)
             )
         }
-        ConditionIr::Map(map, tlk, slk) => {
+        ConditionIr::Map(_, tlk, slk) => {
             format!(
                 "Fn.map({}, {})",
                 emit_conditions(*tlk),
@@ -463,11 +453,8 @@ fn emit_reference(reference: Reference) -> String {
     let origin = reference.origin;
     let name = reference.name;
     match origin {
-        Origin::LogicalId { conditional } => format!("\"{name}\""),
-        Origin::GetAttribute {
-            attribute,
-            conditional,
-        } => format!("Fn.getAtt(\"{name}\", \"{attribute}\")"),
+        Origin::LogicalId { .. } => format!("\"{name}\""),
+        Origin::GetAttribute { attribute, .. } => format!("Fn.getAtt(\"{name}\", \"{attribute}\")"),
         Origin::PseudoParameter(param) => get_pseudo_param(param),
         Origin::Parameter => format!("{}", camel_case(&*name)),
         Origin::Condition => name,
@@ -499,7 +486,7 @@ fn get_condition(list: Vec<ConditionIr>) -> String {
     res
 }
 
-fn emit_output(output: &OutputInstruction, writer: &CodeBuffer, trailer: Option<&str>) {
+fn emit_output(output: &OutputInstruction, writer: &CodeBuffer) {
     let indented = writer.indent_with_options(IndentOptions {
         indent: INDENT,
         leading: Some(format!("CfnOutput.Builder.create(this, \"{}\")", output.name).into()),
@@ -553,7 +540,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
         ResourceIr::ImportValue(text) => format!("\"{text}\""),
 
         ResourceIr::Object(structure, indexmap) => match structure {
-            Structure::Composite(str) => {
+            Structure::Composite(_) => {
                 let mut res = format!("new GenericMap<String, Object>()");
                 for (key, value) in &indexmap {
                     if key.eq_ignore_ascii_case("Key") {
@@ -574,7 +561,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
                 for (key, value) in &indexmap {
                     res = format!(
                         "{res}\n{INDENT}.extend({}, {})",
-                        emit_java((*value).clone(), writer, None),
+                        key,
                         emit_java((*value).clone(), writer, None)
                     );
                 }
@@ -585,7 +572,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
         ResourceIr::Array(structure, vect) => {
             let mut res: String;
             match structure {
-                Structure::Composite(cfn_type) => {
+                Structure::Composite(_) => {
                     res = format!("new GenericList<CfnTag>()");
                 }
 
