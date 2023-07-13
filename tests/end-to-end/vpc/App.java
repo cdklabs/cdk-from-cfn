@@ -15,6 +15,65 @@ import software.amazon.awscdk.StackProps;
 
 import software.amazon.awscdk.services.ec2.*;
 
+public class NoctApp {
+  public static void main(final String[] args) {
+    App app = new App();
+    StackProps props = StackProps.builder()
+      ""
+    .build();
+    new NoctStack(app, "MyProjectStack", props);
+    app.synth();
+  }
+}
+interface NoctStackProps extends StackProps {
+}
+class NoctStack extends Stack {
+  public NoctStack(final Construct scope, final String id) {
+    super(scope, id, null);
+  }
+  public NoctStack(final Construct scope, final String id, final StackProps props) {
+    super(scope, id, props);
+    { // Start Mapping section
+    } // End Mapping section
+
+
+    CfnVPC vpc = CfnVPC.Builder.create(this, "VPC")
+      .cidrBlock("10.42.0.0/16")
+      .enableDnsSupport(true)
+      .enableDnsHostnames(true)
+      .tags(new GenericList<CfnTag>()
+        .extend(new GenericMap<String, Object>()
+      .extend("cost-center",1337)
+      .getTags()))
+    .build();
+
+
+    CfnSubnet subnet1 = CfnSubnet.Builder.create(this, "Subnet1")
+      .availabilityZone(Fn.select(0,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
+      .cidrBlock(Fn.select(0,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
+      .vpcId("VPC")
+    .build();
+
+
+    CfnSubnet subnet2 = CfnSubnet.Builder.create(this, "Subnet2")
+      .availabilityZone(Fn.select(1,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
+      .cidrBlock(Fn.select(1,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
+      .vpcId("VPC")
+    .build();
+
+
+    CfnSubnet subnet3 = CfnSubnet.Builder.create(this, "Subnet3")
+      .availabilityZone(Fn.select(2,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
+      .cidrBlock(Fn.select(2,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
+      .vpcId("VPC")
+    .build();
+
+  }
+
+  public static <T> List<String> get(final List<T> input) {
+    return input.stream().map(String::valueOf).collect(Collectors.toList());
+  }
+}
 class GenericList<T> extends LinkedList<T> {
     public GenericList<T> extend(final T object) {
         this.addLast(object);
@@ -67,62 +126,3 @@ class Mapping<T> {
     }
 }
 
-public class NoctApp {
-	public static void main(final String[] args) {
-		App app = new App();
-		StackProps props = StackProps.builder()
-			""
-		.build();
-		new NoctStack(app, "MyProjectStack", props);
-		app.synth();
-	}
-}
-interface NoctStackProps extends StackProps {
-}
-class NoctStack extends Stack {
-	public NoctStack(final Construct scope, final String id) {
-		super(scope, id, null);
-	}
-	public NoctStack(final Construct scope, final String id, final StackProps props) {
-		super(scope, id, props);
-		{ // Start Mapping section
-		} // End Mapping section
-
-
-		CfnVPC vpc = CfnVPC.Builder.create(this, "VPC")
-			.cidrBlock("10.42.0.0/16")
-			.enableDnsSupport(true)
-			.enableDnsHostnames(true)
-			.tags(new GenericList<CfnTag>()
-				.extend(new GenericMap<String, Object>()
-			.extend("cost-center",1337)
-			.getTags()))
-		.build();
-
-
-		CfnSubnet subnet1 = CfnSubnet.Builder.create(this, "Subnet1")
-			.availabilityZone(Fn.select(0,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
-			.cidrBlock(Fn.select(0,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
-			.vpcId("VPC")
-		.build();
-
-
-		CfnSubnet subnet2 = CfnSubnet.Builder.create(this, "Subnet2")
-			.availabilityZone(Fn.select(1,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
-			.cidrBlock(Fn.select(1,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
-			.vpcId("VPC")
-		.build();
-
-
-		CfnSubnet subnet3 = CfnSubnet.Builder.create(this, "Subnet3")
-			.availabilityZone(Fn.select(2,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
-			.cidrBlock(Fn.select(2,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
-			.vpcId("VPC")
-		.build();
-
-	}
-
-	public static <T> List<String> get(final List<T> input) {
-		return input.stream().map(String::valueOf).collect(Collectors.toList());
-	}
-}

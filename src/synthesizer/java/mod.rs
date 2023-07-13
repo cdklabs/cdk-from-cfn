@@ -19,14 +19,14 @@ const STACK_NAME: Cow<'static, str> = Cow::Borrowed("NoctStack");
 macro_rules! fill {
     ($code:ident; $leading:expr; $($lines:expr),* ; $trailing:expr) => {
         {
-            let class = $code.indent_with_options(IndentOptions {
+            let _class = $code.indent_with_options(IndentOptions {
                 indent: INDENT,
                 leading: Some($leading.into()),
                 trailing: Some($trailing.into()),
                 trailing_newline: true,
             });
 
-            $(class.line(format!($lines));)*
+            $(_class.line(format!($lines));)*
         }
     };
 }
@@ -668,11 +668,27 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             )
         }
         ResourceIr::Select(size, resource) => {
-            format!(
-                "Fn.select({},get({}))",
-                size,
-                emit_java(*resource, writer, None)
-            )
+            let used_type: String = match *resource.clone() {
+                ResourceIr::Array(structure, _) => match structure {
+                    Structure::Simple(cfn_type) => match_cfn_type(&cfn_type),
+                    _ => "".into(),
+                },
+                _ => "".into(),
+            };
+            if !used_type.is_empty() {
+                format!(
+                    "{}.valueOf(Fn.select({},get({})))",
+                    used_type,
+                    size,
+                    emit_java(*resource, writer, None)
+                )
+            } else {
+                format!(
+                    "Fn.select({},get({}))",
+                    size,
+                    emit_java(*resource, writer, None)
+                )
+            }
         }
     }
 }
