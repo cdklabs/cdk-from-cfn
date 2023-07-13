@@ -1,63 +1,45 @@
 package com.acme.test.vpc;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import software.constructs.Construct;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import software.amazon.awscdk.*;
-import software.amazon.awscdk.Fn.*;
+import software.amazon.awscdk.App;
 import software.amazon.awscdk.CfnMapping;
+import software.amazon.awscdk.CfnTag;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
 
 
 import software.amazon.awscdk.services.ec2.*;
 
-interface NoctStackProps extends StackProps {
-}
-class GenericSet<T> {
-    private final Set<T> set = new HashSet<>();
-
-    public GenericSet<T> add(final T object) {
-        this.set.add(object);
+class GenericList<T> extends LinkedList<T> {
+    public GenericList<T> extend(final T object) {
+        this.addLast(object);
         return this;
     }
 
-    public Set<T> get() {
-        return this.set;
+    public GenericList<T> extend(final List<T> collection) {
+        this.addAll(collection);
+        return this;
     }
 }
 
-class GenericList<T> {
-    private final List<T> list = new LinkedList<>();
-
-    public GenericList<T> add(final T object) {
-        this.list.add(object);
+class GenericMap<T, S> extends HashMap<T, S> {
+    public GenericMap<T, S> extend(final T key, final S value) {
+        this.put(key, value);
         return this;
-    }
-    public List<T> get() {
-        return this.list;
-    }
-}
-
-class GenericMap<T, S> {
-    private final Map<T, S> map = new HashMap<>();
-
-    public GenericMap<T, S> add(final T key, final S value) {
-        this.map.put(key, value);
-        return this;
-    }
-
-    public Map<T, S> get() {
-        return this.map;
     }
 
     public List<CfnTag> getTags() {
         final List<CfnTag> tags = new LinkedList<>();
-        for(Map.Entry<T,S> entry : this.map.entrySet()) {
-            tags.add(CfnTag.builder().key(String.valueOf(entry.getKey())).value(String.valueOf(entry.getValue())).build());
+        for (Map.Entry<T, S> entry : this.entrySet()) {
+            tags.add(CfnTag.builder()
+                    .key(String.valueOf(entry.getKey()))
+                    .value(String.valueOf(entry.getValue()))
+                    .build());
         }
         return tags;
     }
@@ -85,7 +67,19 @@ class Mapping<T> {
     }
 }
 
-public class NoctStack extends Stack {
+public class NoctApp {
+	public static void main(final String[] args) {
+		App app = new App();
+		StackProps props = StackProps.builder()
+			""
+		.build();
+		new NoctStack(app, "MyProjectStack", props);
+		app.synth();
+	}
+}
+interface NoctStackProps extends StackProps {
+}
+class NoctStack extends Stack {
 	public NoctStack(final Construct scope, final String id) {
 		super(scope, id, null);
 	}
@@ -96,19 +90,39 @@ public class NoctStack extends Stack {
 
 
 		CfnVPC vpc = CfnVPC.Builder.create(this, "VPC")
-			.cidrBlock("10.42.0.0/16").enableDnsSupport(true).enableDnsHostnames(true).tags().build();
+			.cidrBlock("10.42.0.0/16")
+			.enableDnsSupport(true)
+			.enableDnsHostnames(true)
+			.tags(new GenericList<CfnTag>()
+				.extend(new GenericMap<String, Object>()
+			.extend("cost-center",1337)
+			.getTags()))
+		.build();
 
 
 		CfnSubnet subnet1 = CfnSubnet.Builder.create(this, "Subnet1")
-			.availabilityZone().cidrBlock().vpcId().build();
+			.availabilityZone(Fn.select(0,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
+			.cidrBlock(Fn.select(0,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
+			.vpcId("VPC")
+		.build();
 
 
 		CfnSubnet subnet2 = CfnSubnet.Builder.create(this, "Subnet2")
-			.availabilityZone().cidrBlock().vpcId().build();
+			.availabilityZone(Fn.select(1,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
+			.cidrBlock(Fn.select(1,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
+			.vpcId("VPC")
+		.build();
 
 
 		CfnSubnet subnet3 = CfnSubnet.Builder.create(this, "Subnet3")
-			.availabilityZone().cidrBlock().vpcId().build();
+			.availabilityZone(Fn.select(2,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
+			.cidrBlock(Fn.select(2,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
+			.vpcId("VPC")
+		.build();
 
+	}
+
+	public static <T> List<String> get(final List<T> input) {
+		return input.stream().map(String::valueOf).collect(Collectors.toList());
 	}
 }
