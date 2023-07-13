@@ -1,21 +1,21 @@
 #![allow(unused_variables)]
 
-use crate::code::{CodeBuffer, IndentOptions};
-use crate::ir::CloudformationProgramIr;
-use crate::ir::importer::ImportInstruction;
-use crate::ir::resources::ResourceIr;
-use crate::ir::conditions::ConditionIr;
-use crate::parser::lookup_table::MappingInnerValue;
-use crate::specification::{CfnType, Structure};
-use std::any::{type_name};
-use std::borrow::Cow;
-use std::fmt::{Debug};
-use std::io;
-use std::rc::Rc;
 use super::Synthesizer;
-use voca_rs::case::camel_case;
+use crate::code::{CodeBuffer, IndentOptions};
+use crate::ir::conditions::ConditionIr;
+use crate::ir::importer::ImportInstruction;
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
+use crate::ir::resources::ResourceIr;
+use crate::ir::CloudformationProgramIr;
+use crate::parser::lookup_table::MappingInnerValue;
+use crate::specification::{CfnType, Structure};
+use std::any::type_name;
+use std::borrow::Cow;
+use std::fmt::Debug;
+use std::io;
+use std::rc::Rc;
+use voca_rs::case::camel_case;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("\t");
 const STACK_NAME: Cow<'static, str> = Cow::Borrowed("NoctStack");
@@ -93,18 +93,21 @@ impl Java {
             trailing_newline: true,
         });
         match description {
-            Some(desc) => {
-                stack_prop.line(format!(".description(\"{}\")", desc.replace("\n", "\" + \n \"")))
-            }
+            Some(desc) => stack_prop.line(format!(
+                ".description(\"{}\")",
+                desc.replace("\n", "\" + \n \"")
+            )),
             None => stack_prop.line("\"\""),
         };
-        main.line(format!("new {}(app, \"MyProjectStack\", props);", STACK_NAME));
+        main.line(format!(
+            "new {}(app, \"MyProjectStack\", props);",
+            STACK_NAME
+        ));
         main.line("app.synth();");
     }
 
     fn write_helpers(&self, code: &CodeBuffer) {
-        const UTILS: &str =
-            "class GenericList<T> extends LinkedList<T> {
+        const UTILS: &str = "class GenericList<T> extends LinkedList<T> {
     public GenericList<T> extend(final T object) {
         this.addLast(object);
         return this;
@@ -171,7 +174,10 @@ class Mapping<T> {
 
                 for (inner_key, value) in inner.iter() {
                     if !mapping_init {
-                        map.line(format!("final Mapping<{inner_type}> {map_name} = new Mapping<>(this, \"{}\");", &mapping.name));
+                        map.line(format!(
+                            "final Mapping<{inner_type}> {map_name} = new Mapping<>(this, \"{}\");",
+                            &mapping.name
+                        ));
                         mapping_init = true;
                     }
                     map.text(format!("{map_name}.put(\"{outer_key}\", \"{inner_key}\", "));
@@ -180,15 +186,9 @@ class Mapping<T> {
                         MappingInnerValue::Bool(bool) => {
                             map.text(format!("{}", if *bool { "true" } else { "false" }))
                         }
-                        MappingInnerValue::Number(num) => {
-                            map.text(format!("{num}"))
-                        }
-                        MappingInnerValue::Float(num) => {
-                            map.text(format!("{num}"))
-                        }
-                        MappingInnerValue::String(str) => {
-                            map.text(format!("{str:?}"))
-                        }
+                        MappingInnerValue::Number(num) => map.text(format!("{num}")),
+                        MappingInnerValue::Float(num) => map.text(format!("{num}")),
+                        MappingInnerValue::String(str) => map.text(format!("{str:?}")),
                         MappingInnerValue::List(items) => {
                             let list = map.indent_with_options(IndentOptions {
                                 indent: INDENT,
@@ -215,13 +215,19 @@ class Mapping<T> {
     fn write_parameters(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
         for input in &ir.constructor.inputs {
             let name = camel_case(&input.name);
-            writer.line(format!("CfnParameter {name} = CfnParameter.Builder.create(this, \"{}\")", &input.name));
+            writer.line(format!(
+                "CfnParameter {name} = CfnParameter.Builder.create(this, \"{}\")",
+                &input.name
+            ));
             match &input.description {
                 Some(descr) => writer.line(format!(".description(\"{}\")", descr)),
                 None => {}
             };
             match &input.default_value {
-                Some(val) => writer.line(format!(".defaultValue({}.valueOf(\"{}\"))", &input.constructor_type, val)),
+                Some(val) => writer.line(format!(
+                    ".defaultValue({}.valueOf(\"{}\"))",
+                    &input.constructor_type, val
+                )),
                 None => {}
             };
             writer.line(".build();")
@@ -235,7 +241,13 @@ class Mapping<T> {
             writer.newline();
             let res_info = writer.indent_with_options(IndentOptions {
                 indent: INDENT,
-                leading: Some(format!("Cfn{class} {} = Cfn{class}.Builder.create(this, \"{res_name}\")", name(&res_name)).into()),
+                leading: Some(
+                    format!(
+                        "Cfn{class} {} = Cfn{class}.Builder.create(this, \"{res_name}\")",
+                        name(&res_name)
+                    )
+                    .into(),
+                ),
                 trailing: Some(".build();".into()),
                 trailing_newline: true,
             });
@@ -257,7 +269,8 @@ class Mapping<T> {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        static_helper.line("return input.stream().map(String::valueOf).collect(Collectors.toList());");
+        static_helper
+            .line("return input.stream().map(String::valueOf).collect(Collectors.toList());");
     }
 
     fn write_conditions(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
@@ -343,8 +356,11 @@ impl Synthesizer for Java {
         let writer = class.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(
-                format!("public {}(final Construct scope, final String id, final StackProps props) {{", STACK_NAME)
-                    .into()
+                format!(
+                    "public {}(final Construct scope, final String id, final StackProps props) {{",
+                    STACK_NAME
+                )
+                .into(),
             ),
             trailing: Some("}".into()),
             trailing_newline: true,
@@ -402,7 +418,7 @@ fn match_cfn_type(input: &CfnType) -> String {
         CfnType::Long => "Long",
         CfnType::Json => "JsonNode jsonNode = objectMapper.readTree(jsonString);",
         CfnType::String => "String",
-        CfnType::Timestamp => "/*TODO*/"
+        CfnType::Timestamp => "/*TODO*/",
     })
 }
 
@@ -421,14 +437,18 @@ fn emit_conditions(condition: ConditionIr) -> String {
             format!("Fn.conditionOr({:?})", emit_conditions(*cond))
         }
         ConditionIr::Equals(lhs, rhs) => {
-            format!("Fn.conditionEquals({}, {})",
-                    emit_conditions(*lhs),
-                    emit_conditions(*rhs))
+            format!(
+                "Fn.conditionEquals({}, {})",
+                emit_conditions(*lhs),
+                emit_conditions(*rhs)
+            )
         }
         ConditionIr::Map(map, tlk, slk) => {
-            format!("Fn.map({}, {})",
-                    emit_conditions(*tlk),
-                    emit_conditions(*slk))
+            format!(
+                "Fn.map({}, {})",
+                emit_conditions(*tlk),
+                emit_conditions(*slk)
+            )
         }
         ConditionIr::Split(sep, str) => {
             format!("Fn.split({sep:?}, {})", emit_conditions(*str))
@@ -443,29 +463,28 @@ fn emit_reference(reference: Reference) -> String {
     let origin = reference.origin;
     let name = reference.name;
     match origin {
-        Origin::LogicalId { conditional } =>
-            format!("\"{name}\""),
-        Origin::GetAttribute { attribute, conditional } =>
-            format!("Fn.getAtt(\"{name}\", \"{attribute}\")"),
-        Origin::PseudoParameter(param) =>
-            get_pseudo_param(param),
-        Origin::Parameter =>
-            format!("{}", camel_case(&*name)),
-        Origin::Condition =>
-            name,
+        Origin::LogicalId { conditional } => format!("\"{name}\""),
+        Origin::GetAttribute {
+            attribute,
+            conditional,
+        } => format!("Fn.getAtt(\"{name}\", \"{attribute}\")"),
+        Origin::PseudoParameter(param) => get_pseudo_param(param),
+        Origin::Parameter => format!("{}", camel_case(&*name)),
+        Origin::Condition => name,
     }
 }
 
 fn get_pseudo_param(param: PseudoParameter) -> String {
     match param {
-        PseudoParameter::Partition => { "this.getPartition()" }
-        PseudoParameter::Region => { "this.getRegion()" }
-        PseudoParameter::StackId => { "this.getStackId()" }
-        PseudoParameter::StackName => { "this.getStackName()" }
-        PseudoParameter::URLSuffix => { "this.getUrlSuffix()" }
-        PseudoParameter::AccountId => { "this.getAccount()" }
-        PseudoParameter::NotificationArns => { "this.getNotificationArns()" }
-    }.into()
+        PseudoParameter::Partition => "this.getPartition()",
+        PseudoParameter::Region => "this.getRegion()",
+        PseudoParameter::StackId => "this.getStackId()",
+        PseudoParameter::StackName => "this.getStackName()",
+        PseudoParameter::URLSuffix => "this.getUrlSuffix()",
+        PseudoParameter::AccountId => "this.getAccount()",
+        PseudoParameter::NotificationArns => "this.getNotificationArns()",
+    }
+    .into()
 }
 
 fn get_condition(list: Vec<ConditionIr>) -> String {
@@ -488,12 +507,18 @@ fn emit_output(output: &OutputInstruction, writer: &CodeBuffer, trailer: Option<
         trailing_newline: true,
     });
     let val = output.value.clone();
-    indented.line(format!(".value(String.valueOf({}))", emit_java(val, &*indented, None)));
+    indented.line(format!(
+        ".value(String.valueOf({}))",
+        emit_java(val, &*indented, None)
+    ));
 
     let exp = &output.export;
     if let Some(value) = exp {
         // Value exists, use it
-        indented.line(format!(".exportName({})", emit_java(value.clone(), &*indented, None)));
+        indented.line(format!(
+            ".exportName({})",
+            emit_java(value.clone(), &*indented, None)
+        ));
     }
 
     let description = &output.description;
@@ -503,10 +528,11 @@ fn emit_output(output: &OutputInstruction, writer: &CodeBuffer, trailer: Option<
 
     let condition = &output.condition;
     if let Some(value) = condition {
-        indented.line(
-            format!(".condition(CfnCondition.Builder.create(this, \"{}\").expression({}).build())",
-                    &output.name, camel_case(value).replace("\"", ""))
-        );
+        indented.line(format!(
+            ".condition(CfnCondition.Builder.create(this, \"{}\").expression({}).build())",
+            &output.name,
+            camel_case(value).replace("\"", "")
+        ));
     }
 }
 
@@ -526,32 +552,35 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
         }
         ResourceIr::ImportValue(text) => format!("\"{text}\""),
 
-        ResourceIr::Object(structure, indexmap) => {
-            match structure {
-                Structure::Composite(str) => {
-                    let mut res = format!("new GenericMap<String, Object>()");
-                    for (key, value) in &indexmap {
-                        if key.eq_ignore_ascii_case("Key") {
-                            res = format!("{res}\n.extend({}", emit_java((*value).clone(), writer, None))
-                        }
-                        if key.eq_ignore_ascii_case("Value") {
-                            res = format!("{res},{})", emit_java((*value).clone(), writer, None))
-                        }
+        ResourceIr::Object(structure, indexmap) => match structure {
+            Structure::Composite(str) => {
+                let mut res = format!("new GenericMap<String, Object>()");
+                for (key, value) in &indexmap {
+                    if key.eq_ignore_ascii_case("Key") {
+                        res = format!(
+                            "{res}\n.extend({}",
+                            emit_java((*value).clone(), writer, None)
+                        )
                     }
-                    format!("{res}\n.getTags()")
-                }
-
-                Structure::Simple(cfn_type) => {
-                    let mut res = format!("new GenericMap<String, {}>()\n", match_cfn_type(&cfn_type));
-                    for (key, value) in &indexmap {
-                        res = format!("{res}\n{INDENT}.extend({}, {})",
-                                      emit_java((*value).clone(), writer, None),
-                                      emit_java((*value).clone(), writer, None));
+                    if key.eq_ignore_ascii_case("Value") {
+                        res = format!("{res},{})", emit_java((*value).clone(), writer, None))
                     }
-                    res
                 }
+                format!("{res}\n.getTags()")
             }
-        }
+
+            Structure::Simple(cfn_type) => {
+                let mut res = format!("new GenericMap<String, {}>()\n", match_cfn_type(&cfn_type));
+                for (key, value) in &indexmap {
+                    res = format!(
+                        "{res}\n{INDENT}.extend({}, {})",
+                        emit_java((*value).clone(), writer, None),
+                        emit_java((*value).clone(), writer, None)
+                    );
+                }
+                res
+            }
+        },
 
         ResourceIr::Array(structure, vect) => {
             let mut res: String;
@@ -575,11 +604,14 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
         }
 
         ResourceIr::If(cond_id, val_true, val_false) => {
-            format!("Fn.conditionIf(\"{}\", {}, {})", cond_id, emit_java(*val_true, writer, None), emit_java(*val_false, writer, None))
+            format!(
+                "Fn.conditionIf(\"{}\", {}, {})",
+                cond_id,
+                emit_java(*val_true, writer, None),
+                emit_java(*val_false, writer, None)
+            )
         }
-        ResourceIr::Ref(reference) => {
-            emit_reference(reference)
-        }
+        ResourceIr::Ref(reference) => emit_reference(reference),
         ResourceIr::Join(delimiter, resources) => {
             let mut res = format!("Fn.join(\"{delimiter}\", new GenericList<String>()");
             for resource in resources {
@@ -591,13 +623,23 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             format!("{res})")
         }
         ResourceIr::Split(string, resource) => {
-            format!("Fn.split({}, String.valueOf({}))", string, emit_java(*resource, writer, None))
+            format!(
+                "Fn.split({}, String.valueOf({}))",
+                string,
+                emit_java(*resource, writer, None)
+            )
         }
         ResourceIr::Base64(resource) => {
-            format!("Fn.base64(String.valueOf({}))", emit_java(*resource, writer, None))
+            format!(
+                "Fn.base64(String.valueOf({}))",
+                emit_java(*resource, writer, None)
+            )
         }
         ResourceIr::GetAZs(resource) => {
-            format!("Fn.getAzs(String.valueOf({}))", emit_java(*resource, writer, None))
+            format!(
+                "Fn.getAzs(String.valueOf({}))",
+                emit_java(*resource, writer, None)
+            )
         }
         ResourceIr::Sub(resources) => {
             // Fn::sub(String body, Map<String, String> variables)
@@ -607,7 +649,10 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
                     format!("Fn.sub(String.valueOf({}))", body);
                 }
 
-                let mut res = format!("Fn.sub(String.valueOf({}), new GenericMap<String, String>()", body);
+                let mut res = format!(
+                    "Fn.sub(String.valueOf({}), new GenericMap<String, String>()",
+                    body
+                );
                 for chunk in vect.chunks(2) {
                     if let [key, value] = chunk {
                         let key_element = emit_java(key.clone(), writer, None);
@@ -620,27 +665,34 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             panic!("🚨 Fn::Sub improperly formatted")
         }
         ResourceIr::Map(resource, key, value) => {
-            format!("Fn.findInMap(\"{}\", {}, {})",
-                    resource,
-                    emit_java(*key, writer, None),
-                    emit_java(*value, writer, None),
+            format!(
+                "Fn.findInMap(\"{}\", {}, {})",
+                resource,
+                emit_java(*key, writer, None),
+                emit_java(*value, writer, None),
             )
         }
         ResourceIr::Cidr(p0, p1, p2) => {
-            format!("Fn.cidr(String.valueOf({}), {}, String.valueOf({}))",
-                    emit_java(*p0, writer, None),
-                    emit_java(*p1, writer, None),
-                    emit_java(*p2, writer, None)
+            format!(
+                "Fn.cidr(String.valueOf({}), {}, String.valueOf({}))",
+                emit_java(*p0, writer, None),
+                emit_java(*p1, writer, None),
+                emit_java(*p2, writer, None)
             )
         }
         ResourceIr::Select(size, resource) => {
-            format!("Fn.select({},get({}))", size, emit_java(*resource, writer, None))
+            format!(
+                "Fn.select({},get({}))",
+                size,
+                emit_java(*resource, writer, None)
+            )
         }
     }
 }
 
 fn name(key: &String) -> String {
-    camel_case(&key).chars()
+    camel_case(&key)
+        .chars()
         .filter(|c| c.is_alphanumeric())
         .collect()
 }
