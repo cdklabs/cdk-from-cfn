@@ -82,6 +82,17 @@ impl Synthesizer for Python {
         });
         ctor.line("super().__init__(scope, construct_id, **kwargs)");
         
+        emit_mappings(&ctor, &ir.mappings);
+        
+        if !ir.conditions.is_empty() {
+            ctor.newline();
+            ctor.line("# Conditions");
+
+            for cond in &ir.conditions {
+                let synthed = synthesize_condition_recursive(&cond.value);
+                ctor.line(format!("{} = {}", camel_case(&cond.name), synthed));
+            }
+        }
 
         code.write(output)
     }
@@ -161,5 +172,140 @@ impl PythonCodeBuffer for CodeBuffer {
             trailing: Some("\"\"\"".into()),
             trailing_newline: true,
         })
+    }
+}
+
+fn emit_mappings(output: &CodeBuffer, mappings: &[MappingInstruction]) {
+    if mappings.is_empty() {
+        return;
+    }
+
+    output.newline();
+    output.line("# Mappings");
+
+    for mapping in mappings {
+
+        let output = output.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(
+                format!(
+                    "{var} = {{",
+                    var = pretty_name(&mapping.name)
+                )
+                .into(),
+            ),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+
+        emit_mapping_instruction(output, mapping);
+    }
+}
+
+fn emit_mapping_instruction(output: Rc<CodeBuffer>, mapping_instruction: &MappingInstruction) {
+    for (name, inner_mapping) in &mapping_instruction.map {
+        let output = output.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(format!("'{}': {{", name.escape_debug()).into()),
+            trailing: Some("},".into()),
+            trailing_newline: true,
+        });
+        emit_inner_mapping(output, inner_mapping);
+    }
+}
+
+fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, MappingInnerValue>) {
+    for (name, value) in inner_mapping {
+        output.line(format!("'{key}': {value},", key = name.escape_debug()));
+    }
+}
+
+fn synthesize_condition_recursive(val: &ConditionIr) -> String {
+    match val {
+        ConditionIr::And(x) => {
+            let a: Vec<String> = x.iter().map(synthesize_condition_recursive).collect();
+
+            let inner = a.join(" and ");
+            format!("({inner})")
+        }
+        ConditionIr::Equals(a, b) => {
+            format!(
+                "{} == {}",
+                synthesize_condition_recursive(a.as_ref()),
+                synthesize_condition_recursive(b.as_ref())
+            )
+        }
+        ConditionIr::Not(x) => {
+            if x.is_simple() {
+                format!("!{}", synthesize_condition_recursive(x.as_ref()))
+            } else {
+                format!("!({})", synthesize_condition_recursive(x.as_ref()))
+            }
+        }
+        ConditionIr::Or(x) => {
+            let a: Vec<String> = x.iter().map(synthesize_condition_recursive).collect();
+
+            let inner = a.join(" or ");
+            format!("({inner})")
+        }
+        ConditionIr::Str(x) => {
+            format!("'{x}'")
+        }
+        ConditionIr::Condition(x) => pretty_name(x),
+        ConditionIr::Ref(x) => x.to_python().into(),
+        ConditionIr::Map(named_resource, l1, l2) => {
+            format!(
+                "{}[{}][{}]",
+                pretty_name(named_resource),
+                synthesize_condition_recursive(l1.as_ref()),
+                synthesize_condition_recursive(l2.as_ref())
+            )
+        }
+        ConditionIr::Split(sep, l1) => {
+            let str = synthesize_condition_recursive(l1.as_ref());
+            format!(
+                "{str}.split('{sep}')",
+                str = str.escape_debug(),
+                sep = sep.escape_debug()
+            )
+        }
+        ConditionIr::Select(index, l1) => {
+            let str = synthesize_condition_recursive(l1.as_ref());
+            format!("cdk.Fn.select({index}, {str})")
+        }
+    }
+}
+
+impl Reference {
+    fn to_python(&self) -> Cow<'static, str> {
+        match &self.origin {
+            Origin::Parameter => format!("props.{}", camel_case(&self.name)).into(),
+            Origin::LogicalId { conditional } => format!(
+                "{var}{chain}ref",
+                var = camel_case(&self.name),
+                chain = if *conditional { "?." } else { "." }
+            )
+            .into(),
+            Origin::Condition => camel_case(&self.name).into(),
+            Origin::PseudoParameter(x) => match x {
+                PseudoParameter::Partition => "self.partition".into(),
+                PseudoParameter::Region => "self.region".into(),
+                PseudoParameter::StackId => "self.stackId".into(),
+                PseudoParameter::StackName => "self.stackName".into(),
+                PseudoParameter::URLSuffix => "self.urlSuffix".into(),
+                PseudoParameter::AccountId => "self.account".into(),
+                PseudoParameter::NotificationArns => "self.notificationArns".into(),
+            },
+            Origin::GetAttribute {
+                conditional,
+                attribute,
+            } => format!(
+                "{var_name}{chain}attr{name}",
+                var_name = camel_case(&self.name),
+                chain = if *conditional { "?." } else { "." },
+                name = camel_case(attribute)
+            )
+            .into(),
+        }
     }
 }
