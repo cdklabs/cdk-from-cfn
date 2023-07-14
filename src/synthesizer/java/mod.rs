@@ -9,9 +9,10 @@ use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::{CfnType, Structure};
 use std::borrow::Cow;
+use std::collections::LinkedList;
 use std::io;
 use std::rc::Rc;
-use voca_rs::case::camel_case;
+use voca_rs::case::{camel_case, pascal_case};
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 const STACK_NAME: Cow<'static, str> = Cow::Borrowed("NoctStack");
@@ -259,7 +260,7 @@ class Mapping<T> {
             });
             for (key, value) in &resource.properties {
                 let property = camel_case(key.as_str());
-                let value = emit_java(value.clone(), &res_info, None);
+                let value = emit_java(value.clone(), None);
                 properties.line(format!(".{property}({value})"));
             }
             writer.newline();
@@ -290,10 +291,40 @@ class Mapping<T> {
         }
     }
 
-    fn write_outputs(ir: &CloudformationProgramIr, writer: Rc<CodeBuffer>) {
-        let output_def = writer.clone();
+    fn write_outputs(outputs: LinkedList<String>, writer: &Rc<CodeBuffer>) {
+        for output in outputs {
+            writer.line(output)
+        }
+    }
+
+    fn get_outputs(ir: &CloudformationProgramIr) -> (LinkedList<String>, LinkedList<String>) {
+        let mut output_names: LinkedList<String> = LinkedList::new();
+        let mut output_definitions: LinkedList<String> = LinkedList::new();
         for output in &ir.outputs {
-            emit_output(output, &output_def);
+            let (key, value) = emit_output(output);
+            output_names.push_back(key);
+            output_definitions.push_back(value);
+        }
+        (output_names, output_definitions)
+    }
+
+    fn write_field_logic(writer: &Rc<CodeBuffer>, names: LinkedList<String>) {
+        if names.is_empty() {
+            return;
+        }
+        writer.line(format!(
+            "private CfnOutput {};\n",
+            names.iter().cloned().collect::<Vec<String>>().join(", ")
+        ));
+
+        for name in names {
+            let indented = writer.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some(format!("public CfnOutput get{}() {{", pascal_case(&*name)).into()),
+                trailing: Some("}".into()),
+                trailing_newline: true,
+            });
+            indented.line(format!("return this.{};", name));
         }
     }
 }
@@ -343,21 +374,24 @@ impl Synthesizer for Java {
 
         self.write_app(&code, &ir.description);
 
-        fill!(code; format!("interface {}Props extends StackProps {{", STACK_NAME);; "}" );
+        fill!(code; format!("\ninterface {}Props extends StackProps {{", STACK_NAME);; "}" );
 
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("class {} extends Stack {{", STACK_NAME).into()),
+            leading: Some(format!("\nclass {} extends Stack {{", STACK_NAME).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
+
+        let (output_names, output_definitions) = Self::get_outputs(&ir);
+        Self::write_field_logic(&class, output_names);
 
         fill!(class;
             format!("public {}(final Construct scope, final String id) {{", STACK_NAME);
             "super(scope, id, null);";
             "}" );
 
-        let writer = class.indent_with_options(IndentOptions {
+        let definitions = class.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(
                 format!(
@@ -369,13 +403,13 @@ impl Synthesizer for Java {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        writer.line("super(scope, id, props);");
+        definitions.line("super(scope, id, props);");
 
-        Self::write_mappings(&ir, &writer.clone());
-        Self::write_parameters(&ir, &writer);
-        Self::write_conditions(&ir, &writer);
-        Self::write_resources(&ir, &writer);
-        Self::write_outputs(&ir, writer);
+        Self::write_mappings(&ir, &definitions.clone());
+        Self::write_parameters(&ir, &definitions);
+        Self::write_conditions(&ir, &definitions);
+        Self::write_resources(&ir, &definitions);
+        Self::write_outputs(output_definitions, &definitions);
 
         Self::write_methods(class);
         self.write_helpers(&code);
@@ -501,44 +535,41 @@ fn get_condition(list: Vec<ConditionIr>) -> String {
     res
 }
 
-fn emit_output(output: &OutputInstruction, writer: &CodeBuffer) {
-    let indented = writer.indent_with_options(IndentOptions {
-        indent: INDENT,
-        leading: Some(format!("CfnOutput.Builder.create(this, \"{}\")", output.name).into()),
-        trailing: Some(format!("{INDENT}.build();").into()),
-        trailing_newline: true,
-    });
-    let val = output.value.clone();
-    indented.line(format!(
-        ".value(String.valueOf({}))",
-        emit_java(val, &*indented, None)
-    ));
+fn emit_output(output: &OutputInstruction) -> (String, String) {
+    let name = output.name.clone();
+    let var_name = camel_case(&*name);
+    let mut res = format!(
+        "{} = CfnOutput.Builder.create(this, \"{}\")",
+        var_name, name
+    );
 
-    let exp = &output.export;
-    if let Some(value) = exp {
-        // Value exists, use it
-        indented.line(format!(
-            ".exportName({})",
-            emit_java(value.clone(), &*indented, None)
-        ));
+    res = br!(
+        res,
+        format!(
+            ".value(String.valueOf({}))",
+            emit_java(output.value.clone(), None)
+        )
+    );
+
+    if let Some(descr) = output.description.clone() {
+        res = br!(res, format!(".description(\"{descr}\")"));
+    }
+    if let Some(export_name) = output.export.clone() {
+        res = br!(
+            res,
+            format!(".exportName({})", emit_java(export_name, None))
+        );
     }
 
-    let description = &output.description;
-    if let Some(value) = description {
-        indented.line(format!(".description(\"{value}\")"));
+    if let Some(condition) = &output.condition {
+        res = br!(res, format!(".condition({})", camel_case(condition)));
     }
 
-    let condition = &output.condition;
-    if let Some(value) = condition {
-        indented.line(format!(
-            ".condition(CfnCondition.Builder.create(this, \"{}\").expression({}).build())",
-            &output.name,
-            camel_case(value).replace("\"", "")
-        ));
-    }
+    res = format!("{res}{INDENT}.build();");
+    (var_name, res)
 }
 
-fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> String {
+fn emit_java(this: ResourceIr, trailer: Option<&str>) -> String {
     match this {
         // Base cases
         ResourceIr::Null => "null".to_string(),
@@ -558,7 +589,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             Structure::Composite(_) => {
                 let mut res = format!("new GenericMap<String, Object>()");
                 for (key, value) in &index_map {
-                    let element = emit_java((*value).clone(), writer, None);
+                    let element = emit_java((*value).clone(), None);
                     if key.eq_ignore_ascii_case("Key") {
                         res = br!(res, format!(".extend({}", element))
                     }
@@ -572,7 +603,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             Structure::Simple(cfn_type) => {
                 let mut res = format!("new GenericMap<String, {}>()", match_cfn_type(&cfn_type));
                 for (key, value) in &index_map {
-                    let element = emit_java((*value).clone(), writer, None);
+                    let element = emit_java((*value).clone(), None);
                     res = br!(res, format!(".extend({}, {})", key, element));
                 }
                 res
@@ -592,7 +623,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
                 }
             }
             for res_ir in vect {
-                let element = emit_java(res_ir.clone(), writer, trailer);
+                let element = emit_java(res_ir.clone(), trailer);
                 if !element.is_empty() {
                     res = br!(res, format!(".extend({})", element));
                 }
@@ -604,15 +635,15 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             format!(
                 "Fn.conditionIf(\"{}\", {}, {})",
                 cond_id,
-                emit_java(*val_true, writer, None),
-                emit_java(*val_false, writer, None)
+                emit_java(*val_true, None),
+                emit_java(*val_false, None)
             )
         }
         ResourceIr::Ref(reference) => emit_reference(reference),
         ResourceIr::Join(delimiter, resources) => {
             let mut res = format!("Fn.join(\"{delimiter}\", new GenericList<String>()");
             for resource in resources {
-                let element = emit_java(resource, writer, None);
+                let element = emit_java(resource, None);
                 if !element.is_empty() {
                     res = br!(res, format!(".extend({})", element))
                 }
@@ -623,24 +654,18 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             format!(
                 "Fn.split({}, String.valueOf({}))",
                 string,
-                emit_java(*resource, writer, None)
+                emit_java(*resource, None)
             )
         }
         ResourceIr::Base64(resource) => {
-            format!(
-                "Fn.base64(String.valueOf({}))",
-                emit_java(*resource, writer, None)
-            )
+            format!("Fn.base64(String.valueOf({}))", emit_java(*resource, None))
         }
         ResourceIr::GetAZs(resource) => {
-            format!(
-                "Fn.getAzs(String.valueOf({}))",
-                emit_java(*resource, writer, None)
-            )
+            format!("Fn.getAzs(String.valueOf({}))", emit_java(*resource, None))
         }
         ResourceIr::Sub(resources) => {
             if let Some((first_elem, vect)) = resources.split_first() {
-                let body = emit_java(first_elem.clone(), writer, None);
+                let body = emit_java(first_elem.clone(), None);
                 if vect.is_empty() {
                     format!("Fn.sub(String.valueOf({}))", body);
                 }
@@ -651,8 +676,8 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
                 );
                 for chunk in vect.chunks(2) {
                     if let [key, value] = chunk {
-                        let key_element = emit_java(key.clone(), writer, None);
-                        let value_element = emit_java(value.clone(), writer, None);
+                        let key_element = emit_java(key.clone(), None);
+                        let value_element = emit_java(value.clone(), None);
                         res = br!(res, format!(".extend({}, {})", key_element, value_element));
                     }
                 }
@@ -664,16 +689,16 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             format!(
                 "Fn.findInMap(\"{}\", {}, {})",
                 resource,
-                emit_java(*key, writer, None),
-                emit_java(*value, writer, None),
+                emit_java(*key, None),
+                emit_java(*value, None),
             )
         }
         ResourceIr::Cidr(p0, p1, p2) => {
             format!(
                 "Fn.cidr(String.valueOf({}), {}, String.valueOf({}))",
-                emit_java(*p0, writer, None),
-                emit_java(*p1, writer, None),
-                emit_java(*p2, writer, None)
+                emit_java(*p0, None),
+                emit_java(*p1, None),
+                emit_java(*p2, None)
             )
         }
         ResourceIr::Select(size, resource) => {
@@ -689,14 +714,10 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
                     "{}.valueOf(Fn.select({},get({})))",
                     used_type,
                     size,
-                    emit_java(*resource, writer, None)
+                    emit_java(*resource, None)
                 )
             } else {
-                format!(
-                    "Fn.select({},get({}))",
-                    size,
-                    emit_java(*resource, writer, None)
-                )
+                format!("Fn.select({},get({}))", size, emit_java(*resource, None))
             }
         }
     }

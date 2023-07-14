@@ -27,9 +27,22 @@ public class NoctApp {
     app.synth();
   }
 }
+
 interface NoctStackProps extends StackProps {
 }
+
 class NoctStack extends Stack {
+  private CfnOutput bucketArn, queueArn, isLarge;
+
+  public CfnOutput getBucketArn() {
+    return this.bucketArn;
+  }
+  public CfnOutput getQueueArn() {
+    return this.queueArn;
+  }
+  public CfnOutput getIsLarge() {
+    return this.isLarge;
+  }
   public NoctStack(final Construct scope, final String id) {
     super(scope, id, null);
   }
@@ -107,20 +120,17 @@ class NoctStack extends Stack {
           .getTags()))
       .build();
 
-    CfnOutput.Builder.create(this, "BucketArn")
+    bucketArn = CfnOutput.Builder.create(this, "BucketArn")
       .value(String.valueOf(Fn.getAtt("Bucket", "Arn")))
-      .exportName("ExportName")
       .description("The ARN of the bucket in this template!")
-      .condition(CfnCondition.Builder.create(this, "BucketArn").expression(isUsEast1).build())
-      .build();
-    CfnOutput.Builder.create(this, "QueueArn")
+      .exportName("ExportName")
+      .condition(isUsEast1)  .build();
+    queueArn = CfnOutput.Builder.create(this, "QueueArn")
       .value(String.valueOf("Queue"))
-      .description("The ARN of the SQS Queue")
-      .build();
-    CfnOutput.Builder.create(this, "IsLarge")
+      .description("The ARN of the SQS Queue")  .build();
+    isLarge = CfnOutput.Builder.create(this, "IsLarge")
       .value(String.valueOf(Fn.conditionIf("IsLargeRegion", true, false)))
-      .description("Whether this is a large region or not")
-      .build();
+      .description("Whether this is a large region or not")  .build();
   }
 
   public static <T> List<String> get(final List<T> input) {

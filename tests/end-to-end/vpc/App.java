@@ -25,8 +25,10 @@ public class NoctApp {
     app.synth();
   }
 }
+
 interface NoctStackProps extends StackProps {
 }
+
 class NoctStack extends Stack {
   public NoctStack(final Construct scope, final String id) {
     super(scope, id, null);
