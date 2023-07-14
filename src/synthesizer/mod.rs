@@ -2,6 +2,12 @@ use std::io;
 
 use crate::ir::CloudformationProgramIr;
 
+#[cfg(feature = "csharp")]
+mod csharp;
+#[cfg(feature = "csharp")]
+#[doc(inline)]
+pub use csharp::*;
+
 #[cfg(feature = "golang")]
 mod golang;
 #[cfg(feature = "golang")]

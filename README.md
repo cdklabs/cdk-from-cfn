@@ -20,6 +20,7 @@ Name         | Enabled by default | Description
 `golang`     | :heavy_check_mark: | Enables support for Go output
 `java`       | :heavy_check_mark: | Enables support for Java output
 `Python`     | :heavy_check_mark: | Enables support for Python output
+`csharp`     |                    | Enables support for C# output
 
 You can enable experimental languages (not enabled by default) by enabling the relevant feature:
 ```console
