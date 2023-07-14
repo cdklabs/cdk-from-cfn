@@ -1,6 +1,5 @@
 package com.acme.test.simple;
 
-
 import software.constructs.Construct;
 
 import java.util.*;
@@ -11,7 +10,6 @@ import software.amazon.awscdk.CfnMapping;
 import software.amazon.awscdk.CfnTag;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
-
 
 import software.amazon.awscdk.services.s3.*;
 import software.amazon.awscdk.services.sqs.*;

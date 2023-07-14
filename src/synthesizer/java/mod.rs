@@ -52,7 +52,6 @@ impl Java {
     //noinspection ALL
     fn write_header(&self, code: &CodeBuffer) {
         code.line(format!("package {};", self.package_name));
-        code.newline();
 
         // base imports
         code.newline();
@@ -66,7 +65,6 @@ impl Java {
         code.line("import software.amazon.awscdk.CfnTag;");
         code.line("import software.amazon.awscdk.Stack;");
         code.line("import software.amazon.awscdk.StackProps;");
-        code.newline();
     }
 
     fn write_app(&self, writer: &CodeBuffer, description: &Option<String>) {

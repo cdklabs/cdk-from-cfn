@@ -1,6 +1,5 @@
 package com.acme.test.vpc;
 
-
 import software.constructs.Construct;
 
 import java.util.*;
@@ -11,7 +10,6 @@ import software.amazon.awscdk.CfnMapping;
 import software.amazon.awscdk.CfnTag;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
-
 
 import software.amazon.awscdk.services.ec2.*;
 
