@@ -31,6 +31,12 @@ macro_rules! fill {
     };
 }
 
+macro_rules! br {
+    ($prefix: expr, $str:expr) => {
+        format!("{}\n{INDENT}{}", $prefix, $str)
+    };
+}
+
 pub struct Java {
     package_name: String,
 }
@@ -80,13 +86,13 @@ impl Java {
         let stack_prop = main.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some("StackProps props = StackProps.builder()".into()),
-            trailing: Some(".build();".into()),
+            trailing: Some(format!("{INDENT}.build();").into()),
             trailing_newline: true,
         });
         match description {
             Some(desc) => stack_prop.line(format!(
                 ".description(\"{}\")",
-                desc.replace("\n", "\" + \n \"")
+                desc.replace("\n", "\" + \n  \"")
             )),
             None => stack_prop.line("\"\""),
         };
@@ -99,62 +105,63 @@ impl Java {
 
     fn write_helpers(&self, code: &CodeBuffer) {
         const UTILS: &str = "class GenericList<T> extends LinkedList<T> {
-    public GenericList<T> extend(final T object) {
-        this.addLast(object);
-        return this;
-    }
+  public GenericList<T> extend(final T object) {
+    this.addLast(object);
+    return this;
+  }
 
-    public GenericList<T> extend(final List<T> collection) {
-        this.addAll(collection);
-        return this;
-    }
+  public GenericList<T> extend(final List<T> collection) {
+    this.addAll(collection);
+    return this;
+  }
 }
 
 class GenericMap<T, S> extends HashMap<T, S> {
-    public GenericMap<T, S> extend(final T key, final S value) {
-        this.put(key, value);
-        return this;
-    }
+  public GenericMap<T, S> extend(final T key, final S value) {
+    this.put(key, value);
+    return this;
+  }
 
-    public List<CfnTag> getTags() {
-        final List<CfnTag> tags = new LinkedList<>();
-        for (Map.Entry<T, S> entry : this.entrySet()) {
-            tags.add(CfnTag.builder()
-                    .key(String.valueOf(entry.getKey()))
-                    .value(String.valueOf(entry.getValue()))
-                    .build());
-        }
-        return tags;
+  public List<CfnTag> getTags() {
+    final List<CfnTag> tags = new LinkedList<>();
+    for (Map.Entry<T, S> entry : this.entrySet()) {
+      tags.add(
+          CfnTag.builder()
+              .key(String.valueOf(entry.getKey()))
+              .value(String.valueOf(entry.getValue()))
+              .build());
     }
+    return tags;
+  }
 }
 
 class Mapping<T> {
-    private final String name;
-    private final Construct scope;
-    private final Map<String, Map<String, T>> inner = new TreeMap<>();
+  private final String name;
+  private final Construct scope;
+  private final Map<String, Map<String, T>> inner = new TreeMap<>();
 
-    public Mapping(Construct scope, String name) {
-        this.name = name;
-        this.scope = scope;
-    }
+  public Mapping(Construct scope, String name) {
+    this.name = name;
+    this.scope = scope;
+  }
 
-    public Mapping<T> put(String primaryKey, String secondaryKey, T value) {
-        final Map<String, T> map = inner.getOrDefault(primaryKey, new TreeMap<>());
-        map.put(secondaryKey, value);
-        inner.put(primaryKey, map);
-        return this;
-    }
+  public Mapping<T> put(String primaryKey, String secondaryKey, T value) {
+    final Map<String, T> map = inner.getOrDefault(primaryKey, new TreeMap<>());
+    map.put(secondaryKey, value);
+    inner.put(primaryKey, map);
+    return this;
+  }
 
-    public CfnMapping get() {
-        return CfnMapping.Builder.create(this.scope, this.name).mapping(this.inner).build();
-    }
+  public CfnMapping get() {
+    return CfnMapping.Builder.create(this.scope, this.name).mapping(this.inner).build();
+  }
 }
 ";
         code.line(UTILS);
     }
 
     fn write_mappings(ir: &CloudformationProgramIr, map: &Rc<CodeBuffer>) {
-        map.line("{ // Start Mapping section");
+        map.line("// Start Mapping section");
         for mapping in &ir.mappings {
             let mut mapping_init = false;
             let map_name = name(&mapping.name);
@@ -183,12 +190,13 @@ class Mapping<T> {
                         MappingInnerValue::List(items) => {
                             let list = map.indent_with_options(IndentOptions {
                                 indent: INDENT,
-                                leading: Some(format!("new GenericList<String>()").into()),
-                                trailing: Some("\n".into()),
+                                leading: None,
+                                trailing: None,
                                 trailing_newline: false,
                             });
+                            list.text(format!("new GenericList<String>()"));
                             for item in items {
-                                list.text(format!(".extend({item:?})"));
+                                list.text(br!("", format!(".extend({item:?})")));
                             }
                         }
                     }
@@ -200,7 +208,6 @@ class Mapping<T> {
             ));
             map.newline();
         }
-        map.line("} // End Mapping section\n");
     }
 
     fn write_parameters(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
@@ -211,17 +218,19 @@ class Mapping<T> {
                 &input.name
             ));
             match &input.description {
-                Some(descr) => writer.line(format!(".description(\"{}\")", descr)),
+                Some(descr) => writer
+                    .indent(INDENT)
+                    .line(format!(".description(\"{}\")", descr)),
                 None => {}
             };
             match &input.default_value {
-                Some(val) => writer.line(format!(
+                Some(val) => writer.indent(INDENT).line(format!(
                     ".defaultValue({}.valueOf(\"{}\"))",
                     &input.constructor_type, val
                 )),
                 None => {}
             };
-            writer.line(".build();")
+            writer.line(format!("{INDENT}.build();"))
         }
     }
 
@@ -239,13 +248,19 @@ class Mapping<T> {
                     )
                     .into(),
                 ),
-                trailing: Some(".build();".into()),
+                trailing: Some(format!("{INDENT}.build();").into()),
                 trailing_newline: true,
+            });
+            let properties = res_info.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: None,
+                trailing: None,
+                trailing_newline: false,
             });
             for (key, value) in &resource.properties {
                 let property = camel_case(key.as_str());
                 let value = emit_java(value.clone(), &res_info, None);
-                res_info.line(format!(".{property}({value})"));
+                properties.line(format!(".{property}({value})"));
             }
             writer.newline();
         }
@@ -490,7 +505,7 @@ fn emit_output(output: &OutputInstruction, writer: &CodeBuffer) {
     let indented = writer.indent_with_options(IndentOptions {
         indent: INDENT,
         leading: Some(format!("CfnOutput.Builder.create(this, \"{}\")", output.name).into()),
-        trailing: Some(format!(".build();").into()),
+        trailing: Some(format!("{INDENT}.build();").into()),
         trailing_newline: true,
     });
     let val = output.value.clone();
@@ -532,38 +547,33 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
         ResourceIr::Double(number) => format!("{number}"),
         ResourceIr::String(text) => {
             if text.is_empty() {
-                format!("/* potential FIXME */ \"\"")
+                format!("/* validate FIXME */ \"\"")
             } else {
                 format!("\"{text}\"")
             }
         }
         ResourceIr::ImportValue(text) => format!("\"{text}\""),
 
-        ResourceIr::Object(structure, indexmap) => match structure {
+        ResourceIr::Object(structure, index_map) => match structure {
             Structure::Composite(_) => {
                 let mut res = format!("new GenericMap<String, Object>()");
-                for (key, value) in &indexmap {
+                for (key, value) in &index_map {
+                    let element = emit_java((*value).clone(), writer, None);
                     if key.eq_ignore_ascii_case("Key") {
-                        res = format!(
-                            "{res}\n.extend({}",
-                            emit_java((*value).clone(), writer, None)
-                        )
+                        res = br!(res, format!(".extend({}", element))
                     }
                     if key.eq_ignore_ascii_case("Value") {
-                        res = format!("{res},{})", emit_java((*value).clone(), writer, None))
+                        res = format!("{res},{})", element)
                     }
                 }
-                format!("{res}\n.getTags()")
+                br!(res, ".getTags()")
             }
 
             Structure::Simple(cfn_type) => {
-                let mut res = format!("new GenericMap<String, {}>()\n", match_cfn_type(&cfn_type));
-                for (key, value) in &indexmap {
-                    res = format!(
-                        "{res}\n{INDENT}.extend({}, {})",
-                        key,
-                        emit_java((*value).clone(), writer, None)
-                    );
+                let mut res = format!("new GenericMap<String, {}>()", match_cfn_type(&cfn_type));
+                for (key, value) in &index_map {
+                    let element = emit_java((*value).clone(), writer, None);
+                    res = br!(res, format!(".extend({}, {})", key, element));
                 }
                 res
             }
@@ -584,7 +594,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             for res_ir in vect {
                 let element = emit_java(res_ir.clone(), writer, trailer);
                 if !element.is_empty() {
-                    res = format!("{res}\n{INDENT}.extend({})", element);
+                    res = br!(res, format!(".extend({})", element));
                 }
             }
             res
@@ -604,7 +614,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             for resource in resources {
                 let element = emit_java(resource, writer, None);
                 if !element.is_empty() {
-                    res = format!("{res}\n{INDENT}.extend({})", element)
+                    res = br!(res, format!(".extend({})", element))
                 }
             }
             format!("{res})")
@@ -629,7 +639,6 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
             )
         }
         ResourceIr::Sub(resources) => {
-            // Fn::sub(String body, Map<String, String> variables)
             if let Some((first_elem, vect)) = resources.split_first() {
                 let body = emit_java(first_elem.clone(), writer, None);
                 if vect.is_empty() {
@@ -644,7 +653,7 @@ fn emit_java(this: ResourceIr, writer: &CodeBuffer, trailer: Option<&str>) -> St
                     if let [key, value] = chunk {
                         let key_element = emit_java(key.clone(), writer, None);
                         let value_element = emit_java(value.clone(), writer, None);
-                        res = format!("{res}\n.extend({}, {})", key_element, value_element);
+                        res = br!(res, format!(".extend({}, {})", key_element, value_element));
                     }
                 }
                 return format!("{res})");

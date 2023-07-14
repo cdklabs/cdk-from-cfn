@@ -20,7 +20,7 @@ public class NoctApp {
     App app = new App();
     StackProps props = StackProps.builder()
       ""
-    .build();
+      .build();
     new NoctStack(app, "MyProjectStack", props);
     app.synth();
   }
@@ -33,40 +33,38 @@ class NoctStack extends Stack {
   }
   public NoctStack(final Construct scope, final String id, final StackProps props) {
     super(scope, id, props);
-    { // Start Mapping section
-    } // End Mapping section
-
+    // Start Mapping section
 
     CfnVPC vpc = CfnVPC.Builder.create(this, "VPC")
-      .cidrBlock("10.42.0.0/16")
-      .enableDnsSupport(true)
-      .enableDnsHostnames(true)
-      .tags(new GenericList<CfnTag>()
-        .extend(new GenericMap<String, Object>()
-      .extend("cost-center",1337)
-      .getTags()))
-    .build();
+        .cidrBlock("10.42.0.0/16")
+        .enableDnsSupport(true)
+        .enableDnsHostnames(true)
+        .tags(new GenericList<CfnTag>()
+          .extend(new GenericMap<String, Object>()
+          .extend("cost-center",1337)
+          .getTags()))
+      .build();
 
 
     CfnSubnet subnet1 = CfnSubnet.Builder.create(this, "Subnet1")
-      .availabilityZone(Fn.select(0,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
-      .cidrBlock(Fn.select(0,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
-      .vpcId("VPC")
-    .build();
+        .availabilityZone(Fn.select(0,get(Fn.getAzs(String.valueOf(/* validate FIXME */ "")))))
+        .cidrBlock(Fn.select(0,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
+        .vpcId("VPC")
+      .build();
 
 
     CfnSubnet subnet2 = CfnSubnet.Builder.create(this, "Subnet2")
-      .availabilityZone(Fn.select(1,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
-      .cidrBlock(Fn.select(1,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
-      .vpcId("VPC")
-    .build();
+        .availabilityZone(Fn.select(1,get(Fn.getAzs(String.valueOf(/* validate FIXME */ "")))))
+        .cidrBlock(Fn.select(1,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
+        .vpcId("VPC")
+      .build();
 
 
     CfnSubnet subnet3 = CfnSubnet.Builder.create(this, "Subnet3")
-      .availabilityZone(Fn.select(2,get(Fn.getAzs(String.valueOf(/* potential FIXME */ "")))))
-      .cidrBlock(Fn.select(2,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
-      .vpcId("VPC")
-    .build();
+        .availabilityZone(Fn.select(2,get(Fn.getAzs(String.valueOf(/* validate FIXME */ "")))))
+        .cidrBlock(Fn.select(2,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
+        .vpcId("VPC")
+      .build();
 
   }
 
@@ -75,54 +73,55 @@ class NoctStack extends Stack {
   }
 }
 class GenericList<T> extends LinkedList<T> {
-    public GenericList<T> extend(final T object) {
-        this.addLast(object);
-        return this;
-    }
+  public GenericList<T> extend(final T object) {
+    this.addLast(object);
+    return this;
+  }
 
-    public GenericList<T> extend(final List<T> collection) {
-        this.addAll(collection);
-        return this;
-    }
+  public GenericList<T> extend(final List<T> collection) {
+    this.addAll(collection);
+    return this;
+  }
 }
 
 class GenericMap<T, S> extends HashMap<T, S> {
-    public GenericMap<T, S> extend(final T key, final S value) {
-        this.put(key, value);
-        return this;
-    }
+  public GenericMap<T, S> extend(final T key, final S value) {
+    this.put(key, value);
+    return this;
+  }
 
-    public List<CfnTag> getTags() {
-        final List<CfnTag> tags = new LinkedList<>();
-        for (Map.Entry<T, S> entry : this.entrySet()) {
-            tags.add(CfnTag.builder()
-                    .key(String.valueOf(entry.getKey()))
-                    .value(String.valueOf(entry.getValue()))
-                    .build());
-        }
-        return tags;
+  public List<CfnTag> getTags() {
+    final List<CfnTag> tags = new LinkedList<>();
+    for (Map.Entry<T, S> entry : this.entrySet()) {
+      tags.add(
+          CfnTag.builder()
+              .key(String.valueOf(entry.getKey()))
+              .value(String.valueOf(entry.getValue()))
+              .build());
     }
+    return tags;
+  }
 }
 
 class Mapping<T> {
-    private final String name;
-    private final Construct scope;
-    private final Map<String, Map<String, T>> inner = new TreeMap<>();
+  private final String name;
+  private final Construct scope;
+  private final Map<String, Map<String, T>> inner = new TreeMap<>();
 
-    public Mapping(Construct scope, String name) {
-        this.name = name;
-        this.scope = scope;
-    }
+  public Mapping(Construct scope, String name) {
+    this.name = name;
+    this.scope = scope;
+  }
 
-    public Mapping<T> put(String primaryKey, String secondaryKey, T value) {
-        final Map<String, T> map = inner.getOrDefault(primaryKey, new TreeMap<>());
-        map.put(secondaryKey, value);
-        inner.put(primaryKey, map);
-        return this;
-    }
+  public Mapping<T> put(String primaryKey, String secondaryKey, T value) {
+    final Map<String, T> map = inner.getOrDefault(primaryKey, new TreeMap<>());
+    map.put(secondaryKey, value);
+    inner.put(primaryKey, map);
+    return this;
+  }
 
-    public CfnMapping get() {
-        return CfnMapping.Builder.create(this.scope, this.name).mapping(this.inner).build();
-    }
+  public CfnMapping get() {
+    return CfnMapping.Builder.create(this.scope, this.name).mapping(this.inner).build();
+  }
 }
 
