@@ -20,6 +20,7 @@ homepage = "https://github.com/iph/noctilucent#readme"
 default = ["typescript"]
 typescript = []
 golang = []
+java = []
 
 [lib]
 crate-type = ["cdylib", "lib"]

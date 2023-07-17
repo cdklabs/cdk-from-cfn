@@ -8,6 +8,12 @@ mod golang;
 #[doc(inline)]
 pub use golang::*;
 
+#[cfg(feature = "java")]
+mod java;
+#[cfg(feature = "java")]
+#[doc(inline)]
+pub use java::*;
+
 #[cfg(feature = "typescript")]
 mod typescript;
 #[cfg(feature = "typescript")]
