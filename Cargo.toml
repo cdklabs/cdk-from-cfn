@@ -36,7 +36,7 @@ phf = "^0.11.2"
 serde = { version = "^1.0.165", features = ["derive"] }
 serde-enum-str = "^0.3.2"
 serde_with = "^3.0.0"
-serde_yaml = "^0.9.22"
+serde_yaml = "^0.9.23"
 topological-sort = "^0.2.2"
 voca_rs = "^1.15.2"
 wasm-bindgen = "^0.2.87"
