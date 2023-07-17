@@ -3,27 +3,28 @@ use noctilucent::synthesizer::*;
 use noctilucent::CloudformationParseTree;
 
 macro_rules! test_case {
-    ($name:ident) => {
+    ($name:ident, $stack_name:literal) => {
         mod $name {
             use super::*;
 
             #[cfg(feature = "golang")]
-            test_case!($name, golang, &Golang::new(stringify!($name)), "app.go");
+            test_case!($name, golang, &Golang::new(stringify!($name)), $stack_name, "app.go");
 
             #[cfg(feature = "java")]
             test_case!(
                 $name,
                 java,
                 &Java::new(concat!("com.acme.test.", stringify!($name))),
+                $stack_name,
                 "App.java"
             );
 
             #[cfg(feature = "typescript")]
-            test_case!($name, typescript, &Typescript {}, "app.ts");
+            test_case!($name, typescript, &Typescript {}, $stack_name, "app.ts");
         }
     };
 
-    ($name:ident, $lang:ident, $synthesizer:expr, $expected:literal) => {
+    ($name:ident, $lang:ident, $synthesizer:expr, $stack_name:literal, $expected:literal) => {
         #[test]
         fn $lang() {
             let expected = include_str!(concat!("end-to-end/", stringify!($name), "/", $expected));
@@ -36,7 +37,7 @@ macro_rules! test_case {
                 )))
                 .unwrap();
                 let ir = CloudformationProgramIr::from(cfn).unwrap();
-                ir.synthesize($synthesizer, &mut output).unwrap();
+                ir.synthesize($synthesizer, &mut output, $stack_name).unwrap();
                 String::from_utf8(output).unwrap()
             };
 
@@ -50,8 +51,9 @@ macro_rules! test_case {
     };
 }
 
-test_case!(simple);
-test_case!(vpc);
+test_case!(simple, "SimpleStack");
+
+test_case!(vpc, "VpcStack");
 
 struct UpdateSnapshot<'a> {
     path: &'static str,

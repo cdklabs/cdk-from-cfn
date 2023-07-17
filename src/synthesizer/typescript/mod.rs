@@ -26,7 +26,7 @@ impl Typescript {
     #[deprecated(note = "Prefer using the Synthesizer API instead")]
     pub fn output(ir: CloudformationProgramIr) -> String {
         let mut output = Vec::new();
-        Typescript {}.synthesize(ir, &mut output).unwrap();
+        Typescript {}.synthesize(ir, &mut output, "NoctStack").unwrap();
         String::from_utf8(output).unwrap()
     }
 }
@@ -36,6 +36,7 @@ impl Synthesizer for Typescript {
         &self,
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
+        stack_name: &str,
     ) -> io::Result<()> {
         let code = CodeBuffer::default();
 
@@ -52,7 +53,7 @@ impl Synthesizer for Typescript {
 
         let iface_props = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some("export interface NoctStackProps extends cdk.StackProps {".into()),
+            leading: Some(format!("export interface {}Props extends cdk.StackProps {{", stack_name).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -92,7 +93,7 @@ impl Synthesizer for Typescript {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some("export class NoctStack extends cdk.Stack {".into()),
+            leading: Some(format!("export class {} extends cdk.Stack {{", stack_name).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -128,7 +129,7 @@ impl Synthesizer for Typescript {
 
         let  ctor = class.indent_with_options(IndentOptions{
             indent: INDENT,
-            leading: Some(format!("public constructor(scope: cdk.App, id: string, props: NoctStackProps{default_empty}) {{").into()),
+            leading: Some(format!("public constructor(scope: cdk.App, id: string, props: {}Props{default_empty}) {{", stack_name).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
