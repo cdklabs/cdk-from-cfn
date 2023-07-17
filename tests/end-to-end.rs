@@ -1,7 +1,5 @@
 use noctilucent::ir::CloudformationProgramIr;
-#[cfg(feature = "golang")]
-use noctilucent::synthesizer::Golang;
-use noctilucent::synthesizer::Typescript;
+use noctilucent::synthesizer::*;
 use noctilucent::CloudformationParseTree;
 
 macro_rules! test_case {
@@ -10,58 +8,44 @@ macro_rules! test_case {
             use super::*;
 
             #[cfg(feature = "golang")]
-            #[test]
-            fn golang() {
-                let expected = include_str!(concat!("end-to-end/", stringify!($name), "/app.go"));
+            test_case!($name, golang, &Golang::new(stringify!($name)), "app.go");
 
-                let actual =
-                    {
-                        let mut output = Vec::with_capacity(expected.len());
+            #[cfg(feature = "java")]
+            test_case!(
+                $name,
+                java,
+                &Java::new(concat!("com.acme.test.", stringify!($name))),
+                "App.java"
+            );
 
-                        let cfn: CloudformationParseTree = serde_yaml::from_str(include_str!(
-                            concat!("end-to-end/", stringify!($name), "/template.yml")
-                        ))
-                        .unwrap();
-                        let ir = CloudformationProgramIr::from(cfn).unwrap();
-                        ir.synthesize(&Golang::new(stringify!($name)), &mut output)
-                            .unwrap();
-                        String::from_utf8(output).unwrap()
-                    };
+            #[cfg(feature = "typescript")]
+            test_case!($name, typescript, &Typescript {}, "app.ts");
+        }
+    };
 
-                let _update_snapshots = UpdateSnapshot::new(
-                    concat!("end-to-end/", stringify!($name), "/app.go"),
-                    &actual,
-                    &expected,
-                );
+    ($name:ident, $lang:ident, $synthesizer:expr, $expected:literal) => {
+        #[test]
+        fn $lang() {
+            let expected = include_str!(concat!("end-to-end/", stringify!($name), "/", $expected));
+            let actual = {
+                let mut output = Vec::with_capacity(expected.len());
+                let cfn: CloudformationParseTree = serde_yaml::from_str(include_str!(concat!(
+                    "end-to-end/",
+                    stringify!($name),
+                    "/template.yml"
+                )))
+                .unwrap();
+                let ir = CloudformationProgramIr::from(cfn).unwrap();
+                ir.synthesize($synthesizer, &mut output).unwrap();
+                String::from_utf8(output).unwrap()
+            };
 
-                assert_eq!(expected, actual);
-            }
-
-            #[test]
-            fn typescript() {
-                let expected = include_str!(concat!("end-to-end/", stringify!($name), "/app.ts"));
-
-                let actual =
-                    {
-                        let mut output = Vec::with_capacity(expected.len());
-
-                        let cfn: CloudformationParseTree = serde_yaml::from_str(include_str!(
-                            concat!("end-to-end/", stringify!($name), "/template.yml")
-                        ))
-                        .unwrap();
-                        let ir = CloudformationProgramIr::from(cfn).unwrap();
-                        ir.synthesize(&Typescript {}, &mut output).unwrap();
-                        String::from_utf8(output).unwrap()
-                    };
-
-                let _update_snapshots = UpdateSnapshot::new(
-                    concat!("end-to-end/", stringify!($name), "/app.ts"),
-                    &actual,
-                    &expected,
-                );
-
-                assert_eq!(expected, actual);
-            }
+            let _update_snapshots = UpdateSnapshot::new(
+                concat!("end-to-end/", stringify!($name), "/", $expected),
+                &actual,
+                &expected,
+            );
+            assert_eq!(expected, actual);
         }
     };
 }
