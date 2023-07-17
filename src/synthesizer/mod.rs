@@ -21,12 +21,22 @@ mod typescript;
 pub use typescript::*;
 
 pub trait Synthesizer {
-    fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write, stack_name: &str) -> io::Result<()>;
+    fn synthesize(
+        &self,
+        ir: CloudformationProgramIr,
+        into: &mut dyn io::Write,
+        stack_name: &str,
+    ) -> io::Result<()>;
 }
 
 impl CloudformationProgramIr {
     #[inline(always)]
-    pub fn synthesize(self, using: &dyn Synthesizer, into: &mut impl io::Write, stack_name: &str) -> io::Result<()> {
+    pub fn synthesize(
+        self,
+        using: &dyn Synthesizer,
+        into: &mut impl io::Write,
+        stack_name: &str,
+    ) -> io::Result<()> {
         using.synthesize(self, into, stack_name)
     }
 }

@@ -16,8 +16,8 @@ type SimpleStackProps struct {
 	BucketNamePrefix *string
 }
 
-// / An example stack that uses many of the syntax elements permitted in a
-// / CloudFormation template, but does not attempt to represent a realistic stack.
+/// An example stack that uses many of the syntax elements permitted in a
+/// CloudFormation template, but does not attempt to represent a realistic stack.
 type SimpleStack struct {
 	cdk.Stack
 	/// The ARN of the bucket in this template!
@@ -30,40 +30,40 @@ type SimpleStack struct {
 
 func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProps) *SimpleStack {
 	/*
-		booleans := map[*string]map[*string]*bool{
-			jsii.String("True"): map[*string]*bool{
-				jsii.String("true"): jsii.Bool(true),
-			},
-			jsii.String("False"): map[*string]*bool{
-				jsii.String("false"): jsii.Bool(false),
-			},
-		}
+	booleans := map[*string]map[*string]*bool{
+		jsii.String("True"): map[*string]*bool{
+			jsii.String("true"): jsii.Bool(true),
+		},
+		jsii.String("False"): map[*string]*bool{
+			jsii.String("false"): jsii.Bool(false),
+		},
+	}
 	*/
 
 	/*
-		lists := map[*string]map[*string][]*string{
-			jsii.String("Candidates"): map[*string][]*string{
-				jsii.String("Empty"): []*string{
-				},
-				jsii.String("Singleton"): []*string{
-					jsii.String("One"),
-				},
-				jsii.String("Pair"): []*string{
-					jsii.String("One"),
-					jsii.String("Two"),
-				},
+	lists := map[*string]map[*string][]*string{
+		jsii.String("Candidates"): map[*string][]*string{
+			jsii.String("Empty"): []*string{
 			},
-		}
+			jsii.String("Singleton"): []*string{
+				jsii.String("One"),
+			},
+			jsii.String("Pair"): []*string{
+				jsii.String("One"),
+				jsii.String("Two"),
+			},
+		},
+	}
 	*/
 
 	/*
-		numbers := map[*string]map[*string]*float64{
-			jsii.String("Prime"): map[*string]*float64{
-				jsii.String("Eleven"): jsii.Number(11),
-				jsii.String("Thirteen"): jsii.Number(13),
-				jsii.String("Seventeen"): jsii.Number(17),
-			},
-		}
+	numbers := map[*string]map[*string]*float64{
+		jsii.String("Prime"): map[*string]*float64{
+			jsii.String("Eleven"): jsii.Number(11),
+			jsii.String("Thirteen"): jsii.Number(13),
+			jsii.String("Seventeen"): jsii.Number(17),
+		},
+	}
 	*/
 
 	strings := map[*string]map[*string]*string{
@@ -79,7 +79,7 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 	table := map[*string]map[*string]interface{}{
 		jsii.String("Values"): map[*string]interface{}{
 			jsii.String("Boolean"): jsii.Bool(true),
-			jsii.String("Float"):   jsii.Number(3.14),
+			jsii.String("Float"): jsii.Number(3.14),
 			jsii.String("List"): []*string{
 				jsii.String("1"),
 				jsii.String("2"),
@@ -102,15 +102,15 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 		stack,
 		jsii.String("Queue"),
 		&sqs.CfnQueueProps{
-			DelaySeconds:   jsii.Number(42.1337),
-			FifoQueue:      jsii.Bool(false),
+			DelaySeconds: jsii.Number(42.1337),
+			FifoQueue: jsii.Bool(false),
 			KmsMasterKeyId: cdk.Fn_ImportValue(jsii.String("Shared.KmsKeyArn")),
 			QueueName: cdk.Fn_Join(jsii.String("-"), &[]*string{
 				stack.StackName(),
 				strings[jsii.String("Bars")][jsii.String("Bar")],
 				cdk.Fn_Select(jsii.Number(1), cdk.Fn_GetAzs(stack.Region())),
 			}),
-			RedrivePolicy:     nil,
+			RedrivePolicy: nil,
 			VisibilityTimeout: jsii.Number(120),
 		},
 	)
@@ -120,7 +120,7 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 		jsii.String("Bucket"),
 		&s3.CfnBucketProps{
 			AccessControl: jsii.String("private"),
-			BucketName:    jsii.String(fmt.Sprintf("%v-%v-bucket", props.BucketNamePrefix, stack.StackName())),
+			BucketName: jsii.String(fmt.Sprintf("%v-%v-bucket", props.BucketNamePrefix, stack.StackName())),
 			Tags: &[]*cdk.CfnTag{
 				&cdk.CfnTag{
 					Key: jsii.String("FancyTag"),
@@ -136,14 +136,14 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 
 	cdk.NewCfnOutput(stack, jsii.String("BucketArn"), &cdk.CfnOutputProps{
 		Description: jsii.String("The ARN of the bucket in this template!"),
-		ExportName:  jsii.String("ExportName"),
-		Value:       bucket.AttrArn(),
+		ExportName: jsii.String("ExportName"),
+		Value: bucket.AttrArn(),
 	})
 
 	return &SimpleStack{
-		Stack:     stack,
+		Stack: stack,
 		BucketArn: bucket.AttrArn(),
-		QueueArn:  queue.Ref(),
+		QueueArn: queue.Ref(),
 		IsLarge: ifCondition(
 			isLargeRegion,
 			jsii.Bool(true),
@@ -152,10 +152,10 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 	}
 }
 
-// / ifCondition is a helper function that replicates the ternary
-// / operator that can be found in other languages. It is conceptually
-// / equivalent to writing `cond ? whenTrue : whenFalse`, meaning it
-// / returns `whenTrue` if `cond` is `true`, and `whenFalse` otherwise.
+/// ifCondition is a helper function that replicates the ternary
+/// operator that can be found in other languages. It is conceptually
+/// equivalent to writing `cond ? whenTrue : whenFalse`, meaning it
+/// returns `whenTrue` if `cond` is `true`, and `whenFalse` otherwise.
 func ifCondition[T any](cond bool, whenTrue T, whenFalse T) T {
 	if cond {
 		return whenTrue

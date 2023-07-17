@@ -39,7 +39,12 @@ impl Default for Golang {
 }
 
 impl Synthesizer for Golang {
-    fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write, stack_name: &str) -> io::Result<()> {
+    fn synthesize(
+        &self,
+        ir: CloudformationProgramIr,
+        into: &mut dyn io::Write,
+        stack_name: &str,
+    ) -> io::Result<()> {
         let code = CodeBuffer::default();
 
         code.line(format!("package {}", self.package_name));
@@ -98,9 +103,15 @@ impl Synthesizer for Golang {
         }
         code.newline();
 
-        let ctor = code.indent_with_options(IndentOptions{
+        let ctor = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("func New{}(scope constructs.Construct, id string, props {}Props) *{} {{", stack_name, stack_name, stack_name).into()),
+            leading: Some(
+                format!(
+                    "func New{}(scope constructs.Construct, id string, props {}Props) *{} {{",
+                    stack_name, stack_name, stack_name
+                )
+                .into(),
+            ),
             trailing: Some("}".into()),
             trailing_newline: true,
         });

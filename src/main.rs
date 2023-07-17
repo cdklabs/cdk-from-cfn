@@ -91,13 +91,10 @@ fn main() -> anyhow::Result<()> {
         unsupported => panic!("unsupported language: {}", unsupported),
     };
 
-    let stack_name: &str = match matches
+    let stack_name = matches
         .get_one::<String>("stack-name")
         .map(String::as_str)
-        .unwrap_or("NoctStack") 
-    {
-        stack_name => stack_name,
-    };
+        .unwrap_or("NoctStack");
 
     ir.synthesize(synthesizer.as_ref(), &mut output, stack_name)?;
 

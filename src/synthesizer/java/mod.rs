@@ -359,7 +359,12 @@ impl Default for Java {
 }
 
 impl Synthesizer for Java {
-    fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write, stack_name: &str) -> io::Result<()> {
+    fn synthesize(
+        &self,
+        ir: CloudformationProgramIr,
+        into: &mut dyn io::Write,
+        stack_name: &str,
+    ) -> io::Result<()> {
         let code = CodeBuffer::default();
 
         self.write_header(&code);

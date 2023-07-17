@@ -8,7 +8,13 @@ macro_rules! test_case {
             use super::*;
 
             #[cfg(feature = "golang")]
-            test_case!($name, golang, &Golang::new(stringify!($name)), $stack_name, "app.go");
+            test_case!(
+                $name,
+                golang,
+                &Golang::new(stringify!($name)),
+                $stack_name,
+                "app.go"
+            );
 
             #[cfg(feature = "java")]
             test_case!(
@@ -37,7 +43,8 @@ macro_rules! test_case {
                 )))
                 .unwrap();
                 let ir = CloudformationProgramIr::from(cfn).unwrap();
-                ir.synthesize($synthesizer, &mut output, $stack_name).unwrap();
+                ir.synthesize($synthesizer, &mut output, $stack_name)
+                    .unwrap();
                 String::from_utf8(output).unwrap()
             };
 

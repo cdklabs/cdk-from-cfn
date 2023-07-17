@@ -26,7 +26,9 @@ impl Typescript {
     #[deprecated(note = "Prefer using the Synthesizer API instead")]
     pub fn output(ir: CloudformationProgramIr) -> String {
         let mut output = Vec::new();
-        Typescript {}.synthesize(ir, &mut output, "NoctStack").unwrap();
+        Typescript {}
+            .synthesize(ir, &mut output, "NoctStack")
+            .unwrap();
         String::from_utf8(output).unwrap()
     }
 }
@@ -53,7 +55,13 @@ impl Synthesizer for Typescript {
 
         let iface_props = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("export interface {}Props extends cdk.StackProps {{", stack_name).into()),
+            leading: Some(
+                format!(
+                    "export interface {}Props extends cdk.StackProps {{",
+                    stack_name
+                )
+                .into(),
+            ),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
