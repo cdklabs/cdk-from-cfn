@@ -60,7 +60,7 @@ pub mod wasm {
     /// Transforms the provided template into a CDK application in the specified
     /// language.
     #[wasm_bindgen]
-    pub fn transmute(template: &str, language: &str) -> Result<String, JsError> {
+    pub fn transmute(template: &str, language: &str, stack_name: &str) -> Result<String, JsError> {
         let cfn_tree: CloudformationParseTree = serde_yaml::from_str(template)?;
         let ir = crate::ir::CloudformationProgramIr::from(cfn_tree)?;
         let mut output = Vec::new();
@@ -73,7 +73,7 @@ pub mod wasm {
             unsupported => panic!("unsupported language: {}", unsupported),
         };
 
-        ir.synthesize(synthesizer.as_ref(), &mut output)?;
+        ir.synthesize(synthesizer.as_ref(), &mut output, stack_name)?;
 
         String::from_utf8(output).map_err(Into::into)
     }
