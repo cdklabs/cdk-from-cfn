@@ -15,7 +15,6 @@ use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case};
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
-const STACK_NAME: Cow<'static, str> = Cow::Borrowed("NoctStack");
 
 macro_rules! fill {
     ($code:ident; $leading:expr; $($lines:expr),* ; $trailing:expr) => {
@@ -67,7 +66,7 @@ impl Java {
         code.line("import software.amazon.awscdk.StackProps;");
     }
 
-    fn write_app(&self, writer: &CodeBuffer, description: &Option<String>) {
+    fn write_app(&self, writer: &CodeBuffer, description: &Option<String>, stack_name: &str) {
         let app_name = "NoctApp";
         let class = &writer.indent_with_options(IndentOptions {
             indent: INDENT,
@@ -97,7 +96,7 @@ impl Java {
         };
         main.line(format!(
             "new {}(app, \"MyProjectStack\", props);",
-            STACK_NAME
+            stack_name
         ));
         main.line("app.synth();");
     }
@@ -360,7 +359,12 @@ impl Default for Java {
 }
 
 impl Synthesizer for Java {
-    fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write) -> io::Result<()> {
+    fn synthesize(
+        &self,
+        ir: CloudformationProgramIr,
+        into: &mut dyn io::Write,
+        stack_name: &str,
+    ) -> io::Result<()> {
         let code = CodeBuffer::default();
 
         self.write_header(&code);
@@ -370,13 +374,13 @@ impl Synthesizer for Java {
         }
         code.newline();
 
-        self.write_app(&code, &ir.description);
+        self.write_app(&code, &ir.description, stack_name);
 
-        fill!(code; format!("\ninterface {}Props extends StackProps {{", STACK_NAME);; "}" );
+        fill!(code; format!("\ninterface {}Props extends StackProps {{", stack_name);; "}" );
 
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("\nclass {} extends Stack {{", STACK_NAME).into()),
+            leading: Some(format!("\nclass {} extends Stack {{", stack_name).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -385,7 +389,7 @@ impl Synthesizer for Java {
         Self::write_field_logic(&class, output_names);
 
         fill!(class;
-            format!("public {}(final Construct scope, final String id) {{", STACK_NAME);
+            format!("public {}(final Construct scope, final String id) {{", stack_name);
             "super(scope, id, null);";
             "}" );
 
@@ -394,7 +398,7 @@ impl Synthesizer for Java {
             leading: Some(
                 format!(
                     "public {}(final Construct scope, final String id, final StackProps props) {{",
-                    STACK_NAME
+                    stack_name
                 )
                 .into(),
             ),
