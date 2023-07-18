@@ -10,7 +10,7 @@ import (
 	"github.com/aws/jsii-runtime-go"
 )
 
-type NoctStackProps struct {
+type SimpleStackProps struct {
 	cdk.StackProps
 	/// The prefix for the bucket name
 	BucketNamePrefix *string
@@ -18,7 +18,7 @@ type NoctStackProps struct {
 
 /// An example stack that uses many of the syntax elements permitted in a
 /// CloudFormation template, but does not attempt to represent a realistic stack.
-type NoctStack struct {
+type SimpleStack struct {
 	cdk.Stack
 	/// The ARN of the bucket in this template!
 	BucketArn interface{} // TODO: fix to appropriate type
@@ -28,7 +28,7 @@ type NoctStack struct {
 	IsLarge interface{} // TODO: fix to appropriate type
 }
 
-func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *NoctStack {
+func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProps) *SimpleStack {
 	/*
 	booleans := map[*string]map[*string]*bool{
 		jsii.String("True"): map[*string]*bool{
@@ -140,7 +140,7 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		Value: bucket.AttrArn(),
 	})
 
-	return &NoctStack{
+	return &SimpleStack{
 		Stack: stack,
 		BucketArn: bucket.AttrArn(),
 		QueueArn: queue.Ref(),

@@ -46,6 +46,14 @@ fn main() -> anyhow::Result<()> {
                 .value_parser(targets)
                 .action(ArgAction::Set),
         )
+        .arg(
+            Arg::new("stack-name")
+                .help("Sets the name of the stack")
+                .required(false)
+                .long("stack-name")
+                .short('s')
+                .action(ArgAction::Set),
+        )
         .get_matches();
 
     let cfn_tree: CloudformationParseTree = {
@@ -83,7 +91,12 @@ fn main() -> anyhow::Result<()> {
         unsupported => panic!("unsupported language: {}", unsupported),
     };
 
-    ir.synthesize(synthesizer.as_ref(), &mut output)?;
+    let stack_name = matches
+        .get_one::<String>("stack-name")
+        .map(String::as_str)
+        .unwrap_or("NoctStack");
+
+    ir.synthesize(synthesizer.as_ref(), &mut output, stack_name)?;
 
     Ok(())
 }

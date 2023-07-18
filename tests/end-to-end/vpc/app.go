@@ -7,15 +7,15 @@ import (
 	"github.com/aws/jsii-runtime-go"
 )
 
-type NoctStackProps struct {
+type VpcStackProps struct {
 	cdk.StackProps
 }
 
-type NoctStack struct {
+type VpcStack struct {
 	cdk.Stack
 }
 
-func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *NoctStack {
+func NewVpcStack(scope constructs.Construct, id string, props VpcStackProps) *VpcStack {
 	stack := cdk.NewStack(scope, &id, &props.StackProps)
 
 	vpc := ec2.NewCfnVPC(
@@ -64,7 +64,7 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		},
 	)
 
-	return &NoctStack{
+	return &VpcStack{
 		Stack: stack,
 	}
 }

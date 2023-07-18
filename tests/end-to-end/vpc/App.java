@@ -19,19 +19,19 @@ public class NoctApp {
     StackProps props = StackProps.builder()
       ""
       .build();
-    new NoctStack(app, "MyProjectStack", props);
+    new VpcStack(app, "MyProjectStack", props);
     app.synth();
   }
 }
 
-interface NoctStackProps extends StackProps {
+interface VpcStackProps extends StackProps {
 }
 
-class NoctStack extends Stack {
-  public NoctStack(final Construct scope, final String id) {
+class VpcStack extends Stack {
+  public VpcStack(final Construct scope, final String id) {
     super(scope, id, null);
   }
-  public NoctStack(final Construct scope, final String id, final StackProps props) {
+  public VpcStack(final Construct scope, final String id, final StackProps props) {
     super(scope, id, props);
     // Start Mapping section
 

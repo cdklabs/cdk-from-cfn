@@ -21,15 +21,15 @@ public class NoctApp {
       .description("An example stack that uses many of the syntax elements permitted in a" + 
         "CloudFormation template, but does not attempt to represent a realistic stack.")
       .build();
-    new NoctStack(app, "MyProjectStack", props);
+    new SimpleStack(app, "MyProjectStack", props);
     app.synth();
   }
 }
 
-interface NoctStackProps extends StackProps {
+interface SimpleStackProps extends StackProps {
 }
 
-class NoctStack extends Stack {
+class SimpleStack extends Stack {
   private CfnOutput bucketArn, queueArn, isLarge;
 
   public CfnOutput getBucketArn() {
@@ -41,10 +41,10 @@ class NoctStack extends Stack {
   public CfnOutput getIsLarge() {
     return this.isLarge;
   }
-  public NoctStack(final Construct scope, final String id) {
+  public SimpleStack(final Construct scope, final String id) {
     super(scope, id, null);
   }
-  public NoctStack(final Construct scope, final String id, final StackProps props) {
+  public SimpleStack(final Construct scope, final String id, final StackProps props) {
     super(scope, id, props);
     // Start Mapping section
     final Mapping<Boolean> booleans = new Mapping<>(this, "Booleans");
