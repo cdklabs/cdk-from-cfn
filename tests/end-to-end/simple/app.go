@@ -136,8 +136,16 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 
 	cdk.NewCfnOutput(stack, jsii.String("BucketArn"), &cdk.CfnOutputProps{
 		Description: jsii.String("The ARN of the bucket in this template!"),
-		ExportName: jsii.String("ExportName"),
+		ExportName: interface{}{
+			Name: jsii.String("ExportName"),
+		},
 		Value: bucket.AttrArn(),
+	})
+
+	cdk.NewCfnOutput(stack, jsii.String("QueueArn"), &cdk.CfnOutputProps{
+		Description: jsii.String("The ARN of the SQS Queue"),
+		ExportName: jsii.String("ExportName2"),
+		Value: queue.Ref(),
 	})
 
 	return &SimpleStack{

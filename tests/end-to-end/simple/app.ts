@@ -114,7 +114,7 @@ export class SimpleStack extends cdk.Stack {
       : undefined;
     if (bucket != null) {
       bucket.cfnOptions.metadata = {
-        CostCenter: 1337,
+        'CostCenter': 1337,
       };
       bucket.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.RETAIN;
       bucket.addDependency(queue);
@@ -128,10 +128,15 @@ export class SimpleStack extends cdk.Stack {
       new cdk.CfnOutput(this, 'BucketArn', {
         description: 'The ARN of the bucket in this template!',
         exportName: 'ExportName',
-        value: this.bucketArn,
+        value: this.bucketArn!,
       });
     }
     this.queueArn = queue.ref;
+    new cdk.CfnOutput(this, 'QueueArn', {
+      description: 'The ARN of the SQS Queue',
+      exportName: 'ExportName2',
+      value: this.queueArn!,
+    });
     this.isLarge = isLargeRegion ? true : false;
   }
 }

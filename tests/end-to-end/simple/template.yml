@@ -98,12 +98,14 @@ Outputs:
   BucketArn:
     Condition: IsUsEast1
     Description: The ARN of the bucket in this template!
-    Export: ExportName
+    Export: 
+      Name: ExportName
     Value:
       !GetAtt Bucket.Arn
 
   QueueArn:
     Description: The ARN of the SQS Queue
+    Export: ExportName2
     Value: !Ref Queue
 
   IsLarge:

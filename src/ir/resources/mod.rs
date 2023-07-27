@@ -79,18 +79,18 @@ impl<'t> ResourceTranslator<'t> {
                 if let Structure::Simple(simple_type) = &self.complexity {
                     return match simple_type {
                         CfnType::Boolean => {
-                            Ok(ResourceIr::Bool(s.parse().map_err(|cause| {
-                                TransmuteError::new(format!("{cause}"))
+                            Ok(ResourceIr::Bool(s.to_lowercase().parse().map_err(|cause| {
+                                TransmuteError::new(format!("{cause} {s}"))
                             })?))
                         }
                         CfnType::Integer => {
                             Ok(ResourceIr::Number(s.parse().map_err(|cause| {
-                                TransmuteError::new(format!("{cause}"))
+                                TransmuteError::new(format!("{cause} {s}"))
                             })?))
                         }
                         CfnType::Double => {
                             Ok(ResourceIr::Number(s.parse().map_err(|cause| {
-                                TransmuteError::new(format!("{cause}"))
+                                TransmuteError::new(format!("{cause} {s}"))
                             })?))
                         }
                         &_ => Ok(ResourceIr::String(s)),

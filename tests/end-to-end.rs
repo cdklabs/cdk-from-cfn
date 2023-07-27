@@ -62,6 +62,8 @@ test_case!(simple, "SimpleStack");
 
 test_case!(vpc, "VpcStack");
 
+test_case!(role, "RoleStack");
+
 struct UpdateSnapshot<'a> {
     path: &'static str,
     actual: &'a str,
