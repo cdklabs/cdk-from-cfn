@@ -84,10 +84,17 @@ class SimpleStack extends Stack {
     table.put("Values", "String", "Baz");
     final CfnMapping tableCfnMapping = table.get();
 
-    CfnParameter bucketNamePrefix = CfnParameter.Builder.create(this, "bucketNamePrefix")
+    final String bucketNamePrefix = CfnParameter.Builder.create(this, "BucketNamePrefix")
+      .type("String")
       .description("The prefix for the bucket name")
-      .defaultValue(String.valueOf("bucket"))
-      .build();
+      .defaultValue("bucket")
+      .build()
+      .getValueAsString();
+    final String logDestinationBucketName = CfnParameter.Builder.create(this, "LogDestinationBucketName")
+      .type("AWS::SSM::Parameter::Value<String>")
+      .defaultValue("/logging/bucket/name")
+      .build()
+      .getValueAsString();
     CfnCondition isUs = CfnCondition.Builder.create(this, "IsUs").expression(Fn.conditionEquals(Fn.select(0, get(Fn.split("-", this.getRegion()))), "us")).build();
     CfnCondition isUsEast1 = CfnCondition.Builder.create(this, "IsUsEast1").expression(Fn.conditionEquals(this.getRegion(), "us-east-1")).build();
     CfnCondition isLargeRegion = CfnCondition.Builder.create(this, "IsLargeRegion").expression(isUsEast1).build();
@@ -112,6 +119,17 @@ class SimpleStack extends Stack {
         .accessControl("private")
         .bucketName(Fn.sub(String.valueOf(bucketNamePrefix), new GenericMap<String, String>()
           .extend("-", this.getStackName())))
+        .loggingConfiguration(CfnBucket.LoggingConfigurationProperty.builder()
+          .destinationBucketName(logDestinationBucketName)
+          .build())
+        .websiteConfiguration(CfnBucket.WebsiteConfigurationProperty.builder()
+          .indexDocument("index.html")
+          .errorDocument("error.html")
+          .redirectAllRequestsTo(CfnBucket.RedirectAllRequestsToProperty.builder()
+          .hostName("example.com")
+          .protocol("https")
+          .build())
+          .build())
         .tags(new GenericList<CfnTag>()
           .extend(new GenericMap<String, Object>()
           .extend("FancyTag",Fn.conditionIf("IsUsEast1", Fn.base64(String.valueOf(Fn.findInMap("Table", "Values", "String"))), Fn.base64(String.valueOf("8CiMvAo="))))

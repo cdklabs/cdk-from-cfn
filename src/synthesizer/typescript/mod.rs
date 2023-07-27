@@ -1,5 +1,6 @@
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
+use crate::ir::constructor::ConstructorParameter;
 use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
@@ -8,7 +9,6 @@ use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use indexmap::IndexMap;
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::io;
 use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case};
@@ -65,34 +65,33 @@ impl Synthesizer for Typescript {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        let default_props = {
-            let mut default_props: HashMap<&str, String> =
-                HashMap::with_capacity(ir.constructor.inputs.len());
-            for param in &ir.constructor.inputs {
-                let comment = iface_props.tsdoc();
-                if let Some(description) = &param.description {
-                    comment.line(description.to_owned());
-                }
-                let question_mark_token = match &param.default_value {
-                    None => "",
-                    Some(value) => {
-                        let value = match param.constructor_type.as_str() {
-                            "String" => format!("{value:?}"),
-                            _ => value.clone(),
-                        };
-                        comment.line(format!("@default {value}"));
-                        default_props.insert(&param.name, value);
-                        "?"
-                    }
-                };
-                iface_props.line(format!(
-                    "readonly {}{question_mark_token}: {};",
-                    pretty_name(&param.name),
-                    pretty_name(&param.constructor_type),
-                ));
+        for param in &ir.constructor.inputs {
+            let comment = iface_props.tsdoc();
+            if let Some(description) = &param.description {
+                comment.line(description.to_owned());
             }
-            default_props
-        };
+            let question_mark_token = match &param.default_value {
+                None => "",
+                Some(value) => {
+                    let value = match param.constructor_type.as_str() {
+                        "Number" => value.clone(),
+                        _ => format!("'{}'", value.escape_debug()),
+                    };
+                    comment.line(format!("@default {value}"));
+                    "?"
+                }
+            };
+            let constructor_type = match param.constructor_type.as_str() {
+                "List<Number>" => "number[]",
+                t if t.contains("List") => "string[]",
+                _ => "string",
+            };
+            iface_props.line(format!(
+                "readonly {}{question_mark_token}: {};",
+                pretty_name(&param.name),
+                constructor_type,
+            ));
+        }
         code.newline();
 
         if let Some(description) = &ir.description {
@@ -143,7 +142,11 @@ impl Synthesizer for Typescript {
         });
         ctor.line("super(scope, id, props);");
 
-        if !default_props.is_empty() {
+        let have_default_or_special_type_params = &ir.constructor.inputs
+            .iter()
+            .filter(|p| p.constructor_type.contains("AWS::") || p.default_value.is_some())
+            .collect::<Vec<&ConstructorParameter>>();
+        if !have_default_or_special_type_params.is_empty() {
             ctor.newline();
             ctor.line("// Applying default props");
             let obj = ctor.indent_with_options(IndentOptions {
@@ -153,8 +156,49 @@ impl Synthesizer for Typescript {
                 trailing_newline: true,
             });
             obj.line("...props,");
-            for (name, value) in default_props {
-                obj.line(format!("{name}: props.{name} ?? {value},"));
+            for param in have_default_or_special_type_params {
+                let name = &param.name;
+                // example: AWS::EC2::Image::Id, List<AWS::EC2::VPC::Id>, AWS::SSM::Parameter::Value<List<String>>
+                if param.constructor_type.contains("AWS::") {
+                    let value_as = match &param.constructor_type {
+                        t if t.contains("List") => "valueAsList",
+                        _ => "valueAsString"
+                    };
+                    let cfn_param = obj.indent_with_options(IndentOptions { 
+                        indent: INDENT,
+                        leading: Some(format!("{name}: new cdk.CfnParameter(this, '{}', {{", pascal_case(&param.name)).into()),
+                        trailing: Some(format!("}}).{value_as},").into()),
+                        trailing_newline: true,
+                    });
+                    cfn_param.line(format!("type: '{}',", param.constructor_type));
+                    let to_string = match &param.constructor_type {
+                        t if t.contains("List") => "join(',')",
+                        _ => "toString()"
+                    };
+                    if let Some(v) = &param.default_value { 
+                        cfn_param.line(format!("default: props.{name}?.{to_string} ?? '{}',", v.escape_debug()));
+                    } else {
+                        cfn_param.line(format!("default: props.{name}.{to_string},"));
+                    };
+                    if let Some(v) = &param.description { 
+                        cfn_param.line(format!("description: '{}',", v));
+                    };
+                } else {
+                    let value = match &param.default_value {
+                        None => "".to_owned(),
+                        Some(value) => {
+                            let value = match param.constructor_type.as_str() {
+                                "String" => format!("'{}'", value.escape_debug()),
+                                "List<Number>" => format!("[{}]", value),
+                                "CommaDelimitedList" => format!("[{}]", value.split(',').map(|v| format!("'{}'", v.escape_debug())).collect::<Vec<String>>().join(",")),
+                                _ => value.clone(),
+                            };
+                            value
+                        },
+                    };
+                    
+                    obj.line(format!("{name}: props.{name} ?? {value},"));
+                };
             }
         }
 

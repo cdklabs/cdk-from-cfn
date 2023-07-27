@@ -17,7 +17,6 @@ public class NoctApp {
   public static void main(final String[] args) {
     App app = new App();
     StackProps props = StackProps.builder()
-      ""
       .build();
     new VpcStack(app, "MyProjectStack", props);
     app.synth();
