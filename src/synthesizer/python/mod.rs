@@ -19,7 +19,7 @@ use super::Synthesizer;
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
 pub struct Python {
-    // TODO: Put options in here for different outputs in typescript
+    // TODO: Put options in here for different outputs in Python
 }
 
 impl Python {
@@ -92,6 +92,19 @@ impl Synthesizer for Python {
                 let synthed = synthesize_condition_recursive(&cond.value);
                 ctor.line(format!("{} = {}", camel_case(&cond.name), synthed));
             }
+        }
+
+        ctor.newline();
+        ctor.line("# Resources");
+
+        let mut is_first_resource = true;
+        for reference in &ir.resources {
+            if is_first_resource {
+                is_first_resource = false;
+            } else {
+                ctor.newline();
+            }
+            emit_resource(context, &ctor, reference);
         }
 
         code.write(output)
@@ -283,7 +296,7 @@ impl Reference {
             Origin::LogicalId { conditional } => format!(
                 "{var}{chain}ref",
                 var = camel_case(&self.name),
-                chain = if *conditional { "?." } else { "." }
+                chain = "."
             )
             .into(),
             Origin::Condition => camel_case(&self.name).into(),
@@ -302,10 +315,285 @@ impl Reference {
             } => format!(
                 "{var_name}{chain}attr{name}",
                 var_name = camel_case(&self.name),
-                chain = if *conditional { "?." } else { "." },
+                chain = ".",
                 name = camel_case(attribute)
             )
             .into(),
         }
+    }
+}
+
+fn emit_resource(
+    context: &mut PythonContext,
+    output: &CodeBuffer,
+    reference: &ResourceInstruction,
+) {
+    let var_name = camel_case(&reference.name);
+    let service = reference.resource_type.service().to_lowercase();
+
+    let maybe_undefined = if let Some(cond) = &reference.condition {
+        append_references(output, reference);
+
+        output.line(format!(
+            "{var_name} = {service}.Cfn{rtype}(self, '{}',",
+            reference.name.escape_debug(),
+            rtype = reference.resource_type.type_name()
+        ));
+
+        let output = output.indent(INDENT);
+
+        let mid_output = output.indent(INDENT);
+        emit_resource_props(context, mid_output.indent(INDENT), &reference.properties);
+        mid_output.line(format!(
+            ") if {} else None",
+            camel_case(cond)
+        ));
+
+        true
+    } else {
+        append_references(output, reference);
+        output.line(format!(
+            "{var_name} = {service}.Cfn{rtype}(self, '{}',",
+            reference.name.escape_debug(),
+            rtype = reference.resource_type.type_name()
+        ));
+
+        let output = output.indent(INDENT);
+
+        let mid_output = output.indent(INDENT);
+        emit_resource_props(context, mid_output.indent(INDENT), &reference.properties);
+        mid_output.line(")");
+
+        false
+    };
+
+    if maybe_undefined {
+        output.line(format!("if ({var_name} is not None):"));
+        let indented = output.indent(INDENT);
+        emit_resource_attributes(context, &indented, reference, &var_name);
+    } else {
+        emit_resource_attributes(context, output, reference, &var_name);
+    }
+}
+
+fn emit_resource_attributes(
+    context: &mut PythonContext,
+    output: &CodeBuffer,
+    reference: &ResourceInstruction,
+    var_name: &str,
+) {
+    if let Some(metadata) = &reference.metadata {
+        let md = output.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(format!("{var_name}.cfnOptions.metadata = {{").into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+        emit_resource_metadata(context, md, metadata);
+    }
+
+    if let Some(update_policy) = &reference.update_policy {
+        output.text(format!("{var_name}.cfnOptions.updatePolicy = "));
+        emit_resource_ir(context, output, update_policy, Some(""));
+    }
+
+    if let Some(deletion_policy) = &reference.deletion_policy {
+        output.line(format!(
+            "{var_name}.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.{deletion_policy}"
+        ));
+    }
+
+    if !reference.dependencies.is_empty() {
+        for dependency in &reference.dependencies {
+            output.line(format!(
+                "{var_name}.addDependency({})",
+                camel_case(dependency)
+            ));
+        }
+    }
+}
+
+fn emit_resource_metadata(
+    context: &mut PythonContext,
+    output: Rc<CodeBuffer>,
+    metadata: &ResourceIr,
+) {
+    match metadata {
+        ResourceIr::Object(_, entries) => {
+            for (name, value) in entries {
+                output.text(format!("{name}: "));
+                emit_resource_ir(context, &output, value, Some(",\n"));
+            }
+        }
+        unsupported => output.line(format!("\"\"\" {unsupported:?} \"\"\"")),
+    }
+}
+
+fn emit_resource_props<S>(
+    context: &mut PythonContext,
+    output: Rc<CodeBuffer>,
+    props: &IndexMap<String, ResourceIr, S>,
+) {
+    for (name, prop) in props {
+        output.text(format!("{} = ", pretty_name(name)));
+        emit_resource_ir(context, &output, prop, Some(",\n"));
+    }
+}
+
+fn emit_resource_ir(
+    context: &mut PythonContext,
+    output: &CodeBuffer,
+    value: &ResourceIr,
+    trailer: Option<&str>,
+) {
+    match value {
+        // Literal values
+        ResourceIr::Null => output.text("None"),
+        ResourceIr::Bool(bool) => output.text(capitalize(&bool.to_string())),
+        ResourceIr::Double(float) => output.text(format!("{float}")),
+        ResourceIr::Number(int) => output.text(int.to_string()),
+        ResourceIr::String(str) => output.text(format!("'{}'", str.escape_debug())),
+
+        // Collection values
+        ResourceIr::Array(_, array) => {
+            let arr = output.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("[".into()),
+                trailing: Some("]".into()),
+                trailing_newline: false,
+            });
+            for item in array {
+                emit_resource_ir(context, &arr, item, Some(",\n"));
+            }
+        }
+        ResourceIr::Object(_, entries) => {
+            let obj = output.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("{".into()),
+                trailing: Some("}".into()),
+                trailing_newline: false,
+            });
+            for (name, value) in entries {
+                obj.text(format!("'{key}': ", key = camel_case(name)));
+                emit_resource_ir(context, &obj, value, Some(",\n"));
+            }
+        }
+
+        // Intrinsics
+        ResourceIr::Base64(base64) => match base64.as_ref() {
+            ResourceIr::String(b64) => {
+                context.import_buffer();
+                output.text(format!(
+                    "Buffer.from('{}', 'base64').toString('binary')",
+                    b64.escape_debug()
+                ))
+            }
+            other => {
+                output.text("cdk.Fn.base64(");
+                emit_resource_ir(context, output, other, None);
+                output.text(")")
+            }
+        },
+        ResourceIr::Cidr(ip_range, count, mask) => {
+            output.text("cdk.Fn.cidr(");
+            emit_resource_ir(context, output, ip_range, None);
+            output.text(", ");
+            emit_resource_ir(context, output, count, None);
+            output.text(", String(");
+            emit_resource_ir(context, output, mask, None);
+            output.text("))")
+        }
+        ResourceIr::GetAZs(region) => {
+            output.text("cdk.Fn.getAzs(");
+            emit_resource_ir(context, output, region, None);
+            output.text(")")
+        }
+        ResourceIr::If(cond_name, if_true, if_false) => {
+            emit_resource_ir(context, output, if_true, None);
+            output.text(format!(" if {} else ", camel_case(cond_name)));
+            emit_resource_ir(context, output, if_false, None)
+        }
+        ResourceIr::ImportValue(name) => {
+            output.text(format!("cdk.Fn.importValue('{}')", name.escape_debug()))
+        }
+        ResourceIr::Join(sep, list) => {
+            let items = output.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("[".into()),
+                trailing: Some(format!("].join('{sep}')", sep = sep.escape_debug()).into()),
+                trailing_newline: false,
+            });
+            for item in list {
+                emit_resource_ir(context, &items, item, Some(",\n"));
+            }
+        }
+        ResourceIr::Map(name, tlk, slk) => {
+            output.text(format!("{}[", camel_case(name)));
+            emit_resource_ir(context, output, tlk, None);
+            output.text("][");
+            emit_resource_ir(context, output, slk, None);
+            output.text("]")
+        }
+        ResourceIr::Select(idx, list) => match list.as_ref() {
+            ResourceIr::Array(_, array) => {
+                if *idx <= array.len() {
+                    emit_resource_ir(context, output, &array[*idx], None)
+                } else {
+                    output.text("None")
+                }
+            }
+            other => {
+                output.text("cdk.Fn.select(");
+                output.text(idx.to_string());
+                output.text(", ");
+                emit_resource_ir(context, output, other, None);
+                output.text(")")
+            }
+        },
+        ResourceIr::Split(sep, str) => match str.as_ref() {
+            ResourceIr::String(str) => {
+                output.text(format!("'{str}'", str = str.escape_debug()));
+                output.text(format!(".split('{sep}')", sep = sep.escape_debug()))
+            }
+            other => {
+                output.text(format!("cdk.Fn.split('{sep}', ", sep = sep.escape_debug()));
+                emit_resource_ir(context, output, other, None);
+                output.text(")")
+            }
+        },
+        ResourceIr::Sub(parts) => {
+            output.text("'");
+            for part in parts {
+                match part {
+                    ResourceIr::String(lit) => output.text(lit.clone()),
+                    other => {
+                        output.text("{");
+                        emit_resource_ir(context, output, other, None);
+                        output.text("}");
+                    }
+                }
+            }
+            output.text("'")
+        }
+
+        // References
+        ResourceIr::Ref(reference) => output.text(reference.to_python()),
+    }
+    if let Some(trailer) = trailer {
+        output.text(trailer.to_owned())
+    }
+}
+
+fn append_references(output: &CodeBuffer, reference: &ResourceInstruction) {
+    for dep in &reference.references {
+        output.line(format!("if ({dep} is None): raise Exception(\"A combination of conditions caused '{dep}' to be undefined. Fixit.\")", dep=camel_case(dep)));
+    }
+}
+
+pub fn capitalize(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        None => String::new(),
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
     }
 }
