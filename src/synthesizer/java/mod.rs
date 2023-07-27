@@ -10,7 +10,6 @@ use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::{CfnType, Structure};
 use std::borrow::Cow;
 use std::collections::LinkedList;
-use std::fmt::format;
 use std::io;
 use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case};
