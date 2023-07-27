@@ -1,7 +1,7 @@
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::importer::ImportInstruction;
-use crate::ir::mappings::{MappingInstruction, OutputType};
+use crate::ir::mappings::{MappingInstruction};
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
@@ -9,10 +9,9 @@ use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use indexmap::IndexMap;
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::io;
 use std::rc::Rc;
-use voca_rs::case::{camel_case, pascal_case};
+use voca_rs::case::{camel_case};
 
 use super::Synthesizer;
 
@@ -107,9 +106,72 @@ impl Synthesizer for Python {
             emit_resource(context, &ctor, reference);
         }
 
+
+        if !ir.outputs.is_empty() {
+            ctor.newline();
+            ctor.line("# Outputs");
+
+            for op in &ir.outputs {
+                let var_name = pretty_name(&op.name);
+                let cond = op.condition.as_ref().map(|s| pretty_name(s));
+
+                if let Some(cond) = &cond {
+                    ctor.line(format!(
+                        "self.{var_name} = {cond}",
+                        cond = camel_case(cond)
+                    ));
+                    ctor.text(format!("{INDENT} "));
+                    let indented = ctor.indent(INDENT);
+                    emit_resource_ir(context, &indented, &op.value, Some("\n"));
+                    ctor.line(format!("{INDENT} = None"));
+                } else {
+                    ctor.text(format!("self.{var_name} = "));
+                    emit_resource_ir(context, &ctor, &op.value, Some("\n"));
+                }
+
+                if let Some(export) = &op.export {
+                    if let Some(cond) = cond {
+                        let indented = ctor.indent_with_options(IndentOptions {
+                            indent: INDENT,
+                            leading: Some(format!("if ({cond}) {{").into()),
+                            trailing: Some("}".into()),
+                            trailing_newline: true,
+                        });
+                        emit_cfn_output(context, &indented, op, export, &var_name);
+                    } else {
+                        emit_cfn_output(context, &ctor, op, export, &var_name);
+                    }
+                }
+            }
+        }
+
         code.write(output)
     }
 }
+
+
+fn emit_cfn_output(
+    context: &mut PythonContext,
+    output: &CodeBuffer,
+    op: &OutputInstruction,
+    export: &ResourceIr,
+    var_name: &str,
+) {
+    let output = output.indent_with_options(IndentOptions {
+        indent: INDENT,
+        leading: Some(format!("cdk.CfnOutput(self, '{}', ", &op.name).into()),
+        trailing: Some(")".into()),
+        trailing_newline: true,
+    });
+
+    if let Some(description) = &op.description {
+        output.line(format!("description = '{}',", description.escape_debug()));
+    }
+    output.text("export_name = ");
+    emit_resource_ir(context, &output, export, Some(",\n"));
+    output.line(format!("value = self.{var_name},"));
+}
+
 
 impl ImportInstruction {
     fn to_python(&self) -> String {
@@ -203,7 +265,7 @@ fn emit_mappings(output: &CodeBuffer, mappings: &[MappingInstruction]) {
             leading: Some(
                 format!(
                     "{var} = {{",
-                    var = pretty_name(&mapping.name)
+                    var = camel_case(&mapping.name)
                 )
                 .into(),
             ),
@@ -293,7 +355,7 @@ impl Reference {
     fn to_python(&self) -> Cow<'static, str> {
         match &self.origin {
             Origin::Parameter => format!("props.{}", camel_case(&self.name)).into(),
-            Origin::LogicalId { conditional } => format!(
+            Origin::LogicalId { conditional: _ } => format!(
                 "{var}{chain}ref",
                 var = camel_case(&self.name),
                 chain = "."
@@ -310,7 +372,7 @@ impl Reference {
                 PseudoParameter::NotificationArns => "self.notificationArns".into(),
             },
             Origin::GetAttribute {
-                conditional,
+                conditional: _,
                 attribute,
             } => format!(
                 "{var_name}{chain}attr{name}",
@@ -586,7 +648,7 @@ fn emit_resource_ir(
 
 fn append_references(output: &CodeBuffer, reference: &ResourceInstruction) {
     for dep in &reference.references {
-        output.line(format!("if ({dep} is None): raise Exception(\"A combination of conditions caused '{dep}' to be undefined. Fixit.\")", dep=camel_case(dep)));
+        output.line(format!("if ({dep} is None): raise Exception(\"A combination of conditions caused '{dep}' to be None. Fixit.\")", dep=camel_case(dep)));
     }
 }
 
