@@ -1,7 +1,7 @@
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::importer::ImportInstruction;
-use crate::ir::mappings::{MappingInstruction};
+use crate::ir::mappings::MappingInstruction;
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
@@ -11,7 +11,7 @@ use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::io;
 use std::rc::Rc;
-use voca_rs::case::{camel_case};
+use voca_rs::case::camel_case;
 
 use super::Synthesizer;
 
@@ -66,24 +66,26 @@ impl Synthesizer for Python {
                     comment.line(description.to_owned());
                 }
                 // NOTE: the property type can be inferred by the compiler...
-                class.line(format!(
-                    "global {name}",
-                    name = pretty_name(&op.name)
-                ));
+                class.line(format!("global {name}", name = pretty_name(&op.name)));
             }
             class.newline();
         }
-        
-        let  ctor = class.indent_with_options(IndentOptions{
+
+        let ctor = class.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:").into()),
+            leading: Some(
+                format!(
+                    "def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:"
+                )
+                .into(),
+            ),
             trailing: Some("".into()),
             trailing_newline: true,
         });
         ctor.line("super().__init__(scope, construct_id, **kwargs)");
-        
+
         emit_mappings(&ctor, &ir.mappings);
-        
+
         if !ir.conditions.is_empty() {
             ctor.newline();
             ctor.line("# Conditions");
@@ -106,7 +108,6 @@ impl Synthesizer for Python {
             }
             emit_resource(context, &ctor, reference);
         }
-
 
         if !ir.outputs.is_empty() {
             ctor.newline();
@@ -145,7 +146,6 @@ impl Synthesizer for Python {
     }
 }
 
-
 fn emit_cfn_output(
     context: &mut PythonContext,
     output: &CodeBuffer,
@@ -168,7 +168,6 @@ fn emit_cfn_output(
     output.line(format!("value = self.{var_name},"));
 }
 
-
 impl ImportInstruction {
     fn to_python(&self) -> String {
         let mut parts: Vec<String> = vec![match self.path[0].as_str() {
@@ -186,11 +185,7 @@ impl ImportInstruction {
 
         let module = parts.join(".");
         if !module.is_empty() {
-            format!(
-                "import {} as {}",
-                module,
-                self.name,
-            )
+            format!("import {} as {}", module, self.name,)
         } else {
             "".to_string()
         }
@@ -214,7 +209,7 @@ impl PythonContext {
         if self.imports_buffer {
             return;
         }
-        self.imports.line("import Buffer as _buffer"); 
+        self.imports.line("import Buffer as _buffer");
         self.imports_buffer = true;
     }
 }
@@ -255,16 +250,9 @@ fn emit_mappings(output: &CodeBuffer, mappings: &[MappingInstruction]) {
     output.line("# Mappings");
 
     for mapping in mappings {
-
         let output = output.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(
-                format!(
-                    "{var} = {{",
-                    var = camel_case(&mapping.name)
-                )
-                .into(),
-            ),
+            leading: Some(format!("{var} = {{", var = camel_case(&mapping.name)).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -288,7 +276,11 @@ fn emit_mapping_instruction(output: Rc<CodeBuffer>, mapping_instruction: &Mappin
 fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, MappingInnerValue>) {
     for (name, value) in inner_mapping {
         match value {
-            MappingInnerValue::Bool(_) => output.line(format!("'{key}': {value},", key = name.escape_debug(), value = capitalize(&value.to_string()))),
+            MappingInnerValue::Bool(_) => output.line(format!(
+                "'{key}': {value},",
+                key = name.escape_debug(),
+                value = capitalize(&value.to_string())
+            )),
             _ => output.line(format!("'{key}': {value},", key = name.escape_debug())),
         }
     }
@@ -354,12 +346,9 @@ impl Reference {
     fn to_python(&self) -> Cow<'static, str> {
         match &self.origin {
             Origin::Parameter => format!("props.{}", camel_case(&self.name)).into(),
-            Origin::LogicalId { conditional: _ } => format!(
-                "{var}{chain}ref",
-                var = camel_case(&self.name),
-                chain = "."
-            )
-            .into(),
+            Origin::LogicalId { conditional: _ } => {
+                format!("{var}{chain}ref", var = camel_case(&self.name), chain = ".").into()
+            }
             Origin::Condition => camel_case(&self.name).into(),
             Origin::PseudoParameter(x) => match x {
                 PseudoParameter::Partition => "self.partition".into(),
@@ -405,10 +394,7 @@ fn emit_resource(
 
         let mid_output = output.indent(INDENT);
         emit_resource_props(context, mid_output.indent(INDENT), &reference.properties);
-        mid_output.line(format!(
-            ") if {} else None",
-            pretty_name(cond)
-        ));
+        mid_output.line(format!(") if {} else None", pretty_name(cond)));
 
         true
     } else {

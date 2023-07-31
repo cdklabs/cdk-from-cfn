@@ -5,7 +5,12 @@ use noctilucent::CloudformationParseTree;
 use std::{fs, io};
 
 // Ensure at least one target language is enabled...
-#[cfg(not(any(feature = "typescript", feature = "golang", feature = "java", feature = "python")))]
+#[cfg(not(any(
+    feature = "typescript",
+    feature = "golang",
+    feature = "java",
+    feature = "python"
+)))]
 compile_error!("At least one language target feature must be enabled!");
 
 fn main() -> anyhow::Result<()> {
