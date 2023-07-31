@@ -74,11 +74,7 @@ impl Synthesizer for Python {
         let ctor = class.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(
-                format!(
-                    "def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:"
-                )
-                .to_string()
-                .into(),
+                "def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:".to_string().into(),
             ),
             trailing: Some("".into()),
             trailing_newline: true,
