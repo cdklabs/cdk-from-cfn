@@ -26,7 +26,7 @@ impl Python {
     #[deprecated(note = "Prefer using the Synthesizer API instead")]
     pub fn output(ir: CloudformationProgramIr) -> String {
         let mut output = Vec::new();
-        Python {}.synthesize(ir, &mut output).unwrap();
+        Python {}.synthesize(ir, &mut output, "NoctStack").unwrap();
         String::from_utf8(output).unwrap()
     }
 }
@@ -36,6 +36,7 @@ impl Synthesizer for Python {
         &self,
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
+        stack_name: &str,
     ) -> io::Result<()> {
         let code = CodeBuffer::default();
 
@@ -54,7 +55,7 @@ impl Synthesizer for Python {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some("class PythonStack(Stack):".into()),
+            leading: Some(format!("class {}(Stack):", stack_name).into()),
             trailing: Some("".into()),
             trailing_newline: true,
         });
