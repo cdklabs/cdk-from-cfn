@@ -52,7 +52,9 @@ Parameters:
     Type: String
     Default: bucket
     Description: "The prefix for the bucket name"
-
+  LogDestinationBucketName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /logging/bucket/name
 Resources:
   Bucket:
     Condition: IsUsEast1
@@ -60,6 +62,14 @@ Resources:
     Properties:
       AccessControl: !Base64 'cHJpdmF0ZQ=='
       BucketName: !Sub ${BucketNamePrefix}-${AWS::StackName}-bucket
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LogDestinationBucketName
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+        RedirectAllRequestsTo:
+          HostName: example.com
+          Protocol: https
       Tags:
         - Key: FancyTag
           Value:

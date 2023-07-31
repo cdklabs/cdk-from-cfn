@@ -92,7 +92,7 @@ impl Java {
                 ".description(\"{}\")",
                 desc.replace("\n", "\" + \n  \"")
             )),
-            None => stack_prop.line("\"\""),
+            None => {}
         };
         main.line(format!(
             "new {}(app, \"MyProjectStack\", props);",
@@ -211,10 +211,17 @@ class Mapping<T> {
     fn write_parameters(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
         for input in &ir.constructor.inputs {
             let name = camel_case(&input.name);
+            let java_type = match input.constructor_type.as_str() {
+                t if t.contains("List") => "List<String>",
+                _ => "String",
+            };
             writer.line(format!(
-                "CfnParameter {name} = CfnParameter.Builder.create(this, \"{}\")",
-                &input.name
+                "final {java_type} {name} = CfnParameter.Builder.create(this, \"{}\")",
+                pascal_case(&input.name)
             ));
+            writer
+                .indent(INDENT)
+                .line(format!(".type(\"{}\")", &input.constructor_type));
             match &input.description {
                 Some(descr) => writer
                     .indent(INDENT)
@@ -222,13 +229,16 @@ class Mapping<T> {
                 None => {}
             };
             match &input.default_value {
-                Some(val) => writer.indent(INDENT).line(format!(
-                    ".defaultValue({}.valueOf(\"{}\"))",
-                    &input.constructor_type, val
-                )),
+                Some(val) => writer
+                    .indent(INDENT)
+                    .line(format!(".defaultValue(\"{}\")", val)),
                 None => {}
             };
-            writer.line(format!("{INDENT}.build();"))
+            writer.indent(INDENT).line(".build()");
+            match input.constructor_type.as_str() {
+                t if t.contains("List") => writer.indent(INDENT).line(".getValueAsStringList();"),
+                _ => writer.indent(INDENT).line(".getValueAsString();"),
+            };
         }
     }
 
@@ -257,7 +267,7 @@ class Mapping<T> {
             });
             for (key, value) in &resource.properties {
                 let property = camel_case(key.as_str());
-                let value = emit_java(value.clone(), None);
+                let value = emit_java(value.clone(), Some(format!("Cfn{class}").as_str()));
                 properties.line(format!(".{property}({value})"));
             }
             writer.newline();
@@ -588,19 +598,35 @@ fn emit_java(this: ResourceIr, trailer: Option<&str>) -> String {
         ResourceIr::ImportValue(text) => format!("\"{text}\""),
 
         ResourceIr::Object(structure, index_map) => match structure {
-            Structure::Composite(_) => {
-                let mut res = format!("new GenericMap<String, Object>()");
-                for (key, value) in &index_map {
-                    let element = emit_java((*value).clone(), None);
-                    if key.eq_ignore_ascii_case("Key") {
-                        res = br!(res, format!(".extend({}", element))
+            Structure::Composite(property) => match property {
+                "Tag" => {
+                    let mut res = format!("new GenericMap<String, Object>()");
+                    for (key, value) in &index_map {
+                        let element = emit_java((*value).clone(), None);
+                        if key.eq_ignore_ascii_case("Key") {
+                            res = br!(res, format!(".extend({}", element))
+                        }
+                        if key.eq_ignore_ascii_case("Value") {
+                            res = format!("{res},{})", element)
+                        }
                     }
-                    if key.eq_ignore_ascii_case("Value") {
-                        res = format!("{res},{})", element)
-                    }
+                    br!(res, ".getTags()")
                 }
-                br!(res, ".getTags()")
-            }
+                _ => {
+                    let mut res = format!(
+                        "{}.{property}Property.builder()",
+                        match trailer {
+                            Some(v) => v,
+                            None => "",
+                        }
+                    );
+                    for (key, value) in &index_map {
+                        let element = emit_java((*value).clone(), trailer);
+                        res = br!(res, format!(".{}({})", camel_case(key), element));
+                    }
+                    br!(res, ".build()")
+                }
+            },
 
             Structure::Simple(cfn_type) => {
                 let mut res = format!("new GenericMap<String, {}>()", match_cfn_type(&cfn_type));
