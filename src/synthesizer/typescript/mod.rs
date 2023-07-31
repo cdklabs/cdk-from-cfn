@@ -142,7 +142,9 @@ impl Synthesizer for Typescript {
         });
         ctor.line("super(scope, id, props);");
 
-        let have_default_or_special_type_params = &ir.constructor.inputs
+        let have_default_or_special_type_params = &ir
+            .constructor
+            .inputs
             .iter()
             .filter(|p| p.constructor_type.contains("AWS::") || p.default_value.is_some())
             .collect::<Vec<&ConstructorParameter>>();
@@ -162,25 +164,34 @@ impl Synthesizer for Typescript {
                 if param.constructor_type.contains("AWS::") {
                     let value_as = match &param.constructor_type {
                         t if t.contains("List") => "valueAsList",
-                        _ => "valueAsString"
+                        _ => "valueAsString",
                     };
-                    let cfn_param = obj.indent_with_options(IndentOptions { 
+                    let cfn_param = obj.indent_with_options(IndentOptions {
                         indent: INDENT,
-                        leading: Some(format!("{name}: new cdk.CfnParameter(this, '{}', {{", pascal_case(&param.name)).into()),
+                        leading: Some(
+                            format!(
+                                "{name}: new cdk.CfnParameter(this, '{}', {{",
+                                pascal_case(&param.name)
+                            )
+                            .into(),
+                        ),
                         trailing: Some(format!("}}).{value_as},").into()),
                         trailing_newline: true,
                     });
                     cfn_param.line(format!("type: '{}',", param.constructor_type));
                     let to_string = match &param.constructor_type {
                         t if t.contains("List") => "join(',')",
-                        _ => "toString()"
+                        _ => "toString()",
                     };
-                    if let Some(v) = &param.default_value { 
-                        cfn_param.line(format!("default: props.{name}?.{to_string} ?? '{}',", v.escape_debug()));
+                    if let Some(v) = &param.default_value {
+                        cfn_param.line(format!(
+                            "default: props.{name}?.{to_string} ?? '{}',",
+                            v.escape_debug()
+                        ));
                     } else {
                         cfn_param.line(format!("default: props.{name}.{to_string},"));
                     };
-                    if let Some(v) = &param.description { 
+                    if let Some(v) = &param.description {
                         cfn_param.line(format!("description: '{}',", v));
                     };
                 } else {
@@ -190,13 +201,20 @@ impl Synthesizer for Typescript {
                             let value = match param.constructor_type.as_str() {
                                 "String" => format!("'{}'", value.escape_debug()),
                                 "List<Number>" => format!("[{}]", value),
-                                "CommaDelimitedList" => format!("[{}]", value.split(',').map(|v| format!("'{}'", v.escape_debug())).collect::<Vec<String>>().join(",")),
+                                "CommaDelimitedList" => format!(
+                                    "[{}]",
+                                    value
+                                        .split(',')
+                                        .map(|v| format!("'{}'", v.escape_debug()))
+                                        .collect::<Vec<String>>()
+                                        .join(",")
+                                ),
                                 _ => value.clone(),
                             };
                             value
-                        },
+                        }
                     };
-                    
+
                     obj.line(format!("{name}: props.{name} ?? {value},"));
                 };
             }

@@ -92,7 +92,7 @@ impl Java {
                 ".description(\"{}\")",
                 desc.replace("\n", "\" + \n  \"")
             )),
-            None => {},
+            None => {}
         };
         main.line(format!(
             "new {}(app, \"MyProjectStack\", props);",
@@ -219,7 +219,9 @@ class Mapping<T> {
                 "final {java_type} {name} = CfnParameter.Builder.create(this, \"{}\")",
                 pascal_case(&input.name)
             ));
-            writer.indent(INDENT).line(format!(".type(\"{}\")", &input.constructor_type));
+            writer
+                .indent(INDENT)
+                .line(format!(".type(\"{}\")", &input.constructor_type));
             match &input.description {
                 Some(descr) => writer
                     .indent(INDENT)
@@ -227,9 +229,9 @@ class Mapping<T> {
                 None => {}
             };
             match &input.default_value {
-                Some(val) => writer.indent(INDENT).line(format!(
-                    ".defaultValue(\"{}\")", val
-                )),
+                Some(val) => writer
+                    .indent(INDENT)
+                    .line(format!(".defaultValue(\"{}\")", val)),
                 None => {}
             };
             writer.indent(INDENT).line(".build()");
@@ -596,34 +598,35 @@ fn emit_java(this: ResourceIr, trailer: Option<&str>) -> String {
         ResourceIr::ImportValue(text) => format!("\"{text}\""),
 
         ResourceIr::Object(structure, index_map) => match structure {
-            Structure::Composite(property) => {
-                match property {
-                    "Tag" => {
-                        let mut res = format!("new GenericMap<String, Object>()");
-                        for (key, value) in &index_map {
-                            let element = emit_java((*value).clone(), None);
-                            if key.eq_ignore_ascii_case("Key") {
-                                res = br!(res, format!(".extend({}", element))
-                            }
-                            if key.eq_ignore_ascii_case("Value") {
-                                res = format!("{res},{})", element)
-                            }
+            Structure::Composite(property) => match property {
+                "Tag" => {
+                    let mut res = format!("new GenericMap<String, Object>()");
+                    for (key, value) in &index_map {
+                        let element = emit_java((*value).clone(), None);
+                        if key.eq_ignore_ascii_case("Key") {
+                            res = br!(res, format!(".extend({}", element))
                         }
-                        br!(res, ".getTags()")
-                    },
-                    _ => {
-                        let mut res = format!("{}.{property}Property.builder()", match trailer {
+                        if key.eq_ignore_ascii_case("Value") {
+                            res = format!("{res},{})", element)
+                        }
+                    }
+                    br!(res, ".getTags()")
+                }
+                _ => {
+                    let mut res = format!(
+                        "{}.{property}Property.builder()",
+                        match trailer {
                             Some(v) => v,
                             None => "",
-                        });
-                        for (key, value) in &index_map {
-                            let element = emit_java((*value).clone(), trailer);
-                            res = br!(res, format!(".{}({})", camel_case(key), element));
                         }
-                        br!(res, ".build()")
-                    },
+                    );
+                    for (key, value) in &index_map {
+                        let element = emit_java((*value).clone(), trailer);
+                        res = br!(res, format!(".{}({})", camel_case(key), element));
+                    }
+                    br!(res, ".build()")
                 }
-            }
+            },
 
             Structure::Simple(cfn_type) => {
                 let mut res = format!("new GenericMap<String, {}>()", match_cfn_type(&cfn_type));
