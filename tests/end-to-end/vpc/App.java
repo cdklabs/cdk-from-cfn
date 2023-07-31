@@ -46,21 +46,21 @@ class VpcStack extends Stack {
 
 
     CfnSubnet subnet1 = CfnSubnet.Builder.create(this, "Subnet1")
-        .availabilityZone(Fn.select(0,get(Fn.getAzs(String.valueOf(/* validate FIXME */ "")))))
+        .availabilityZone(Fn.select(0,get(Fn.getAzs(""))))
         .cidrBlock(Fn.select(0,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
         .vpcId("VPC")
       .build();
 
 
     CfnSubnet subnet2 = CfnSubnet.Builder.create(this, "Subnet2")
-        .availabilityZone(Fn.select(1,get(Fn.getAzs(String.valueOf(/* validate FIXME */ "")))))
+        .availabilityZone(Fn.select(1,get(Fn.getAzs(""))))
         .cidrBlock(Fn.select(1,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
         .vpcId("VPC")
       .build();
 
 
     CfnSubnet subnet3 = CfnSubnet.Builder.create(this, "Subnet3")
-        .availabilityZone(Fn.select(2,get(Fn.getAzs(String.valueOf(/* validate FIXME */ "")))))
+        .availabilityZone(Fn.select(2,get(Fn.getAzs(""))))
         .cidrBlock(Fn.select(2,get(Fn.cidr(String.valueOf(Fn.getAtt("VPC", "CidrBlock")), 6, String.valueOf(8)))))
         .vpcId("VPC")
       .build();
