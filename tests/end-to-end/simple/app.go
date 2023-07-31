@@ -14,6 +14,7 @@ type SimpleStackProps struct {
 	cdk.StackProps
 	/// The prefix for the bucket name
 	BucketNamePrefix *string
+	LogDestinationBucketName interface{/* AWS::SSM::Parameter::Value<String> */}
 }
 
 /// An example stack that uses many of the syntax elements permitted in a
@@ -121,6 +122,17 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 		&s3.CfnBucketProps{
 			AccessControl: jsii.String("private"),
 			BucketName: jsii.String(fmt.Sprintf("%v-%v-bucket", props.BucketNamePrefix, stack.StackName())),
+			LoggingConfiguration: &LoggingConfiguration/* FIXME */{
+				DestinationBucketName: props.LogDestinationBucketName,
+			},
+			WebsiteConfiguration: &WebsiteConfiguration/* FIXME */{
+				IndexDocument: jsii.String("index.html"),
+				ErrorDocument: jsii.String("error.html"),
+				RedirectAllRequestsTo: &RedirectAllRequestsTo/* FIXME */{
+					HostName: jsii.String("example.com"),
+					Protocol: jsii.String("https"),
+				},
+			},
 			Tags: &[]*cdk.CfnTag{
 				&cdk.CfnTag{
 					Key: jsii.String("FancyTag"),
