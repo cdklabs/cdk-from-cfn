@@ -90,7 +90,7 @@ impl Synthesizer for Python {
 
             for cond in &ir.conditions {
                 let synthed = synthesize_condition_recursive(&cond.value);
-                ctor.line(format!("{} = {}", camel_case(&cond.name), synthed));
+                ctor.line(format!("{} = {}", pretty_name(&cond.name), synthed));
             }
         }
 
@@ -117,14 +117,9 @@ impl Synthesizer for Python {
                 let cond = op.condition.as_ref().map(|s| pretty_name(s));
 
                 if let Some(cond) = &cond {
-                    ctor.line(format!(
-                        "self.{var_name} = {cond}",
-                        cond = camel_case(cond)
-                    ));
-                    ctor.text(format!("{INDENT} "));
-                    let indented = ctor.indent(INDENT);
-                    emit_resource_ir(context, &indented, &op.value, Some("\n"));
-                    ctor.line(format!("{INDENT} = None"));
+                    ctor.text(format!("self.{var_name} = "));
+                    emit_resource_ir(context, &ctor, &op.value, Some(""));
+                    ctor.line(format!(" if {cond} else None"));
                 } else {
                     ctor.text(format!("self.{var_name} = "));
                     emit_resource_ir(context, &ctor, &op.value, Some("\n"));
@@ -134,8 +129,8 @@ impl Synthesizer for Python {
                     if let Some(cond) = cond {
                         let indented = ctor.indent_with_options(IndentOptions {
                             indent: INDENT,
-                            leading: Some(format!("if ({cond}) {{").into()),
-                            trailing: Some("}".into()),
+                            leading: Some(format!("if ({cond}):").into()),
+                            trailing: Some("".into()),
                             trailing_newline: true,
                         });
                         emit_cfn_output(context, &indented, op, export, &var_name);
@@ -219,7 +214,7 @@ impl PythonContext {
         if self.imports_buffer {
             return;
         }
-        self.imports.line("import buffer as _buffer"); 
+        self.imports.line("import Buffer as _buffer"); 
         self.imports_buffer = true;
     }
 }
@@ -292,7 +287,10 @@ fn emit_mapping_instruction(output: Rc<CodeBuffer>, mapping_instruction: &Mappin
 
 fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, MappingInnerValue>) {
     for (name, value) in inner_mapping {
-        output.line(format!("'{key}': {value},", key = name.escape_debug()));
+        match value {
+            MappingInnerValue::Bool(_) => output.line(format!("'{key}': {value},", key = name.escape_debug(), value = capitalize(&value.to_string()))),
+            _ => output.line(format!("'{key}': {value},", key = name.escape_debug())),
+        }
     }
 }
 
@@ -409,7 +407,7 @@ fn emit_resource(
         emit_resource_props(context, mid_output.indent(INDENT), &reference.properties);
         mid_output.line(format!(
             ") if {} else None",
-            camel_case(cond)
+            pretty_name(cond)
         ));
 
         true
@@ -547,7 +545,7 @@ fn emit_resource_ir(
             ResourceIr::String(b64) => {
                 context.import_buffer();
                 output.text(format!(
-                    "Buffer.from('{}', 'base64').toString('binary')",
+                    "_buffer.from('{}', 'base64').toString('binary')",
                     b64.escape_debug()
                 ))
             }
@@ -562,7 +560,7 @@ fn emit_resource_ir(
             emit_resource_ir(context, output, ip_range, None);
             output.text(", ");
             emit_resource_ir(context, output, count, None);
-            output.text(", String(");
+            output.text(", str(");
             emit_resource_ir(context, output, mask, None);
             output.text("))")
         }
@@ -573,7 +571,7 @@ fn emit_resource_ir(
         }
         ResourceIr::If(cond_name, if_true, if_false) => {
             emit_resource_ir(context, output, if_true, None);
-            output.text(format!(" if {} else ", camel_case(cond_name)));
+            output.text(format!(" if {} else ", pretty_name(cond_name)));
             emit_resource_ir(context, output, if_false, None)
         }
         ResourceIr::ImportValue(name) => {

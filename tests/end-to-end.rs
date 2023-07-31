@@ -26,7 +26,7 @@ macro_rules! test_case {
             );
 
             #[cfg(feature = "python")]
-            test_case!($name, python, &Python {}, "app.py");
+            test_case!($name, python, &Python {}, $stack_name, "app.py");
 
             #[cfg(feature = "typescript")]
             test_case!($name, typescript, &Typescript {}, $stack_name, "app.ts");
