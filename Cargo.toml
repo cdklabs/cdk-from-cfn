@@ -17,10 +17,14 @@ homepage = "https://github.com/iph/noctilucent#readme"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["typescript"]
-typescript = []
+default = ["golang", "java", "typescript"]
 golang = []
 java = []
+typescript = []
+
+# Future plans / in progress
+csharp = []
+python = []
 
 [lib]
 crate-type = ["cdylib", "lib"]
