@@ -77,6 +77,7 @@ impl Synthesizer for Python {
                 format!(
                     "def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:"
                 )
+                .to_string()
                 .into(),
             ),
             trailing: Some("".into()),
