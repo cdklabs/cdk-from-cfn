@@ -1,11 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 
-export interface NoctStackProps extends cdk.StackProps {
+export interface VpcStackProps extends cdk.StackProps {
 }
 
-export class NoctStack extends cdk.Stack {
-  public constructor(scope: cdk.App, id: string, props: NoctStackProps = {}) {
+export class VpcStack extends cdk.Stack {
+  public constructor(scope: cdk.App, id: string, props: VpcStackProps = {}) {
     super(scope, id, props);
 
     // Resources

@@ -39,7 +39,12 @@ impl Default for Golang {
 }
 
 impl Synthesizer for Golang {
-    fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write) -> io::Result<()> {
+    fn synthesize(
+        &self,
+        ir: CloudformationProgramIr,
+        into: &mut dyn io::Write,
+        stack_name: &str,
+    ) -> io::Result<()> {
         let code = CodeBuffer::default();
 
         code.line(format!("package {}", self.package_name));
@@ -64,7 +69,7 @@ impl Synthesizer for Golang {
 
         let props = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some("type NoctStackProps struct {".into()),
+            leading: Some(format!("type {}Props struct {{", stack_name).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -82,7 +87,7 @@ impl Synthesizer for Golang {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some("type NoctStack struct {".into()),
+            leading: Some(format!("type {} struct {{", stack_name).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -98,9 +103,15 @@ impl Synthesizer for Golang {
         }
         code.newline();
 
-        let ctor = code.indent_with_options(IndentOptions{
+        let ctor = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some("func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *NoctStack {".into()),
+            leading: Some(
+                format!(
+                    "func New{}(scope constructs.Construct, id string, props {}Props) *{} {{",
+                    stack_name, stack_name, stack_name
+                )
+                .into(),
+            ),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -270,7 +281,7 @@ impl Synthesizer for Golang {
 
         let fields = ctor.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some("return &NoctStack{".into()),
+            leading: Some(format!("return &{}{{", stack_name).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });

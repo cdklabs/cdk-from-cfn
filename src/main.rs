@@ -5,7 +5,7 @@ use noctilucent::CloudformationParseTree;
 use std::{fs, io};
 
 // Ensure at least one target language is enabled...
-#[cfg(not(any(feature = "typescript", feature = "golang", feature = "python")))]
+#[cfg(not(any(feature = "typescript", feature = "golang", feature = "java", feature = "python")))]
 compile_error!("At least one language target feature must be enabled!");
 
 fn main() -> anyhow::Result<()> {
@@ -16,6 +16,8 @@ fn main() -> anyhow::Result<()> {
         "go",
         #[cfg(feature = "python")]
         "python",
+        #[cfg(feature = "java")]
+        "java",
     ];
 
     let matches = Command::new(env!("CARGO_BIN_NAME"))
@@ -44,6 +46,14 @@ fn main() -> anyhow::Result<()> {
                 .required(false)
                 .default_value(targets[0])
                 .value_parser(targets)
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("stack-name")
+                .help("Sets the name of the stack")
+                .required(false)
+                .long("stack-name")
+                .short('s')
                 .action(ArgAction::Set),
         )
         .get_matches();
@@ -80,10 +90,17 @@ fn main() -> anyhow::Result<()> {
         "go" => Box::<Golang>::default(),
         #[cfg(feature = "python")]
         "python" => Box::new(Python {}),
+        #[cfg(feature = "java")]
+        "java" => Box::<Java>::default(),
         unsupported => panic!("unsupported language: {}", unsupported),
     };
 
-    ir.synthesize(synthesizer.as_ref(), &mut output)?;
+    let stack_name = matches
+        .get_one::<String>("stack-name")
+        .map(String::as_str)
+        .unwrap_or("NoctStack");
+
+    ir.synthesize(synthesizer.as_ref(), &mut output, stack_name)?;
 
     Ok(())
 }

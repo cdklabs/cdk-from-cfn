@@ -17,12 +17,13 @@ $ ./target/release/noctilucent [INPUT] [OUTPUT]
 Name         | Enabled by default | Description
 -------------|:------------------:|---------------------------------------------
 `typescript` | :heavy_check_mark: | Enables support for TypeScript output
-`golang`     |                    | Enables support for Go output
-`python`     |                    | Enables support for Python output
+`golang`     | :heavy_check_mark: | Enables support for Go output
+`java`       | :heavy_check_mark: | Enables support for Java output
+`Python`     | :heavy_check_mark: | Enables support for Python output
 
 You can enable experimental languages (not enabled by default) by enabling the relevant feature:
 ```console
-$ cargo build --release --features=golang
+$ cargo build --release --features=<feature-name>
 Finished release [optimized] target(s) in 0.17s
 ```
 

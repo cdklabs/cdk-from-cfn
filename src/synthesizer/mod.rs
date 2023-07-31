@@ -8,6 +8,12 @@ mod golang;
 #[doc(inline)]
 pub use golang::*;
 
+#[cfg(feature = "java")]
+mod java;
+#[cfg(feature = "java")]
+#[doc(inline)]
+pub use java::*;
+
 #[cfg(feature = "typescript")]
 mod typescript;
 #[cfg(feature = "typescript")]
@@ -21,12 +27,22 @@ mod python;
 pub use python::*;
 
 pub trait Synthesizer {
-    fn synthesize(&self, ir: CloudformationProgramIr, into: &mut dyn io::Write) -> io::Result<()>;
+    fn synthesize(
+        &self,
+        ir: CloudformationProgramIr,
+        into: &mut dyn io::Write,
+        stack_name: &str,
+    ) -> io::Result<()>;
 }
 
 impl CloudformationProgramIr {
     #[inline(always)]
-    pub fn synthesize(self, using: &dyn Synthesizer, into: &mut impl io::Write) -> io::Result<()> {
-        using.synthesize(self, into)
+    pub fn synthesize(
+        self,
+        using: &dyn Synthesizer,
+        into: &mut impl io::Write,
+        stack_name: &str,
+    ) -> io::Result<()> {
+        using.synthesize(self, into, stack_name)
     }
 }

@@ -10,15 +10,16 @@ import (
 	"github.com/aws/jsii-runtime-go"
 )
 
-type NoctStackProps struct {
+type SimpleStackProps struct {
 	cdk.StackProps
 	/// The prefix for the bucket name
 	BucketNamePrefix *string
+	LogDestinationBucketName interface{/* AWS::SSM::Parameter::Value<String> */}
 }
 
 /// An example stack that uses many of the syntax elements permitted in a
 /// CloudFormation template, but does not attempt to represent a realistic stack.
-type NoctStack struct {
+type SimpleStack struct {
 	cdk.Stack
 	/// The ARN of the bucket in this template!
 	BucketArn interface{} // TODO: fix to appropriate type
@@ -28,7 +29,7 @@ type NoctStack struct {
 	IsLarge interface{} // TODO: fix to appropriate type
 }
 
-func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *NoctStack {
+func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProps) *SimpleStack {
 	/*
 	booleans := map[*string]map[*string]*bool{
 		jsii.String("True"): map[*string]*bool{
@@ -121,6 +122,17 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		&s3.CfnBucketProps{
 			AccessControl: jsii.String("private"),
 			BucketName: jsii.String(fmt.Sprintf("%v-%v-bucket", props.BucketNamePrefix, stack.StackName())),
+			LoggingConfiguration: &LoggingConfiguration/* FIXME */{
+				DestinationBucketName: props.LogDestinationBucketName,
+			},
+			WebsiteConfiguration: &WebsiteConfiguration/* FIXME */{
+				IndexDocument: jsii.String("index.html"),
+				ErrorDocument: jsii.String("error.html"),
+				RedirectAllRequestsTo: &RedirectAllRequestsTo/* FIXME */{
+					HostName: jsii.String("example.com"),
+					Protocol: jsii.String("https"),
+				},
+			},
 			Tags: &[]*cdk.CfnTag{
 				&cdk.CfnTag{
 					Key: jsii.String("FancyTag"),
@@ -140,7 +152,7 @@ func NewNoctStack(scope constructs.Construct, id string, props NoctStackProps) *
 		Value: bucket.AttrArn(),
 	})
 
-	return &NoctStack{
+	return &SimpleStack{
 		Stack: stack,
 		BucketArn: bucket.AttrArn(),
 		QueueArn: queue.Ref(),

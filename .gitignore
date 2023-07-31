@@ -13,3 +13,4 @@ node_modules/
 
 # These are generated files:
 /src/specification/spec.rs
+/local/*

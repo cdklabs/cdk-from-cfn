@@ -3,19 +3,23 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { Buffer } from 'buffer';
 
-export interface NoctStackProps extends cdk.StackProps {
+export interface SimpleStackProps extends cdk.StackProps {
   /**
    * The prefix for the bucket name
-   * @default "bucket"
+   * @default 'bucket'
    */
   readonly bucketNamePrefix?: string;
+  /**
+   * @default '/logging/bucket/name'
+   */
+  readonly logDestinationBucketName?: string;
 }
 
 /**
  * An example stack that uses many of the syntax elements permitted in a
  * CloudFormation template, but does not attempt to represent a realistic stack.
  */
-export class NoctStack extends cdk.Stack {
+export class SimpleStack extends cdk.Stack {
   /**
    * The ARN of the bucket in this template!
    */
@@ -29,13 +33,17 @@ export class NoctStack extends cdk.Stack {
    */
   public readonly isLarge;
 
-  public constructor(scope: cdk.App, id: string, props: NoctStackProps = {}) {
+  public constructor(scope: cdk.App, id: string, props: SimpleStackProps = {}) {
     super(scope, id, props);
 
     // Applying default props
     props = {
       ...props,
-      bucketNamePrefix: props.bucketNamePrefix ?? "bucket",
+      bucketNamePrefix: props.bucketNamePrefix ?? 'bucket',
+      logDestinationBucketName: new cdk.CfnParameter(this, 'LogDestinationBucketName', {
+        type: 'AWS::SSM::Parameter::Value<String>',
+        default: props.logDestinationBucketName?.toString() ?? '/logging/bucket/name',
+      }).valueAsString,
     };
 
     // Mappings
@@ -104,6 +112,17 @@ export class NoctStack extends cdk.Stack {
       ? new s3.CfnBucket(this, 'Bucket', {
           accessControl: 'private',
           bucketName: `${props.bucketNamePrefix}-${this.stackName}-bucket`,
+          loggingConfiguration: {
+            destinationBucketName: props.logDestinationBucketName,
+          },
+          websiteConfiguration: {
+            indexDocument: 'index.html',
+            errorDocument: 'error.html',
+            redirectAllRequestsTo: {
+              hostName: 'example.com',
+              protocol: 'https',
+            },
+          },
           tags: [
             {
               key: 'FancyTag',
