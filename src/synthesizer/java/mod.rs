@@ -80,7 +80,7 @@ impl Java {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        main.line(format!("App app = new App();"));
+        main.line("App app = new App();");
         let stack_prop = main.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some("StackProps props = StackProps.builder()".into()),
@@ -90,9 +90,9 @@ impl Java {
         match description {
             Some(desc) => stack_prop.line(format!(
                 ".description(\"{}\")",
-                desc.replace("\n", "\" + \n  \"")
+                desc.replace('\n', "\" + \n  \"")
             )),
-            None => stack_prop.line("\"\""),
+            None => {}
         };
         main.line(format!(
             "new {}(app, \"MyProjectStack\", props);",
@@ -180,7 +180,7 @@ class Mapping<T> {
 
                     match value {
                         MappingInnerValue::Bool(bool) => {
-                            map.text(format!("{}", if *bool { "true" } else { "false" }))
+                            map.text(if *bool { "true" } else { "false" })
                         }
                         MappingInnerValue::Number(num) => map.text(format!("{num}")),
                         MappingInnerValue::Float(num) => map.text(format!("{num}")),
@@ -192,7 +192,7 @@ class Mapping<T> {
                                 trailing: None,
                                 trailing_newline: false,
                             });
-                            list.text(format!("new GenericList<String>()"));
+                            list.text("new GenericList<String>()");
                             for item in items {
                                 list.text(br!("", format!(".extend({item:?})")));
                             }
@@ -211,10 +211,17 @@ class Mapping<T> {
     fn write_parameters(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
         for input in &ir.constructor.inputs {
             let name = camel_case(&input.name);
+            let java_type = match input.constructor_type.as_str() {
+                t if t.contains("List") => "List<String>",
+                _ => "String",
+            };
             writer.line(format!(
-                "CfnParameter {name} = CfnParameter.Builder.create(this, \"{}\")",
-                &input.name
+                "final {java_type} {name} = CfnParameter.Builder.create(this, \"{}\")",
+                pascal_case(&input.name)
             ));
+            writer
+                .indent(INDENT)
+                .line(format!(".type(\"{}\")", &input.constructor_type));
             match &input.description {
                 Some(descr) => writer
                     .indent(INDENT)
@@ -222,13 +229,16 @@ class Mapping<T> {
                 None => {}
             };
             match &input.default_value {
-                Some(val) => writer.indent(INDENT).line(format!(
-                    ".defaultValue({}.valueOf(\"{}\"))",
-                    &input.constructor_type, val
-                )),
+                Some(val) => writer
+                    .indent(INDENT)
+                    .line(format!(".defaultValue(\"{}\")", val)),
                 None => {}
             };
-            writer.line(format!("{INDENT}.build();"))
+            writer.indent(INDENT).line(".build()");
+            match input.constructor_type.as_str() {
+                t if t.contains("List") => writer.indent(INDENT).line(".getValueAsStringList();"),
+                _ => writer.indent(INDENT).line(".getValueAsString();"),
+            };
         }
     }
 
@@ -242,7 +252,7 @@ class Mapping<T> {
                 leading: Some(
                     format!(
                         "Cfn{class} {} = Cfn{class}.Builder.create(this, \"{res_name}\")",
-                        name(&res_name)
+                        name(res_name)
                     )
                     .into(),
                 ),
@@ -257,7 +267,7 @@ class Mapping<T> {
             });
             for (key, value) in &resource.properties {
                 let property = camel_case(key.as_str());
-                let value = emit_java(value.clone(), None);
+                let value = emit_java(value.clone(), Some(format!("Cfn{class}").as_str()));
                 properties.line(format!(".{property}({value})"));
             }
             writer.newline();
@@ -317,7 +327,7 @@ class Mapping<T> {
         for name in names {
             let indented = writer.indent_with_options(IndentOptions {
                 indent: INDENT,
-                leading: Some(format!("public CfnOutput get{}() {{", pascal_case(&*name)).into()),
+                leading: Some(format!("public CfnOutput get{}() {{", pascal_case(&name)).into()),
                 trailing: Some("}".into()),
                 trailing_newline: true,
             });
@@ -326,15 +336,14 @@ class Mapping<T> {
     }
 }
 
-fn get_type(value: &MappingInnerValue) -> &str {
-    let inner_type = match value {
+const fn get_type(value: &MappingInnerValue) -> &str {
+    match value {
         MappingInnerValue::Bool(_) => "Boolean",
         MappingInnerValue::Number(_) => "Integer",
         MappingInnerValue::Float(_) => "Double",
         MappingInnerValue::String(_) => "String",
         MappingInnerValue::List(_) => "List<String>",
-    };
-    inner_type
+    }
 }
 
 fn check_type(values: Vec<&MappingInnerValue>) -> &str {
@@ -349,7 +358,7 @@ fn check_type(values: Vec<&MappingInnerValue>) -> &str {
             return "Object";
         }
     }
-    return found_type;
+    found_type
 }
 
 impl Default for Java {
@@ -467,7 +476,7 @@ fn emit_conditions(condition: ConditionIr) -> String {
     match condition {
         ConditionIr::Ref(reference) => emit_reference(reference),
         ConditionIr::Str(str) => format!("{str:?}"),
-        ConditionIr::Condition(x) => camel_case(&*x),
+        ConditionIr::Condition(x) => camel_case(&x),
         ConditionIr::And(list) => {
             format!("Fn.conditionAnd({:?})", get_condition(list))
         }
@@ -507,7 +516,7 @@ fn emit_reference(reference: Reference) -> String {
         Origin::LogicalId { .. } => format!("\"{name}\""),
         Origin::GetAttribute { attribute, .. } => format!("Fn.getAtt(\"{name}\", \"{attribute}\")"),
         Origin::PseudoParameter(param) => get_pseudo_param(param),
-        Origin::Parameter => format!("{}", camel_case(&*name)),
+        Origin::Parameter => camel_case(&name),
         Origin::Condition => name,
     }
 }
@@ -526,23 +535,17 @@ fn get_pseudo_param(param: PseudoParameter) -> String {
 }
 
 fn get_condition(list: Vec<ConditionIr>) -> String {
-    let mut res = format!("");
-    for (idx, cond) in list.iter().enumerate() {
-        if idx == list.len() {
-            res = format!("{res} {}", emit_conditions(cond.clone()))
-        } else {
-            res = format!("{res} {},", emit_conditions(cond.clone()))
-        }
-    }
-    res
+    list.into_iter()
+        .map(emit_conditions)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn emit_output(output: &OutputInstruction) -> (String, String) {
-    let name = output.name.clone();
-    let var_name = camel_case(&*name);
+    let var_name = camel_case(&output.name);
     let mut res = format!(
         "{} = CfnOutput.Builder.create(this, \"{}\")",
-        var_name, name
+        var_name, &output.name
     );
 
     res = br!(
@@ -578,29 +581,33 @@ fn emit_java(this: ResourceIr, trailer: Option<&str>) -> String {
         ResourceIr::Bool(bool) => bool.to_string(),
         ResourceIr::Number(number) => format!("{number}"),
         ResourceIr::Double(number) => format!("{number}"),
-        ResourceIr::String(text) => {
-            if text.is_empty() {
-                format!("/* validate FIXME */ \"\"")
-            } else {
-                format!("\"{text}\"")
-            }
-        }
+        ResourceIr::String(text) => format!("\"{text}\""),
         ResourceIr::ImportValue(text) => format!("\"{text}\""),
 
         ResourceIr::Object(structure, index_map) => match structure {
-            Structure::Composite(_) => {
-                let mut res = format!("new GenericMap<String, Object>()");
-                for (key, value) in &index_map {
-                    let element = emit_java((*value).clone(), None);
-                    if key.eq_ignore_ascii_case("Key") {
-                        res = br!(res, format!(".extend({}", element))
+            Structure::Composite(property) => match property {
+                "Tag" => {
+                    let mut res = "new GenericMap<String, Object>()".into();
+                    for (key, value) in &index_map {
+                        let element = emit_java((*value).clone(), None);
+                        if key.eq_ignore_ascii_case("Key") {
+                            res = br!(res, format!(".extend({}", element))
+                        }
+                        if key.eq_ignore_ascii_case("Value") {
+                            res = format!("{res},{})", element)
+                        }
                     }
-                    if key.eq_ignore_ascii_case("Value") {
-                        res = format!("{res},{})", element)
-                    }
+                    br!(res, ".getTags()")
                 }
-                br!(res, ".getTags()")
-            }
+                _ => {
+                    let mut res = format!("{}.{property}Property.builder()", trailer.unwrap_or(""));
+                    for (key, value) in &index_map {
+                        let element = emit_java((*value).clone(), trailer);
+                        res = br!(res, format!(".{}({})", camel_case(key), element));
+                    }
+                    br!(res, ".build()")
+                }
+            },
 
             Structure::Simple(cfn_type) => {
                 let mut res = format!("new GenericMap<String, {}>()", match_cfn_type(&cfn_type));
@@ -616,7 +623,7 @@ fn emit_java(this: ResourceIr, trailer: Option<&str>) -> String {
             let mut res: String;
             match structure {
                 Structure::Composite(_) => {
-                    res = format!("new GenericList<CfnTag>()");
+                    res = "new GenericList<CfnTag>()".into();
                 }
 
                 Structure::Simple(cfn_type) => {
@@ -662,9 +669,10 @@ fn emit_java(this: ResourceIr, trailer: Option<&str>) -> String {
         ResourceIr::Base64(resource) => {
             format!("Fn.base64(String.valueOf({}))", emit_java(*resource, None))
         }
-        ResourceIr::GetAZs(resource) => {
-            format!("Fn.getAzs(String.valueOf({}))", emit_java(*resource, None))
-        }
+        ResourceIr::GetAZs(resource) => match *resource {
+            ResourceIr::String(str) => format!("Fn.getAzs({str:?})"),
+            other => format!("Fn.getAzs(String.valueOf({}))", emit_java(other, None)),
+        },
         ResourceIr::Sub(resources) => {
             if let Some((first_elem, vect)) = resources.split_first() {
                 let body = emit_java(first_elem.clone(), None);
@@ -705,10 +713,7 @@ fn emit_java(this: ResourceIr, trailer: Option<&str>) -> String {
         }
         ResourceIr::Select(size, resource) => {
             let used_type: String = match *resource.clone() {
-                ResourceIr::Array(structure, _) => match structure {
-                    Structure::Simple(cfn_type) => match_cfn_type(&cfn_type),
-                    _ => "".into(),
-                },
+                ResourceIr::Array(Structure::Simple(cfn_type), _) => match_cfn_type(&cfn_type),
                 _ => "".into(),
             };
             if !used_type.is_empty() {
@@ -725,8 +730,8 @@ fn emit_java(this: ResourceIr, trailer: Option<&str>) -> String {
     }
 }
 
-fn name(key: &String) -> String {
-    camel_case(&key)
+fn name(key: &str) -> String {
+    camel_case(key)
         .chars()
         .filter(|c| c.is_alphanumeric())
         .collect()
