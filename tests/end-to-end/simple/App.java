@@ -136,6 +136,12 @@ class SimpleStack extends Stack {
           .getTags()))
       .build();
 
+    bucket.addMetadata("CostCenter", 1337);
+
+    bucket.addDependency(queue);
+
+    bucket.applyRemovalPolicy(RemovalPolicy.RETAIN);
+
     bucketArn = CfnOutput.Builder.create(this, "BucketArn")
       .value(String.valueOf(Fn.getAtt("Bucket", "Arn")))
       .description("The ARN of the bucket in this template!")
