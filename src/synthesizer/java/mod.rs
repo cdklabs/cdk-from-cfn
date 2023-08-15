@@ -4,7 +4,7 @@ use crate::ir::conditions::ConditionIr;
 use crate::ir::importer::ImportInstruction;
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
-use crate::ir::resources::ResourceIr;
+use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::{CfnType, Structure};
@@ -271,6 +271,58 @@ class Mapping<T> {
                 properties.line(format!(".{property}({value})"));
             }
             writer.newline();
+            Self::write_resource_attributes(resource, &res_name.to_lowercase(), writer);
+        }
+    }
+
+    fn write_resource_attributes(
+        resource: &ResourceInstruction,
+        res_name: &str,
+        writer: &Rc<CodeBuffer>,
+    ) {
+        if let Some(metadata) = &resource.metadata {
+            Self::write_resource_metadata(res_name, metadata, writer);
+            writer.newline();
+        }
+
+        if !resource.dependencies.is_empty() {
+            for dependency in &resource.dependencies {
+                writer.line(format!(
+                    "{res_name}.addDependency({});",
+                    dependency.to_lowercase()
+                ));
+            }
+            writer.newline();
+        }
+
+        if let Some(deletion_policy) = &resource.deletion_policy {
+            writer.line(format!(
+                "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy});"
+            ));
+            writer.newline();
+        }
+
+        if let Some(update_policy) = &resource.update_policy {
+            writer.line(format!(
+                "{res_name}.getCfnOptions().setUpdatePolicy({});",
+                emit_java(update_policy.clone(), None)
+            ));
+            writer.newline();
+        }
+    }
+
+    fn write_resource_metadata(res_name: &str, metadata: &ResourceIr, writer: &Rc<CodeBuffer>) {
+        match metadata {
+            ResourceIr::Object(_, entries) => {
+                for (name, value) in entries {
+                    let value = emit_java(value.clone(), None);
+                    writer.line(format!(
+                        "{}.addMetadata(\"{}\", {});",
+                        res_name, name, value
+                    ));
+                }
+            }
+            unsupported => writer.line(format!("/* {unsupported:?} */")),
         }
     }
 
