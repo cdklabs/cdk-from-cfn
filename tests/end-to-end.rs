@@ -68,6 +68,8 @@ test_case!(simple, "SimpleStack");
 
 test_case!(vpc, "VpcStack");
 
+test_case!(resource_w_json_type_properties, "JsonPropsStack");
+
 struct UpdateSnapshot<'a> {
     path: &'static str,
     actual: &'a str,
