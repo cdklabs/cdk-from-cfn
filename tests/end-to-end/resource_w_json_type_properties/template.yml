@@ -18,7 +18,7 @@
           "PolicyDocument": {
             "Statement":[ {
               "Effect":"Allow",
- 	            "Action":[ "sqs:DeleteMessage", "sqs:ReceiveMessage" ],
+              "Action":[ "sqs:DeleteMessage", "sqs:ReceiveMessage" ],
               "Resource":[ { "Fn::GetAtt" : ["MyQueue1", "Arn"]}, { "Fn::GetAtt" : ["MyQueue2", "Arn"]} ]
             } ]
           }
