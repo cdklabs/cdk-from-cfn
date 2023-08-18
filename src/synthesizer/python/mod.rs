@@ -18,7 +18,6 @@ use super::Synthesizer;
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
 pub struct Python {
-    // impl this if you want to add more funct
 }
 
 impl Synthesizer for Python {
