@@ -18,17 +18,7 @@ use super::Synthesizer;
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
 pub struct Python {
-    // TODO: Put options in here for different outputs in Python
-}
-
-impl Python {
-    #[cfg_attr(coverage_nightly, no_coverage)]
-    #[deprecated(note = "Prefer using the Synthesizer API instead")]
-    pub fn output(ir: CloudformationProgramIr) -> String {
-        let mut output = Vec::new();
-        Python {}.synthesize(ir, &mut output, "NoctStack").unwrap();
-        String::from_utf8(output).unwrap()
-    }
+    // impl this if you want to add more funct
 }
 
 impl Synthesizer for Python {
@@ -125,18 +115,16 @@ impl Synthesizer for Python {
                     emit_resource_ir(context, &ctor, &op.value, Some("\n"));
                 }
 
-                if let Some(export) = &op.export {
-                    if let Some(cond) = cond {
-                        let indented = ctor.indent_with_options(IndentOptions {
-                            indent: INDENT,
-                            leading: Some(format!("if ({cond}):").into()),
-                            trailing: Some("".into()),
-                            trailing_newline: true,
-                        });
-                        emit_cfn_output(context, &indented, op, export, &var_name);
-                    } else {
-                        emit_cfn_output(context, &ctor, op, export, &var_name);
-                    }
+                if let Some(cond) = cond {
+                    let indented = ctor.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(format!("if ({cond}):").into()),
+                        trailing: Some("".into()),
+                        trailing_newline: true,
+                    });
+                    emit_cfn_output(context, &indented, op, &var_name);
+                } else {
+                    emit_cfn_output(context, &ctor, op, &var_name);
                 }
             }
         }
@@ -149,7 +137,6 @@ fn emit_cfn_output(
     context: &mut PythonContext,
     output: &CodeBuffer,
     op: &OutputInstruction,
-    export: &ResourceIr,
     var_name: &str,
 ) {
     let output = output.indent_with_options(IndentOptions {
@@ -162,8 +149,10 @@ fn emit_cfn_output(
     if let Some(description) = &op.description {
         output.line(format!("description = '{}',", description.escape_debug()));
     }
-    output.text("export_name = ");
-    emit_resource_ir(context, &output, export, Some(",\n"));
+    if let Some(export) = &op.export {
+        output.text("export_name = ");
+        emit_resource_ir(context, &output, export, Some(",\n"));
+    }
     output.line(format!("value = self.{var_name},"));
 }
 
@@ -193,23 +182,23 @@ impl ImportInstruction {
 
 struct PythonContext {
     imports: Rc<CodeBuffer>,
-    imports_buffer: bool,
+    imports_base64: bool,
 }
 
 impl PythonContext {
     const fn with_imports(imports: Rc<CodeBuffer>) -> Self {
         Self {
             imports,
-            imports_buffer: false,
+            imports_base64: false,
         }
     }
 
-    fn import_buffer(&mut self) {
-        if self.imports_buffer {
+    fn import_base64(&mut self) {
+        if self.imports_base64 {
             return;
         }
-        self.imports.line("import Buffer as _buffer");
-        self.imports_buffer = true;
+        self.imports.line("import base64");
+        self.imports_base64 = true;
     }
 }
 
@@ -528,11 +517,8 @@ fn emit_resource_ir(
         // Intrinsics
         ResourceIr::Base64(base64) => match base64.as_ref() {
             ResourceIr::String(b64) => {
-                context.import_buffer();
-                output.text(format!(
-                    "_buffer.from('{}', 'base64').toString('binary')",
-                    b64.escape_debug()
-                ))
+                context.import_base64();
+                output.text(format!("base64.b64decode('{}')", b64.escape_debug()))
             }
             other => {
                 output.text("cdk.Fn.base64(");

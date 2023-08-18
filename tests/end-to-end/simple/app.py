@@ -3,13 +3,13 @@ import aws_cdk as cdk
 import aws_cdk.aws_s3 as s3
 import aws_cdk.aws_sqs as sqs
 from constructs import Construct
-import Buffer as _buffer
+import base64
 
 """
   An example stack that uses many of the syntax elements permitted in a
   CloudFormation template, but does not attempt to represent a realistic stack.
 """
-class SimpleStack(Stack):
+class NoctStack(Stack):
   """
     The ARN of the bucket in this template!
   """
@@ -105,7 +105,7 @@ class SimpleStack(Stack):
           tags = [
             {
               'key': 'FancyTag',
-              'value': cdk.Fn.base64(table['Values']['String']) if is_us_east1 else _buffer.from('8CiMvAo=', 'base64').toString('binary'),
+              'value': cdk.Fn.base64(table['Values']['String']) if is_us_east1 else base64.b64decode('8CiMvAo='),
             },
           ],
         ) if is_us_east1 else None
@@ -126,6 +126,14 @@ class SimpleStack(Stack):
       )
 
     self.queue_arn = queue.ref
+    cdk.CfnOutput(self, 'QueueArn', 
+      description = 'The ARN of the SQS Queue',
+      value = self.queue_arn,
+    )
     self.is_large = True if is_large_region else False
+    cdk.CfnOutput(self, 'IsLarge', 
+      description = 'Whether this is a large region or not',
+      value = self.is_large,
+    )
 
 
