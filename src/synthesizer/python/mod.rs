@@ -369,7 +369,6 @@ fn emit_resource(
     let service = reference.resource_type.service().to_lowercase();
 
     let maybe_undefined = if let Some(cond) = &reference.condition {
-        append_references(output, reference);
 
         output.line(format!(
             "{var_name} = {service}.Cfn{rtype}(self, '{}',",
@@ -385,7 +384,6 @@ fn emit_resource(
 
         true
     } else {
-        append_references(output, reference);
         output.line(format!(
             "{var_name} = {service}.Cfn{rtype}(self, '{}',",
             reference.name.escape_debug(),
@@ -615,11 +613,6 @@ fn emit_resource_ir(
     }
 }
 
-fn append_references(output: &CodeBuffer, reference: &ResourceInstruction) {
-    for dep in &reference.references {
-        output.line(format!("if ({dep} is None): raise Exception(\"A combination of conditions caused '{dep}' to be None. Fixit.\")", dep=camel_case(dep)));
-    }
-}
 
 pub fn capitalize(s: &str) -> String {
     let mut c = s.chars();

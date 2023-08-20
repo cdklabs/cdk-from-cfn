@@ -87,7 +87,6 @@ class NoctStack(Stack):
           visibility_timeout = 120,
         )
 
-    if (queue is None): raise Exception("A combination of conditions caused 'queue' to be None. Fixit.")
     bucket = s3.CfnBucket(self, 'Bucket',
           access_control = 'private',
           bucket_name = '{props.bucketNamePrefix}-{self.stackName}-bucket',
