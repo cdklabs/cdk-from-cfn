@@ -100,7 +100,7 @@ impl Synthesizer for Python {
                             )
                             .into(),
                         ),
-                        trailing: Some(format!("}}),").into()),
+                        trailing: Some("}}),".into()),
                         trailing_newline: true,
                     });
                     cfn_param.line(format!("'type': '{}',", param.constructor_type));
