@@ -17,8 +17,7 @@ use super::Synthesizer;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
-pub struct Python {
-}
+pub struct Python {}
 
 impl Synthesizer for Python {
     fn synthesize(
@@ -369,7 +368,6 @@ fn emit_resource(
     let service = reference.resource_type.service().to_lowercase();
 
     let maybe_undefined = if let Some(cond) = &reference.condition {
-
         output.line(format!(
             "{var_name} = {service}.Cfn{rtype}(self, '{}',",
             reference.name.escape_debug(),
@@ -612,7 +610,6 @@ fn emit_resource_ir(
         output.text(trailer.to_owned())
     }
 }
-
 
 pub fn capitalize(s: &str) -> String {
     let mut c = s.chars();
