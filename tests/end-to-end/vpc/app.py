@@ -3,7 +3,7 @@ import aws_cdk as cdk
 import aws_cdk.aws_ec2 as ec2
 from constructs import Construct
 
-class NoctStack(Stack):
+class VpcStack(Stack):
   def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
     super().__init__(scope, construct_id, **kwargs)
 
