@@ -1,5 +1,6 @@
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
+use crate::ir::constructor::ConstructorParameter;
 use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::MappingInstruction;
 use crate::ir::outputs::OutputInstruction;
@@ -70,6 +71,77 @@ impl Synthesizer for Python {
             trailing_newline: true,
         });
         ctor.line("super().__init__(scope, construct_id, **kwargs)");
+
+        let have_default_or_special_type_params = &ir
+            .constructor
+            .inputs
+            .iter()
+            .filter(|p| p.constructor_type.contains("AWS::") || p.default_value.is_some())
+            .collect::<Vec<&ConstructorParameter>>();
+        if !have_default_or_special_type_params.is_empty() {
+            ctor.newline();
+            ctor.line("# Applying default props");
+            let obj = ctor.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("props = {".into()),
+                trailing: Some("}".into()),
+                trailing_newline: true,
+            });
+            for param in have_default_or_special_type_params {
+                let name = &param.name;
+                // example: AWS::EC2::Image::Id, List<AWS::EC2::VPC::Id>, AWS::SSM::Parameter::Value<List<String>>
+                if param.constructor_type.contains("AWS::") {
+                    let cfn_param = obj.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(
+                            format!(
+                                "'{name}': cdk.CfnParameter(self, '{}', {{",
+                                camel_case(&param.name)
+                            )
+                            .into(),
+                        ),
+                        trailing: Some(format!("}}),").into()),
+                        trailing_newline: true,
+                    });
+                    cfn_param.line(format!("'type': '{}',", param.constructor_type));
+                    if let Some(v) = &param.default_value {
+                        cfn_param.line(format!(
+                            "'default': str({name}) if {name} is not None else '{}',",
+                            v.escape_debug()
+                        ));
+                    } else {
+                        cfn_param.line(format!("default: str({name}),"));
+                    };
+                    if let Some(v) = &param.description {
+                        cfn_param.line(format!("description: '{}',", v));
+                    };
+                } else {
+                    let value = match &param.default_value {
+                        None => "".to_owned(),
+                        Some(value) => {
+                            let value = match param.constructor_type.as_str() {
+                                "String" => format!("'{}'", value.escape_debug()),
+                                "List<Number>" => format!("[{}]", value),
+                                "CommaDelimitedList" => format!(
+                                    "[{}]",
+                                    value
+                                        .split(',')
+                                        .map(|v| format!("'{}'", v.escape_debug()))
+                                        .collect::<Vec<String>>()
+                                        .join(",")
+                                ),
+                                _ => value.clone(),
+                            };
+                            value
+                        }
+                    };
+
+                    obj.line(format!(
+                        "{name}: {name} if {name} is not None else {value},"
+                    ));
+                };
+            }
+        }
 
         emit_mappings(&ctor, &ir.mappings);
 

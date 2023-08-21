@@ -26,6 +26,15 @@ class NoctStack(Stack):
   def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
     super().__init__(scope, construct_id, **kwargs)
 
+    # Applying default props
+    props = {
+      bucketNamePrefix: bucketNamePrefix if bucketNamePrefix is not None else 'bucket',
+      'logDestinationBucketName': cdk.CfnParameter(self, 'logDestinationBucketName', {
+        'type': 'AWS::SSM::Parameter::Value<String>',
+        'default': str(logDestinationBucketName) if logDestinationBucketName is not None else '/logging/bucket/name',
+      }),
+    }
+
     # Mappings
     booleans = {
       'True': {
