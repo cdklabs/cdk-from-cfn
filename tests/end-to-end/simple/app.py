@@ -28,7 +28,7 @@ class SimpleStack(Stack):
 
     # Applying default props
     props = {
-      bucketNamePrefix: bucketNamePrefix if bucketNamePrefix is not None else 'bucket',
+      'bucketNamePrefix': bucketNamePrefix if bucketNamePrefix is not None else 'bucket',
       'logDestinationBucketName': cdk.CfnParameter(self, 'logDestinationBucketName', {
         'type': 'AWS::SSM::Parameter::Value<String>',
         'default': str(logDestinationBucketName) if logDestinationBucketName is not None else '/logging/bucket/name',
@@ -98,9 +98,9 @@ class SimpleStack(Stack):
 
     bucket = s3.CfnBucket(self, 'Bucket',
           access_control = 'private',
-          bucket_name = '{props.bucketNamePrefix}-{self.stackName}-bucket',
+          bucket_name = f"{props['bucketNamePrefix']}-{self.stackName}-bucket",
           logging_configuration = {
-            'destinationBucketName': props.logDestinationBucketName,
+            'destinationBucketName': props['logDestinationBucketName'],
           },
           website_configuration = {
             'indexDocument': 'index.html',

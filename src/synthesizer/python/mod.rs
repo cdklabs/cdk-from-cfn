@@ -100,7 +100,7 @@ impl Synthesizer for Python {
                             )
                             .into(),
                         ),
-                        trailing: Some("}}),".into()),
+                        trailing: Some("}),".into()),
                         trailing_newline: true,
                     });
                     cfn_param.line(format!("'type': '{}',", param.constructor_type));
@@ -137,7 +137,7 @@ impl Synthesizer for Python {
                     };
 
                     obj.line(format!(
-                        "{name}: {name} if {name} is not None else {value},"
+                        "'{name}': {name} if {name} is not None else {value},"
                     ));
                 };
             }
@@ -403,7 +403,7 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
 impl Reference {
     fn to_python(&self) -> Cow<'static, str> {
         match &self.origin {
-            Origin::Parameter => format!("props.{}", camel_case(&self.name)).into(),
+            Origin::Parameter => format!("props['{}']", camel_case(&self.name)).into(),
             Origin::LogicalId { conditional: _ } => {
                 format!("{var}{chain}ref", var = camel_case(&self.name), chain = ".").into()
             }
@@ -661,7 +661,7 @@ fn emit_resource_ir(
             }
         },
         ResourceIr::Sub(parts) => {
-            output.text("'");
+            output.text("f\"");
             for part in parts {
                 match part {
                     ResourceIr::String(lit) => output.text(lit.clone()),
@@ -672,7 +672,7 @@ fn emit_resource_ir(
                     }
                 }
             }
-            output.text("'")
+            output.text("\"")
         }
 
         // References
