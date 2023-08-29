@@ -247,6 +247,7 @@ impl Java {
     fn write_resources(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
         for resource in &ir.resources {
             let maybe_undefined = Self::write_resource(resource, writer);
+            writer.newline();
             Self::write_resource_attributes(resource, writer, maybe_undefined);
         }
     }
@@ -267,6 +268,7 @@ impl Java {
             camel_case(&resource.name)
         };
         let trailer = if maybe_undefined { ");\n" } else { ";\n" };
+        let mut extra_line = false;
 
         if let Some(metadata) = &resource.metadata {
             match metadata {
@@ -281,6 +283,7 @@ impl Java {
                     writer.line(format!("/* {unsupported:?} */"));
                 }
             }
+            extra_line = true;
         }
 
         for dependency in &resource.dependencies {
@@ -289,6 +292,7 @@ impl Java {
                 dependency.to_lowercase(),
                 trailer
             ));
+            extra_line = true;
         }
 
         if let Some(deletion_policy) = &resource.deletion_policy {
@@ -296,14 +300,18 @@ impl Java {
                 "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy}){}",
                 trailer
             ));
+            extra_line = true;
         }
 
         if let Some(update_policy) = &resource.update_policy {
             writer.text(format!("{res_name}.getCfnOptions().setUpdatePolicy("));
             emit_java(update_policy.clone(), writer, None);
             writer.text(format!("){trailer}"));
+            extra_line = true;
         }
-        writer.newline();
+        if extra_line {
+            writer.newline();
+        }
     }
 
     fn write_conditions(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {

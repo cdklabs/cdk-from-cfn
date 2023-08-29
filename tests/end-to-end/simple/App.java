@@ -118,6 +118,7 @@ class SimpleStack extends Stack {
                                         : new String(Base64.getDecoder().decode("8CiMvAo=")))
                                 .build()))
                 .build()) : Optional.empty();
+
         bucket.ifPresent(_bucket -> _bucket.addMetadata("CostCenter", 1337));
         bucket.ifPresent(_bucket -> _bucket.addDependency(queue));
         bucket.ifPresent(_bucket -> _bucket.applyRemovalPolicy(RemovalPolicy.RETAIN));
