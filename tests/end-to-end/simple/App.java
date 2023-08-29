@@ -3,7 +3,6 @@ package com.acme.test.simple;
 import software.constructs.Construct;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import software.amazon.awscdk.*;
 import software.amazon.awscdk.CfnMapping;
 import software.amazon.awscdk.CfnTag;
@@ -23,9 +22,11 @@ class SimpleStack extends Stack {
     public Optional<Object> getBucketArn() {
         return this.bucketArn;
     }
+
     public Object getQueueArn() {
         return this.queueArn;
     }
+
     public Object getIsLarge() {
         return this.isLarge;
     }
@@ -43,7 +44,8 @@ class SimpleStack extends Stack {
             String logDestinationBucketName) {
         super(scope, id, props);
 
-        bucketNamePrefix = Optional.ofNullable(bucketNamePrefix).isPresent() ? bucketNamePrefix : "bucket";
+        bucketNamePrefix = Optional.ofNullable(bucketNamePrefix).isPresent() ? bucketNamePrefix
+                : "bucket";
         logDestinationBucketName = Optional.ofNullable(logDestinationBucketName).isPresent()
                 ? logDestinationBucketName
                 : CfnParameter.Builder.create(this, "LogDestinationBucketName")
@@ -51,7 +53,6 @@ class SimpleStack extends Stack {
                         .defaultValue("/logging/bucket/name")
                         .build()
                         .getValueAsString();
-
 
         // Mappings
         final CfnMapping booleans = new CfnMapping(this, "booleans");
@@ -85,60 +86,62 @@ class SimpleStack extends Stack {
         Boolean isLargeRegion = isUsEast1;
 
         CfnQueue queue = CfnQueue.Builder.create(this, "Queue")
-            .delaySeconds(42.1337)
-            .fifoQueue(false)
-            .kmsMasterKeyId(Fn.importValue("Shared.KmsKeyArn"))
-            .queueName(String.join("-",
-                this.getStackName(),
-                strings.findInMap("Bars", "Bar"),
-                Fn.select(1, Fn.getAzs(this.getRegion()))))
-            .redrivePolicy(null)
-            .visibilityTimeout(120)
-            .build();
-
+                .delaySeconds(42.1337)
+                .fifoQueue(false)
+                .kmsMasterKeyId(Fn.importValue("Shared.KmsKeyArn"))
+                .queueName(String.join("-",
+                        this.getStackName(),
+                        strings.findInMap("Bars", "Bar"),
+                        Fn.select(1, Fn.getAzs(this.getRegion()))))
+                .redrivePolicy(null)
+                .visibilityTimeout(120)
+                .build();
 
         Optional<CfnBucket> bucket = isUsEast1 ? Optional.of(CfnBucket.Builder.create(this, "Bucket")
-            .accessControl("private")
-            .bucketName(bucketNamePrefix + "-" + this.getStackName() + "-bucket")
-            .loggingConfiguration(CfnBucket.LoggingConfigurationProperty.builder()
-                .destinationBucketName(logDestinationBucketName)
-                .build())
-            .websiteConfiguration(CfnBucket.WebsiteConfigurationProperty.builder()
-                .indexDocument("index.html")
-                .errorDocument("error.html")
-                .redirectAllRequestsTo(CfnBucket.RedirectAllRequestsToProperty.builder()
-                    .hostName("example.com")
-                    .protocol("https")
-                    .build())
-                .build())
-            .tags(Arrays.asList(
-                CfnTag.builder()
-                    .key("FancyTag")
-                    .value(isUsEast1 ? Fn.base64(table.findInMap("Values", "String")) : new String(Base64.getDecoder().decode("8CiMvAo=")))
-                    .build()))
-            .build()) : Optional.empty();
+                .accessControl("private")
+                .bucketName(bucketNamePrefix + "-" + this.getStackName() + "-bucket")
+                .loggingConfiguration(CfnBucket.LoggingConfigurationProperty.builder()
+                        .destinationBucketName(logDestinationBucketName)
+                        .build())
+                .websiteConfiguration(CfnBucket.WebsiteConfigurationProperty.builder()
+                        .indexDocument("index.html")
+                        .errorDocument("error.html")
+                        .redirectAllRequestsTo(CfnBucket.RedirectAllRequestsToProperty.builder()
+                                .hostName("example.com")
+                                .protocol("https")
+                                .build())
+                        .build())
+                .tags(Arrays.asList(
+                        CfnTag.builder()
+                                .key("FancyTag")
+                                .value(isUsEast1 ? Fn.base64(table.findInMap("Values", "String"))
+                                        : new String(Base64.getDecoder().decode("8CiMvAo=")))
+                                .build()))
+                .build()) : Optional.empty();
         bucket.ifPresent(_bucket -> _bucket.addMetadata("CostCenter", 1337));
         bucket.ifPresent(_bucket -> _bucket.addDependency(queue));
         bucket.ifPresent(_bucket -> _bucket.applyRemovalPolicy(RemovalPolicy.RETAIN));
 
-        this.bucketArn = isUsEast1 ? Optional.of(bucket.isPresent() ? bucket.get().getAttrArn() : Optional.empty()) : Optional.empty();
+        this.bucketArn = isUsEast1 ? Optional.of(bucket.isPresent() ? bucket.get().getAttrArn()
+                : Optional.empty()) : Optional.empty();
         this.bucketArn.ifPresent(_bucketArn -> CfnOutput.Builder.create(this, "BucketArn")
-            .value(_bucketArn.toString())
-            .description("The ARN of the bucket in this template!")
-            .exportName("ExportName")
-            .build());
+                .value(_bucketArn.toString())
+                .description("The ARN of the bucket in this template!")
+                .exportName("ExportName")
+                .build());
 
         this.queueArn = queue.getRef();
         CfnOutput.Builder.create(this, "QueueArn")
-            .value(this.queueArn.toString())
-            .description("The ARN of the SQS Queue")
-            .build();
+                .value(this.queueArn.toString())
+                .description("The ARN of the SQS Queue")
+                .build();
 
-        this.isLarge = isLargeRegion ? true : false;
+        this.isLarge = isLargeRegion ? true
+                : false;
         CfnOutput.Builder.create(this, "IsLarge")
-            .value(this.isLarge.toString())
-            .description("Whether this is a large region or not")
-            .build();
+                .value(this.isLarge.toString())
+                .description("Whether this is a large region or not")
+                .build();
 
     }
 }

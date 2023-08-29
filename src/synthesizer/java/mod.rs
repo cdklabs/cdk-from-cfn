@@ -50,7 +50,6 @@ impl Java {
         code.line("import software.constructs.Construct;");
         code.newline();
         code.line("import java.util.*;");
-        code.line("import java.util.stream.Collectors;");
         code.line("import software.amazon.awscdk.*;");
         code.line("import software.amazon.awscdk.CfnMapping;");
         code.line("import software.amazon.awscdk.CfnTag;");
@@ -108,7 +107,7 @@ impl Java {
                 default_value: input.default_value.clone(),
             });
         }
-        return v;
+        v
     }
 
     fn write_stack_definitions(
@@ -116,7 +115,6 @@ impl Java {
         writer: &CodeBuffer,
         stack_name: &str,
     ) -> Rc<CodeBuffer> {
-        writer.newline();
         fill!(writer;
             format!("public {}(final Construct scope, final String id) {{", stack_name);
             "super(scope, id, null);";
@@ -137,7 +135,7 @@ impl Java {
 
         if props.is_empty() {
             definitions.line("super(scope, id, props);");
-            return definitions;
+            definitions
         } else {
             definitions.line(format!(
                 "this(scope, id, props{});",
@@ -165,7 +163,7 @@ impl Java {
             }
             definitions_with_props.line("super(scope, id, props);");
             definitions_with_props.newline();
-            return definitions_with_props;
+            definitions_with_props
         }
     }
 
@@ -201,7 +199,7 @@ impl Java {
                             .into(),
                         ),
                         trailing: None,
-                        trailing_newline: true,
+                        trailing_newline: false,
                     });
                     prop_details.line(format!(".type(\"{}\")", prop.constructor_type));
                     prop_details.line(format!(".defaultValue(\"{}\")", v));
@@ -209,7 +207,7 @@ impl Java {
                     prop_details.line(format!(".{}();", value_as));
                 }
                 Some(v) => writer.line(format!(
-                    "{} = Optional.ofNullable({}).isPresent() ? {} : \"{}\";",
+                    "{} = Optional.ofNullable({}).isPresent() ? {}\n{DOUBLE_INDENT}: \"{}\";",
                     prop.name, prop.name, prop.name, v
                 )),
             }
@@ -217,13 +215,12 @@ impl Java {
     }
 
     fn write_resource(resource: &ResourceInstruction, writer: &Rc<CodeBuffer>) -> bool {
-        writer.newline();
         let class = resource.resource_type.type_name();
         let res_name = &resource.name;
 
-        let maybe_undefined = if let Some(cond) = &resource.condition {
-            writer.line(format!("Optional<Cfn{class}> {} = {} ? Optional.of(Cfn{class}.Builder.create(this, \"{res_name}\")", name(res_name), camel_case(&cond)));
-            let properties = writer.indent(INDENT);
+        if let Some(cond) = &resource.condition {
+            writer.line(format!("Optional<Cfn{class}> {} = {} ? Optional.of(Cfn{class}.Builder.create(this, \"{res_name}\")", name(res_name), camel_case(cond)));
+            let properties = writer.indent(DOUBLE_INDENT);
             for (name, prop) in &resource.properties {
                 properties.text(format!(".{}(", camel_case(name)));
                 emit_java(prop.clone(), &properties, Some(class));
@@ -236,7 +233,7 @@ impl Java {
                 "Cfn{class} {} = Cfn{class}.Builder.create(this, \"{res_name}\")",
                 name(res_name)
             ));
-            let properties = writer.indent(INDENT);
+            let properties = writer.indent(DOUBLE_INDENT);
             for (name, prop) in &resource.properties {
                 properties.text(format!(".{}(", camel_case(name)));
                 emit_java(prop.clone(), &properties, Some(class));
@@ -244,8 +241,7 @@ impl Java {
             }
             properties.line(".build();");
             false
-        };
-        maybe_undefined
+        }
     }
 
     fn write_resources(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
@@ -320,6 +316,7 @@ impl Java {
                 emit_conditions(val.clone())
             ));
         }
+        writer.newline();
     }
 
     fn match_field_type(condition: Option<String>) -> String {
@@ -349,7 +346,7 @@ impl Java {
                     )
                     .into(),
                 ),
-                trailing: Some("}".into()),
+                trailing: Some("}\n".into()),
                 trailing_newline: true,
             });
             indented.line(format!("return this.{};", camel_case(&output.name)));
@@ -365,11 +362,11 @@ impl Java {
                     emit_java(output.value.clone(), writer, None);
                     writer.text(";\n");
                     let output_writer = writer.indent_with_options(IndentOptions {
-                        indent: INDENT,
+                        indent: DOUBLE_INDENT,
                         leading: Some(
                             format!("CfnOutput.Builder.create(this, \"{}\")", &output.name).into(),
                         ),
-                        trailing: Some(format!("{INDENT}.build();").into()),
+                        trailing: Some(format!("{DOUBLE_INDENT}.build();").into()),
                         trailing_newline: true,
                     });
                     output_writer.line(format!(".value(this.{var_name}.toString())"));
@@ -384,7 +381,7 @@ impl Java {
                     emit_java(output.value.clone(), writer, None);
                     writer.text(" : Optional.empty();\n");
                     let output_writer = writer.indent_with_options(IndentOptions {
-                        indent: INDENT,
+                        indent: DOUBLE_INDENT,
                         leading: Some(
                             format!(
                                 "this.{var_name}.ifPresent(_{var_name} -> CfnOutput.Builder.create(this, \"{}\")",
@@ -392,7 +389,7 @@ impl Java {
                             )
                             .into(),
                         ),
-                        trailing: Some(format!("{INDENT}.build());").into()),
+                        trailing: Some(format!("{DOUBLE_INDENT}.build());").into()),
                         trailing_newline: true,
                     });
                     output_writer.line(format!(".value(_{var_name}.toString())"));
@@ -541,7 +538,7 @@ fn emit_reference(reference: Reference) -> String {
         Origin::LogicalId { conditional } => {
             if conditional {
                 format!(
-                    "Optional.of({}.isPresent() ? {}.get().getRef() : Optional.empty())",
+                    "Optional.of({}.isPresent() ? {}.get().getRef()\n{DOUBLE_INDENT}: Optional.empty())",
                     camel_case(&name),
                     camel_case(&name)
                 )
@@ -555,7 +552,7 @@ fn emit_reference(reference: Reference) -> String {
         } => {
             if conditional {
                 format!(
-                    "Optional.of({}.isPresent() ? {}.get().getAttr{}() : Optional.empty())",
+                    "Optional.of({}.isPresent() ? {}.get().getAttr{}()\n{DOUBLE_INDENT}: Optional.empty())",
                     camel_case(&name),
                     camel_case(&name),
                     pascal_case(&attribute)
@@ -611,7 +608,7 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>) {
         // Collection values
         ResourceIr::Array(_, array) => {
             let arr_writer = output.indent_with_options(IndentOptions {
-                indent: INDENT,
+                indent: DOUBLE_INDENT,
                 leading: Some("Arrays.asList(".into()),
                 trailing: None,
                 trailing_newline: false,
@@ -631,36 +628,35 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>) {
             Structure::Composite(property) => match property {
                 "Tag" => {
                     let obj = output.indent_with_options(IndentOptions {
-                        indent: INDENT,
+                        indent: DOUBLE_INDENT,
                         leading: Some("CfnTag.builder()".into()),
-                        trailing: Some(format!("{INDENT}.build()").into()),
+                        trailing: Some(format!("{DOUBLE_INDENT}.build()").into()),
                         trailing_newline: false,
                     });
                     for (key, value) in &entries {
                         if key.eq_ignore_ascii_case("Key") {
-                            obj.text(format!(".key("));
+                            obj.text(".key(");
                             emit_java(value.clone(), &obj, class);
-                            obj.text(")");
+                            obj.text(")\n");
                         }
                         if key.eq_ignore_ascii_case("Value") {
-                            obj.text(format!(".value("));
+                            obj.text(".value(");
                             emit_tag_value(value.clone(), &obj, class);
-                            obj.text(")")
+                            obj.text(")\n")
                         }
-                        obj.newline();
                     }
                 }
                 _ => {
                     let obj = output.indent_with_options(IndentOptions {
-                        indent: INDENT,
+                        indent: DOUBLE_INDENT,
                         leading: Some(
                             format!("Cfn{}.{property}Property.builder()", class.unwrap()).into(),
                         ),
-                        trailing: Some(format!("{INDENT}.build()").into()),
+                        trailing: Some(format!("{DOUBLE_INDENT}.build()").into()),
                         trailing_newline: false,
                     });
                     for (key, value) in &entries {
-                        obj.text(format!(".{}(", camel_case(&key)));
+                        obj.text(format!(".{}(", camel_case(key)));
                         emit_java(value.clone(), &obj, class);
                         obj.text(")\n");
                     }
@@ -703,20 +699,20 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>) {
             output.text(")");
         }
         ResourceIr::GetAZs(region) => {
-            output.text(format!("Fn.getAzs("));
+            output.text("Fn.getAzs(");
             emit_java(*region, output, None);
             output.text(")");
         }
         ResourceIr::If(cond_name, if_true, if_false) => {
             output.text(format!("{} ? ", camel_case(&cond_name)));
             emit_java(*if_true, output, class);
-            output.text(" : ");
+            output.text(format!("\n{DOUBLE_INDENT}: "));
             emit_java(*if_false, output, class);
         }
         ResourceIr::ImportValue(text) => output.text(format!("Fn.importValue(\"{text}\")")),
         ResourceIr::Join(sep, list) => {
             let items = output.indent_with_options(IndentOptions {
-                indent: INDENT,
+                indent: DOUBLE_INDENT,
                 leading: Some(format!("String.join(\"{sep}\",").into()),
                 trailing: Some(")".into()),
                 trailing_newline: false,
