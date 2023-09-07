@@ -232,18 +232,17 @@ impl Synthesizer for CSharp {
                     trailing: Some("}".into()),
                     trailing_newline: true,
                 });
-                let inner_map_items = inner_map.indent(INDENT);
                 
                 for (inner_key, inner_value) in inner {
                     match inner_value {
                         MappingInnerValue::Bool(_) | MappingInnerValue::Float(_) | MappingInnerValue::Number(_) => {
-                            inner_map_items.text(format!("{{ \"{inner_key}\", {inner_value} }},"));
+                            inner_map.text(format!("{{ \"{inner_key}\", {inner_value} }},"));
                         },
                         MappingInnerValue::String(s) => {
-                            inner_map_items.text(format!("{{ \"{inner_key}\", \"{s}\" }},"));
+                            inner_map.text(format!("{{ \"{inner_key}\", \"{s}\" }},"));
                         }
                         MappingInnerValue::List(l) => {
-                            let list_block = inner_map_items.indent_with_options(IndentOptions {
+                            let list_block = inner_map.indent_with_options(IndentOptions {
                                 indent: INDENT,
                                 leading: Some("{".into()),
                                 trailing: Some("},".into()),
@@ -260,7 +259,7 @@ impl Synthesizer for CSharp {
                             }
                         }                    
                     }
-                    inner_map_items.newline();   
+                    inner_map.newline();   
                 }
             }
         }

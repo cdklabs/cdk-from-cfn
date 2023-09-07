@@ -1,6 +1,6 @@
 using Amazon.CDK;
-using Amazon.CDK.AWS.S3;
-using Amazon.CDK.AWS.SQS;
+using Amazon.CDK.AWS.s3;
+using Amazon.CDK.AWS.sqs;
 using Constructs;
 using System.Collections.Generic;
 
@@ -15,6 +15,12 @@ namespace Com.Acme.Test.Simple
 
         public string LogDestinationBucketName { get; set; }
 
+        public string[] Foo { get; set; }
+
+        public string[] Bar { get; set; }
+
+        public string Baz { get; set; }
+
     }
 
     /// <summary>
@@ -26,32 +32,40 @@ namespace Com.Acme.Test.Simple
         /// <summary>
         /// The ARN of the bucket in this template!
         /// </summary>
-        public string BucketArn { get; } 
+        public object BucketArn { get; } 
 
         /// <summary>
         /// The ARN of the SQS Queue
         /// </summary>
-        public string QueueArn { get; } 
+        public object QueueArn { get; } 
 
         /// <summary>
         /// Whether this is a large region or not
         /// </summary>
-        public string IsLarge { get; } 
+        public object IsLarge { get; } 
 
-        NoctStack(Construct scope, string id, NoctStackProps props = null) : base(scope, id, props)
+        public NoctStack(Construct scope, string id, NoctStackProps props = null) : base(scope, id, props)
         {
+
+            // Applying default props
+            props.BucketNamePrefix ??= "bucket";
+            props.LogDestinationBucketName = new CfnParameter(this, "LogDestinationBucketName", new CfnParameterProps
+            {
+                Type = "AWS::SSM::Parameter::Value<String>",
+                Default = props.LogDestinationBucketName ?? "/logging/bucket/name",
+            }).ValueAsString;
             var booleans = new Dictionary<string, Dictionary<string,bool>> 
             {
                 {
                     "True", new Dictionary<string, bool>
                     {
-                            { "true", true },
+                        { "true", true },
                     }
                 },
                 {
                     "False", new Dictionary<string, bool>
                     {
-                            { "false", false },
+                        { "false", false },
                     }
                 },
             };
@@ -60,26 +74,26 @@ namespace Com.Acme.Test.Simple
                 {
                     "Candidates", new Dictionary<string, string[]>
                     {
+                        {
+                            "Empty", new string[] 
                             {
-                                "Empty", new string[] 
-                                {
-                                }
-                            },
+                            }
+                        },
 
+                        {
+                            "Singleton", new string[] 
                             {
-                                "Singleton", new string[] 
-                                {
-                                    "One",
-                                }
-                            },
+                                "One",
+                            }
+                        },
 
+                        {
+                            "Pair", new string[] 
                             {
-                                "Pair", new string[] 
-                                {
-                                    "One",
-                                    "Two",
-                                }
-                            },
+                                "One",
+                                "Two",
+                            }
+                        },
 
                     }
                 },
@@ -89,9 +103,9 @@ namespace Com.Acme.Test.Simple
                 {
                     "Prime", new Dictionary<string, int>
                     {
-                            { "Eleven", 11 },
-                            { "Thirteen", 13 },
-                            { "Seventeen", 17 },
+                        { "Eleven", 11 },
+                        { "Thirteen", 13 },
+                        { "Seventeen", 17 },
                     }
                 },
             };
@@ -100,14 +114,14 @@ namespace Com.Acme.Test.Simple
                 {
                     "Foos", new Dictionary<string, string>
                     {
-                            { "Foo1", "Foo1" },
-                            { "Foo2", "Foo2" },
+                        { "Foo1", "Foo1" },
+                        { "Foo2", "Foo2" },
                     }
                 },
                 {
                     "Bars", new Dictionary<string, string>
                     {
-                            { "Bar", "Bar" },
+                        { "Bar", "Bar" },
                     }
                 },
             };
@@ -116,19 +130,19 @@ namespace Com.Acme.Test.Simple
                 {
                     "Values", new Dictionary<string, object>
                     {
-                            { "Boolean", true },
-                            { "Float", 3.14 },
+                        { "Boolean", true },
+                        { "Float", 3.14 },
+                        {
+                            "List", new string[] 
                             {
-                                "List", new string[] 
-                                {
-                                    "1",
-                                    "2",
-                                    "3",
-                                }
-                            },
+                                "1",
+                                "2",
+                                "3",
+                            }
+                        },
 
-                            { "Number", 42 },
-                            { "String", "Baz" },
+                        { "Number", 42 },
+                        { "String", "Baz" },
                     }
                 },
             };
@@ -153,19 +167,19 @@ namespace Com.Acme.Test.Simple
             {
                 AccessControl = "private",
                 BucketName = $"{props.BucketNamePrefix}-{StackName}-bucket",
-                LoggingConfiguration = new Dictionary<string, object>
+                LoggingConfiguration = new CfnBucket.LoggingConfigurationProperty
                 {
-                    { "DestinationBucketName", props.LogDestinationBucketName},
+                    DestinationBucketName = props.LogDestinationBucketName,
                 },
-                WebsiteConfiguration = new Dictionary<string, object>
+                WebsiteConfiguration = new CfnBucket.WebsiteConfigurationProperty
                 {
-                    { "IndexDocument", "index.html"},
-                    { "ErrorDocument", "error.html"},
-                    { "RedirectAllRequestsTo", new Dictionary<string, object>
+                    IndexDocument = "index.html",
+                    ErrorDocument = "error.html",
+                    RedirectAllRequestsTo = new CfnBucket.RedirectAllRequestsToProperty
                     {
-                        { "HostName", "example.com"},
-                        { "Protocol", "https"},
-                    }},
+                        HostName = "example.com",
+                        Protocol = "https",
+                    },
                 },
                 Tags = new []
                 {
@@ -185,7 +199,7 @@ namespace Com.Acme.Test.Simple
                 new CfnOutput(this, "BucketArn", new CfnOutputProps {
                     Description = "The ARN of the bucket in this template!",
                     ExportName = "ExportName",
-                    Value = BucketArn,
+                    Value = BucketArn as string,
                 });
             }
             QueueArn = queue.Ref;
