@@ -23,7 +23,7 @@ fn main() -> anyhow::Result<()> {
         #[cfg(feature = "python")]
         "python",
         #[cfg(feature = "java")]
-        "java", 
+        "java",
         #[cfg(feature = "csharp")]
         "csharp",
     ];

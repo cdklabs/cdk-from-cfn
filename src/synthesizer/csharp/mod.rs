@@ -8,7 +8,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::ResourceIr;
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::specification::{Structure, CfnType};
+use crate::specification::{CfnType, Structure};
 use std::borrow::Cow;
 use std::io;
 use voca_rs::case::{camel_case, pascal_case};
@@ -37,14 +37,14 @@ impl Default for CSharp {
 
 impl Synthesizer for CSharp {
     fn synthesize(
-        &self, 
-        ir: CloudformationProgramIr, 
+        &self,
+        ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
-        stack_name: &str
+        stack_name: &str,
     ) -> io::Result<()> {
         // Initialize the code buffer in which all of the code will be generated
         let code = CodeBuffer::default();
-        
+
         // Imports
         for import in &ir.imports {
             code.line(import.to_csharp())
@@ -52,15 +52,15 @@ impl Synthesizer for CSharp {
         code.line("using Constructs;");
         code.line("using System.Collections.Generic;");
         code.newline();
-        
+
         // Namespace definition
-        let namespace = code.indent_with_options(IndentOptions { 
-            indent: INDENT, 
+        let namespace = code.indent_with_options(IndentOptions {
+            indent: INDENT,
             leading: Some(format!("namespace {}\n{{", self.namespace).into()),
-            trailing: Some("}".into()), 
+            trailing: Some("}".into()),
             trailing_newline: true,
         });
-        
+
         // Props
         let stack_props_class = namespace.indent_with_options(IndentOptions {
             indent: INDENT,
@@ -68,7 +68,7 @@ impl Synthesizer for CSharp {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        
+
         for param in &ir.constructor.inputs {
             if let Some(description) = &param.description {
                 stack_props_class.line("/// <summary>");
@@ -80,9 +80,9 @@ impl Synthesizer for CSharp {
             stack_props_class.line(param.to_csharp_auto_property());
             stack_props_class.newline();
         }
-        
+
         namespace.newline();
-        
+
         // Description - comment before the stack class
         if let Some(descr) = ir.description {
             namespace.line("/// <summary>");
@@ -91,15 +91,15 @@ impl Synthesizer for CSharp {
             }
             namespace.line("/// </summary>");
         }
-        
+
         // Stack class definition
         let stack_class = namespace.indent_with_options(IndentOptions {
-            indent: INDENT, 
-            leading: Some(format!("public class {stack_name} : Stack\n{{").into()), 
-            trailing: Some("}".into()), 
-            trailing_newline: true, 
+            indent: INDENT,
+            leading: Some(format!("public class {stack_name} : Stack\n{{").into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
         });
-        
+
         // Properties for each output
         for output in &ir.outputs {
             if let Some(description) = &output.description {
@@ -112,7 +112,7 @@ impl Synthesizer for CSharp {
             stack_class.line(format!("public object {} {{ get; }} ", output.name));
             stack_class.newline();
         }
-        
+
         // Constructor
         let ctor = stack_class.indent_with_options(IndentOptions { 
             indent: INDENT,
@@ -131,7 +131,7 @@ impl Synthesizer for CSharp {
             .inputs
             .iter()
             .filter(|p| p.constructor_type.contains("AWS::") || p.default_value.is_some())
-            .collect::<Vec<&ConstructorParameter>>();        
+            .collect::<Vec<&ConstructorParameter>>();
         if !have_default_or_special_type_params.is_empty() {
             ctor.line("// Applying default props");
             for param in have_default_or_special_type_params {
@@ -157,7 +157,7 @@ impl Synthesizer for CSharp {
                         t if t.contains("List") => "string.Join(\",\", ",
                         _ => "",
                     };
-                    let cfn_param_default_post  = match &param.constructor_type {
+                    let cfn_param_default_post = match &param.constructor_type {
                         t if t.contains("List") => ")",
                         _ => "",
                     };
@@ -209,16 +209,22 @@ impl Synthesizer for CSharp {
                     MappingInnerValue::Number(_) => "int",
                     MappingInnerValue::String(_) => "string",
                     MappingInnerValue::List(_) => "string[]",
-                }
+                },
             };
-            
-            let map = ctor.indent_with_options(IndentOptions { 
+
+            let map = ctor.indent_with_options(IndentOptions {
                 indent: INDENT,
-                leading: Some(format!("var {} = new Dictionary<string, Dictionary<string,{leaf_type}>> \n{{", camel_case(&mapping.name)).into()),
+                leading: Some(
+                    format!(
+                        "var {} = new Dictionary<string, Dictionary<string,{leaf_type}>> \n{{",
+                        camel_case(&mapping.name)
+                    )
+                    .into(),
+                ),
                 trailing: Some("};".into()),
                 trailing_newline: true,
             });
-            
+
             for (key, inner) in &mapping.map {
                 let map_item = map.indent_with_options(IndentOptions {
                     indent: INDENT,
@@ -228,16 +234,20 @@ impl Synthesizer for CSharp {
                 });
                 let inner_map = map_item.indent_with_options(IndentOptions {
                     indent: INDENT,
-                    leading: Some(format!("\"{key}\", new Dictionary<string, {leaf_type}>\n{{").into()),
+                    leading: Some(
+                        format!("\"{key}\", new Dictionary<string, {leaf_type}>\n{{").into(),
+                    ),
                     trailing: Some("}".into()),
                     trailing_newline: true,
                 });
-                
+
                 for (inner_key, inner_value) in inner {
                     match inner_value {
-                        MappingInnerValue::Bool(_) | MappingInnerValue::Float(_) | MappingInnerValue::Number(_) => {
+                        MappingInnerValue::Bool(_)
+                        | MappingInnerValue::Float(_)
+                        | MappingInnerValue::Number(_) => {
                             inner_map.text(format!("{{ \"{inner_key}\", {inner_value} }},"));
-                        },
+                        }
                         MappingInnerValue::String(s) => {
                             inner_map.text(format!("{{ \"{inner_key}\", \"{s}\" }},"));
                         }
@@ -257,13 +267,13 @@ impl Synthesizer for CSharp {
                             for list_item in l {
                                 list.line(format!("\"{list_item}\","));
                             }
-                        }                    
+                        }
                     }
-                    inner_map.newline();   
+                    inner_map.newline();
                 }
             }
         }
-        
+
         // Conditions
         for condition in &ir.conditions {
             ctor.text(format!("bool {} = ", camel_case(&condition.name)));
@@ -271,7 +281,7 @@ impl Synthesizer for CSharp {
             ctor.text(";");
             ctor.newline();
         }
-        
+
         // Resources
         for resource in &ir.resources {
             let class = resource.resource_type.type_name();
@@ -291,17 +301,17 @@ impl Synthesizer for CSharp {
                 resource_constructor.newline();
             }
         }
-    
+
         // Set values for the outputs
         if !ir.outputs.is_empty() {
             ctor.newline();
             ctor.line("// Outputs");
-            
+
             for op in &ir.outputs {
                 op.emit_csharp(&ctor);
             }
         }
-    
+
         code.write(into)
     }
 }
@@ -312,7 +322,7 @@ impl ImportInstruction {
             "aws-cdk-lib" => "Amazon.CDK".into(),
             other => other.into(),
         }];
-        
+
         if self.path.len() > 1 {
             for submodule_part in self.path[1].split("-") {
                 parts.push(match submodule_part {
@@ -329,9 +339,9 @@ impl ImportInstruction {
                 });
             }
         }
-        
+
         let namespace = parts.join(".");
-        
+
         format!("using {namespace};")
     }
 }
@@ -343,7 +353,10 @@ impl ConstructorParameter {
             _ => "string",
         };
 
-        format!("public {prop_type} {} {{ get; set; }}", pascal_case(&self.name))
+        format!(
+            "public {prop_type} {} {{ get; set; }}",
+            pascal_case(&self.name)
+        )
     }
 }
 
@@ -357,7 +370,7 @@ impl CsharpEmitter for ConditionIr {
             ConditionIr::Ref(reference) => reference.emit_csharp(output),
             ConditionIr::Str(str) => output.text(format!("\"{str}\"")),
             ConditionIr::Condition(condition) => output.text(camel_case(condition)),
-            
+
             ConditionIr::And(list) => {
                 for (index, condition) in list.iter().enumerate() {
                     if index > 0 {
@@ -374,18 +387,18 @@ impl CsharpEmitter for ConditionIr {
                     condition.emit_csharp(output);
                 }
             }
-            
+
             ConditionIr::Not(condition) => {
                 output.text("!");
                 condition.emit_csharp(output);
             }
-            
+
             ConditionIr::Equals(left, right) => {
                 left.emit_csharp(output);
                 output.text(" == ");
                 right.emit_csharp(output);
             }
-            
+
             ConditionIr::Map(map, top_level_key, second_level_key) => {
                 output.text(camel_case(map));
                 output.text("[");
@@ -411,18 +424,15 @@ impl CsharpEmitter for ConditionIr {
 impl CsharpEmitter for Reference {
     fn emit_csharp(&self, output: &CodeBuffer) {
         match &self.origin {
-            Origin::Condition => {
-                output.text(camel_case(&self.name))
-            }
-            Origin::GetAttribute { attribute, conditional: _ } => {
-                output.text(format!("{}.Attr{attribute}", camel_case(&self.name)))
-            }
+            Origin::Condition => output.text(camel_case(&self.name)),
+            Origin::GetAttribute {
+                attribute,
+                conditional: _,
+            } => output.text(format!("{}.Attr{attribute}", camel_case(&self.name))),
             Origin::LogicalId { conditional: _ } => {
                 output.text(format!("{}.Ref", camel_case(&self.name)))
             }
-            Origin::Parameter => {
-                output.text(format!("props.{}", pascal_case(&self.name)))
-            }
+            Origin::Parameter => output.text(format!("props.{}", pascal_case(&self.name))),
             Origin::PseudoParameter(pseudo) => {
                 let pseudo = match pseudo {
                     PseudoParameter::AccountId => "Account",
@@ -447,7 +457,7 @@ impl ResourceIr {
             ResourceIr::Number(number) => output.text(number.to_string()),
             ResourceIr::Double(double) => output.text(double.to_string()),
             ResourceIr::String(str) => output.text(format!("\"{str}\"")),
-            
+
             ResourceIr::Array(_structure, array) => {
                 let array_block = output.indent_with_options(IndentOptions {
                     indent: INDENT,
@@ -492,7 +502,7 @@ impl ResourceIr {
                             val.emit_csharp(&object_block, root_resource);
                             object_block.text("\"");
                         }
-                        _ => val.emit_csharp(&object_block, root_resource)
+                        _ => val.emit_csharp(&object_block, root_resource),
                     }
                     object_block.text(match structure {
                         Structure::Composite(_) => ",",
@@ -501,7 +511,7 @@ impl ResourceIr {
                     object_block.newline();
                 }
             }
-            
+
             ResourceIr::If(cond, when_true, when_false) => {
                 output.text(format!("{} ? ", camel_case(cond)));
                 when_true.emit_csharp(output, root_resource);
@@ -509,9 +519,9 @@ impl ResourceIr {
                 when_false.emit_csharp(output, root_resource);
             }
             ResourceIr::Join(sep, list) => {
-                let items = output.indent_with_options(IndentOptions { 
+                let items = output.indent_with_options(IndentOptions {
                     indent: INDENT,
-                    leading: Some(format!("string.Join(\"{sep}\", new []\n{{").into()), 
+                    leading: Some(format!("string.Join(\"{sep}\", new []\n{{").into()),
                     trailing: Some("})".into()),
                     trailing_newline: false,
                 });
@@ -520,12 +530,12 @@ impl ResourceIr {
                     items.text(",");
                     items.newline();
                 }
-            },
+            }
             ResourceIr::Split(sep, str) => {
                 output.text(format!("Fn.Split(\"{sep}\", "));
                 str.emit_csharp(output, root_resource);
                 output.text(")");
-            },
+            }
             ResourceIr::Ref(reference) => reference.emit_csharp(output),
             ResourceIr::Sub(parts) => {
                 output.text("$\"");
@@ -549,7 +559,7 @@ impl ResourceIr {
                 output.text("][");
                 second_level_key.emit_csharp(output, root_resource);
                 output.text("]");
-            },
+            }
             ResourceIr::Base64(value) => {
                 output.text("Fn.Base64(");
                 value.emit_csharp(output, root_resource);
@@ -561,7 +571,7 @@ impl ResourceIr {
             ResourceIr::GetAZs(region) => {
                 output.text("Fn.GetAzs(");
                 region.emit_csharp(output, root_resource);
-                output.text(")");            
+                output.text(")");
             }
             ResourceIr::Select(idx, list) => match list.as_ref() {
                 ResourceIr::Array(_, array) => {
@@ -574,9 +584,9 @@ impl ResourceIr {
                 other => {
                     output.text(format!("Fn.Select({idx}, "));
                     other.emit_csharp(output, root_resource);
-                    output.text(")")      
+                    output.text(")")
                 }
-            }
+            },
             ResourceIr::Cidr(cidr_block, count, mask) => {
                 output.text(format!("Fn.Cidr("));
                 cidr_block.emit_csharp(output, root_resource);
@@ -593,7 +603,7 @@ impl ResourceIr {
                     mask => mask.emit_csharp(output, root_resource),
                 }
                 output.text(")");
-            },
+            }
         }
     }
 }
@@ -601,7 +611,7 @@ impl ResourceIr {
 impl CsharpEmitter for OutputInstruction {
     fn emit_csharp(&self, output: &CodeBuffer) {
         let var_name = &self.name;
-        
+
         if let Some(cond) = &self.condition {
             output.line(format!("{var_name} = {}", camel_case(cond)));
             output.text(format!("{INDENT}? "));
@@ -613,7 +623,7 @@ impl CsharpEmitter for OutputInstruction {
             self.value.emit_csharp(&output, None);
             output.line(";")
         }
-        
+
         // Create CfnOutputs if the output is an export
         if let Some(export) = &self.export {
             if let Some(cond) = &self.condition {
@@ -629,23 +639,23 @@ impl CsharpEmitter for OutputInstruction {
             }
         }
     }
-
 }
 
 impl OutputInstruction {
-    fn emit_cfn_output(
-        &self,
-        output: &CodeBuffer,
-        export: &ResourceIr,
-        var_name: &str
-    ) {
+    fn emit_cfn_output(&self, output: &CodeBuffer, export: &ResourceIr, var_name: &str) {
         let output = output.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("new CfnOutput(this, \"{}\", new CfnOutputProps {{", &self.name).into()),
+            leading: Some(
+                format!(
+                    "new CfnOutput(this, \"{}\", new CfnOutputProps {{",
+                    &self.name
+                )
+                .into(),
+            ),
             trailing: Some("});".into()),
             trailing_newline: true,
         });
-    
+
         if let Some(description) = &self.description {
             output.line(format!("Description = \"{}\",", description.escape_debug()));
         }
