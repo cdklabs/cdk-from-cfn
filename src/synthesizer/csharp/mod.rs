@@ -133,7 +133,6 @@ impl Synthesizer for CSharp {
             .filter(|p| p.constructor_type.contains("AWS::") || p.default_value.is_some())
             .collect::<Vec<&ConstructorParameter>>();        
         if !have_default_or_special_type_params.is_empty() {
-            ctor.newline();
             ctor.line("// Applying default props");
             for param in have_default_or_special_type_params {
                 let name = pascal_case(&param.name);
@@ -197,6 +196,7 @@ impl Synthesizer for CSharp {
                     ctor.line(format!("props.{name} ??= {value};"));
                 };
             }
+            ctor.newline();
         }
 
         // Mappings

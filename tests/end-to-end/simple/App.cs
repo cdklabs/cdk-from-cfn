@@ -46,7 +46,6 @@ namespace Com.Acme.Test.Simple
 
         public NoctStack(Construct scope, string id, NoctStackProps props = null) : base(scope, id, props)
         {
-
             // Applying default props
             props.BucketNamePrefix ??= "bucket";
             props.LogDestinationBucketName = new CfnParameter(this, "LogDestinationBucketName", new CfnParameterProps
@@ -54,6 +53,7 @@ namespace Com.Acme.Test.Simple
                 Type = "AWS::SSM::Parameter::Value<String>",
                 Default = props.LogDestinationBucketName ?? "/logging/bucket/name",
             }).ValueAsString;
+
             var booleans = new Dictionary<string, Dictionary<string,bool>> 
             {
                 {
