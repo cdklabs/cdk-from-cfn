@@ -394,15 +394,6 @@ impl ResourceIr {
                 if let Structure::Composite(name) = structure {
                     is_tag = *name == "Tag";
                 }
-                /*
-                let object_block = output.indent_with_options(IndentOptions {
-                    indent: INDENT,
-                    leading: Some(if is_tag { "new CfnTag\n{".into() } else { "new Dictionary<string, object>\n{".into()}),
-                    trailing: Some("}".into()),
-                    trailing_newline: false,
-                });
-                */
-
                 match structure {
                     Structure::Composite(name) => {
                         match root_resource {
@@ -451,29 +442,6 @@ impl ResourceIr {
                         }
                     },
                 }
-
-                /*
-                for (name, val) in properties {
-                    if is_tag {
-                        object_block.text(format!("{name} = "));
-                        match val {
-                            ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::Double(_) => {
-                                object_block.text("\"");
-                                val.emit_csharp(&object_block, root_resource);
-                                object_block.text("\"");
-                            }
-                            _ => val.emit_csharp(&object_block, root_resource)
-                        }
-                        object_block.text(",");
-                        
-                    } else {
-                        object_block.text(format!("{{ \"{name}\", "));
-                        val.emit_csharp(&object_block, root_resource);
-                        object_block.text("},");
-                    }
-                    object_block.newline();
-                }
-                */
             }
             ResourceIr::If(cond, when_true, when_false) => {
                 output.text(format!("{cond} ? ", cond = camel_case(cond)));
