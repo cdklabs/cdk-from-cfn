@@ -114,7 +114,7 @@ impl Synthesizer for CSharp {
         }
 
         // Constructor
-        let ctor = stack_class.indent_with_options(IndentOptions { 
+        let ctor = stack_class.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(format!(
                 "public {}(Construct scope, string id, {}Props props = null) : base(scope, id, props)\n{{",
@@ -480,12 +480,12 @@ impl ResourceIr {
                             name => match root_resource {
                                 Some(r) => format!("new Cfn{r}.{name}Property\n{{").into(),
                                 None => unreachable!("cannot emit ResourceIr::Object without a parent resource type")
-                            }   
+                            }
                         }
                         Structure::Simple(cfn) => match cfn {
                             CfnType::Json => "new Dictionary<string, object>\n{".into(),
                             _ => unreachable!("cannot emit ResourceIr::Object with non-json simple structure ({:?})", cfn)
-                        }                        
+                        }
                     }),
                     trailing: Some("}".into()),
                     trailing_newline: false,
