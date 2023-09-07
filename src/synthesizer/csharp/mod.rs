@@ -124,7 +124,81 @@ impl Synthesizer for CSharp {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        
+
+        // Default values for input props
+        let have_default_or_special_type_params = &ir
+            .constructor
+            .inputs
+            .iter()
+            .filter(|p| p.constructor_type.contains("AWS::") || p.default_value.is_some())
+            .collect::<Vec<&ConstructorParameter>>();        
+        if !have_default_or_special_type_params.is_empty() {
+            ctor.newline();
+            ctor.line("// Applying default props");
+            for param in have_default_or_special_type_params {
+                let name = pascal_case(&param.name);
+                // example: AWS::EC2::Image::Id, List<AWS::EC2::VPC::Id>, AWS::SSM::Parameter::Value<List<String>>
+                if param.constructor_type.contains("AWS::") {
+                    let value_as = match &param.constructor_type {
+                        t if t.contains("List") => "ValueAsList",
+                        _ => "ValueAsString",
+                    };
+                    let cfn_param = ctor.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(
+                            format!(
+                                "props.{name} = new CfnParameter(this, \"{name}\", new CfnParameterProps\n{{")
+                            .into(),
+                        ),
+                        trailing: Some(format!("}}).{value_as};").into()),
+                        trailing_newline: true,
+                    });
+                    cfn_param.line(format!("Type = \"{}\",", param.constructor_type));
+                    let cfn_param_default_pre = match &param.constructor_type {
+                        t if t.contains("List") => "string.Join(\",\", ",
+                        _ => "",
+                    };
+                    let cfn_param_default_post  = match &param.constructor_type {
+                        t if t.contains("List") => ")",
+                        _ => "",
+                    };
+                    if let Some(v) = &param.default_value {
+                        cfn_param.line(format!(
+                            "Default = {cfn_param_default_pre}props.{name}{cfn_param_default_post} ?? \"{}\",",
+                            v.escape_debug()
+                        ));
+                    } else {
+                        cfn_param.line(format!("Default = {cfn_param_default_pre}props.{name}{cfn_param_default_post},"));
+                    };
+                    if let Some(v) = &param.description {
+                        cfn_param.line(format!("Description = \"{}\",", v));
+                    };
+                } else {
+                    let value = match &param.default_value {
+                        None => "".to_owned(),
+                        Some(value) => {
+                            let value = match param.constructor_type.as_str() {
+                                "String" => format!("\"{}\"", value.escape_debug()),
+                                "List<Number>" => format!("[{}]", value),
+                                "CommaDelimitedList" => format!(
+                                    "[{}]",
+                                    value
+                                        .split(',')
+                                        .map(|v| format!("\"{}\"", v.escape_debug()))
+                                        .collect::<Vec<String>>()
+                                        .join(",")
+                                ),
+                                _ => value.clone(),
+                            };
+                            value
+                        }
+                    };
+
+                    ctor.line(format!("props.{name} ??= {value};"));
+                };
+            }
+        }
+
         // Mappings
         for mapping in &ir.mappings {
             let leaf_type = match mapping.output_type() {
@@ -261,12 +335,7 @@ impl ImportInstruction {
 
 impl ConstructorParameter {
     fn to_csharp_auto_property(&self) -> String {
-
-        // TODO: update to the correct type
-        // 
-        let prop_type = match self.constructor_type.as_ref() {
-            "Number" => "double",
-            "List<Number>" => "double[]",
+        let prop_type = match &self.constructor_type {
             t if t.contains("List") => "string[]",
             _ => "string",
         };
@@ -422,7 +491,10 @@ impl ResourceIr {
                         }
                         _ => val.emit_csharp(&object_block, root_resource)
                     }
-                    object_block.text("},");
+                    object_block.text(match structure {
+                        Structure::Composite(_) => ",",
+                        Structure::Simple(_) => "},",
+                    });
                     object_block.newline();
                 }
             }
