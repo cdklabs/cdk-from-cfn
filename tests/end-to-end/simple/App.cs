@@ -51,94 +51,72 @@ namespace Com.Acme.Test.Simple
             // Mappings
             var booleans = new Dictionary<string, Dictionary<string,bool>> 
             {
+                ["True"] = new Dictionary<string, bool>
                 {
-                    "True", new Dictionary<string, bool>
-                    {
-                        { "true", true },
-                    }
+                    ["true"] = true,
                 },
+                ["False"] = new Dictionary<string, bool>
                 {
-                    "False", new Dictionary<string, bool>
-                    {
-                        { "false", false },
-                    }
+                    ["false"] = false,
                 },
             };
             var lists = new Dictionary<string, Dictionary<string,string[]>> 
             {
+                ["Candidates"] = new Dictionary<string, string[]>
                 {
-                    "Candidates", new Dictionary<string, string[]>
+                    ["Empty"] = new string[] 
                     {
-                        {
-                            "Empty", new string[] 
-                            {
-                            }
-                        },
+                    },
 
-                        {
-                            "Singleton", new string[] 
-                            {
-                                "One",
-                            }
-                        },
+                    ["Singleton"] = new string[] 
+                    {
+                        "One",
+                    },
 
-                        {
-                            "Pair", new string[] 
-                            {
-                                "One",
-                                "Two",
-                            }
-                        },
+                    ["Pair"] = new string[] 
+                    {
+                        "One",
+                        "Two",
+                    },
 
-                    }
                 },
             };
             var numbers = new Dictionary<string, Dictionary<string,int>> 
             {
+                ["Prime"] = new Dictionary<string, int>
                 {
-                    "Prime", new Dictionary<string, int>
-                    {
-                        { "Eleven", 11 },
-                        { "Thirteen", 13 },
-                        { "Seventeen", 17 },
-                    }
+                    ["Eleven"] = 11,
+                    ["Thirteen"] = 13,
+                    ["Seventeen"] = 17,
                 },
             };
             var strings = new Dictionary<string, Dictionary<string,string>> 
             {
+                ["Foos"] = new Dictionary<string, string>
                 {
-                    "Foos", new Dictionary<string, string>
-                    {
-                        { "Foo1", "Foo1" },
-                        { "Foo2", "Foo2" },
-                    }
+                    ["Foo1"] = "Foo1",
+                    ["Foo2"] = "Foo2",
                 },
+                ["Bars"] = new Dictionary<string, string>
                 {
-                    "Bars", new Dictionary<string, string>
-                    {
-                        { "Bar", "Bar" },
-                    }
+                    ["Bar"] = "Bar",
                 },
             };
             var table = new Dictionary<string, Dictionary<string,object>> 
             {
+                ["Values"] = new Dictionary<string, object>
                 {
-                    "Values", new Dictionary<string, object>
+                    ["Boolean"] = true,
+                    ["Float"] = 3.14,
+                    ["List"] = new string[] 
                     {
-                        { "Boolean", true },
-                        { "Float", 3.14 },
-                        {
-                            "List", new string[] 
-                            {
-                                "1",
-                                "2",
-                                "3",
-                            }
-                        },
+                        "1",
+                        "2",
+                        "3",
+                    },
 
-                        { "Number", 42 },
-                        { "String", "Baz" },
-                    }
+                    ["Number"] = 42,
+                    ["String"] = "Baz",
                 },
             };
 

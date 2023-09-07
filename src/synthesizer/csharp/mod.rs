@@ -231,16 +231,10 @@ impl Synthesizer for CSharp {
             for (key, inner) in &mapping.map {
                 let map_item = map.indent_with_options(IndentOptions {
                     indent: INDENT,
-                    leading: Some("{".into()),
-                    trailing: Some("},".into()),
-                    trailing_newline: true,
-                });
-                let inner_map = map_item.indent_with_options(IndentOptions {
-                    indent: INDENT,
                     leading: Some(
-                        format!("\"{key}\", new Dictionary<string, {leaf_type}>\n{{").into(),
+                        format!("[\"{key}\"] = new Dictionary<string, {leaf_type}>\n{{").into(),
                     ),
-                    trailing: Some("}".into()),
+                    trailing: Some("},".into()),
                     trailing_newline: true,
                 });
 
@@ -249,22 +243,16 @@ impl Synthesizer for CSharp {
                         MappingInnerValue::Bool(_)
                         | MappingInnerValue::Float(_)
                         | MappingInnerValue::Number(_) => {
-                            inner_map.text(format!("{{ \"{inner_key}\", {inner_value} }},"));
+                            map_item.text(format!("[\"{inner_key}\"] = {inner_value},"));
                         }
                         MappingInnerValue::String(s) => {
-                            inner_map.text(format!("{{ \"{inner_key}\", \"{s}\" }},"));
+                            map_item.text(format!("[\"{inner_key}\"] = \"{s}\","));
                         }
                         MappingInnerValue::List(l) => {
-                            let list_block = inner_map.indent_with_options(IndentOptions {
+                            let list = map_item.indent_with_options(IndentOptions {
                                 indent: INDENT,
-                                leading: Some("{".into()),
+                                leading: Some(format!("[\"{inner_key}\"] = new string[] \n{{").into()),
                                 trailing: Some("},".into()),
-                                trailing_newline: true,
-                            });
-                            let list = list_block.indent_with_options(IndentOptions {
-                                indent: INDENT,
-                                leading: Some(format!("\"{inner_key}\", new string[] \n{{").into()),
-                                trailing: Some("}".into()),
                                 trailing_newline: true,
                             });
                             for list_item in l {
@@ -272,7 +260,7 @@ impl Synthesizer for CSharp {
                             }
                         }
                     }
-                    inner_map.newline();
+                    map_item.newline();
                 }
             }
         }
