@@ -8,7 +8,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::ResourceIr;
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::specification::Structure;
+use crate::specification::{Structure, CfnType};
 use std::borrow::Cow;
 use std::io;
 use voca_rs::case::{camel_case, pascal_case};
@@ -109,9 +109,7 @@ impl Synthesizer for CSharp {
                 }
                 stack_class.line("/// </summary>");
             }
-            println!("{:?}", output);
-            // TODO figure out the type
-            stack_class.line(format!("public <TYPE> {} {{ get; }} ", output.name));
+            stack_class.line(format!("public object {} {{ get; }} ", output.name));
             stack_class.newline();
         }
         
@@ -119,7 +117,7 @@ impl Synthesizer for CSharp {
         let ctor = stack_class.indent_with_options(IndentOptions { 
             indent: INDENT,
             leading: Some(format!(
-                "{}(Construct scope, string id, {}Props props = null) : base(scope, id, props)\n{{",
+                "public {}(Construct scope, string id, {}Props props = null) : base(scope, id, props)\n{{",
                 stack_name,
                 stack_name
             ).into()),
@@ -216,7 +214,7 @@ impl Synthesizer for CSharp {
         });
         for (name, value) in &resource.properties {
             resource_constructor.text(format!("{name} = "));
-            value.emit_csharp(&resource_constructor);
+            value.emit_csharp(&resource_constructor, Some(class));
             resource_constructor.text(",");
             resource_constructor.newline();
         }
@@ -263,8 +261,17 @@ impl ImportInstruction {
 
 impl ConstructorParameter {
     fn to_csharp_auto_property(&self) -> String {
+
         // TODO: update to the correct type
-        format!("public {} {} {{ get; set; }}", self.constructor_type, pascal_case(&self.name))
+        // 
+        let prop_type = match self.constructor_type.as_ref() {
+            "Number" => "double",
+            "List<Number>" => "double[]",
+            t if t.contains("List") => "string[]",
+            _ => "string",
+        };
+
+        format!("public {} {} {{ get; set; }}", prop_type, pascal_case(&self.name))
     }
 }
 
@@ -360,8 +367,8 @@ impl CsharpEmitter for Reference {
     }
 }
 
-impl CsharpEmitter for ResourceIr {
-    fn emit_csharp(&self, output: &CodeBuffer) {
+impl ResourceIr {
+    fn emit_csharp(&self, output: &CodeBuffer, root_resource: Option<&str>) {
         match self {
             ResourceIr::Null => output.text("null"),
             ResourceIr::Bool(bool) => output.text(bool.to_string()),
@@ -377,7 +384,7 @@ impl CsharpEmitter for ResourceIr {
                     trailing_newline: false,
                 });
                 for item in array {
-                    item.emit_csharp(&array_block);
+                    item.emit_csharp(&array_block, root_resource);
                     array_block.text(",");
                     array_block.newline();
                 }
@@ -387,38 +394,92 @@ impl CsharpEmitter for ResourceIr {
                 if let Structure::Composite(name) = structure {
                     is_tag = *name == "Tag";
                 }
+                /*
                 let object_block = output.indent_with_options(IndentOptions {
                     indent: INDENT,
                     leading: Some(if is_tag { "new CfnTag\n{".into() } else { "new Dictionary<string, object>\n{".into()}),
                     trailing: Some("}".into()),
                     trailing_newline: false,
                 });
+                */
+
+                match structure {
+                    Structure::Composite(name) => {
+                        match root_resource {
+                            Some(r) => {
+                                let object_block = output.indent_with_options(IndentOptions {
+                                    indent: INDENT,
+                                    leading: Some(if is_tag { "new CfnTag\n{".into() } else { format!("new Cfn{r}.{name}Property\n{{").into() }),
+                                    trailing: Some("}".into()),
+                                    trailing_newline: false,
+                                });
+
+                                for (name, val) in properties {
+                                    object_block.text(format!("{name} = "));
+                                    match val {
+                                        ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::Double(_) => {
+                                            object_block.text("\"");
+                                            val.emit_csharp(&object_block, root_resource);
+                                            object_block.text("\"");
+                                        }
+                                        _ => val.emit_csharp(&object_block, root_resource)
+                                    }
+                                    object_block.text(",");       
+                                    object_block.newline();               
+                                }
+                            }
+                            None => todo!(),
+                        }
+                    },
+                    Structure::Simple(cfn) => {
+                        match cfn {
+                            CfnType::Json => {
+                                let object_block = output.indent_with_options(IndentOptions {
+                                    indent: INDENT,
+                                    leading: Some("new Dictionary<string, object>\n{".into()),
+                                    trailing: Some("}".into()),
+                                    trailing_newline: false,
+                                });
+                                for (name, val) in properties {
+                                    object_block.text(format!("{{ \"{name}\", "));
+                                    val.emit_csharp(&object_block, root_resource);
+                                    object_block.text("},");
+                                    object_block.newline();
+                                }
+                            }
+                            _ => unreachable!("object with non-json simple structure ({:?})", cfn)
+                        }
+                    },
+                }
+
+                /*
                 for (name, val) in properties {
                     if is_tag {
                         object_block.text(format!("{name} = "));
                         match val {
                             ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::Double(_) => {
                                 object_block.text("\"");
-                                val.emit_csharp(&object_block);
+                                val.emit_csharp(&object_block, root_resource);
                                 object_block.text("\"");
                             }
-                            _ => val.emit_csharp(&object_block)
+                            _ => val.emit_csharp(&object_block, root_resource)
                         }
                         object_block.text(",");
                         
                     } else {
                         object_block.text(format!("{{ \"{name}\", "));
-                        val.emit_csharp(&object_block);
+                        val.emit_csharp(&object_block, root_resource);
                         object_block.text("},");
                     }
                     object_block.newline();
                 }
+                */
             }
             ResourceIr::If(cond, when_true, when_false) => {
                 output.text(format!("{cond} ? ", cond = camel_case(cond)));
-                when_true.emit_csharp(output);
+                when_true.emit_csharp(output, root_resource);
                 output.text(" : ");
-                when_false.emit_csharp(output);
+                when_false.emit_csharp(output, root_resource);
             }
             ResourceIr::Join(sep, list) => {
                 let items = output.indent_with_options(IndentOptions { 
@@ -428,14 +489,14 @@ impl CsharpEmitter for ResourceIr {
                     trailing_newline: false,
                 });
                 for item in list {
-                    item.emit_csharp(&items);
+                    item.emit_csharp(&items, root_resource);
                     items.text(",");
                     items.newline();
                 }
             },
             ResourceIr::Split(sep, str) => {
                 output.text(format!("Fn.Split(\"{sep}\", "));
-                str.emit_csharp(output);
+                str.emit_csharp(output, root_resource);
                 output.text(")");
             },
             ResourceIr::Ref(reference) => reference.emit_csharp(output),
@@ -446,7 +507,7 @@ impl CsharpEmitter for ResourceIr {
                         ResourceIr::String(lit) => output.text(lit.clone()),
                         other => {
                             output.text("{");
-                            other.emit_csharp(output);
+                            other.emit_csharp(output, root_resource);
                             output.text("}");
                         }
                     }
@@ -457,14 +518,14 @@ impl CsharpEmitter for ResourceIr {
                 //Factor out shared code
                 output.text(camel_case(table));
                 output.text("[");
-                top_level_key.emit_csharp(output);
+                top_level_key.emit_csharp(output, root_resource);
                 output.text("][");
-                second_level_key.emit_csharp(output);
+                second_level_key.emit_csharp(output, root_resource);
                 output.text("]");
             },
             ResourceIr::Base64(value) => {
                 output.text(format!("Fn.Base64("));
-                value.emit_csharp(output);
+                value.emit_csharp(output, root_resource);
                 println!("base64: {:?}", value);
                 output.text(" as string)");
             }
@@ -473,28 +534,28 @@ impl CsharpEmitter for ResourceIr {
             }
             ResourceIr::GetAZs(region) => {
                 output.text(format!("Fn.GetAzs("));
-                region.emit_csharp(output);
+                region.emit_csharp(output, root_resource);
                 output.text(")");            
             }
             ResourceIr::Select(idx, list) => match list.as_ref() {
                 ResourceIr::Array(_, array) => {
                     if *idx <= array.len() {
-                        array[*idx].emit_csharp(output);
+                        array[*idx].emit_csharp(output, root_resource);
                     } else {
                         output.text("null")
                     }
                 }
                 other => {
                     output.text(format!("Fn.Select({idx}, "));
-                    other.emit_csharp(output);
+                    other.emit_csharp(output, root_resource);
                     output.text(")")      
                 }
             }
             ResourceIr::Cidr(cidr_block, count, mask) => {
                 output.text(format!("Fn.Cidr("));
-                cidr_block.emit_csharp(output);
+                cidr_block.emit_csharp(output, root_resource);
                 output.text(", ");
-                count.emit_csharp(output);
+                count.emit_csharp(output, root_resource);
                 output.text(", ");
                 match mask.as_ref() {
                     ResourceIr::Number(mask) => {
@@ -503,7 +564,7 @@ impl CsharpEmitter for ResourceIr {
                     ResourceIr::String(mask) => {
                         output.text(format!("{mask}"));
                     }
-                    mask => mask.emit_csharp(output),
+                    mask => mask.emit_csharp(output, root_resource),
                 }
                 output.text(")");
             },
@@ -522,11 +583,11 @@ impl CsharpEmitter for OutputInstruction {
             ));
             output.text(format!("{INDENT}? "));
             let indented = output.indent(INDENT);
-            self.value.emit_csharp(&indented);
+            self.value.emit_csharp(&indented, None);
             output.line(format!("\n{INDENT}: null;"));
         } else {
             output.text(format!("{var_name} = "));
-            self.value.emit_csharp(&output);
+            self.value.emit_csharp(&output, None);
             output.line(";")
         }
         
@@ -566,9 +627,9 @@ impl OutputInstruction {
             output.line(format!("Description = \"{}\",", description.escape_debug()));
         }
         output.text("ExportName = ");
-        export.emit_csharp(&output);
+        export.emit_csharp(&output, None);
         output.text(",\n");
-        output.line(format!("Value = {var_name},"));
+        output.line(format!("Value = {var_name} as string,"));
     }
 }
 #[cfg(test)]
