@@ -64,7 +64,7 @@ impl Synthesizer for CSharp {
         // Props
         let stack_props_class = namespace.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("public class {}Props : StackProps\n{{", stack_name).into()),
+            leading: Some(format!("public class {stack_name}Props : StackProps\n{{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -73,7 +73,7 @@ impl Synthesizer for CSharp {
             if let Some(description) = &param.description {
                 stack_props_class.line("/// <summary>");
                 for description_line in description.split("\n") {
-                    stack_props_class.line(format!("/// {}", description_line));
+                    stack_props_class.line(format!("/// {description_line}"));
                 }
                 stack_props_class.line("/// </summary>");
             }
@@ -87,7 +87,7 @@ impl Synthesizer for CSharp {
         if let Some(descr) = ir.description {
             namespace.line("/// <summary>");
             for description_line in descr.split("\n") {
-                namespace.line(format!("/// {}", description_line));
+                namespace.line(format!("/// {description_line}"));
             }
             namespace.line("/// </summary>");
         }
@@ -95,7 +95,7 @@ impl Synthesizer for CSharp {
         // Stack class definition
         let stack_class = namespace.indent_with_options(IndentOptions {
             indent: INDENT, 
-            leading: Some(format!("public class {} : Stack\n{{", stack_name).into()), 
+            leading: Some(format!("public class {stack_name} : Stack\n{{").into()), 
             trailing: Some("}".into()), 
             trailing_newline: true, 
         });
@@ -105,7 +105,7 @@ impl Synthesizer for CSharp {
             if let Some(description) = &output.description {
                 stack_class.line("/// <summary>");
                 for description_line in description.split("\n") {
-                    stack_class.line(format!("/// {}", description_line));
+                    stack_class.line(format!("/// {description_line}"));
                 }
                 stack_class.line("/// </summary>");
             }
@@ -178,7 +178,7 @@ impl Synthesizer for CSharp {
                         Some(value) => {
                             let value = match param.constructor_type.as_str() {
                                 "String" => format!("\"{}\"", value.escape_debug()),
-                                "List<Number>" => format!("[{}]", value),
+                                "List<Number>" => format!("[{value}]"),
                                 "CommaDelimitedList" => format!(
                                     "[{}]",
                                     value
@@ -274,37 +274,36 @@ impl Synthesizer for CSharp {
         
         // Resources
         for resource in &ir.resources {
-            println!("Resource {} {}", resource.resource_type.service(), resource.resource_type.type_name());
             let class = resource.resource_type.type_name();
             let resource_constructor = ctor.indent_with_options(IndentOptions {
                 indent: INDENT,
                 leading: Some(format!("var {var_name} = new Cfn{class}(this, \"{construct_id}\", new Cfn{class}Props\n{{", 
-                var_name = camel_case(&resource.name),
-                construct_id = resource.name,
-            ).into()),
-            trailing: Some("});".into()),
-            trailing_newline: true,
-        });
-        for (name, value) in &resource.properties {
-            resource_constructor.text(format!("{name} = "));
-            value.emit_csharp(&resource_constructor, Some(class));
-            resource_constructor.text(",");
-            resource_constructor.newline();
+                    var_name = camel_case(&resource.name),
+                    construct_id = resource.name,
+                ).into()),
+                trailing: Some("});".into()),
+                trailing_newline: true,
+            });
+            for (name, value) in &resource.properties {
+                resource_constructor.text(format!("{name} = "));
+                value.emit_csharp(&resource_constructor, Some(class));
+                resource_constructor.text(",");
+                resource_constructor.newline();
+            }
         }
-    }
     
-    // Set values for the outputs
-    if !ir.outputs.is_empty() {
-        ctor.newline();
-        ctor.line("// Outputs");
-        
-        for op in &ir.outputs {
-            op.emit_csharp(&ctor);
+        // Set values for the outputs
+        if !ir.outputs.is_empty() {
+            ctor.newline();
+            ctor.line("// Outputs");
+            
+            for op in &ir.outputs {
+                op.emit_csharp(&ctor);
+            }
         }
-    }
     
-    code.write(into)
-}
+        code.write(into)
+    }
 }
 
 impl ImportInstruction {
@@ -328,7 +327,7 @@ impl ImportInstruction {
         
         let namespace = parts.join(".");
         
-        format!("using {};", namespace)
+        format!("using {namespace};")
     }
 }
 
@@ -339,7 +338,7 @@ impl ConstructorParameter {
             _ => "string",
         };
 
-        format!("public {} {} {{ get; set; }}", prop_type, pascal_case(&self.name))
+        format!("public {prop_type} {} {{ get; set; }}", pascal_case(&self.name))
     }
 }
 
@@ -411,7 +410,7 @@ impl CsharpEmitter for Reference {
                 output.text(camel_case(&self.name))
             }
             Origin::GetAttribute { attribute, conditional: _ } => {
-                output.text(format!("{}.Attr{}", camel_case(&self.name), attribute))
+                output.text(format!("{}.Attr{attribute}", camel_case(&self.name)))
             }
             Origin::LogicalId { conditional: _ } => {
                 output.text(format!("{}.Ref", camel_case(&self.name)))
@@ -499,7 +498,7 @@ impl ResourceIr {
             }
             
             ResourceIr::If(cond, when_true, when_false) => {
-                output.text(format!("{cond} ? ", cond = camel_case(cond)));
+                output.text(format!("{} ? ", camel_case(cond)));
                 when_true.emit_csharp(output, root_resource);
                 output.text(" : ");
                 when_false.emit_csharp(output, root_resource);
@@ -547,16 +546,15 @@ impl ResourceIr {
                 output.text("]");
             },
             ResourceIr::Base64(value) => {
-                output.text(format!("Fn.Base64("));
+                output.text("Fn.Base64(");
                 value.emit_csharp(output, root_resource);
-                println!("base64: {:?}", value);
                 output.text(" as string)");
             }
             ResourceIr::ImportValue(import) => {
                 output.text(format!("Fn.ImportValue(\"{import}\")"));
             }
             ResourceIr::GetAZs(region) => {
-                output.text(format!("Fn.GetAzs("));
+                output.text("Fn.GetAzs(");
                 region.emit_csharp(output, root_resource);
                 output.text(")");            
             }
@@ -600,10 +598,7 @@ impl CsharpEmitter for OutputInstruction {
         let var_name = &self.name;
         
         if let Some(cond) = &self.condition {
-            output.line(format!(
-                "{var_name} = {cond}",
-                cond = camel_case(cond)
-            ));
+            output.line(format!("{var_name} = {}", camel_case(cond)));
             output.text(format!("{INDENT}? "));
             let indented = output.indent(INDENT);
             self.value.emit_csharp(&indented, None);
