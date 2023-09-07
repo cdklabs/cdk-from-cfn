@@ -13,6 +13,8 @@ namespace Com.Acme.Test.Simple
     {
         public VpcStack(Construct scope, string id, VpcStackProps props = null) : base(scope, id, props)
         {
+
+            // Resources
             var vpc = new CfnVPC(this, "VPC", new CfnVPCProps
             {
                 CidrBlock = "10.42.0.0/16",

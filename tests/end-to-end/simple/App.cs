@@ -48,6 +48,7 @@ namespace Com.Acme.Test.Simple
                 Default = props.LogDestinationBucketName ?? "/logging/bucket/name",
             }).ValueAsString;
 
+            // Mappings
             var booleans = new Dictionary<string, Dictionary<string,bool>> 
             {
                 {
@@ -140,9 +141,13 @@ namespace Com.Acme.Test.Simple
                     }
                 },
             };
+
+            // Conditions
             bool isUs = Fn.Select(0, Fn.Split("-", Region)) == "us";
             bool isUsEast1 = Region == "us-east-1";
             bool isLargeRegion = isUsEast1;
+
+            // Resources
             var queue = new CfnQueue(this, "Queue", new CfnQueueProps
             {
                 DelaySeconds = 42.1337,

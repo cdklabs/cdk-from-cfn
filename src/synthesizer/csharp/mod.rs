@@ -200,6 +200,9 @@ impl Synthesizer for CSharp {
         }
 
         // Mappings
+        if !ir.mappings.is_empty() {
+            ctor.line("// Mappings");
+        }
         for mapping in &ir.mappings {
             let leaf_type = match mapping.output_type() {
                 OutputType::Complex => "object",
@@ -275,6 +278,10 @@ impl Synthesizer for CSharp {
         }
 
         // Conditions
+        if !ir.conditions.is_empty(){
+            ctor.newline();
+            ctor.line("// Conditions");
+        }
         for condition in &ir.conditions {
             ctor.text(format!("bool {} = ", camel_case(&condition.name)));
             condition.value.emit_csharp(&ctor);
@@ -283,6 +290,8 @@ impl Synthesizer for CSharp {
         }
 
         // Resources
+        ctor.newline();
+        ctor.line("// Resources");
         for resource in &ir.resources {
             let class = resource.resource_type.type_name();
             let resource_constructor = ctor.indent_with_options(IndentOptions {
@@ -313,7 +322,7 @@ impl Synthesizer for CSharp {
         }
 
         code.write(into)
-    }
+    } 
 }
 
 impl ImportInstruction {
