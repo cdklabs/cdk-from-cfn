@@ -72,7 +72,7 @@ impl Synthesizer for CSharp {
         for param in &ir.constructor.inputs {
             if let Some(description) = &param.description {
                 stack_props_class.line("/// <summary>");
-                for description_line in description.split("\n") {
+                for description_line in description.split('\n') {
                     stack_props_class.line(format!("/// {description_line}"));
                 }
                 stack_props_class.line("/// </summary>");
@@ -86,7 +86,7 @@ impl Synthesizer for CSharp {
         // Description - comment before the stack class
         if let Some(descr) = ir.description {
             namespace.line("/// <summary>");
-            for description_line in descr.split("\n") {
+            for description_line in descr.split('\n') {
                 namespace.line(format!("/// {description_line}"));
             }
             namespace.line("/// </summary>");
@@ -104,7 +104,7 @@ impl Synthesizer for CSharp {
         for output in &ir.outputs {
             if let Some(description) = &output.description {
                 stack_class.line("/// <summary>");
-                for description_line in description.split("\n") {
+                for description_line in description.split('\n') {
                     stack_class.line(format!("/// {description_line}"));
                 }
                 stack_class.line("/// </summary>");
@@ -324,7 +324,7 @@ impl ImportInstruction {
         }];
 
         if self.path.len() > 1 {
-            for submodule_part in self.path[1].split("-") {
+            for submodule_part in self.path[1].split('-') {
                 parts.push(match submodule_part {
                     "aws" => "AWS".into(),
                     // TODO - This is hardcoded for now.
@@ -588,7 +588,7 @@ impl ResourceIr {
                 }
             },
             ResourceIr::Cidr(cidr_block, count, mask) => {
-                output.text(format!("Fn.Cidr("));
+                output.text("Fn.Cidr(");
                 cidr_block.emit_csharp(output, root_resource);
                 output.text(", ");
                 count.emit_csharp(output, root_resource);
@@ -598,7 +598,7 @@ impl ResourceIr {
                         output.text(format!("\"{mask}\""));
                     }
                     ResourceIr::String(mask) => {
-                        output.text(format!("{mask}"));
+                        output.text(mask.to_string());
                     }
                     mask => mask.emit_csharp(output, root_resource),
                 }
@@ -620,7 +620,7 @@ impl CsharpEmitter for OutputInstruction {
             output.line(format!("\n{INDENT}: null;"));
         } else {
             output.text(format!("{var_name} = "));
-            self.value.emit_csharp(&output, None);
+            self.value.emit_csharp(output, None);
             output.line(";")
         }
 
@@ -635,7 +635,7 @@ impl CsharpEmitter for OutputInstruction {
                 });
                 self.emit_cfn_output(&indented, export, var_name);
             } else {
-                self.emit_cfn_output(&output, export, var_name);
+                self.emit_cfn_output(output, export, var_name);
             }
         }
     }
