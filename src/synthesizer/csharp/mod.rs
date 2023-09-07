@@ -390,59 +390,43 @@ impl ResourceIr {
                 }
             }
             ResourceIr::Object(structure, properties) => {
-                let mut is_tag = false;
-                if let Structure::Composite(name) = structure {
-                    is_tag = *name == "Tag";
-                }
-                match structure {
-                    Structure::Composite(name) => {
-                        match root_resource {
-                            Some(r) => {
-                                let object_block = output.indent_with_options(IndentOptions {
-                                    indent: INDENT,
-                                    leading: Some(if is_tag { "new CfnTag\n{".into() } else { format!("new Cfn{r}.{name}Property\n{{").into() }),
-                                    trailing: Some("}".into()),
-                                    trailing_newline: false,
-                                });
+                let object_block = output.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some(match structure {
+                        Structure::Composite(name) => match *name {
+                            "Tag" => "new CfnTag\n{".into(),
+                            name => match root_resource {
+                                Some(r) => format!("new Cfn{r}.{name}Property\n{{").into(),
+                                None => unreachable!("cannot emit ResourceIr::Object without a parent resource type")
+                            }   
+                        }
+                        Structure::Simple(cfn) => match cfn {
+                            CfnType::Json => "new Dictionary<string, object>\n{".into(),
+                            _ => unreachable!("cannot emit ResourceIr::Object with non-json simple structure ({:?})", cfn)
+                        }                        
+                    }),
+                    trailing: Some("}".into()),
+                    trailing_newline: false,
+                });
 
-                                for (name, val) in properties {
-                                    object_block.text(format!("{name} = "));
-                                    match val {
-                                        ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::Double(_) => {
-                                            object_block.text("\"");
-                                            val.emit_csharp(&object_block, root_resource);
-                                            object_block.text("\"");
-                                        }
-                                        _ => val.emit_csharp(&object_block, root_resource)
-                                    }
-                                    object_block.text(",");       
-                                    object_block.newline();               
-                                }
-                            }
-                            None => todo!(),
+                for (name, val) in properties {
+                    object_block.text(match structure {
+                        Structure::Composite(_) => format!("{name} = "),
+                        Structure::Simple(_) => format!("{{ \"{name}\", "),
+                    });
+                    match val {
+                        ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::Double(_) => {
+                            object_block.text("\"");
+                            val.emit_csharp(&object_block, root_resource);
+                            object_block.text("\"");
                         }
-                    },
-                    Structure::Simple(cfn) => {
-                        match cfn {
-                            CfnType::Json => {
-                                let object_block = output.indent_with_options(IndentOptions {
-                                    indent: INDENT,
-                                    leading: Some("new Dictionary<string, object>\n{".into()),
-                                    trailing: Some("}".into()),
-                                    trailing_newline: false,
-                                });
-                                for (name, val) in properties {
-                                    object_block.text(format!("{{ \"{name}\", "));
-                                    val.emit_csharp(&object_block, root_resource);
-                                    object_block.text("},");
-                                    object_block.newline();
-                                }
-                            }
-                            _ => unreachable!("object with non-json simple structure ({:?})", cfn)
-                        }
-                    },
+                        _ => val.emit_csharp(&object_block, root_resource)
+                    }
+                    object_block.text("},");
+                    object_block.newline();
                 }
             }
+            
             ResourceIr::If(cond, when_true, when_false) => {
                 output.text(format!("{cond} ? ", cond = camel_case(cond)));
                 when_true.emit_csharp(output, root_resource);
