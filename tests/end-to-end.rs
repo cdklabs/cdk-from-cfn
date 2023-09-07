@@ -30,6 +30,9 @@ macro_rules! test_case {
 
             #[cfg(feature = "typescript")]
             test_case!($name, typescript, &Typescript {}, $stack_name, "app.ts");
+
+            #[cfg(feature = "csharp")]
+            test_case!($name, csharp, &CSharp::default(), $stack_name, "App.cs");
         }
     };
 

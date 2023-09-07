@@ -5,13 +5,13 @@ using System.Collections.Generic;
 
 namespace Com.Acme.Test.Simple
 {
-    public class NoctStackProps : StackProps
+    public class VpcStackProps : StackProps
     {
     }
 
-    public class NoctStack : Stack
+    public class VpcStack : Stack
     {
-        public NoctStack(Construct scope, string id, NoctStackProps props = null) : base(scope, id, props)
+        public VpcStack(Construct scope, string id, VpcStackProps props = null) : base(scope, id, props)
         {
             var vpc = new CfnVPC(this, "VPC", new CfnVPCProps
             {

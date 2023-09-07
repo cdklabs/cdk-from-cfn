@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Com.Acme.Test.Simple
 {
-    public class NoctStackProps : StackProps
+    public class SimpleStackProps : StackProps
     {
         /// <summary>
         /// The prefix for the bucket name
@@ -21,7 +21,7 @@ namespace Com.Acme.Test.Simple
     /// An example stack that uses many of the syntax elements permitted in a
     /// CloudFormation template, but does not attempt to represent a realistic stack.
     /// </summary>
-    public class NoctStack : Stack
+    public class SimpleStack : Stack
     {
         /// <summary>
         /// The ARN of the bucket in this template!
@@ -38,7 +38,7 @@ namespace Com.Acme.Test.Simple
         /// </summary>
         public object IsLarge { get; } 
 
-        public NoctStack(Construct scope, string id, NoctStackProps props = null) : base(scope, id, props)
+        public SimpleStack(Construct scope, string id, SimpleStackProps props = null) : base(scope, id, props)
         {
             // Applying default props
             props.BucketNamePrefix ??= "bucket";
