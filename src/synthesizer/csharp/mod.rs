@@ -317,9 +317,14 @@ impl ImportInstruction {
             for submodule_part in self.path[1].split("-") {
                 parts.push(match submodule_part {
                     "aws" => "AWS".into(),
-                    // TODO - This part of the namespace needs to be pulled from the jsiirc.json
+                    // TODO - This is hardcoded for now.
+                    // This part of the namespace needs to be pulled from the jsiirc.json
                     // of the submodule. In C# there is no consistent rule we can apply to transform
                     // this string to have the right casing.
+                    // Some are all caps, and some are Pascal case.
+                    "s3" => "S3".into(),
+                    "sqs" => "SQS".into(),
+                    "ec2" => "EC2".into(),
                     other => other.into(),
                 });
             }

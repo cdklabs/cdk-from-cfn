@@ -1,6 +1,6 @@
 using Amazon.CDK;
-using Amazon.CDK.AWS.s3;
-using Amazon.CDK.AWS.sqs;
+using Amazon.CDK.AWS.S3;
+using Amazon.CDK.AWS.SQS;
 using Constructs;
 using System.Collections.Generic;
 
@@ -14,12 +14,6 @@ namespace Com.Acme.Test.Simple
         public string BucketNamePrefix { get; set; }
 
         public string LogDestinationBucketName { get; set; }
-
-        public string[] Foo { get; set; }
-
-        public string[] Bar { get; set; }
-
-        public string Baz { get; set; }
 
     }
 

@@ -11,7 +11,7 @@ namespace Com.Acme.Test.Simple
 
     public class NoctStack : Stack
     {
-        NoctStack(Construct scope, string id, NoctStackProps props = null) : base(scope, id, props)
+        public NoctStack(Construct scope, string id, NoctStackProps props = null) : base(scope, id, props)
         {
             var vpc = new CfnVPC(this, "VPC", new CfnVPCProps
             {
