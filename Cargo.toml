@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.64"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 
 include = [
   "/src", "/docs", "LICENSE", "README.md", "CONTRIBUTING.md"
