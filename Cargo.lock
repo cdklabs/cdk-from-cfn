@@ -105,6 +105,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50d30906286121d95be3d479533b458f87493b30a4b5f79a607db8f5d11aa91f"
 
 [[package]]
+name = "cdk-from-cfn"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "clap",
+ "indexmap 2.0.0",
+ "nom",
+ "numberkit",
+ "phf",
+ "phf_codegen",
+ "serde",
+ "serde-enum-str",
+ "serde_json",
+ "serde_with",
+ "serde_yaml",
+ "topological-sort",
+ "voca_rs",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -357,28 +379,6 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
-name = "noctilucent"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "base64",
- "clap",
- "indexmap 2.0.0",
- "nom",
- "numberkit",
- "phf",
- "phf_codegen",
- "serde",
- "serde-enum-str",
- "serde_json",
- "serde_with",
- "serde_yaml",
- "topological-sort",
- "voca_rs",
- "wasm-bindgen",
-]
 
 [[package]]
 name = "nom"

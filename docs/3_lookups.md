@@ -1,9 +1,9 @@
-# Noctilucent Lookup Tables
+# cdk_from_cfn lookup tables
 
-This document describes the breakdown of how the Mappings section of a CloudFormation template is converted to CDK 
-typescript in Noctilucent.
+This document describes the breakdown of how the Mappings section of a CloudFormation template is converted to CDK
+typescript in cdk_from_cfn.
 
-## Where does this fit? 
+## Where does this fit?
 
 See [1_overview.md](./1_overview.md) for information on where a Mapping resource in a CloudFormation template
 will get transpiled to in the produced CDK.
@@ -39,8 +39,8 @@ and then all meta lookups into the table will be replaced with hashmap lookups.
 
 ## High Level Overview
 
-There are two parts that need to be solved here: Parsing and Synthesis. Parsing is responsible for converting the 
-Mappings to an internal representation. Synthesis is responsible for translating the internal representation to 
+There are two parts that need to be solved here: Parsing and Synthesis. Parsing is responsible for converting the
+Mappings to an internal representation. Synthesis is responsible for translating the internal representation to
 CDK typescript that can be used in the rest of the CDK document.
 
 ### Parsing
@@ -63,14 +63,17 @@ we define the following terms:
 2. `ARN` as **OuterMappingKey**
 3. `PrincipalArn` as **InnerMappingKey**
 4. `111111111111:role/LogAccessRole` as **InnerMappingValue**
-5. 
+5.
+
 ```
 {
   "PrincipalArn": "111111111111:role/LogAccessRole",
   "ResourceArnPrefix": "222233334444:role/LambdaReadOnly"
 }
-``` 
-   as **InnerMapping**
+```
+
+as **InnerMapping**
+
 ```
 "LogAccessRoleMappingProd": {
       "ARN": {
@@ -79,7 +82,8 @@ we define the following terms:
       },
 }
 ```
-   as **OuterMapping**
+
+as **OuterMapping**
 
 The basic flow looks something like:
 
@@ -93,7 +97,7 @@ The basic flow looks something like:
 
 ### Synthesis
 
-After all maps are created the CDK typescript mapping will be generated 
+After all maps are created the CDK typescript mapping will be generated
 
 1. Iterate through entry-set of mappings
    1. Start mapping declaration as `const <name> = ` where name is the key (OuterMappingName) from the entry-set
@@ -113,7 +117,3 @@ After all maps are created the CDK typescript mapping will be generated
          5. End value `)`
          6. End entry `]`
       3. End value `)`
-
-  
-
-
