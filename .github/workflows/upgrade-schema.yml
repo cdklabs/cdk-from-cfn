@@ -36,6 +36,7 @@ jobs:
         id: create-pr
         uses: peter-evans/create-pull-request@v4
         with:
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
           author: github-actions <github-actions@github.com>
           committer: github-actions <github-actions@github.com>
           signoff: true
@@ -53,5 +54,3 @@ jobs:
           path: 'src/specification/spec.json'
           title: 'chore: update cloudformation specification'
           labels: auto-approve
-        env:
-          GITHUB_TOKEN: '${{ secrets.PROJEN_GITHUB_TOKEN }}'
