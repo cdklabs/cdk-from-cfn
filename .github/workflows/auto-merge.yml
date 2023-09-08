@@ -13,7 +13,7 @@ jobs:
       pull-requests: write
       contents: write
     steps:
-      - uses: peter-evans/enable-pull-request-automerge@v2
+      - uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
           pull-request-number: ${{ github.event.number }}
