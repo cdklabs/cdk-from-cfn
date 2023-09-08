@@ -231,41 +231,27 @@ impl Synthesizer for CSharp {
             });
 
             for (key, inner) in &mapping.map {
-                let map_item = map.indent_with_options(IndentOptions {
-                    indent: INDENT,
-                    leading: Some(
-                        format!("[\"{key}\"] = new Dictionary<string, {leaf_type}>\n{{").into(),
-                    ),
-                    trailing: Some("},".into()),
-                    trailing_newline: true,
-                });
-
+                map.text(format!("[\"{key}\"] = new Dictionary<string, {leaf_type}> {{"));
                 for (inner_key, inner_value) in inner {
                     match inner_value {
                         MappingInnerValue::Bool(_)
                         | MappingInnerValue::Float(_)
                         | MappingInnerValue::Number(_) => {
-                            map_item.text(format!("[\"{inner_key}\"] = {inner_value},"));
+                            map.text(format!("[\"{inner_key}\"] = {inner_value}, "));
                         }
                         MappingInnerValue::String(s) => {
-                            map_item.text(format!("[\"{inner_key}\"] = \"{s}\","));
+                            map.text(format!("[\"{inner_key}\"] = \"{s}\", "));
                         }
                         MappingInnerValue::List(l) => {
-                            let list = map_item.indent_with_options(IndentOptions {
-                                indent: INDENT,
-                                leading: Some(
-                                    format!("[\"{inner_key}\"] = new string[] \n{{").into(),
-                                ),
-                                trailing: Some("},".into()),
-                                trailing_newline: true,
-                            });
+                            map.text(format!("[\"{inner_key}\"] = new string[] {{"));
                             for list_item in l {
-                                list.line(format!("\"{list_item}\","));
+                                map.text(format!("\"{list_item}\", "));
                             }
+                            map.text("}, ");
                         }
                     }
-                    map_item.newline();
                 }
+                map.line("},");
             }
         }
 
@@ -553,7 +539,6 @@ impl ResourceIr {
                 output.text("\"")
             }
             ResourceIr::Map(table, top_level_key, second_level_key) => {
-                //Factor out shared code
                 output.text(camel_case(table));
                 output.text("[");
                 top_level_key.emit_csharp(output, root_resource);

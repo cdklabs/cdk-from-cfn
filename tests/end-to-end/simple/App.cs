@@ -51,73 +51,25 @@ namespace Com.Acme.Test.Simple
             // Mappings
             var booleans = new Dictionary<string, Dictionary<string,bool>> 
             {
-                ["True"] = new Dictionary<string, bool>
-                {
-                    ["true"] = true,
-                },
-                ["False"] = new Dictionary<string, bool>
-                {
-                    ["false"] = false,
-                },
+                ["True"] = new Dictionary<string, bool> {["true"] = true, },
+                ["False"] = new Dictionary<string, bool> {["false"] = false, },
             };
             var lists = new Dictionary<string, Dictionary<string,string[]>> 
             {
-                ["Candidates"] = new Dictionary<string, string[]>
-                {
-                    ["Empty"] = new string[] 
-                    {
-                    },
-
-                    ["Singleton"] = new string[] 
-                    {
-                        "One",
-                    },
-
-                    ["Pair"] = new string[] 
-                    {
-                        "One",
-                        "Two",
-                    },
-
-                },
+                ["Candidates"] = new Dictionary<string, string[]> {["Empty"] = new string[] {}, ["Singleton"] = new string[] {"One", }, ["Pair"] = new string[] {"One", "Two", }, },
             };
             var numbers = new Dictionary<string, Dictionary<string,int>> 
             {
-                ["Prime"] = new Dictionary<string, int>
-                {
-                    ["Eleven"] = 11,
-                    ["Thirteen"] = 13,
-                    ["Seventeen"] = 17,
-                },
+                ["Prime"] = new Dictionary<string, int> {["Eleven"] = 11, ["Thirteen"] = 13, ["Seventeen"] = 17, },
             };
             var strings = new Dictionary<string, Dictionary<string,string>> 
             {
-                ["Foos"] = new Dictionary<string, string>
-                {
-                    ["Foo1"] = "Foo1",
-                    ["Foo2"] = "Foo2",
-                },
-                ["Bars"] = new Dictionary<string, string>
-                {
-                    ["Bar"] = "Bar",
-                },
+                ["Foos"] = new Dictionary<string, string> {["Foo1"] = "Foo1", ["Foo2"] = "Foo2", },
+                ["Bars"] = new Dictionary<string, string> {["Bar"] = "Bar", },
             };
             var table = new Dictionary<string, Dictionary<string,object>> 
             {
-                ["Values"] = new Dictionary<string, object>
-                {
-                    ["Boolean"] = true,
-                    ["Float"] = 3.14,
-                    ["List"] = new string[] 
-                    {
-                        "1",
-                        "2",
-                        "3",
-                    },
-
-                    ["Number"] = 42,
-                    ["String"] = "Baz",
-                },
+                ["Values"] = new Dictionary<string, object> {["Boolean"] = true, ["Float"] = 3.14, ["List"] = new string[] {"1", "2", "3", }, ["Number"] = 42, ["String"] = "Baz", },
             };
 
             // Conditions
