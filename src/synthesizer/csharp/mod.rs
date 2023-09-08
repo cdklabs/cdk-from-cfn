@@ -251,7 +251,9 @@ impl Synthesizer for CSharp {
                         MappingInnerValue::List(l) => {
                             let list = map_item.indent_with_options(IndentOptions {
                                 indent: INDENT,
-                                leading: Some(format!("[\"{inner_key}\"] = new string[] \n{{").into()),
+                                leading: Some(
+                                    format!("[\"{inner_key}\"] = new string[] \n{{").into(),
+                                ),
                                 trailing: Some("},".into()),
                                 trailing_newline: true,
                             });
@@ -266,7 +268,7 @@ impl Synthesizer for CSharp {
         }
 
         // Conditions
-        if !ir.conditions.is_empty(){
+        if !ir.conditions.is_empty() {
             ctor.newline();
             ctor.line("// Conditions");
         }
@@ -310,7 +312,7 @@ impl Synthesizer for CSharp {
         }
 
         code.write(into)
-    } 
+    }
 }
 
 impl ImportInstruction {
