@@ -21,8 +21,8 @@ This document describes how to set up a development environment and submit your 
 - [GitHub CLI](https://cli.github.com/)
 
 ```console
-gh repo fork iph/noctilucent
-cd noctilucent
+gh repo fork cdklabs/cdk_from_cfn
+cd cdk_from_cfn
 cargo build
 ```
 
@@ -44,4 +44,3 @@ git add CONTRIBUTING.md
 git commit -m "chore: Adding a contributing guide"
 git push
 ```
-
