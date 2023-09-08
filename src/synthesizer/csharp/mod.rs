@@ -153,21 +153,23 @@ impl Synthesizer for CSharp {
                         trailing_newline: true,
                     });
                     cfn_param.line(format!("Type = \"{}\",", param.constructor_type));
-                    let cfn_param_default_pre = match &param.constructor_type {
+                    let list_optional_prefix = match &param.constructor_type {
                         t if t.contains("List") => "string.Join(\",\", ",
                         _ => "",
                     };
-                    let cfn_param_default_post = match &param.constructor_type {
+                    let list_optional_suffix = match &param.constructor_type {
                         t if t.contains("List") => ")",
                         _ => "",
                     };
                     if let Some(v) = &param.default_value {
                         cfn_param.line(format!(
-                            "Default = {cfn_param_default_pre}props.{name}{cfn_param_default_post} ?? \"{}\",",
+                            "Default = {list_optional_prefix}props.{name}{list_optional_suffix} ?? \"{}\",",
                             v.escape_debug()
                         ));
                     } else {
-                        cfn_param.line(format!("Default = {cfn_param_default_pre}props.{name}{cfn_param_default_post},"));
+                        cfn_param.line(format!(
+                            "Default = {list_optional_prefix}props.{name}{list_optional_suffix},"
+                        ));
                     };
                     if let Some(v) = &param.description {
                         cfn_param.line(format!("Description = \"{}\",", v));
