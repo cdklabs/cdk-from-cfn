@@ -6,10 +6,6 @@ rust-version = "1.64"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
 license = "MIT OR Apache-2.0"
 
-include = [
-  "/src", "/docs", "LICENSE", "README.md", "CONTRIBUTING.md"
-]
-
 repository = "https://github.com/cdklabs/cdk-from-cfn"
 homepage = "https://github.com/cdklabs/cdk-from-cfn#readme"
 
