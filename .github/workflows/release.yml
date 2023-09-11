@@ -18,7 +18,7 @@ jobs:
         with:
           crate: cargo-release
           version: latest
-      - run: cargo release --all-features --verbose minor --execute
+      - run: cargo release --all-features --verbose minor --execute --no-confirm
       - name: Set git identity
         run: |-
           git config user.name "github-actions"
