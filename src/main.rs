@@ -9,7 +9,8 @@ use std::{fs, io};
     feature = "typescript",
     feature = "golang",
     feature = "java",
-    feature = "python"
+    feature = "python",
+    feature = "csharp",
 )))]
 compile_error!("At least one language target feature must be enabled!");
 
@@ -23,6 +24,8 @@ fn main() -> anyhow::Result<()> {
         "python",
         #[cfg(feature = "java")]
         "java",
+        #[cfg(feature = "csharp")]
+        "csharp",
     ];
 
     let matches = Command::new(env!("CARGO_BIN_NAME"))
@@ -97,6 +100,8 @@ fn main() -> anyhow::Result<()> {
         "python" => Box::new(Python {}),
         #[cfg(feature = "java")]
         "java" => Box::<Java>::default(),
+        #[cfg(feature = "csharp")]
+        "csharp" => Box::<CSharp>::default(),
         unsupported => panic!("unsupported language: {}", unsupported),
     };
 
