@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::io::Write;
-use std::process::Command;
 use std::{fs, io};
 
 use serde::Deserialize;
@@ -52,22 +51,6 @@ fn main() -> io::Result<()> {
             "pub const RESOURCE_TYPES: phf::Map<&'static str, phf::Map<&'static str, super::PropertyRule>> = {};",
             resource_types.build()
         )?;
-    }
-
-    // Install some TypeScript stuff in the right places for IDE comfort. Silently ignore if failing...
-    match Command::new("npm")
-        .args(["install", "--no-save", "aws-cdk-lib", "@types/node"])
-        .current_dir("tests/end-to-end")
-        .status()
-    {
-        Ok(npm_exit) => {
-            if !npm_exit.success() {
-                eprintln!("npm install failed with {npm_exit:?}");
-            }
-        }
-        Err(cause) => {
-            eprintln!("npm install failed with {cause:?}");
-        }
     }
 
     Ok(())
