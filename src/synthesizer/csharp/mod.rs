@@ -233,7 +233,9 @@ impl Synthesizer for CSharp {
             });
 
             for (key, inner) in &mapping.map {
-                map.text(format!("[\"{key}\"] = new Dictionary<string, {leaf_type}> {{"));
+                map.text(format!(
+                    "[\"{key}\"] = new Dictionary<string, {leaf_type}> {{"
+                ));
                 for (inner_key, inner_value) in inner {
                     match inner_value {
                         MappingInnerValue::Bool(_)
