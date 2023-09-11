@@ -16,7 +16,7 @@ homepage = "https://github.com/cdklabs/cdk-from-cfn#readme"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["golang", "java", "typescript", "python"]
+default = ["golang", "java", "typescript", "python", "csharp"]
 golang = []
 java = []
 typescript = []

@@ -17,12 +17,13 @@ $ ./target/release/cdk_from_cfn [INPUT] [OUTPUT]
 
 ### Cargo Features
 
-| Name         | Enabled by default | Description                           |
-| ------------ | :----------------: | ------------------------------------- |
-| `typescript` | :heavy_check_mark: | Enables support for TypeScript output |
-| `golang`     | :heavy_check_mark: | Enables support for Go output         |
-| `java`       | :heavy_check_mark: | Enables support for Java output       |
-| `Python`     | :heavy_check_mark: | Enables support for Python output     |
+Name         | Enabled by default | Description
+-------------|:------------------:|---------------------------------------------
+`typescript` | :heavy_check_mark: | Enables support for TypeScript output
+`golang`     | :heavy_check_mark: | Enables support for Go output
+`java`       | :heavy_check_mark: | Enables support for Java output
+`Python`     | :heavy_check_mark: | Enables support for Python output
+`csharp`     | :heavy_check_mark: | Enables support for C# output
 
 You can enable experimental languages (not enabled by default) by enabling the relevant feature:
 
