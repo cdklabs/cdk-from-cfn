@@ -1,0 +1,19 @@
+name: Sync release branch
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: 0 0 * * *
+
+jobs:
+  sync-branch:
+    name: Update release branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+      - name: Push to release branch
+        uses: connor-baer/action-sync-branch@main
+        with:
+          branch: release
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
