@@ -209,7 +209,7 @@ impl<'a> ResourceProperties<'a> {
     ///
     /// In this example, the following would occur:
     /// ```rust
-    /// use noctilucent::specification::{CfnType, Specification, Structure};
+    /// use cdk_from_cfn::specification::{CfnType, Specification, Structure};
     /// let specification = Specification::default();
     /// let resource = specification.get_resource("AWS::DynamoDB::Table").unwrap();
     /// assert_eq!(resource.structure("TableName"), Option::Some(Structure::Simple(CfnType::String)));

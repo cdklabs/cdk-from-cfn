@@ -1,16 +1,19 @@
-# noctilucent
+# cdk_from_cfn
+
 In a world where people want to use the full extent of the cdk, there **was** no product that would transform all your
 JSON/YAML into beautiful typescript...until now.
 
-Noctilucent will take your JSON/YAML and output the equivalent typescript.
+cdk_from_cfn will take your JSON/YAML and output the equivalent typescript.
 
 ## User Guide
+
 ```console
 $ cargo build --release
-$ ./target/release/noctilucent [INPUT] [OUTPUT]
+$ ./target/release/cdk_from_cfn [INPUT] [OUTPUT]
 ```
-* `INPUT` is the input file path (STDIN by default).
-* `OUTPUT` is the output file path; if not specified, output will be printed on your command line (STDOUT by default).
+
+- `INPUT` is the input file path (STDIN by default).
+- `OUTPUT` is the output file path; if not specified, output will be printed on your command line (STDOUT by default).
 
 ### Cargo Features
 
@@ -23,12 +26,14 @@ Name         | Enabled by default | Description
 `csharp`     | :heavy_check_mark: | Enables support for C# output
 
 You can enable experimental languages (not enabled by default) by enabling the relevant feature:
+
 ```console
 $ cargo build --release --features=<feature-name>
 Finished release [optimized] target(s) in 0.17s
 ```
 
 If you want to disable on-by-default languages, you can pass `--no-default-features`:
+
 ```console
 $ cargo build --release --no-default-features --features=golang
 Finished release [optimized] target(s) in 0.17s

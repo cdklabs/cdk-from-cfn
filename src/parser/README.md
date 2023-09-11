@@ -1,4 +1,4 @@
-# `noctilucent::parser`
+# `cdk_from_cfn::parser`
 
 This module is responsible for parsing AWS CloudFormation YAML (and JSON)
 templates to a very immediate rust representation of it. The parsing logic is

@@ -88,9 +88,9 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "base64"
-version = "0.21.2"
+version = "0.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "604178f6c5c21f02dc555784810edfb88d34ac2c73b2eae109655649ee73ce3d"
+checksum = "414dcefbc63d77c526a76b3afcf6fbb9b5e2791c19c3aa2297733208750c6e53"
 
 [[package]]
 name = "bumpalo"
@@ -103,6 +103,28 @@ name = "cc"
 version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50d30906286121d95be3d479533b458f87493b30a4b5f79a607db8f5d11aa91f"
+
+[[package]]
+name = "cdk-from-cfn"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "clap",
+ "indexmap 2.0.0",
+ "nom",
+ "numberkit",
+ "phf",
+ "phf_codegen",
+ "serde",
+ "serde-enum-str",
+ "serde_json",
+ "serde_with",
+ "serde_yaml",
+ "topological-sort",
+ "voca_rs",
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "cfg-if"
@@ -125,23 +147,22 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.0"
+version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d5f1946157a96594eb2d2c10eb7ad9a2b27518cb3000209dec700c35df9197d"
+checksum = "6a13b88d2c62ff462f88e4a121f17a82c1af05693a2f192b5c38d14de73c19f6"
 dependencies = [
  "clap_builder",
 ]
 
 [[package]]
 name = "clap_builder"
-version = "4.4.0"
+version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78116e32a042dd73c2901f0dc30790d20ff3447f3e3472fad359e8c3d282bcd6"
+checksum = "2bb9faaa7c2ef94b2743a21f5a29e6f0010dff4caa69ac8e9d6cf8b6fa74da08"
 dependencies = [
  "anstream",
  "anstyle",
  "clap_lex",
- "once_cell",
  "strsim",
 ]
 
@@ -357,28 +378,6 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
-name = "noctilucent"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "base64",
- "clap",
- "indexmap 2.0.0",
- "nom",
- "numberkit",
- "phf",
- "phf_codegen",
- "serde",
- "serde-enum-str",
- "serde_json",
- "serde_with",
- "serde_yaml",
- "topological-sort",
- "voca_rs",
- "wasm-bindgen",
-]
 
 [[package]]
 name = "nom"

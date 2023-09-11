@@ -3,10 +3,14 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
+    labels: 
+    - auto-approve
     schedule:
-      interval: weekly
+      interval: daily
 
   - package-ecosystem: cargo
     directory: /
+    labels: 
+    - auto-approve
     schedule:
-      interval: weekly
+      interval: daily

@@ -1,9 +1,9 @@
-# `noctilucent::ir`
+# `cdk_from_cfn::ir`
 
-This module contains the Intermediate Representation (IR) `noctilucent` uses in
+This module contains the Intermediate Representation (IR) `cdk_from_cfn` uses in
 order to facilitate translating CloudFormation templates into AWS CDK
 applications. The IR data structures are obtained by transforming Parse Trees
-produced by the `noctilucent::parser` module.
+produced by the `cdk_from_cfn::parser` module.
 
 The conversion is informed by a copy of the [AWS CloudFormation Resource
 Specification][cfnspec] document, which provides information about properties
@@ -22,7 +22,7 @@ application:
   Stack class, optionally bound to a CloudFormation Output object;
 - etc...
 
-The IR is topologically sorted so that `noctilucent::synthesizer` can process
+The IR is topologically sorted so that `cdk_from_cfn::synthesizer` can process
 instructions in the order they are provided, resulting in a program with
 correctly ordered declarations (while CloudFormation templates allow resources
 to be declared in an arbitrary order, AWS CDK applications naturally require
