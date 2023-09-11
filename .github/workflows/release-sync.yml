@@ -1,4 +1,4 @@
-name: Sync release branch
+name: sync-release-branch
 
 on:
   workflow_dispatch: {}

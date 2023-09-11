@@ -12,11 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
-        run: |-
-          curl https://sh.rustup.rs -sSf | sh
-          cargo install cargo-release
-      - name: Release crate
-        run: cargo release --all-features --verbose minor
+        uses: actions/checkout@main
+      - name: Install cargo-release
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-release
+          version: latest
+      - run: cargo release --all-features --verbose minor
       - name: Set git identity
         run: |-
           git config user.name "github-actions"
@@ -29,20 +31,17 @@ jobs:
           author: github-actions <github-actions@github.com>
           committer: github-actions <github-actions@github.com>
           signoff: true
-          branch: release
+          branch: github-actions/release
           body: |
             Release cdk-from-cfn
-            Updates CloudFormation Specification. See details in [workflow run].
 
             [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           commit-message: |-
-            chore: upgrade cloudformation specification
-
-            Updates CloudFormation Specification. See details in [workflow run].
+            chore: release cdk-from-cfn
 
             [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          path: 'src/specification/spec.json'
-          title: 'chore: update cloudformation specification'
+
+          title: 'chore: release cdk-from-cfn'
           labels: auto-approve
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
