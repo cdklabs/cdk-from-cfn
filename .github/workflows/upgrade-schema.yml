@@ -32,6 +32,17 @@ jobs:
       - name: 'Show diff'
         run: 'git diff src/specification/spec.json'
 
+      - name: 'Set git identity'
+        run: |-
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: 'Build package'
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all-features
+
       - name: 'Open pull request updating schema'
         id: create-pr
         uses: peter-evans/create-pull-request@v5
