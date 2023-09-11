@@ -1,10 +1,10 @@
-# Noctilucent Transpiler v1
+# cdk_from_cfn transpiler v1
 
-The goal of noctilucent is to take any template and transform it completely to a working CDK application in typescript.
+The goal of cdk_from_cfn is to take any template and transform it completely to a working CDK application in typescript.
 
 The remainder of this document is focusing on how that will be done.
 
-## Breakdown of a CDK Typescript Class in Noctilucent
+## Breakdown of a CDK Typescript Class in cdk_from_cfn
 
 Let's look at a simple cdk application: 
 

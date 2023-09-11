@@ -2,19 +2,18 @@ use super::Synthesizer;
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::importer::ImportInstruction;
-use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::specification::{CfnType, Structure};
+use crate::specification::Structure;
 use std::borrow::Cow;
-use std::collections::LinkedList;
 use std::io;
 use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case};
 
-const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
+const INDENT: Cow<'static, str> = Cow::Borrowed("    ");
+const DOUBLE_INDENT: Cow<'static, str> = Cow::Borrowed("        ");
 
 macro_rules! fill {
     ($code:ident; $leading:expr; $($lines:expr),* ; $trailing:expr) => {
@@ -28,12 +27,6 @@ macro_rules! fill {
 
             $(_class.line(format!($lines));)*
         }
-    };
-}
-
-macro_rules! br {
-    ($prefix: expr, $str:expr) => {
-        format!("{}\n{INDENT}{}", $prefix, $str)
     };
 }
 
@@ -57,360 +50,374 @@ impl Java {
         code.line("import software.constructs.Construct;");
         code.newline();
         code.line("import java.util.*;");
-        code.line("import java.util.stream.Collectors;");
         code.line("import software.amazon.awscdk.*;");
-        code.line("import software.amazon.awscdk.App;");
         code.line("import software.amazon.awscdk.CfnMapping;");
         code.line("import software.amazon.awscdk.CfnTag;");
         code.line("import software.amazon.awscdk.Stack;");
         code.line("import software.amazon.awscdk.StackProps;");
     }
 
-    fn write_app(&self, writer: &CodeBuffer, description: &Option<String>, stack_name: &str) {
-        let app_name = "NoctApp";
-        let class = &writer.indent_with_options(IndentOptions {
-            indent: INDENT,
-            leading: Some(format!("public class {} {{", app_name).into()),
-            trailing: Some("}".into()),
-            trailing_newline: true,
-        });
-        let main = &class.indent_with_options(IndentOptions {
-            indent: INDENT,
-            leading: Some("public static void main(final String[] args) {".into()),
-            trailing: Some("}".into()),
-            trailing_newline: true,
-        });
-        main.line("App app = new App();");
-        let stack_prop = main.indent_with_options(IndentOptions {
-            indent: INDENT,
-            leading: Some("StackProps props = StackProps.builder()".into()),
-            trailing: Some(format!("{INDENT}.build();").into()),
-            trailing_newline: true,
-        });
-        match description {
-            Some(desc) => stack_prop.line(format!(
-                ".description(\"{}\")",
-                desc.replace('\n', "\" + \n  \"")
-            )),
-            None => {}
+    fn emit_mappings(mapping: &MappingInnerValue, output: &CodeBuffer) {
+        match mapping {
+            MappingInnerValue::Number(num) => output.text(format!("{num}")),
+            MappingInnerValue::Bool(bool) => output.text(if *bool { "true" } else { "false" }),
+            MappingInnerValue::String(str) => output.text(format!("{str:?}")),
+            MappingInnerValue::List(items) => {
+                output.text(format!("Arrays.asList(\"{}\")", items.join("\", \"")))
+            }
+            MappingInnerValue::Float(num) => output.text(format!("{num}")),
         };
-        main.line(format!(
-            "new {}(app, \"MyProjectStack\", props);",
-            stack_name
-        ));
-        main.line("app.synth();");
     }
 
-    fn write_helpers(&self, code: &CodeBuffer) {
-        const UTILS: &str = "class GenericList<T> extends LinkedList<T> {
-  public GenericList<T> extend(final T object) {
-    this.addLast(object);
-    return this;
-  }
-
-  public GenericList<T> extend(final List<T> collection) {
-    this.addAll(collection);
-    return this;
-  }
-}
-
-class GenericMap<T, S> extends HashMap<T, S> {
-  public GenericMap<T, S> extend(final T key, final S value) {
-    this.put(key, value);
-    return this;
-  }
-
-  public List<CfnTag> getTags() {
-    final List<CfnTag> tags = new LinkedList<>();
-    for (Map.Entry<T, S> entry : this.entrySet()) {
-      tags.add(
-          CfnTag.builder()
-              .key(String.valueOf(entry.getKey()))
-              .value(String.valueOf(entry.getValue()))
-              .build());
-    }
-    return tags;
-  }
-}
-
-class Mapping<T> {
-  private final String name;
-  private final Construct scope;
-  private final Map<String, Map<String, T>> inner = new TreeMap<>();
-
-  public Mapping(Construct scope, String name) {
-    this.name = name;
-    this.scope = scope;
-  }
-
-  public Mapping<T> put(String primaryKey, String secondaryKey, T value) {
-    final Map<String, T> map = inner.getOrDefault(primaryKey, new TreeMap<>());
-    map.put(secondaryKey, value);
-    inner.put(primaryKey, map);
-    return this;
-  }
-
-  public CfnMapping get() {
-    return CfnMapping.Builder.create(this.scope, this.name).mapping(this.inner).build();
-  }
-}
-";
-        code.line(UTILS);
-    }
-
-    fn write_mappings(ir: &CloudformationProgramIr, map: &Rc<CodeBuffer>) {
-        map.line("// Start Mapping section");
+    fn write_mappings(ir: &CloudformationProgramIr, map: &CodeBuffer) {
+        if ir.mappings.is_empty() {
+            return;
+        }
+        map.line("// Mappings");
         for mapping in &ir.mappings {
-            let mut mapping_init = false;
-            let map_name = name(&mapping.name);
-
-            for (outer_key, inner) in mapping.map.iter() {
-                let values: Vec<&MappingInnerValue> = inner.values().collect();
-                let inner_type: &str = check_type(values);
-
-                for (inner_key, value) in inner.iter() {
-                    if !mapping_init {
-                        map.line(format!(
-                            "final Mapping<{inner_type}> {map_name} = new Mapping<>(this, \"{}\");",
-                            &mapping.name
-                        ));
-                        mapping_init = true;
-                    }
-                    map.text(format!("{map_name}.put(\"{outer_key}\", \"{inner_key}\", "));
-
-                    match value {
-                        MappingInnerValue::Bool(bool) => {
-                            map.text(if *bool { "true" } else { "false" })
-                        }
-                        MappingInnerValue::Number(num) => map.text(format!("{num}")),
-                        MappingInnerValue::Float(num) => map.text(format!("{num}")),
-                        MappingInnerValue::String(str) => map.text(format!("{str:?}")),
-                        MappingInnerValue::List(items) => {
-                            let list = map.indent_with_options(IndentOptions {
-                                indent: INDENT,
-                                leading: None,
-                                trailing: None,
-                                trailing_newline: false,
-                            });
-                            list.text("new GenericList<String>()");
-                            for item in items {
-                                list.text(br!("", format!(".extend({item:?})")));
-                            }
-                        }
-                    }
-                    map.line(");")
+            let name = camel_case(&mapping.name);
+            map.line(format!(
+                "final CfnMapping {name} = new CfnMapping(this, \"{name}\");"
+            ));
+            for (key1, inner_mapping) in &mapping.map {
+                for (key2, value) in inner_mapping {
+                    map.text(format!("{name}.setValue(\"{key1}\", \"{key2}\", "));
+                    Self::emit_mappings(value, map);
+                    map.text(");\n");
                 }
             }
-            map.line(format!(
-                "final CfnMapping {map_name}CfnMapping = {map_name}.get();",
-            ));
             map.newline();
         }
     }
 
-    fn write_parameters(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
+    fn emit_props(ir: &CloudformationProgramIr) -> Vec<JavaConstructorParameter> {
+        let mut v = Vec::new();
         for input in &ir.constructor.inputs {
-            let name = camel_case(&input.name);
             let java_type = match input.constructor_type.as_str() {
-                t if t.contains("List") => "List<String>",
+                "List<Number>" => "List<Number>",
+                t if t.contains("List") => "String[]",
                 _ => "String",
             };
-            writer.line(format!(
-                "final {java_type} {name} = CfnParameter.Builder.create(this, \"{}\")",
-                pascal_case(&input.name)
+
+            v.push(JavaConstructorParameter {
+                name: input.name.clone(),
+                description: input.description.clone(),
+                java_type: java_type.into(),
+                constructor_type: input.constructor_type.clone(),
+                default_value: input.default_value.clone(),
+            });
+        }
+        v
+    }
+
+    fn write_stack_definitions(
+        props: &Vec<JavaConstructorParameter>,
+        writer: &CodeBuffer,
+        stack_name: &str,
+    ) -> Rc<CodeBuffer> {
+        fill!(writer;
+            format!("public {}(final Construct scope, final String id) {{", stack_name);
+            "super(scope, id, null);";
+            "}" );
+
+        writer.newline();
+        let definitions = writer.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some(
+                    format!(
+                        "public {stack_name}(final Construct scope, final String id, final StackProps props) {{",
+                    )
+                    .into(),
+                ),
+                trailing: Some("}".into()),
+                trailing_newline: true,
+            });
+
+        if props.is_empty() {
+            definitions.line("super(scope, id, props);");
+            definitions
+        } else {
+            definitions.line(format!(
+                "this(scope, id, props{});",
+                ", null".repeat(props.len())
             ));
-            writer
-                .indent(INDENT)
-                .line(format!(".type(\"{}\")", &input.constructor_type));
-            match &input.description {
-                Some(descr) => writer
-                    .indent(INDENT)
-                    .line(format!(".description(\"{}\")", descr)),
-                None => {}
-            };
-            match &input.default_value {
-                Some(val) => writer
-                    .indent(INDENT)
-                    .line(format!(".defaultValue(\"{}\")", val)),
-                None => {}
-            };
-            writer.indent(INDENT).line(".build()");
-            match input.constructor_type.as_str() {
-                t if t.contains("List") => writer.indent(INDENT).line(".getValueAsStringList();"),
-                _ => writer.indent(INDENT).line(".getValueAsString();"),
-            };
+
+            writer.newline();
+            let definitions_with_props = writer.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some(format!("public {stack_name}(final Construct scope, final String id, final StackProps props,").into()),
+                trailing: Some("}".into()),
+                trailing_newline: true,
+            });
+            let mut prop = props.iter().peekable();
+            while let Some(p) = prop.next() {
+                if prop.peek().is_none() {
+                    definitions_with_props
+                        .indent(INDENT)
+                        .line(format!("{} {}) {{", p.java_type, p.name));
+                } else {
+                    definitions_with_props
+                        .indent(INDENT)
+                        .line(format!("{} {},", p.java_type, p.name));
+                }
+            }
+            definitions_with_props.line("super(scope, id, props);");
+            definitions_with_props.newline();
+            definitions_with_props
+        }
+    }
+
+    fn write_props(props: &Vec<JavaConstructorParameter>, writer: &CodeBuffer) {
+        for prop in props {
+            match &prop.default_value {
+                None => writer.newline(),
+                Some(v) if prop.constructor_type.contains("AWS::") => {
+                    let value_as = match &prop.constructor_type {
+                        t if t.contains("List") => "getValueAsList",
+                        _ => "getValueAsString",
+                    };
+                    let prop_options = writer.indent_with_options(IndentOptions {
+                        indent: DOUBLE_INDENT,
+                        leading: Some(
+                            format!(
+                                "{} = Optional.ofNullable({}).isPresent()",
+                                prop.name, prop.name
+                            )
+                            .into(),
+                        ),
+                        trailing: None,
+                        trailing_newline: true,
+                    });
+                    prop_options.line(format!("? {}", prop.name));
+                    let prop_details = prop_options.indent_with_options(IndentOptions {
+                        indent: DOUBLE_INDENT,
+                        leading: Some(
+                            format!(
+                                ": CfnParameter.Builder.create(this, \"{}\")",
+                                pascal_case(&prop.name)
+                            )
+                            .into(),
+                        ),
+                        trailing: None,
+                        trailing_newline: false,
+                    });
+                    prop_details.line(format!(".type(\"{}\")", prop.constructor_type));
+                    prop_details.line(format!(".defaultValue(\"{}\")", v));
+                    prop_details.line(".build()");
+                    prop_details.line(format!(".{}();", value_as));
+                }
+                Some(v) => writer.line(format!(
+                    "{} = Optional.ofNullable({}).isPresent() ? {}\n{DOUBLE_INDENT}: \"{}\";",
+                    prop.name, prop.name, prop.name, v
+                )),
+            }
+        }
+    }
+
+    fn write_resource(resource: &ResourceInstruction, writer: &Rc<CodeBuffer>) -> bool {
+        let class = resource.resource_type.type_name();
+        let res_name = &resource.name;
+
+        if let Some(cond) = &resource.condition {
+            writer.line(format!("Optional<Cfn{class}> {} = {} ? Optional.of(Cfn{class}.Builder.create(this, \"{res_name}\")", name(res_name), camel_case(cond)));
+            let properties = writer.indent(DOUBLE_INDENT);
+            for (name, prop) in &resource.properties {
+                properties.text(format!(".{}(", camel_case(name)));
+                emit_java(prop.clone(), &properties, Some(class));
+                properties.text(")\n");
+            }
+            properties.line(".build()) : Optional.empty();");
+            true
+        } else {
+            writer.line(format!(
+                "Cfn{class} {} = Cfn{class}.Builder.create(this, \"{res_name}\")",
+                name(res_name)
+            ));
+            let properties = writer.indent(DOUBLE_INDENT);
+            for (name, prop) in &resource.properties {
+                properties.text(format!(".{}(", camel_case(name)));
+                emit_java(prop.clone(), &properties, Some(class));
+                properties.text(")\n");
+            }
+            properties.line(".build();");
+            false
         }
     }
 
     fn write_resources(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
         for resource in &ir.resources {
-            let class = resource.resource_type.type_name();
-            let res_name = &resource.name;
+            let maybe_undefined = Self::write_resource(resource, writer);
             writer.newline();
-            let res_info = writer.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some(
-                    format!(
-                        "Cfn{class} {} = Cfn{class}.Builder.create(this, \"{res_name}\")",
-                        name(res_name)
-                    )
-                    .into(),
-                ),
-                trailing: Some(format!("{INDENT}.build();").into()),
-                trailing_newline: true,
-            });
-            let properties = res_info.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: None,
-                trailing: None,
-                trailing_newline: false,
-            });
-            for (key, value) in &resource.properties {
-                let property = camel_case(key.as_str());
-                let value = emit_java(value.clone(), Some(format!("Cfn{class}").as_str()));
-                properties.line(format!(".{property}({value})"));
-            }
-            writer.newline();
-            Self::write_resource_attributes(resource, &res_name.to_lowercase(), writer);
+            Self::write_resource_attributes(resource, writer, maybe_undefined);
         }
     }
 
     fn write_resource_attributes(
         resource: &ResourceInstruction,
-        res_name: &str,
         writer: &Rc<CodeBuffer>,
+        maybe_undefined: bool,
     ) {
+        let res_name = if maybe_undefined {
+            format!(
+                "{}.ifPresent(_{} -> _{}",
+                camel_case(&resource.name),
+                camel_case(&resource.name),
+                camel_case(&resource.name)
+            )
+        } else {
+            camel_case(&resource.name)
+        };
+        let trailer = if maybe_undefined { ");\n" } else { ";\n" };
+        let mut extra_line = false;
+
         if let Some(metadata) = &resource.metadata {
-            Self::write_resource_metadata(res_name, metadata, writer);
-            writer.newline();
+            match metadata {
+                ResourceIr::Object(_, entries) => {
+                    for (name, value) in entries {
+                        writer.text(format!("{res_name}.addMetadata(\"{name}\", "));
+                        emit_java(value.clone(), writer, None);
+                        writer.text(format!("){trailer}"));
+                    }
+                }
+                unsupported => {
+                    writer.line(format!("/* {unsupported:?} */"));
+                }
+            }
+            extra_line = true;
         }
 
-        if !resource.dependencies.is_empty() {
-            for dependency in &resource.dependencies {
-                writer.line(format!(
-                    "{res_name}.addDependency({});",
-                    dependency.to_lowercase()
-                ));
-            }
-            writer.newline();
+        for dependency in &resource.dependencies {
+            writer.text(format!(
+                "{res_name}.addDependency({}){}",
+                dependency.to_lowercase(),
+                trailer
+            ));
+            extra_line = true;
         }
 
         if let Some(deletion_policy) = &resource.deletion_policy {
-            writer.line(format!(
-                "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy});"
+            writer.text(format!(
+                "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy}){}",
+                trailer
             ));
-            writer.newline();
+            extra_line = true;
         }
 
         if let Some(update_policy) = &resource.update_policy {
-            writer.line(format!(
-                "{res_name}.getCfnOptions().setUpdatePolicy({});",
-                emit_java(update_policy.clone(), None)
-            ));
+            writer.text(format!("{res_name}.getCfnOptions().setUpdatePolicy("));
+            emit_java(update_policy.clone(), writer, None);
+            writer.text(format!("){trailer}"));
+            extra_line = true;
+        }
+        if extra_line {
             writer.newline();
         }
-    }
-
-    fn write_resource_metadata(res_name: &str, metadata: &ResourceIr, writer: &Rc<CodeBuffer>) {
-        match metadata {
-            ResourceIr::Object(_, entries) => {
-                for (name, value) in entries {
-                    let value = emit_java(value.clone(), None);
-                    writer.line(format!(
-                        "{}.addMetadata(\"{}\", {});",
-                        res_name, name, value
-                    ));
-                }
-            }
-            unsupported => writer.line(format!("/* {unsupported:?} */")),
-        }
-    }
-
-    fn write_methods(class: Rc<CodeBuffer>) {
-        class.newline();
-
-        let static_helper = class.indent_with_options(IndentOptions {
-            indent: INDENT,
-            leading: Some("public static <T> List<String> get(final List<T> input) {".into()),
-            trailing: Some("}".into()),
-            trailing_newline: true,
-        });
-        static_helper
-            .line("return input.stream().map(String::valueOf).collect(Collectors.toList());");
     }
 
     fn write_conditions(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
         for condition in &ir.conditions {
             let name = &*condition.name;
             let val = &condition.value;
-            writer.line(
-                format!("CfnCondition {} = CfnCondition.Builder.create(this, \"{}\").expression({}).build();",
-                        camel_case(name), name, emit_conditions(val.clone()))
-            );
+            writer.line(format!(
+                "Boolean {} = {};",
+                camel_case(name),
+                emit_conditions(val.clone())
+            ));
         }
+        writer.newline();
     }
 
-    fn write_outputs(outputs: LinkedList<String>, writer: &Rc<CodeBuffer>) {
-        for output in outputs {
-            writer.line(output)
-        }
+    fn match_field_type(condition: Option<String>) -> String {
+        String::from(match condition {
+            None => "Object",
+            Some(_) => "Optional<Object>",
+        })
     }
 
-    fn get_outputs(ir: &CloudformationProgramIr) -> (LinkedList<String>, LinkedList<String>) {
-        let mut output_names: LinkedList<String> = LinkedList::new();
-        let mut output_definitions: LinkedList<String> = LinkedList::new();
+    fn write_output_fields(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
         for output in &ir.outputs {
-            let (key, value) = emit_output(output);
-            output_names.push_back(key);
-            output_definitions.push_back(value);
+            writer.line(format!(
+                "private {} {};\n",
+                Self::match_field_type(output.condition.clone()),
+                camel_case(&output.name)
+            ))
         }
-        (output_names, output_definitions)
-    }
 
-    fn write_field_logic(writer: &Rc<CodeBuffer>, names: LinkedList<String>) {
-        if names.is_empty() {
-            return;
-        }
-        writer.line(format!(
-            "private CfnOutput {};\n",
-            names.iter().cloned().collect::<Vec<String>>().join(", ")
-        ));
-
-        for name in names {
+        for output in &ir.outputs {
             let indented = writer.indent_with_options(IndentOptions {
                 indent: INDENT,
-                leading: Some(format!("public CfnOutput get{}() {{", pascal_case(&name)).into()),
-                trailing: Some("}".into()),
+                leading: Some(
+                    format!(
+                        "public {} get{}() {{",
+                        Self::match_field_type(output.condition.clone()),
+                        pascal_case(&output.name)
+                    )
+                    .into(),
+                ),
+                trailing: Some("}\n".into()),
                 trailing_newline: true,
             });
-            indented.line(format!("return this.{};", name));
+            indented.line(format!("return this.{};", camel_case(&output.name)));
         }
     }
-}
 
-const fn get_type(value: &MappingInnerValue) -> &str {
-    match value {
-        MappingInnerValue::Bool(_) => "Boolean",
-        MappingInnerValue::Number(_) => "Integer",
-        MappingInnerValue::Float(_) => "Double",
-        MappingInnerValue::String(_) => "String",
-        MappingInnerValue::List(_) => "List<String>",
-    }
-}
-
-fn check_type(values: Vec<&MappingInnerValue>) -> &str {
-    let mut found_type = "Object";
-    let mut current_type;
-    for (index, value) in values.iter().enumerate() {
-        current_type = get_type(value);
-        if index < 1 {
-            found_type = current_type;
+    fn write_outputs(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
+        for output in &ir.outputs {
+            let var_name = camel_case(&output.name);
+            let output_writer = match &output.condition {
+                None => {
+                    writer.text(format!("this.{var_name} = "));
+                    emit_java(output.value.clone(), writer, None);
+                    writer.text(";\n");
+                    let output_writer = writer.indent_with_options(IndentOptions {
+                        indent: DOUBLE_INDENT,
+                        leading: Some(
+                            format!("CfnOutput.Builder.create(this, \"{}\")", &output.name).into(),
+                        ),
+                        trailing: Some(format!("{DOUBLE_INDENT}.build();").into()),
+                        trailing_newline: true,
+                    });
+                    output_writer.line(format!(".value(this.{var_name}.toString())"));
+                    output_writer
+                }
+                Some(cond) => {
+                    writer.text(format!(
+                        "this.{} = {} ? ",
+                        camel_case(&output.name),
+                        camel_case(cond)
+                    ));
+                    emit_java(output.value.clone(), writer, None);
+                    writer.text(" : Optional.empty();\n");
+                    let output_writer = writer.indent_with_options(IndentOptions {
+                        indent: DOUBLE_INDENT,
+                        leading: Some(
+                            format!(
+                                "this.{var_name}.ifPresent(_{var_name} -> CfnOutput.Builder.create(this, \"{}\")",
+                                &output.name
+                            )
+                            .into(),
+                        ),
+                        trailing: Some(format!("{DOUBLE_INDENT}.build());").into()),
+                        trailing_newline: true,
+                    });
+                    output_writer.line(format!(".value(_{var_name}.toString())"));
+                    output_writer
+                }
+            };
+            if output.description.is_some() {
+                output_writer.line(format!(
+                    ".description(\"{}\")",
+                    output.description.clone().unwrap()
+                ))
+            }
+            if output.export.is_some() {
+                output_writer.text(".exportName(");
+                emit_java(output.export.clone().unwrap(), &output_writer, None);
+                output_writer.text(")\n");
+            }
+            writer.newline();
         }
-        if !current_type.eq(found_type) {
-            return "Object";
-        }
     }
-    found_type
 }
 
 impl Default for Java {
@@ -431,58 +438,34 @@ impl Synthesizer for Java {
         self.write_header(&code);
 
         for import in &ir.imports {
-            code.line(import.to_java());
+            code.line(import.to_java_import());
         }
         code.newline();
 
-        self.write_app(&code, &ir.description, stack_name);
-
-        fill!(code; format!("\ninterface {}Props extends StackProps {{", stack_name);; "}" );
-
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("\nclass {} extends Stack {{", stack_name).into()),
+            leading: Some(format!("class {} extends Stack {{", stack_name).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
 
-        let (output_names, output_definitions) = Self::get_outputs(&ir);
-        Self::write_field_logic(&class, output_names);
+        let props = Self::emit_props(&ir);
+        Self::write_output_fields(&ir, &class);
 
-        fill!(class;
-            format!("public {}(final Construct scope, final String id) {{", stack_name);
-            "super(scope, id, null);";
-            "}" );
+        let definitions = Self::write_stack_definitions(&props, &class, stack_name);
+        Self::write_props(&props, &definitions);
 
-        let definitions = class.indent_with_options(IndentOptions {
-            indent: INDENT,
-            leading: Some(
-                format!(
-                    "public {}(final Construct scope, final String id, final StackProps props) {{",
-                    stack_name
-                )
-                .into(),
-            ),
-            trailing: Some("}".into()),
-            trailing_newline: true,
-        });
-        definitions.line("super(scope, id, props);");
-
-        Self::write_mappings(&ir, &definitions.clone());
-        Self::write_parameters(&ir, &definitions);
+        Self::write_mappings(&ir, &definitions);
         Self::write_conditions(&ir, &definitions);
         Self::write_resources(&ir, &definitions);
-        Self::write_outputs(output_definitions, &definitions);
-
-        Self::write_methods(class);
-        self.write_helpers(&code);
+        Self::write_outputs(&ir, &definitions);
 
         code.write(into)
     }
 }
 
 impl ImportInstruction {
-    fn to_java(&self) -> String {
+    fn to_java_import(&self) -> String {
         let mut parts: Vec<Cow<str>> = vec![match self.path[0].as_str() {
             "aws-cdk-lib" => "software.amazon.awscdk.services".into(),
             other => other.into(),
@@ -512,35 +495,29 @@ impl ImportInstruction {
     }
 }
 
-fn match_cfn_type(input: &CfnType) -> String {
-    String::from(match input {
-        CfnType::Boolean => "Boolean",
-        CfnType::Double => "Double",
-        CfnType::Integer => "Integer",
-        CfnType::Long => "Long",
-        CfnType::Json => "JsonNode jsonNode = objectMapper.readTree(jsonString);",
-        CfnType::String => "String",
-        CfnType::Timestamp => "/*TODO*/",
-    })
-}
-
 fn emit_conditions(condition: ConditionIr) -> String {
     match condition {
         ConditionIr::Ref(reference) => emit_reference(reference),
         ConditionIr::Str(str) => format!("{str:?}"),
         ConditionIr::Condition(x) => camel_case(&x),
         ConditionIr::And(list) => {
-            format!("Fn.conditionAnd({:?})", get_condition(list))
+            let and = get_condition(list, " && ");
+            format!("({and})")
         }
         ConditionIr::Or(list) => {
-            format!("Fn.conditionOr({:?})", get_condition(list))
+            let or = get_condition(list, " || ");
+            format!("({or})")
         }
         ConditionIr::Not(cond) => {
-            format!("Fn.conditionOr({:?})", emit_conditions(*cond))
+            if cond.is_simple() {
+                format!("!{}", emit_conditions(*cond))
+            } else {
+                format!("!({})", emit_conditions(*cond))
+            }
         }
         ConditionIr::Equals(lhs, rhs) => {
             format!(
-                "Fn.conditionEquals({}, {})",
+                "{}.equals({})",
                 emit_conditions(*lhs),
                 emit_conditions(*rhs)
             )
@@ -552,11 +529,12 @@ fn emit_conditions(condition: ConditionIr) -> String {
                 emit_conditions(*slk)
             )
         }
-        ConditionIr::Split(sep, str) => {
-            format!("Fn.split({sep:?}, {})", emit_conditions(*str))
+        ConditionIr::Split(sep, l1) => {
+            let str = emit_conditions(l1.as_ref().clone());
+            format!("Arrays.asList({str}.split(\"{sep}\"))")
         }
         ConditionIr::Select(index, str) => {
-            format!("Fn.select({index:?}, get({}))", emit_conditions(*str))
+            format!("Fn.select({index:?}, {})", emit_conditions(*str))
         }
     }
 }
@@ -565,8 +543,32 @@ fn emit_reference(reference: Reference) -> String {
     let origin = reference.origin;
     let name = reference.name;
     match origin {
-        Origin::LogicalId { .. } => format!("\"{name}\""),
-        Origin::GetAttribute { attribute, .. } => format!("Fn.getAtt(\"{name}\", \"{attribute}\")"),
+        Origin::LogicalId { conditional } => {
+            if conditional {
+                format!(
+                    "Optional.of({}.isPresent() ? {}.get().getRef()\n{DOUBLE_INDENT}: Optional.empty())",
+                    camel_case(&name),
+                    camel_case(&name)
+                )
+            } else {
+                format!("{}.getRef()", camel_case(&name))
+            }
+        }
+        Origin::GetAttribute {
+            conditional,
+            attribute,
+        } => {
+            if conditional {
+                format!(
+                    "Optional.of({}.isPresent() ? {}.get().getAttr{}()\n{DOUBLE_INDENT}: Optional.empty())",
+                    camel_case(&name),
+                    camel_case(&name),
+                    pascal_case(&attribute)
+                )
+            } else {
+                format!("{}.getAttr{}()", camel_case(&name), pascal_case(&attribute))
+            }
+        }
         Origin::PseudoParameter(param) => get_pseudo_param(param),
         Origin::Parameter => camel_case(&name),
         Origin::Condition => name,
@@ -586,199 +588,196 @@ fn get_pseudo_param(param: PseudoParameter) -> String {
     .into()
 }
 
-fn get_condition(list: Vec<ConditionIr>) -> String {
+fn get_condition(list: Vec<ConditionIr>, sep: &str) -> String {
     list.into_iter()
         .map(emit_conditions)
         .collect::<Vec<_>>()
-        .join(", ")
+        .join(sep)
 }
 
-fn emit_output(output: &OutputInstruction) -> (String, String) {
-    let var_name = camel_case(&output.name);
-    let mut res = format!(
-        "{} = CfnOutput.Builder.create(this, \"{}\")",
-        var_name, &output.name
-    );
-
-    res = br!(
-        res,
-        format!(
-            ".value(String.valueOf({}))",
-            emit_java(output.value.clone(), None)
-        )
-    );
-
-    if let Some(descr) = output.description.clone() {
-        res = br!(res, format!(".description(\"{descr}\")"));
-    }
-    if let Some(export_name) = output.export.clone() {
-        res = br!(
-            res,
-            format!(".exportName({})", emit_java(export_name, None))
-        );
-    }
-
-    if let Some(condition) = &output.condition {
-        res = br!(res, format!(".condition({})", camel_case(condition)));
-    }
-
-    res = format!("{res}{INDENT}.build();");
-    (var_name, res)
-}
-
-fn emit_java(this: ResourceIr, trailer: Option<&str>) -> String {
+fn emit_tag_value(this: ResourceIr, output: &CodeBuffer, class: Option<&str>) {
     match this {
-        // Base cases
-        ResourceIr::Null => "null".to_string(),
-        ResourceIr::Bool(bool) => bool.to_string(),
-        ResourceIr::Number(number) => format!("{number}"),
-        ResourceIr::Double(number) => format!("{number}"),
-        ResourceIr::String(text) => format!("\"{text}\""),
-        ResourceIr::ImportValue(text) => format!("\"{text}\""),
+        ResourceIr::Bool(bool) => output.text(format!("String.valueOf({bool})")),
+        ResourceIr::Double(number) => output.text(format!("String.valueOf({number})")),
+        ResourceIr::Number(number) => output.text(format!("String.valueOf({number})")),
+        other => emit_java(other, output, class),
+    }
+}
 
-        ResourceIr::Object(structure, index_map) => match structure {
+fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>) {
+    match this {
+        // Literal values
+        ResourceIr::Null => output.text("null"),
+        ResourceIr::Bool(bool) => output.text(bool.to_string()),
+        ResourceIr::Double(number) => output.text(format!("{number}")),
+        ResourceIr::Number(number) => output.text(format!("{number}")),
+        ResourceIr::String(text) => output.text(format!("\"{text}\"")),
+
+        // Collection values
+        ResourceIr::Array(_, array) => {
+            let arr_writer = output.indent_with_options(IndentOptions {
+                indent: DOUBLE_INDENT,
+                leading: Some("Arrays.asList(".into()),
+                trailing: None,
+                trailing_newline: false,
+            });
+            let mut arr = array.iter().peekable();
+            while let Some(resource) = arr.next() {
+                if arr.peek().is_none() {
+                    emit_java(resource.clone(), &arr_writer, class);
+                    arr_writer.text(")");
+                } else {
+                    emit_java(resource.clone(), &arr_writer, class);
+                    arr_writer.text(",\n");
+                }
+            }
+        }
+        ResourceIr::Object(structure, entries) => match structure {
             Structure::Composite(property) => match property {
                 "Tag" => {
-                    let mut res = "new GenericMap<String, Object>()".into();
-                    for (key, value) in &index_map {
-                        let element = emit_java((*value).clone(), None);
+                    let obj = output.indent_with_options(IndentOptions {
+                        indent: DOUBLE_INDENT,
+                        leading: Some("CfnTag.builder()".into()),
+                        trailing: Some(format!("{DOUBLE_INDENT}.build()").into()),
+                        trailing_newline: false,
+                    });
+                    for (key, value) in &entries {
                         if key.eq_ignore_ascii_case("Key") {
-                            res = br!(res, format!(".extend({}", element))
+                            obj.text(".key(");
+                            emit_java(value.clone(), &obj, class);
+                            obj.text(")\n");
                         }
                         if key.eq_ignore_ascii_case("Value") {
-                            res = format!("{res},{})", element)
+                            obj.text(".value(");
+                            emit_tag_value(value.clone(), &obj, class);
+                            obj.text(")\n")
                         }
                     }
-                    br!(res, ".getTags()")
                 }
                 _ => {
-                    let mut res = format!("{}.{property}Property.builder()", trailer.unwrap_or(""));
-                    for (key, value) in &index_map {
-                        let element = emit_java((*value).clone(), trailer);
-                        res = br!(res, format!(".{}({})", camel_case(key), element));
+                    let obj = output.indent_with_options(IndentOptions {
+                        indent: DOUBLE_INDENT,
+                        leading: Some(
+                            format!("Cfn{}.{property}Property.builder()", class.unwrap()).into(),
+                        ),
+                        trailing: Some(format!("{DOUBLE_INDENT}.build()").into()),
+                        trailing_newline: false,
+                    });
+                    for (key, value) in &entries {
+                        obj.text(format!(".{}(", camel_case(key)));
+                        emit_java(value.clone(), &obj, class);
+                        obj.text(")\n");
                     }
-                    br!(res, ".build()")
                 }
             },
-
             Structure::Simple(cfn_type) => {
-                let mut res = format!("new GenericMap<String, {}>()", match_cfn_type(&cfn_type));
-                for (key, value) in &index_map {
-                    let element = emit_java((*value).clone(), None);
-                    res = br!(res, format!(".extend({}, {})", key, element));
-                }
-                res
+                unreachable!("object with simple structure ({:?})", cfn_type)
             }
         },
 
-        ResourceIr::Array(structure, vect) => {
-            let mut res: String;
-            match structure {
-                Structure::Composite(_) => {
-                    res = "new GenericList<CfnTag>()".into();
-                }
-
-                Structure::Simple(cfn_type) => {
-                    let current_type = match_cfn_type;
-                    res = format!("new GenericList<{}>()", current_type(&cfn_type));
-                }
+        // Intrinsics
+        ResourceIr::Base64(base64) => match base64.as_ref() {
+            ResourceIr::String(b64) => {
+                output.text(format!(
+                    "new String(Base64.getDecoder().decode(\"{}\"))",
+                    b64.escape_debug()
+                ));
             }
-            for res_ir in vect {
-                let element = emit_java(res_ir.clone(), trailer);
-                if !element.is_empty() {
-                    res = br!(res, format!(".extend({})", element));
-                }
+            other => {
+                output.text("Fn.base64(");
+                emit_java(other.clone(), output, class);
+                output.text(")");
             }
-            res
-        }
-
-        ResourceIr::If(cond_id, val_true, val_false) => {
-            format!(
-                "Fn.conditionIf(\"{}\", {}, {})",
-                cond_id,
-                emit_java(*val_true, None),
-                emit_java(*val_false, None)
-            )
-        }
-        ResourceIr::Ref(reference) => emit_reference(reference),
-        ResourceIr::Join(delimiter, resources) => {
-            let mut res = format!("Fn.join(\"{delimiter}\", new GenericList<String>()");
-            for resource in resources {
-                let element = emit_java(resource, None);
-                if !element.is_empty() {
-                    res = br!(res, format!(".extend({})", element))
-                }
-            }
-            format!("{res})")
-        }
-        ResourceIr::Split(string, resource) => {
-            format!(
-                "Fn.split({}, String.valueOf({}))",
-                string,
-                emit_java(*resource, None)
-            )
-        }
-        ResourceIr::Base64(resource) => {
-            format!("Fn.base64(String.valueOf({}))", emit_java(*resource, None))
-        }
-        ResourceIr::GetAZs(resource) => match *resource {
-            ResourceIr::String(str) => format!("Fn.getAzs({str:?})"),
-            other => format!("Fn.getAzs(String.valueOf({}))", emit_java(other, None)),
         },
-        ResourceIr::Sub(resources) => {
-            if let Some((first_elem, vect)) = resources.split_first() {
-                let body = emit_java(first_elem.clone(), None);
-                if vect.is_empty() {
-                    format!("Fn.sub(String.valueOf({}))", body);
+        ResourceIr::Cidr(cidr_block, count, mask) => {
+            output.text("Fn.cidr(");
+            emit_java(*cidr_block, output, class);
+            output.text(", ");
+            emit_java(*count, output, class);
+            output.text(", ");
+            match mask.as_ref() {
+                ResourceIr::Number(mask) => {
+                    output.text(format!("\"{mask}\""));
                 }
+                ResourceIr::String(mask) => {
+                    output.text(format!("{mask:?}"));
+                }
+                mask => output.text(format!("String.valueOf({mask:?})")),
+            }
+            output.text(")");
+        }
+        ResourceIr::GetAZs(region) => {
+            output.text("Fn.getAzs(");
+            emit_java(*region, output, None);
+            output.text(")");
+        }
+        ResourceIr::If(cond_name, if_true, if_false) => {
+            output.text(format!("{} ? ", camel_case(&cond_name)));
+            emit_java(*if_true, output, class);
+            output.text(format!("\n{DOUBLE_INDENT}: "));
+            emit_java(*if_false, output, class);
+        }
+        ResourceIr::ImportValue(text) => output.text(format!("Fn.importValue(\"{text}\")")),
+        ResourceIr::Join(sep, list) => {
+            let items = output.indent_with_options(IndentOptions {
+                indent: DOUBLE_INDENT,
+                leading: Some(format!("String.join(\"{sep}\",").into()),
+                trailing: Some(")".into()),
+                trailing_newline: false,
+            });
+            let mut l = list.iter().peekable();
+            while let Some(item) = l.next() {
+                emit_java(item.clone(), &items, class);
+                if l.peek().is_some() {
+                    items.text(",\n");
+                }
+            }
+        }
+        ResourceIr::Map(name, tlk, slk) => {
+            output.text(format!("{}.findInMap(", camel_case(&name)));
+            emit_java(*tlk, output, class);
+            output.text(", ");
+            emit_java(*slk, output, class);
+            output.text(")");
+        }
+        ResourceIr::Select(idx, list) => match list.as_ref() {
+            ResourceIr::Array(_, array) => {
+                if idx <= array.len() {
+                    emit_java(array[idx].clone(), output, class)
+                } else {
+                    output.text("null");
+                }
+            }
+            list => {
+                output.text(format!("Fn.select({idx}, "));
+                emit_java(list.clone(), output, class);
+                output.text(")");
+            }
+        },
+        ResourceIr::Split(separator, resource) => match resource.as_ref() {
+            ResourceIr::String(str) => {
+                output.text(format!("{str}.split(\"{separator}\")"));
+            }
+            other => {
+                output.text(format!("Fn.split({separator}, "));
+                emit_java(other.clone(), output, class);
+                output.text(")");
+            }
+        },
+        ResourceIr::Sub(parts) => {
+            let mut part = parts.iter().peekable();
+            while let Some(p) = part.next() {
+                match p {
+                    ResourceIr::String(lit) => output.text(format!("\"{}\"", lit.clone())),
+                    other => emit_java(other.clone(), output, class),
+                }
+                if part.peek().is_some() {
+                    output.text(" + ");
+                }
+            }
+        }
 
-                let mut res = format!(
-                    "Fn.sub(String.valueOf({}), new GenericMap<String, String>()",
-                    body
-                );
-                for chunk in vect.chunks(2) {
-                    if let [key, value] = chunk {
-                        let key_element = emit_java(key.clone(), None);
-                        let value_element = emit_java(value.clone(), None);
-                        res = br!(res, format!(".extend({}, {})", key_element, value_element));
-                    }
-                }
-                return format!("{res})");
-            }
-            panic!("🚨 Fn::Sub improperly formatted")
-        }
-        ResourceIr::Map(resource, key, value) => {
-            format!(
-                "Fn.findInMap(\"{}\", {}, {})",
-                resource,
-                emit_java(*key, None),
-                emit_java(*value, None),
-            )
-        }
-        ResourceIr::Cidr(p0, p1, p2) => {
-            format!(
-                "Fn.cidr(String.valueOf({}), {}, String.valueOf({}))",
-                emit_java(*p0, None),
-                emit_java(*p1, None),
-                emit_java(*p2, None)
-            )
-        }
-        ResourceIr::Select(size, resource) => {
-            let used_type: String = match *resource.clone() {
-                ResourceIr::Array(Structure::Simple(cfn_type), _) => match_cfn_type(&cfn_type),
-                _ => "".into(),
-            };
-            if !used_type.is_empty() {
-                format!(
-                    "{}.valueOf(Fn.select({},get({})))",
-                    used_type,
-                    size,
-                    emit_java(*resource, None)
-                )
-            } else {
-                format!("Fn.select({},get({}))", size, emit_java(*resource, None))
-            }
-        }
+        ResourceIr::Ref(reference) => output.text(emit_reference(reference)),
     }
 }
 
@@ -788,6 +787,32 @@ fn name(key: &str) -> String {
         .filter(|c| c.is_alphanumeric())
         .collect()
 }
+
+trait JavaCodeBuffer {
+    fn java_doc(&self) -> Rc<CodeBuffer>;
+}
+
+impl JavaCodeBuffer for CodeBuffer {
+    #[inline]
+    fn java_doc(&self) -> Rc<CodeBuffer> {
+        self.indent_with_options(IndentOptions {
+            indent: " * ".into(),
+            leading: Some("/**".into()),
+            trailing: Some(" */".into()),
+            trailing_newline: true,
+        })
+    }
+}
+
+pub struct JavaConstructorParameter {
+    pub name: String,
+    pub description: Option<String>,
+    pub constructor_type: String,
+    pub java_type: String,
+    pub default_value: Option<String>,
+}
+
+pub struct JavaResourceInstruction {}
 
 #[cfg(test)]
 mod tests {}

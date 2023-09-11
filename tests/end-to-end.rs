@@ -1,6 +1,6 @@
-use noctilucent::ir::CloudformationProgramIr;
-use noctilucent::synthesizer::*;
-use noctilucent::CloudformationParseTree;
+use cdk_from_cfn::ir::CloudformationProgramIr;
+use cdk_from_cfn::synthesizer::*;
+use cdk_from_cfn::CloudformationParseTree;
 
 macro_rules! test_case {
     ($name:ident, $stack_name:literal) => {
@@ -24,6 +24,9 @@ macro_rules! test_case {
                 $stack_name,
                 "App.java"
             );
+
+            #[cfg(feature = "python")]
+            test_case!($name, python, &Python {}, $stack_name, "app.py");
 
             #[cfg(feature = "typescript")]
             test_case!($name, typescript, &Typescript {}, $stack_name, "app.ts");

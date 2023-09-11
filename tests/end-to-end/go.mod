@@ -1,4 +1,4 @@
-module github.com/iph/noctilucent/end-to-end
+module github.com/iph/cdk_from_cfn/end-to-end
 
 go 1.18
 

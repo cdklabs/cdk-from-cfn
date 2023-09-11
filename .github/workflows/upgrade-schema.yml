@@ -1,0 +1,56 @@
+name: 'upgrade-schema'
+
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  schema:
+    name: 'Schema'
+
+    runs-on: 'ubuntu-latest'
+
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@v4.0.0'
+
+      - name: 'Download schema'
+        run: 'wget --output-document=src/specification/spec.json.gz https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json'
+
+      - name: 'Unzip spec'
+        run: 'gunzip -f src/specification/spec.json.gz'
+
+      - name: 'Sort json'
+        uses: sergeysova/jq-action@v2
+        with:
+          cmd: 'cat src/specification/spec.json | jq --sort-keys >> src/specification/spec_sorted.json'
+
+      - name: 'Move to spec'
+        run: 'mv src/specification/spec_sorted.json src/specification/spec.json'
+
+      - name: 'Show diff'
+        run: 'git diff src/specification/spec.json'
+
+      - name: 'Open pull request updating schema'
+        id: create-pr
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+          author: github-actions <github-actions@github.com>
+          committer: github-actions <github-actions@github.com>
+          signoff: true
+          branch: github-actions/upgrade-main
+          body: |
+            Updates CloudFormation Specification. See details in [workflow run].
+
+            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          commit-message: |-
+            chore: upgrade cloudformation specification
+
+            Updates CloudFormation Specification. See details in [workflow run].
+
+            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          path: 'src/specification/spec.json'
+          title: 'chore: update cloudformation specification'
+          labels: auto-approve

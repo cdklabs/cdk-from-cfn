@@ -1,23 +1,22 @@
 [package]
-name = "noctilucent"
-version = "0.2.0"
+name = "cdk-from-cfn"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.64"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 
-authors = [
-  "Sean Tyler Myers <seanmyers0608@gmail.com>",
-  "The noctilucent contributors",
+include = [
+  "/src", "/docs", "LICENSE", "README.md", "CONTRIBUTING.md"
 ]
 
-repository = "https://github.com/iph/noctilucent.git"
-homepage = "https://github.com/iph/noctilucent#readme"
+repository = "https://github.com/cdklabs/cdk-from-cfn"
+homepage = "https://github.com/cdklabs/cdk-from-cfn#readme"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["golang", "java", "typescript"]
+default = ["golang", "java", "typescript", "python"]
 golang = []
 java = []
 typescript = []
@@ -30,16 +29,16 @@ python = []
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-anyhow = "^1.0.72"
-base64 = "^0.21.2"
-clap = { version = "^4.3.21", features = ["cargo"] }
+anyhow = "^1.0.75"
+base64 = "^0.21.3"
+clap = { version = "^4.4.2", features = ["cargo"] }
 indexmap = { version = "^2.0.0", features = ["serde"] }
 nom = "^7.1.3"
 numberkit = "^0.1.0"
 phf = "^0.11.2"
-serde = { version = "^1.0.183", features = ["derive"] }
+serde = { version = "^1.0.188", features = ["derive"] }
 serde-enum-str = "^0.4.0"
-serde_with = "^3.2.0"
+serde_with = "^3.3.0"
 serde_yaml = "^0.9.25"
 topological-sort = "^0.2.2"
 voca_rs = "^1.15.2"
@@ -48,9 +47,9 @@ wasm-bindgen = "^0.2.87"
 
 [build-dependencies]
 phf_codegen = "^0.11.2"
-serde = { version = "^1.0.183", features = ["derive"] }
-serde_json = "^1.0.104"
-serde_with = "^3.2.0"
+serde = { version = "^1.0.188", features = ["derive"] }
+serde_json = "^1.0.105"
+serde_with = "^3.3.0"
 
 [profile.release]
 codegen-units = 1
