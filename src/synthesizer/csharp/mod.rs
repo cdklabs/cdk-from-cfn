@@ -396,11 +396,17 @@ impl CsharpEmitter for ConditionIr {
                 second_level_key.emit_csharp(output);
                 output.text("]");
             }
-            ConditionIr::Split(sep, str) => {
-                output.text(format!("Fn.Split(\"{sep}\", "));
-                str.emit_csharp(output);
-                output.text(")");
-            }
+            ConditionIr::Split(sep, str) => match str.as_ref() {
+                ConditionIr::Str(str) => {
+                    output.text(format!("'{str}'", str = str.escape_debug()));
+                    output.text(format!(".Split('{sep}')", sep = sep.escape_debug()))
+                }
+                other => {
+                    output.text(format!("Fn.Split(\"{sep}\", "));
+                    other.emit_csharp(output);
+                    output.text(")")
+                }
+            },
             ConditionIr::Select(index, str) => {
                 output.text(format!("Fn.Select({index}, "));
                 str.emit_csharp(output);
@@ -520,11 +526,17 @@ impl ResourceIr {
                     items.newline();
                 }
             }
-            ResourceIr::Split(sep, str) => {
-                output.text(format!("Fn.Split(\"{sep}\", "));
-                str.emit_csharp(output, root_resource);
-                output.text(")");
-            }
+            ResourceIr::Split(sep, str) => match str.as_ref() {
+                ResourceIr::String(str) => {
+                    output.text(format!("'{str}'", str = str.escape_debug()));
+                    output.text(format!(".Split('{sep}')", sep = sep.escape_debug()))
+                }
+                other => {
+                    output.text(format!("Fn.Split(\"{sep}\", "));
+                    other.emit_csharp(output, root_resource);
+                    output.text(")")
+                }
+            },
             ResourceIr::Ref(reference) => reference.emit_csharp(output),
             ResourceIr::Sub(parts) => {
                 output.text("$\"");
