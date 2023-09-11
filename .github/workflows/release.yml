@@ -11,14 +11,14 @@ jobs:
     name: Release to crates.io
     runs-on: ubuntu-latest
     steps:
-      - name: Install dependencies
+      - name: Checkout
         uses: actions/checkout@main
       - name: Install cargo-release
         uses: actions-rs/install@v0.1
         with:
           crate: cargo-release
           version: latest
-      - run: cargo release --all-features --verbose minor
+      - run: cargo release --all-features --verbose minor --execute
       - name: Set git identity
         run: |-
           git config user.name "github-actions"
@@ -32,6 +32,7 @@ jobs:
           committer: github-actions <github-actions@github.com>
           signoff: true
           branch: github-actions/release
+          base: main
           body: |
             Release cdk-from-cfn
 
@@ -51,6 +52,8 @@ jobs:
     needs: release_to_crates
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@main
       - name: Setup Node.js
         uses: actions/setup-node@main
         with:
