@@ -1,57 +1,68 @@
 # .github/workflows/release.yml
 
+name: release
 on:
-  release:
-    types: [created]
-
+  push:
+    branches:
+      - release
 
 jobs:
-  release:
-    name: release ${{ matrix.target }} (with non-required env)
+  release_to_crates:
+    name: Release to crates.io
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: x86_64-pc-windows-gnu
-            archive: zip
-          - target: x86_64-unknown-linux-musl
-            archive: tar.gz
-          - target: x86_64-apple-darwin
-            archive: zip
-          - target: wasm32-wasi
-            archive: zip tar.gz
     steps:
-      - uses: actions/checkout@master
-      - name: Compile and release
-        uses: rust-build/rust-build.action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install dependencies
+        uses: actions/checkout@main
+      - name: Install cargo-release
+        uses: actions-rs/install@v0.1
         with:
-          RUSTTARGET: ${{ matrix.target }}
-          ARCHIVE_TYPES: ${{ matrix.archive }}
-  release_wasm_pack:
-    name: release wasm_pack version
+          crate: cargo-release
+          version: latest
+      - run: cargo release --all-features --verbose minor
+      - name: Set git identity
+        run: |-
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+      - name: Open pull request
+        id: create-pr
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+          author: github-actions <github-actions@github.com>
+          committer: github-actions <github-actions@github.com>
+          signoff: true
+          branch: github-actions/release
+          body: |
+            Release cdk-from-cfn
+
+            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          commit-message: |-
+            chore: release cdk-from-cfn
+
+            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          title: 'chore: release cdk-from-cfn'
+          labels: auto-approve
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
+
+  release_to_npm:
+    name: Release to npm
+    needs: release_to_crates
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
     steps:
-      - uses: actions/checkout@master
+      - name: Setup Node.js
+        uses: actions/setup-node@main
+        with:
+          node-version: latest
       - uses: jetli/wasm-pack-action@v0.4.0
         name: Install wasm-pack
         with:
-          # Optional version of wasm-pack to install(eg. 'v0.9.1', 'latest')
-          version: 'latest'
-      - name: Build
-        run: wasm-pack build --all-features --target=nodejs --out-name=index
-      - name: Zip
-        run: (cd pkg && zip -r ../wasm-pack.zip .)
-      - name: Upload to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: '*.zip'
-          file_glob: true
-          tag: ${{ github.ref }}
-          overwrite: true
-          make_latest: false
+          version: latest
+      - name: Prepare Release
+        run: |-
+          wasm-pack build --all-features --target=nodejs --out-name=index
+      - name: Release
+        run: |-
+          npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_TOKEN }}
+          wasm-pack publish --tag latest
