@@ -53,6 +53,12 @@ pub mod wasm {
             wasm_bindgen::intern("typescript").into(),
             #[cfg(feature = "golang")]
             wasm_bindgen::intern("go").into(),
+            #[cfg(feature = "java")]
+            wasm_bindgen::intern("java").into(),
+            #[cfg(feature = "python")]
+            wasm_bindgen::intern("python").into(),
+            #[cfg(feature = "csharp")]
+            wasm_bindgen::intern("csharp").into(),
         ]
         .into_boxed_slice()
     }
