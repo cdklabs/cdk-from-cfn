@@ -741,6 +741,7 @@ fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, M
 }
 
 fn append_references(output: &CodeBuffer, reference: &ResourceInstruction) {
+    //Need something that doesn't allow repeats or just don't add the repeats 
     for dep in &reference.references {
         output.line(format!("if ({dep} == null) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep)));
     }

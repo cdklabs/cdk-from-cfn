@@ -9,7 +9,7 @@ use crate::TransmuteError;
 use base64::Engine;
 use indexmap::IndexMap;
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, BTreeSet};
 use std::convert::TryInto;
 use std::fmt;
 use std::ops::Deref;
@@ -369,7 +369,7 @@ pub struct ResourceInstruction {
 
     /// `references` identify the logical ID of all other template entities that this resource
     /// contains a reference to (i.e: it uses them).
-    pub references: HashSet<String>,
+    pub references: BTreeSet<String>,
 }
 
 impl ResourceInstruction {
@@ -426,7 +426,7 @@ impl ResourceInstruction {
                 dependencies: attributes.depends_on,
                 resource_type,
                 properties,
-                references: HashSet::default(),
+                references: BTreeSet::default(),
             };
             instruction.generate_references();
             instructions.push(instruction);

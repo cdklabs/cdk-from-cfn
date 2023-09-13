@@ -6,7 +6,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::specification::Structure;
+use crate::specification::{Structure, CfnType};
 use std::borrow::Cow;
 use std::io;
 use std::rc::Rc;
@@ -670,8 +670,9 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>) {
                     }
                 }
             },
-            Structure::Simple(cfn_type) => {
-                unreachable!("object with simple structure ({:?})", cfn_type)
+            Structure::Simple(cfn_type) => match cfn_type {
+                CfnType::Json => todo!(),
+                _ => unreachable!("object with simple structure ({:?})", cfn_type),
             }
         },
 
