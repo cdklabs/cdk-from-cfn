@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use indexmap::IndexMap;
 
@@ -15,7 +15,7 @@ fn test_ir_ordering() {
         update_policy: None,
         dependencies: Vec::new(),
         resource_type: ResourceType::Custom("Dummy".into()),
-        references: HashSet::default(),
+        references: BTreeSet::default(),
         properties: IndexMap::default(),
     };
 
@@ -27,7 +27,7 @@ fn test_ir_ordering() {
         deletion_policy: None,
         update_policy: None,
         resource_type: ResourceType::Custom("Dummy".into()),
-        references: HashSet::default(),
+        references: BTreeSet::default(),
         properties: create_property(
             "something",
             ResourceIr::Ref(Reference::new(
@@ -53,7 +53,7 @@ fn test_ref_links() {
         update_policy: None,
         dependencies: vec!["foo".to_string()],
         resource_type: ResourceType::Custom("Dummy".into()),
-        references: HashSet::default(),
+        references: BTreeSet::default(),
         properties: create_property(
             "something",
             ResourceIr::Ref(Reference::new(
@@ -67,7 +67,7 @@ fn test_ref_links() {
 
     assert_eq!(
         ir_instruction.references,
-        HashSet::from(["foo".into(), "bar".into()])
+        BTreeSet::from([String::from("foo"), String::from("bar")])
     );
 }
 
