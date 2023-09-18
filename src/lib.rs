@@ -1,4 +1,4 @@
-#![cfg_attr(coverage_nightly, feature(coverage("off")))]
+#![cfg_attr(coverage_nightly, coverage(off))]
 
 use indexmap::IndexMap;
 use parser::condition::ConditionFunction;
