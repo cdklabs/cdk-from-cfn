@@ -9,7 +9,7 @@ use crate::TransmuteError;
 use base64::Engine;
 use indexmap::IndexMap;
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet, BTreeSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::convert::TryInto;
 use std::fmt;
 use std::ops::Deref;

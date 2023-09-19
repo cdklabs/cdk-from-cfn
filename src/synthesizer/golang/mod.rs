@@ -633,14 +633,14 @@ impl GolangEmitter for ResourceIr {
                                 structure_is_simple_json = true;
                                 "map[string]interface{} {".into()
                             }
-                            _ => unreachable!("object with simple structure ({:?})", cfn)
-                        }
+                            _ => unreachable!("object with simple structure ({:?})", cfn),
+                        },
                     }),
                     trailing: Some("}".into()),
                     trailing_newline: false,
                 });
                 for (name, val) in properties {
-                    if structure_is_simple_json { 
+                    if structure_is_simple_json {
                         props.text(format!(
                             "\"{name}\": ",
                             name = golang_identifier(name, IdentifierKind::Exported)
@@ -650,7 +650,7 @@ impl GolangEmitter for ResourceIr {
                             "{name}: ",
                             name = golang_identifier(name, IdentifierKind::Exported)
                         ));
-                    } 
+                    }
                     val.emit_golang(context, &props, Some(","));
                 }
             }
