@@ -22,7 +22,7 @@ pub struct Typescript {
 }
 
 impl Typescript {
-    #[cfg_attr(coverage_nightly, no_coverage)]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     #[deprecated(note = "Prefer using the Synthesizer API instead")]
     pub fn output(ir: CloudformationProgramIr) -> String {
         let mut output = Vec::new();

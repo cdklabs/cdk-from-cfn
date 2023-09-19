@@ -1,4 +1,4 @@
-#![cfg_attr(coverage_nightly, feature(no_coverage))]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 use indexmap::IndexMap;
 use parser::condition::ConditionFunction;
@@ -53,6 +53,12 @@ pub mod wasm {
             wasm_bindgen::intern("typescript").into(),
             #[cfg(feature = "golang")]
             wasm_bindgen::intern("go").into(),
+            #[cfg(feature = "java")]
+            wasm_bindgen::intern("java").into(),
+            #[cfg(feature = "python")]
+            wasm_bindgen::intern("python").into(),
+            #[cfg(feature = "csharp")]
+            wasm_bindgen::intern("csharp").into(),
         ]
         .into_boxed_slice()
     }
@@ -70,6 +76,12 @@ pub mod wasm {
             "typescript" => Box::new(crate::synthesizer::Typescript {}),
             #[cfg(feature = "golang")]
             "go" => Box::<crate::synthesizer::Golang>::default(),
+            #[cfg(feature = "python")]
+            "python" => Box::new(crate::synthesizer::Python {}),
+            #[cfg(feature = "java")]
+            "java" => Box::<crate::synthesizer::Java>::default(),
+            #[cfg(feature = "csharp")]
+            "csharp" => Box::<crate::synthesizer::CSharp>::default(),
             unsupported => panic!("unsupported language: {}", unsupported),
         };
 
