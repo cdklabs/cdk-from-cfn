@@ -316,7 +316,7 @@ impl Synthesizer for Golang {
         main_block.indent(INDENT).indent(INDENT).line("Env: env(),");
         main_block.indent(INDENT).line("},");
         for param in &ir.constructor.inputs {
-            if let Some(_) = param.default_value {
+            if param.default_value.is_some() {
                 main_block.indent(INDENT).line(format!(
                     "{}: \"{}\",",
                     golang_identifier(&param.name, IdentifierKind::Exported),
