@@ -316,15 +316,12 @@ impl Synthesizer for Golang {
         main_block.indent(INDENT).indent(INDENT).line("Env: env(),");
         main_block.indent(INDENT).line("},");
         for param in &ir.constructor.inputs {
-            match param.default_value {
-                Some(_) => {
-                    main_block.indent(INDENT).line(format!(
-                        "{}: \"{}\",",
-                        golang_identifier(&param.name, IdentifierKind::Exported),
-                        param.default_value.clone().unwrap()
-                    ));
-                }
-                None => {}
+            if let Some(_) = param.default_value {
+                main_block.indent(INDENT).line(format!(
+                    "{}: \"{}\",",
+                    golang_identifier(&param.name, IdentifierKind::Exported),
+                    param.default_value.clone().unwrap()
+                ));
             }
         }
         main_block.line("})");
