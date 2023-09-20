@@ -422,7 +422,7 @@ impl Java {
 
 impl Default for Java {
     fn default() -> Self {
-        Self::new("com.acme.test.simple")
+        Self::new("com.myorg")
     }
 }
 
