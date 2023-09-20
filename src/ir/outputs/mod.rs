@@ -35,11 +35,9 @@ impl OutputInstruction {
             let condition = output.condition;
             let description = output.description;
             let mut export: Option<ResourceIr> = None;
-            if let Some(x) = output.export {
-                if let ResourceValue::Object(x) = x {
-                    if let Some(x) = x.get_key_value("Name") {
-                        export = Some(resource_translator.translate(x.1.clone())?);
-                    }
+            if let Some(ResourceValue::Object(x)) = output.export {
+                if let Some(x) = x.get_key_value("Name") {
+                    export = Some(resource_translator.translate(x.1.clone())?);
                 }
             }
 
