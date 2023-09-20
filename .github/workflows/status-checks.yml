@@ -13,7 +13,7 @@ jobs:
     name: Lint and Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.0.0
+      - uses: actions/checkout@main
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -37,11 +37,20 @@ jobs:
           command: clippy
           args: --manifest-path ./Cargo.toml -- -Adead-code -D warnings
 
+  security_audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: rustsec/audit-check@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   testing:
     name: Run Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.0.0
+      - uses: actions/checkout@main
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -65,7 +74,7 @@ jobs:
     needs: [testing]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.0.0
+      - uses: actions/checkout@main
       - name: Download CodeCov artifact
         uses: actions/download-artifact@v3
         with:
