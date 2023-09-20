@@ -62,28 +62,26 @@ impl Synthesizer for CSharp {
         });
 
         // Props
-        if !ir.constructor.inputs.is_empty() {
-            let stack_props_class = namespace.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some(format!("public class {stack_name}Props : StackProps\n{{").into()),
-                trailing: Some("}".into()),
-                trailing_newline: true,
-            });
+        let stack_props_class = namespace.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(format!("public class {stack_name}Props : StackProps\n{{").into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
 
-            for param in &ir.constructor.inputs {
-                if let Some(description) = &param.description {
-                    stack_props_class.line("/// <summary>");
-                    for description_line in description.split('\n') {
-                        stack_props_class.line(format!("/// {description_line}"));
-                    }
-                    stack_props_class.line("/// </summary>");
+        for param in &ir.constructor.inputs {
+            if let Some(description) = &param.description {
+                stack_props_class.line("/// <summary>");
+                for description_line in description.split('\n') {
+                    stack_props_class.line(format!("/// {description_line}"));
                 }
-                stack_props_class.line(param.to_csharp_auto_property());
-                stack_props_class.newline();
+                stack_props_class.line("/// </summary>");
             }
-
-            namespace.newline();
+            stack_props_class.line(param.to_csharp_auto_property());
+            stack_props_class.newline();
         }
+
+        namespace.newline();
 
         // Description - comment before the stack class
         if let Some(descr) = ir.description {
