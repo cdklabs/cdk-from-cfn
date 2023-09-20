@@ -421,10 +421,10 @@ impl Reference {
                 conditional: _,
                 attribute,
             } => format!(
-                "{var_name}{chain}attr{name}",
+                "{var_name}{chain}attr_{name}",
                 var_name = camel_case(&self.name),
                 chain = ".",
-                name = camel_case(attribute)
+                name = pretty_name(attribute)
             )
             .into(),
         }
