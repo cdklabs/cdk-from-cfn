@@ -60,6 +60,10 @@ macro_rules! test_case {
                 &expected,
             );
             assert_eq!(expected, actual);
+
+            // Add app creation
+            // instantiate a stack for each possible combination of parameters
+            // add the synth call
         }
     };
 }

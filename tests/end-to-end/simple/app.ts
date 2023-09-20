@@ -95,9 +95,9 @@ export class SimpleStack extends cdk.Stack {
 
     // Resources
     const queue = new sqs.CfnQueue(this, 'Queue', {
-      delaySeconds: 42.1337,
-      fifoQueue: false,
-      kmsMasterKeyId: cdk.Fn.importValue('Shared.KmsKeyArn'),
+      delaySeconds: 42,
+      sqsManagedSseEnabled: false,
+      kmsMasterKeyId: cdk.Fn.importValue('Shared-KmsKeyArn'),
       queueName: [
         this.stackName,
         strings['Bars']['Bar'],
@@ -110,14 +110,12 @@ export class SimpleStack extends cdk.Stack {
     if (queue == null) { throw new Error(`A combination of conditions caused 'queue' to be undefined. Fixit.`); }
     const bucket = isUsEast1
       ? new s3.CfnBucket(this, 'Bucket', {
-          accessControl: 'private',
+          accessControl: 'Private',
           bucketName: `${props.bucketNamePrefix}-${this.stackName}-bucket`,
           loggingConfiguration: {
             destinationBucketName: props.logDestinationBucketName,
           },
           websiteConfiguration: {
-            indexDocument: 'index.html',
-            errorDocument: 'error.html',
             redirectAllRequestsTo: {
               hostName: 'example.com',
               protocol: 'https',
@@ -135,7 +133,7 @@ export class SimpleStack extends cdk.Stack {
       bucket.cfnOptions.metadata = {
         CostCenter: 1337,
       };
-      bucket.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.RETAIN;
+      bucket.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
       bucket.addDependency(queue);
     }
 

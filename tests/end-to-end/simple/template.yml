@@ -4,8 +4,8 @@ Description: |-
 
 Mappings:
   Booleans:
-    True: { true: true }
-    False: { false: false }
+    "True": { "true": true }
+    "False": { "false": false }
   Lists:
     Candidates:
       Empty: []
@@ -45,7 +45,7 @@ Conditions:
         - "0"
         - Fn::Split:
           - "-"
-          - "!Ref": AWS::Region
+          - "Ref": AWS::Region
       - us
 Parameters:
   BucketNamePrefix:
@@ -60,13 +60,11 @@ Resources:
     Condition: IsUsEast1
     Type: AWS::S3::Bucket
     Properties:
-      AccessControl: !Base64 'cHJpdmF0ZQ=='
+      AccessControl: Private
       BucketName: !Sub ${BucketNamePrefix}-${AWS::StackName}-bucket
       LoggingConfiguration:
         DestinationBucketName: !Ref LogDestinationBucketName
       WebsiteConfiguration:
-        IndexDocument: index.html
-        ErrorDocument: error.html
         RedirectAllRequestsTo:
           HostName: example.com
           Protocol: https
@@ -80,22 +78,22 @@ Resources:
               - !Base64 8CiMvAo= # This is not valid UTF8
     DependsOn:
       - Queue
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
     Metadata:
       CostCenter: 1337
 
   Queue:
     Type: AWS::SQS::Queue
     Properties:
-      DelaySeconds: 42.1337
-      FifoQueue: false
-      KmsMasterKeyId: !ImportValue Shared.KmsKeyArn
+      DelaySeconds: 42
+      SqsManagedSseEnabled: false
+      KmsMasterKeyId: !ImportValue Shared-KmsKeyArn
       QueueName:
         !Join
           - '-'
           - - { Ref: AWS::StackName }
             - !FindInMap [Strings, Bars, Bar]
-            - !Select [1, Fn::GetAZs: { "!Ref": AWS::Region }]
+            - !Select [1, Fn::GetAZs: { "Ref": AWS::Region }]
       RedrivePolicy: !Ref AWS::NoValue
       VisibilityTimeout:
         Fn::Select:
@@ -108,7 +106,8 @@ Outputs:
   BucketArn:
     Condition: IsUsEast1
     Description: The ARN of the bucket in this template!
-    Export: ExportName
+    Export: 
+      Name: ExportName
     Value:
       !GetAtt Bucket.Arn
 

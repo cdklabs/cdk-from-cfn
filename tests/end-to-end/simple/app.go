@@ -103,9 +103,9 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 		stack,
 		jsii.String("Queue"),
 		&sqs.CfnQueueProps{
-			DelaySeconds: jsii.Number(42.1337),
-			FifoQueue: jsii.Bool(false),
-			KmsMasterKeyId: cdk.Fn_ImportValue(jsii.String("Shared.KmsKeyArn")),
+			DelaySeconds: jsii.Number(42),
+			SqsManagedSseEnabled: jsii.Bool(false),
+			KmsMasterKeyId: cdk.Fn_ImportValue(jsii.String("Shared-KmsKeyArn")),
 			QueueName: cdk.Fn_Join(jsii.String("-"), &[]*string{
 				stack.StackName(),
 				strings[jsii.String("Bars")][jsii.String("Bar")],
@@ -120,14 +120,12 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 		stack,
 		jsii.String("Bucket"),
 		&s3.CfnBucketProps{
-			AccessControl: jsii.String("private"),
+			AccessControl: jsii.String("Private"),
 			BucketName: jsii.String(fmt.Sprintf("%v-%v-bucket", props.BucketNamePrefix, stack.StackName())),
 			LoggingConfiguration: &LoggingConfiguration/* FIXME */{
 				DestinationBucketName: props.LogDestinationBucketName,
 			},
 			WebsiteConfiguration: &WebsiteConfiguration/* FIXME */{
-				IndexDocument: jsii.String("index.html"),
-				ErrorDocument: jsii.String("error.html"),
 				RedirectAllRequestsTo: &RedirectAllRequestsTo/* FIXME */{
 					HostName: jsii.String("example.com"),
 					Protocol: jsii.String("https"),

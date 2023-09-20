@@ -412,6 +412,7 @@ impl Java {
             }
             if output.export.is_some() {
                 output_writer.text(".exportName(");
+                println!("{:?}", output.export);
                 emit_java(output.export.clone().unwrap(), &output_writer, None);
                 output_writer.text(")\n");
             }
@@ -671,6 +672,7 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>) {
                 }
             },
             Structure::Simple(cfn_type) => {
+                println!("{:?}", structure);
                 unreachable!("object with simple structure ({:?})", cfn_type)
             }
         },

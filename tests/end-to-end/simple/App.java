@@ -86,9 +86,9 @@ class SimpleStack extends Stack {
         Boolean isLargeRegion = isUsEast1;
 
         CfnQueue queue = CfnQueue.Builder.create(this, "Queue")
-                .delaySeconds(42.1337)
-                .fifoQueue(false)
-                .kmsMasterKeyId(Fn.importValue("Shared.KmsKeyArn"))
+                .delaySeconds(42)
+                .sqsManagedSseEnabled(false)
+                .kmsMasterKeyId(Fn.importValue("Shared-KmsKeyArn"))
                 .queueName(String.join("-",
                         this.getStackName(),
                         strings.findInMap("Bars", "Bar"),
@@ -98,14 +98,12 @@ class SimpleStack extends Stack {
                 .build();
 
         Optional<CfnBucket> bucket = isUsEast1 ? Optional.of(CfnBucket.Builder.create(this, "Bucket")
-                .accessControl("private")
+                .accessControl("Private")
                 .bucketName(bucketNamePrefix + "-" + this.getStackName() + "-bucket")
                 .loggingConfiguration(CfnBucket.LoggingConfigurationProperty.builder()
                         .destinationBucketName(logDestinationBucketName)
                         .build())
                 .websiteConfiguration(CfnBucket.WebsiteConfigurationProperty.builder()
-                        .indexDocument("index.html")
-                        .errorDocument("error.html")
                         .redirectAllRequestsTo(CfnBucket.RedirectAllRequestsToProperty.builder()
                                 .hostName("example.com")
                                 .protocol("https")
@@ -121,7 +119,7 @@ class SimpleStack extends Stack {
 
         bucket.ifPresent(_bucket -> _bucket.addMetadata("CostCenter", 1337));
         bucket.ifPresent(_bucket -> _bucket.addDependency(queue));
-        bucket.ifPresent(_bucket -> _bucket.applyRemovalPolicy(RemovalPolicy.RETAIN));
+        bucket.ifPresent(_bucket -> _bucket.applyRemovalPolicy(RemovalPolicy.DELETE));
 
         this.bucketArn = isUsEast1 ? Optional.of(bucket.isPresent() ? bucket.get().getAttrArn()
                 : Optional.empty()) : Optional.empty();

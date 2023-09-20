@@ -628,6 +628,7 @@ impl GolangEmitter for ResourceIr {
                             name => format!("&{name}/* FIXME */{{").into(),
                         },
                         Structure::Simple(cfn) => {
+                            println!("{:?}", self);
                             unreachable!("object with simple structure ({:?})", cfn)
                         }
                     }),

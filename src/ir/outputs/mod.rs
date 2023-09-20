@@ -2,6 +2,7 @@ use indexmap::IndexMap;
 
 use crate::ir::resources::{ResourceIr, ResourceTranslator};
 use crate::parser::output::Output;
+use crate::parser::resource::ResourceValue;
 use crate::specification::{CfnType, Structure};
 use crate::TransmuteError;
 
@@ -33,10 +34,13 @@ impl OutputInstruction {
             let value = resource_translator.translate(output.value)?;
             let condition = output.condition;
             let description = output.description;
-            let export = match output.export {
-                Some(x) => Some(resource_translator.translate(x)?),
-                None => None,
-            };
+            let export = match output.export? {
+                ResourceValue::Object(x) => {
+                    let name = x.get_key_value("Name")?
+                    resource_translator.translate(x.1.clone())
+                }
+                _ => None,
+             }
 
             list.push(Self {
                 name,

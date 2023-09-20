@@ -80,9 +80,9 @@ namespace Com.Acme.Test.Simple
             // Resources
             var queue = new CfnQueue(this, "Queue", new CfnQueueProps
             {
-                DelaySeconds = 42.1337,
-                FifoQueue = false,
-                KmsMasterKeyId = Fn.ImportValue("Shared.KmsKeyArn"),
+                DelaySeconds = 42,
+                SqsManagedSseEnabled = false,
+                KmsMasterKeyId = Fn.ImportValue("Shared-KmsKeyArn"),
                 QueueName = string.Join("-", new []
                 {
                     StackName,
@@ -94,7 +94,7 @@ namespace Com.Acme.Test.Simple
             });
             var bucket = new CfnBucket(this, "Bucket", new CfnBucketProps
             {
-                AccessControl = "private",
+                AccessControl = "Private",
                 BucketName = $"{props.BucketNamePrefix}-{StackName}-bucket",
                 LoggingConfiguration = new CfnBucket.LoggingConfigurationProperty
                 {
@@ -102,8 +102,6 @@ namespace Com.Acme.Test.Simple
                 },
                 WebsiteConfiguration = new CfnBucket.WebsiteConfigurationProperty
                 {
-                    IndexDocument = "index.html",
-                    ErrorDocument = "error.html",
                     RedirectAllRequestsTo = new CfnBucket.RedirectAllRequestsToProperty
                     {
                         HostName = "example.com",

@@ -84,9 +84,9 @@ class SimpleStack(Stack):
 
     # Resources
     queue = sqs.CfnQueue(self, 'Queue',
-          delay_seconds = 42.1337,
-          fifo_queue = False,
-          kms_master_key_id = cdk.Fn.importValue('Shared.KmsKeyArn'),
+          delay_seconds = 42,
+          sqs_managed_sse_enabled = False,
+          kms_master_key_id = cdk.Fn.importValue('Shared-KmsKeyArn'),
           queue_name = [
             self.stackName,
             strings['Bars']['Bar'],
@@ -97,14 +97,12 @@ class SimpleStack(Stack):
         )
 
     bucket = s3.CfnBucket(self, 'Bucket',
-          access_control = 'private',
+          access_control = 'Private',
           bucket_name = f"{props['bucketNamePrefix']}-{self.stackName}-bucket",
           logging_configuration = {
             'destinationBucketName': props['logDestinationBucketName'],
           },
           website_configuration = {
-            'indexDocument': 'index.html',
-            'errorDocument': 'error.html',
             'redirectAllRequestsTo': {
               'hostName': 'example.com',
               'protocol': 'https',
@@ -121,7 +119,7 @@ class SimpleStack(Stack):
       bucket.cfnOptions.metadata = {
         CostCenter: 1337,
       }
-      bucket.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.RETAIN
+      bucket.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE
       bucket.addDependency(queue)
 
     # Outputs
