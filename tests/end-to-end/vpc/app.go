@@ -72,10 +72,10 @@ func NewVpcStack(scope constructs.Construct, id string, props VpcStackProps) *Vp
 func main() {
 	defer jsii.Close()
 
-	app := awscdk.NewApp(nil)
+	app := cdk.NewApp(nil)
 
-	NewVpcStack(app, "Vpc", &VpcStackProps{
-		awscdk.StackProps{
+	NewVpcStack(app, "Vpc", VpcStackProps{
+		cdk.StackProps{
 			Env: env(),
 		},
 	})
@@ -85,7 +85,7 @@ func main() {
 
 // env determines the AWS environment (account+region) in which our stack is to
 // be deployed. For more information see: https://docs.aws.amazon.com/cdk/latest/guide/environments.html
-func env() *awscdk.Environment {
+func env() *cdk.Environment {
 	// If unspecified, this stack will be "environment-agnostic".
 	// Account/Region-dependent features and context lookups will not work, but a
 	// single synthesized template can be deployed anywhere.
@@ -95,7 +95,7 @@ func env() *awscdk.Environment {
 	// Uncomment if you know exactly what account and region you want to deploy
 	// the stack to. This is the recommendation for production stacks.
 	//---------------------------------------------------------------------------
-	// return &awscdk.Environment{
+	// return &cdk.Environment{
 	//  Account: jsii.String("123456789012"),
 	//  Region:  jsii.String("us-east-1"),
 	// }
@@ -104,7 +104,7 @@ func env() *awscdk.Environment {
 	// implied by the current CLI configuration. This is recommended for dev
 	// stacks.
 	//---------------------------------------------------------------------------
-	// return &awscdk.Environment{
+	// return &cdk.Environment{
 	//  Account: jsii.String(os.Getenv("CDK_DEFAULT_ACCOUNT")),
 	//  Region:  jsii.String(os.Getenv("CDK_DEFAULT_REGION")),
 	// }

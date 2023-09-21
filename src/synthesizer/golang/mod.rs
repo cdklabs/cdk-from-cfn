@@ -305,14 +305,14 @@ impl Synthesizer for Golang {
 
         main_block.line("defer jsii.Close()");
         main_block.newline();
-        main_block.line("app := awscdk.NewApp(nil)");
+        main_block.line("app := cdk.NewApp(nil)");
         main_block.newline();
         let split_stack_name: Vec<&str> = stack_name.split("Stack").collect();
         main_block.line(format!(
-            "New{stack_name}(app, \"{}\", &{stack_name}Props{{",
+            "New{stack_name}(app, \"{}\", {stack_name}Props{{",
             split_stack_name[0]
         ));
-        main_block.indent(INDENT).line("awscdk.StackProps{");
+        main_block.indent(INDENT).line("cdk.StackProps{");
         main_block.indent(INDENT).indent(INDENT).line("Env: env(),");
         main_block.indent(INDENT).line("},");
         for param in &ir.constructor.inputs {
@@ -336,7 +336,7 @@ impl Synthesizer for Golang {
 
         let env_block = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some("func env() *awscdk.Environment {".into()),
+            leading: Some("func env() *cdk.Environment {".into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -354,7 +354,7 @@ impl Synthesizer for Golang {
         env_block.line("// the stack to. This is the recommendation for production stacks.");
         env_block
             .line("//---------------------------------------------------------------------------");
-        env_block.line("// return &awscdk.Environment{");
+        env_block.line("// return &cdk.Environment{");
         env_block.line("//  Account: jsii.String(\"123456789012\"),");
         env_block.line("//  Region:  jsii.String(\"us-east-1\"),");
         env_block.line("// }");
@@ -365,7 +365,7 @@ impl Synthesizer for Golang {
         env_block.line("// stacks.");
         env_block
             .line("//---------------------------------------------------------------------------");
-        env_block.line("// return &awscdk.Environment{");
+        env_block.line("// return &cdk.Environment{");
         env_block.line("//  Account: jsii.String(os.Getenv(\"CDK_DEFAULT_ACCOUNT\")),");
         env_block.line("//  Region:  jsii.String(os.Getenv(\"CDK_DEFAULT_REGION\")),");
         env_block.line("// }");
