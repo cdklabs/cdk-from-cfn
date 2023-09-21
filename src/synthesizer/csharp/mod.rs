@@ -17,23 +17,7 @@ use super::Synthesizer;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("    ");
 
-pub struct CSharp {
-    namespace: String,
-}
-
-impl CSharp {
-    pub fn new(namespace: impl Into<String>) -> Self {
-        Self {
-            namespace: namespace.into(),
-        }
-    }
-}
-
-impl Default for CSharp {
-    fn default() -> Self {
-        Self::new("Com.Acme.Test.Simple")
-    }
-}
+pub struct CSharp {}
 
 impl Synthesizer for CSharp {
     fn synthesize(
@@ -56,7 +40,7 @@ impl Synthesizer for CSharp {
         // Namespace definition
         let namespace = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("namespace {}\n{{", self.namespace).into()),
+            leading: Some(format!("namespace {}\n{{", stack_name).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
