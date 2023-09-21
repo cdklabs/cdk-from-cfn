@@ -21,7 +21,7 @@ namespace SimpleStack
     /// An example stack that uses many of the syntax elements permitted in a
     /// CloudFormation template, but does not attempt to represent a realistic stack.
     /// </summary>
-    public class SimpleStack : Stack
+    public class SimpleStackStack : Stack
     {
         /// <summary>
         /// The ARN of the bucket in this template!

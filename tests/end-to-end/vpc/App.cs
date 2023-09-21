@@ -9,7 +9,7 @@ namespace VpcStack
     {
     }
 
-    public class VpcStack : Stack
+    public class VpcStackStack : Stack
     {
         public VpcStack(Construct scope, string id, VpcStackProps props = null) : base(scope, id, props)
         {

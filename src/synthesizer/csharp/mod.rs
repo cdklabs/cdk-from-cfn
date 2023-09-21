@@ -79,7 +79,7 @@ impl Synthesizer for CSharp {
         // Stack class definition
         let stack_class = namespace.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("public class {stack_name} : Stack\n{{").into()),
+            leading: Some(format!("public class {stack_name}Stack : Stack\n{{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
