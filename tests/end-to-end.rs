@@ -20,7 +20,7 @@ macro_rules! test_case {
             test_case!(
                 $name,
                 java,
-                &Java::new(concat!("com.acme.test.", stringify!($name))),
+                &Java::new(concat!("com.myorg")),
                 $stack_name,
                 "App.java"
             );
@@ -32,7 +32,7 @@ macro_rules! test_case {
             test_case!($name, typescript, &Typescript {}, $stack_name, "app.ts");
 
             #[cfg(feature = "csharp")]
-            test_case!($name, csharp, &CSharp::default(), $stack_name, "App.cs");
+            test_case!($name, csharp, &CSharp {}, $stack_name, "App.cs");
         }
     };
 

@@ -101,7 +101,7 @@ fn main() -> anyhow::Result<()> {
         #[cfg(feature = "java")]
         "java" => Box::<Java>::default(),
         #[cfg(feature = "csharp")]
-        "csharp" => Box::<CSharp>::default(),
+        "csharp" => Box::new(CSharp {}),
         unsupported => panic!("unsupported language: {}", unsupported),
     };
 

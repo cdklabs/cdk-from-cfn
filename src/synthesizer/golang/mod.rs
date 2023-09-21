@@ -294,6 +294,81 @@ impl Synthesizer for Golang {
             output.value.emit_golang(context, &fields, None);
             fields.line(",");
         }
+        code.newline();
+
+        let main_block = code.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("func main() {".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+
+        main_block.line("defer jsii.Close()");
+        main_block.newline();
+        main_block.line("app := cdk.NewApp(nil)");
+        main_block.newline();
+        let split_stack_name: Vec<&str> = stack_name.split("Stack").collect();
+        main_block.line(format!(
+            "New{stack_name}(app, \"{}\", {stack_name}Props{{",
+            split_stack_name[0]
+        ));
+        main_block.indent(INDENT).line("cdk.StackProps{");
+        main_block.indent(INDENT).indent(INDENT).line("Env: env(),");
+        main_block.indent(INDENT).line("},");
+        for param in &ir.constructor.inputs {
+            if param.default_value.is_some() {
+                main_block.indent(INDENT).line(format!(
+                    "{}: \"{}\",",
+                    golang_identifier(&param.name, IdentifierKind::Exported),
+                    param.default_value.clone().unwrap()
+                ));
+            }
+        }
+        main_block.line("})");
+        main_block.newline();
+        main_block.line("app.Synth(nil)");
+        code.newline();
+
+        code.line(
+            "// env determines the AWS environment (account+region) in which our stack is to",
+        );
+        code.line("// be deployed. For more information see: https://docs.aws.amazon.com/cdk/latest/guide/environments.html");
+
+        let env_block = code.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("func env() *cdk.Environment {".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+
+        env_block.line("// If unspecified, this stack will be \"environment-agnostic\".");
+        env_block
+            .line("// Account/Region-dependent features and context lookups will not work, but a");
+        env_block.line("// single synthesized template can be deployed anywhere.");
+        env_block
+            .line("//---------------------------------------------------------------------------");
+        env_block.line("return nil");
+        env_block.newline();
+        env_block
+            .line("// Uncomment if you know exactly what account and region you want to deploy");
+        env_block.line("// the stack to. This is the recommendation for production stacks.");
+        env_block
+            .line("//---------------------------------------------------------------------------");
+        env_block.line("// return &cdk.Environment{");
+        env_block.line("//  Account: jsii.String(\"123456789012\"),");
+        env_block.line("//  Region:  jsii.String(\"us-east-1\"),");
+        env_block.line("// }");
+        env_block.newline();
+        env_block
+            .line("// Uncomment to specialize this stack for the AWS Account and Region that are");
+        env_block.line("// implied by the current CLI configuration. This is recommended for dev");
+        env_block.line("// stacks.");
+        env_block
+            .line("//---------------------------------------------------------------------------");
+        env_block.line("// return &cdk.Environment{");
+        env_block.line("//  Account: jsii.String(os.Getenv(\"CDK_DEFAULT_ACCOUNT\")),");
+        env_block.line("//  Region:  jsii.String(os.Getenv(\"CDK_DEFAULT_REGION\")),");
+        env_block.line("// }");
 
         code.write(into)
     }

@@ -3,8 +3,12 @@ using Amazon.CDK.AWS.EC2;
 using Constructs;
 using System.Collections.Generic;
 
-namespace Com.Acme.Test.Simple
+namespace VpcStack
 {
+    public class VpcStackProps : StackProps
+    {
+    }
+
     public class VpcStack : Stack
     {
         public VpcStack(Construct scope, string id, VpcStackProps props = null) : base(scope, id, props)
