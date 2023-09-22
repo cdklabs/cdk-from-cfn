@@ -4,8 +4,12 @@ using Amazon.CDK.AWS.SQS;
 using Constructs;
 using System.Collections.Generic;
 
-namespace Com.Acme.Test.Simple
+namespace JsonPropsStack
 {
+    public class JsonPropsStackProps : StackProps
+    {
+    }
+
     public class JsonPropsStack : Stack
     {
         public JsonPropsStack(Construct scope, string id, JsonPropsStackProps props = null) : base(scope, id, props)

@@ -28,8 +28,8 @@ class JsonPropsStack(Stack):
                       'sqs:ReceiveMessage',
                     ],
                     'resource': [
-                      myQueue1.attrarn,
-                      myQueue2.attrarn,
+                      myQueue1.attr_arn,
+                      myQueue2.attr_arn,
                     ],
                   },
                 ],
