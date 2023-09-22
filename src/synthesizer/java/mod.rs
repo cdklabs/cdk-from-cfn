@@ -670,8 +670,18 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>) {
                     }
                 }
             },
-            Structure::Simple(cfn_type) => {
-                unreachable!("object with simple structure ({:?})", cfn_type)
+            Structure::Simple(_) => {
+                output.text("Map.of(");
+                let mut map = entries.iter().peekable();
+                while let Some((key, value)) = map.next() {
+                    output.text(format!("\"{key}\", "));
+                    emit_java(value.clone(), output, class);
+                    if map.peek().is_some() {
+                        output.text(",\n");
+                    } else {
+                        output.text(")");
+                    }
+                }
             }
         },
 
