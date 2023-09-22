@@ -671,13 +671,15 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>) {
                 }
             },
             Structure::Simple(_) => {
+                output.text("Map.of(");
                 let mut map = entries.iter().peekable();
                 while let Some((key, value)) = map.next() {
-                    output.text(format!("Map.of(\"{key}\", "));
+                    output.text(format!("\"{key}\", "));
                     emit_java(value.clone(), output, class);
-                    output.text(")");
                     if map.peek().is_some() {
                         output.text(",\n");
+                    } else {
+                        output.text(")");
                     }
                 }
             }

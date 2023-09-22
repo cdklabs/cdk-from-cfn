@@ -31,11 +31,11 @@ class JsonPropsStack extends Stack {
                         CfnGroup.PolicyProperty.builder()
                                 .policyName("MyQueueGroupPolicy")
                                 .policyDocument(Map.of("Statement", Arrays.asList(
-                                        Map.of("Effect", "Allow"),
-                                        Map.of("Action", Arrays.asList(
+                                        Map.of("Effect", "Allow",
+                                        "Action", Arrays.asList(
                                                 "sqs:DeleteMessage",
-                                                "sqs:ReceiveMessage")),
-                                        Map.of("Resource", Arrays.asList(
+                                                "sqs:ReceiveMessage"),
+                                        "Resource", Arrays.asList(
                                                 myQueue1.getAttrArn(),
                                                 myQueue2.getAttrArn())))))
                                 .build()))
