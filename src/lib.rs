@@ -81,7 +81,7 @@ pub mod wasm {
             #[cfg(feature = "java")]
             "java" => Box::<crate::synthesizer::Java>::default(),
             #[cfg(feature = "csharp")]
-            "csharp" => Box::<crate::synthesizer::CSharp>::default(),
+            "csharp" => Box::new(crate::synthesizer::CSharp {}),
             unsupported => panic!("unsupported language: {}", unsupported),
         };
 
