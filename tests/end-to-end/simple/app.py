@@ -123,7 +123,7 @@ class SimpleStack(Stack):
       bucket.addDependency(queue)
 
     # Outputs
-    self.bucket_arn = bucket.attrarn if is_us_east1 else None
+    self.bucket_arn = bucket.attr_arn if is_us_east1 else None
     if (is_us_east1):
       cdk.CfnOutput(self, 'BucketArn', 
         description = 'The ARN of the bucket in this template!',

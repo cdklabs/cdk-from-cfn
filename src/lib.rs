@@ -1,4 +1,4 @@
-#![cfg_attr(coverage_nightly, feature(no_coverage))]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 use indexmap::IndexMap;
 use parser::condition::ConditionFunction;
@@ -81,7 +81,7 @@ pub mod wasm {
             #[cfg(feature = "java")]
             "java" => Box::<crate::synthesizer::Java>::default(),
             #[cfg(feature = "csharp")]
-            "csharp" => Box::<crate::synthesizer::CSharp>::default(),
+            "csharp" => Box::new(crate::synthesizer::CSharp {}),
             unsupported => panic!("unsupported language: {}", unsupported),
         };
 

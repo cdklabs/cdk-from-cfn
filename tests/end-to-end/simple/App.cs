@@ -4,7 +4,7 @@ using Amazon.CDK.AWS.SQS;
 using Constructs;
 using System.Collections.Generic;
 
-namespace Com.Acme.Test.Simple
+namespace SimpleStack
 {
     public class SimpleStackProps : StackProps
     {

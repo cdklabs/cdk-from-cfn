@@ -22,7 +22,7 @@ pub struct Typescript {
 }
 
 impl Typescript {
-    #[cfg_attr(coverage_nightly, no_coverage)]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     #[deprecated(note = "Prefer using the Synthesizer API instead")]
     pub fn output(ir: CloudformationProgramIr) -> String {
         let mut output = Vec::new();
@@ -741,6 +741,7 @@ fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, M
 }
 
 fn append_references(output: &CodeBuffer, reference: &ResourceInstruction) {
+    // Need something that doesn't allow repeats or just don't add the repeats
     for dep in &reference.references {
         output.line(format!("if ({dep} == null) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep)));
     }

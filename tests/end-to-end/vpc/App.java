@@ -1,4 +1,4 @@
-package com.acme.test.vpc;
+package com.myorg;
 
 import software.constructs.Construct;
 
