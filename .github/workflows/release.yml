@@ -15,28 +15,37 @@ jobs:
         uses: actions/checkout@main
       - name: Set git identity
         run: |-
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name "cdklabs-automation"
+          git config user.email "aws-cdk-dev+cdklabs@amazon.com"
       - name: Install cargo-release
         uses: taiki-e/install-action@main
         with:
           tool: cargo-binstall
-      - uses: cargo-bins/release-pr@main
+      - run: cargo binstall --no-confirm cargo-release
+      - run: cargo release --all-features --verbose minor --execute --no-confirm --no-push
+      - name: Open pull request
+        id: create-pr
+        uses: peter-evans/create-pull-request@v5
         with:
-          github-token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
-          version: minor
-          pr-title: |
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+          author: cdklabs-automation <aws-cdk-dev+cdklabs@amazon.com>
+          committer: cdklabs-automation <aws-cdk-dev+cdklabs@amazon.com>
+          signoff: true
+          branch: github-actions/release
+          base: main
+          body: |
             release: <%= crate.name %> v<%= version.actual %>
-          pr-label: auto-approve
-          pr-template: |
-            Release cdk-from-cfn
 
             [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          pr-release-notes: true
-          branch-prefix: github-actions/release
-          check-semver: true
-          git-user-name: github-actions
-          git-user-email: github-actions@github.com
+          commit-message: |-
+            release: <%= crate.name %> v<%= version.actual %>
+
+            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          title: |
+            release: <%= crate.name %> v<%= version.actual %>
+          labels: auto-approve
+      - run: git push origin --tags
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
 
