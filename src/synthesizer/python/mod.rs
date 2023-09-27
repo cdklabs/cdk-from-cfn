@@ -487,7 +487,7 @@ fn emit_resource_attributes(
     if let Some(metadata) = &reference.metadata {
         let md = output.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("{var_name}.cfnOptions.metadata = {{").into()),
+            leading: Some(format!("{var_name}.cfn_options.metadata = {{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -495,13 +495,13 @@ fn emit_resource_attributes(
     }
 
     if let Some(update_policy) = &reference.update_policy {
-        output.text(format!("{var_name}.cfnOptions.updatePolicy = "));
+        output.text(format!("{var_name}.cfn_options.update_policy = "));
         emit_resource_ir(context, output, update_policy, Some(""));
     }
 
     if let Some(deletion_policy) = &reference.deletion_policy {
         output.line(format!(
-            "{var_name}.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.{deletion_policy}"
+            "{var_name}.cfn_options.deletion_policy = cdk.CfnDeletionPolicy.{deletion_policy}"
         ));
     }
 
