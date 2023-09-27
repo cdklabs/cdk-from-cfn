@@ -7,7 +7,7 @@ namespace VpcStack
 {
     public class VpcStack : Stack
     {
-        public VpcStack(Construct scope, string id, VpcStackProps props = null) : base(scope, id, props)
+        public VpcStack(Construct scope, string id, StackProps props = null) : base(scope, id, props)
         {
 
             // Resources

@@ -6,13 +6,9 @@ using System.Collections.Generic;
 
 namespace JsonPropsStack
 {
-    public class JsonPropsStackProps : StackProps
-    {
-    }
-
     public class JsonPropsStack : Stack
     {
-        public JsonPropsStack(Construct scope, string id, JsonPropsStackProps props = null) : base(scope, id, props)
+        public JsonPropsStack(Construct scope, string id, StackProps props = null) : base(scope, id, props)
         {
 
             // Resources

@@ -99,13 +99,19 @@ impl Synthesizer for CSharp {
             stack_class.newline();
         }
 
+        let props_name: String = if ir.constructor.inputs.is_empty() {
+            "StackProps".to_string()
+        } else {
+            format!("{stack_name}Props").to_string()
+        };
+
         // Constructor
         let ctor = stack_class.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(format!(
-                "public {}(Construct scope, string id, {}Props props = null) : base(scope, id, props)\n{{",
+                "public {}(Construct scope, string id, {} props = null) : base(scope, id, props)\n{{",
                 stack_name,
-                stack_name
+                props_name
             ).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
