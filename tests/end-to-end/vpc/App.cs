@@ -5,10 +5,6 @@ using System.Collections.Generic;
 
 namespace VpcStack
 {
-    public class VpcStackProps : StackProps
-    {
-    }
-
     public class VpcStack : Stack
     {
         public VpcStack(Construct scope, string id, VpcStackProps props = null) : base(scope, id, props)
