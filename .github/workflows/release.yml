@@ -60,7 +60,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
         with:
-          ref: release
+          ref: github-actions/release
       - name: Setup Node.js
         uses: actions/setup-node@main
         with:
