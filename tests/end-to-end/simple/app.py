@@ -118,10 +118,10 @@ class SimpleStack(Stack):
           ],
         ) if is_us_east1 else None
     if (bucket is not None):
-      bucket.cfnOptions.metadata = {
+      bucket.cfn_options.metadata = {
         CostCenter: 1337,
       }
-      bucket.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.RETAIN
+      bucket.cfn_options.deletion_policy = cdk.CfnDeletionPolicy.RETAIN
       bucket.addDependency(queue)
 
     # Outputs
