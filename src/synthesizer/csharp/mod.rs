@@ -299,14 +299,10 @@ impl ImportInstruction {
 
         if self.path.len() > 1 {
             for submodule_part in self.path[1].split('-') {
-                parts.push(match submodule_part {
-                    part => {
-                        if part.len() <= 3 {
-                            upper_case(part).into()
-                        } else {
-                            pascal_case(part).into()
-                        }
-                    }
+                parts.push(if submodule_part.len() <= 3 {
+                    upper_case(submodule_part).into()
+                } else {
+                    pascal_case(submodule_part).into()
                 });
             }
         }
