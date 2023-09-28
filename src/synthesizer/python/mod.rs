@@ -446,8 +446,7 @@ fn emit_resource(
     let service: String;
     if reference.resource_type.service().to_lowercase() == "lambda" {
         service = format!("aws_{}", reference.resource_type.service().to_lowercase());
-    }
-    else {
+    } else {
         service = reference.resource_type.service().to_lowercase();
     }
 
