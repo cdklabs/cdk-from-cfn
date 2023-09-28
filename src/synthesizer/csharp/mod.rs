@@ -500,7 +500,13 @@ impl ResourceIr {
             ResourceIr::Join(sep, list) => {
                 let items = output.indent_with_options(IndentOptions {
                     indent: INDENT,
-                    leading: Some(format!("string.Join(\"{sep}\", new []\n{{").into()),
+                    leading: Some(
+                        format!(
+                            "string.Join(\"{sep}\", new []\n{{",
+                            sep = sep.escape_debug()
+                        )
+                        .into(),
+                    ),
                     trailing: Some("})".into()),
                     trailing_newline: false,
                 });
