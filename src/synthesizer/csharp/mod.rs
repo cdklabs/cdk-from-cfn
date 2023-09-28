@@ -268,7 +268,7 @@ impl Synthesizer for CSharp {
                 trailing_newline: true,
             });
             for (name, value) in &resource.properties {
-                resource_constructor.text(format!("{name} = "));
+                resource_constructor.text(format!("{name} = ", name = pascal_case(name)));
                 value.emit_csharp(&resource_constructor, Some(class));
                 resource_constructor.text(",");
                 resource_constructor.newline();
