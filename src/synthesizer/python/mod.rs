@@ -244,10 +244,9 @@ impl ImportInstruction {
         let module = parts.join(".");
         if !module.is_empty() {
             // "lambda" is a reserved keyword in python, so we need to change it to aws_lambda
-            if self.name == "lambda"{
+            if self.name == "lambda" {
                 format!("import {} as aws_{}", module, self.name,)
-            }
-            else {
+            } else {
                 format!("import {} as {}", module, self.name,)
             }
         } else {
