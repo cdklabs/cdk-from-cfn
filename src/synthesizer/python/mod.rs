@@ -618,8 +618,8 @@ fn emit_resource_ir(
         ResourceIr::Join(sep, list) => {
             let items = output.indent_with_options(IndentOptions {
                 indent: INDENT,
-                leading: Some("[".into()),
-                trailing: Some(format!("].join('{sep}')", sep = sep.escape_debug()).into()),
+                leading: Some(format!("'{sep}'.join([", sep = sep.escape_debug()).into()),
+                trailing: Some("])".into()),
                 trailing_newline: false,
             });
             for item in list {

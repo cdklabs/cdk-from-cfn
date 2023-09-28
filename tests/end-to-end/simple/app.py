@@ -87,11 +87,11 @@ class SimpleStack(Stack):
           delay_seconds = 42.1337,
           fifo_queue = False,
           kms_master_key_id = cdk.Fn.importValue('Shared.KmsKeyArn'),
-          queue_name = [
+          queue_name = '-'.join([
             self.stackName,
             strings['Bars']['Bar'],
             cdk.Fn.select(1, cdk.Fn.getAzs(self.region)),
-          ].join('-'),
+          ]),
           redrive_policy = None,
           visibility_timeout = 120,
         )
