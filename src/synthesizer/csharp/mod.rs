@@ -11,7 +11,7 @@ use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::{CfnType, Structure};
 use std::borrow::Cow;
 use std::io;
-use voca_rs::case::{camel_case, pascal_case};
+use voca_rs::case::{camel_case, pascal_case, upper_case};
 
 use super::Synthesizer;
 
@@ -300,16 +300,13 @@ impl ImportInstruction {
         if self.path.len() > 1 {
             for submodule_part in self.path[1].split('-') {
                 parts.push(match submodule_part {
-                    "aws" => "AWS".into(),
-                    // TODO - This is hardcoded for now.
-                    // This part of the namespace needs to be pulled from the jsiirc.json
-                    // of the submodule. In C# there is no consistent rule we can apply to transform
-                    // this string to have the right casing.
-                    // Some are all caps, and some are Pascal case.
-                    "s3" => "S3".into(),
-                    "sqs" => "SQS".into(),
-                    "ec2" => "EC2".into(),
-                    other => other.into(),
+                    part => {
+                        if part.len() <= 3 {
+                            upper_case(part).into()
+                        } else {
+                            pascal_case(part).into()
+                        }
+                    }
                 });
             }
         }

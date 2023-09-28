@@ -1,5 +1,5 @@
 using Amazon.CDK;
-using Amazon.CDK.AWS.iam;
+using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.AWS.SQS;
 using Constructs;
 using System.Collections.Generic;
