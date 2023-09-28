@@ -912,10 +912,9 @@ enum IdentifierKind {
 /// Computes a go identifier name that is a suitable representation of the given
 /// name.
 fn golang_identifier(text: &str, kind: IdentifierKind) -> String {
-    let text_string = text.replace('.', "");
     match kind {
-        IdentifierKind::Exported => pascal_case(&text_string),
-        IdentifierKind::ModuleName => snake_case(&text_string),
-        IdentifierKind::Unexported => camel_case(&text_string),
+        IdentifierKind::Exported => pascal_case(text),
+        IdentifierKind::ModuleName => snake_case(text),
+        IdentifierKind::Unexported => camel_case(text),
     }
 }

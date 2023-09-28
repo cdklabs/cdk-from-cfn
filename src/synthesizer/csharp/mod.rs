@@ -407,13 +407,9 @@ impl CsharpEmitter for Reference {
             Origin::GetAttribute {
                 attribute,
                 conditional: _,
-            } => output.text(format!(
-                "{}.Attr{}",
-                camel_case(&self.name),
-                attribute.replace('.', "")
-            )),
+            } => output.text(format!("{}.Attr{attribute}", camel_case(&self.name))),
             Origin::LogicalId { conditional: _ } => {
-                output.text(format!("{}.Ref", camel_case(&self.name.replace('.', ""))))
+                output.text(format!("{}.Ref", camel_case(&self.name)))
             }
             Origin::Parameter => output.text(format!("props.{}", pascal_case(&self.name))),
             Origin::PseudoParameter(pseudo) => {

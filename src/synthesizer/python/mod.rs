@@ -280,7 +280,7 @@ fn pretty_name(name: &str) -> String {
         }
         pretty.push(ch.to_lowercase().next().unwrap());
     }
-    pretty.replace('.', "")
+    pretty
 }
 
 trait PythonCodeBuffer {

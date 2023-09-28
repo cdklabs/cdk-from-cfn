@@ -335,7 +335,7 @@ impl Reference {
                 "{var_name}{chain}attr{name}",
                 var_name = camel_case(&self.name),
                 chain = if *conditional { "?." } else { "." },
-                name = pascal_case(&attribute.replace('.', ""))
+                name = pascal_case(&attribute)
             )
             .into(),
         }

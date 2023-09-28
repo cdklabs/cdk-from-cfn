@@ -203,7 +203,7 @@ impl<'t> ResourceTranslator<'t> {
                     } => Ok(ResourceIr::Ref(Reference::new(
                         &logical_name,
                         Origin::GetAttribute {
-                            attribute: attribute_name,
+                            attribute: attribute_name.replace('.', ""),
                             conditional: self.origins.is_conditional(&logical_name),
                         },
                     ))),
