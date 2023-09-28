@@ -289,7 +289,7 @@ impl Java {
         for dependency in &resource.dependencies {
             writer.text(format!(
                 "{res_name}.addDependency({}){}",
-                dependency.to_lowercase(),
+                camel_case(dependency),
                 trailer
             ));
             extra_line = true;
