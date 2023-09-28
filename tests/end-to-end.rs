@@ -1,8 +1,19 @@
+use aws_sdk_cloudformation::types::OnFailure;
+use serde_with::DurationSeconds;
+use tokio::task;
+
+use aws_sdk_cloudformation::config::Region;
+use aws_sdk_cloudformation::types::StackStatus;
+use aws_sdk_cloudformation::types::error::StackNotFoundException;
 use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::synthesizer::*;
 use cdk_from_cfn::CloudformationParseTree;
+use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_cloudformation::{Client, Error};
+
 
 macro_rules! test_case {
+
     ($name:ident, $stack_name:literal) => {
         mod $name {
             use super::*;
@@ -39,6 +50,11 @@ macro_rules! test_case {
     ($name:ident, $lang:ident, $synthesizer:expr, $stack_name:literal, $expected:literal) => {
         #[test]
         fn $lang() {
+
+            let template = include_str!(concat!("end-to-end/", stringify!($name), "/template.yml"));
+            let _res = deployTemplate(stringify!($name), template);
+            println!("{:?}", _res);
+
             let expected = include_str!(concat!("end-to-end/", stringify!($name), "/", $expected));
             let actual = {
                 let mut output = Vec::with_capacity(expected.len());
@@ -68,6 +84,50 @@ macro_rules! test_case {
     };
 }
 
+#[tokio::main]
+async fn deployTemplate(stack_name: &str, template: &str) -> Result<(), Error> {
+    println!("deploy template");
+    let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
+    let config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&config);
+
+    let resp = client.create_stack()
+        .stack_name(stack_name)
+        .template_body(template)
+        .on_failure(OnFailure::Delete)
+        .send().await?;
+
+
+
+    println!("Stacks:");
+
+    let id = resp.stack_id.unwrap_or_default();
+    println!();
+    println!("stack id {}", id);
+
+    let mut status = check_stack_status(&id, &client).await?;
+
+    while let StackStatus::CreateInProgress = status {
+        println!("create in progress");
+        tokio::time::sleep(std::time::Duration::new(2, 0)).await;
+        status = check_stack_status(&id, &client).await?;
+    }
+
+    Ok(())
+}
+
+async fn check_stack_status(id: &String, client: &Client) -> Result<StackStatus, Error> {
+    let resp = client.describe_stacks().stack_name(id).send().await?;
+    if let Some(stacks) = resp.stacks {
+        if let Some(stack) = stacks.first() {
+            if let Some(status) = &stack.stack_status {
+                return Ok(status.clone())
+            }
+        }
+    }
+    Err(Error::StackNotFoundException(StackNotFoundException::builder().message("ugh").build()))
+}
+
 test_case!(simple, "SimpleStack");
 
 test_case!(vpc, "VpcStack");
@@ -89,6 +149,7 @@ impl<'a> UpdateSnapshot<'a> {
         }
     }
 }
+
 
 impl Drop for UpdateSnapshot<'_> {
     fn drop(&mut self) {
