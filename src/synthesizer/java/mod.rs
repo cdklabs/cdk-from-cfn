@@ -587,10 +587,14 @@ fn emit_reference(reference: Reference) -> String {
                     "Optional.of({}.isPresent() ? {}.get().getAttr{}()\n{DOUBLE_INDENT}: Optional.empty())",
                     camel_case(&name),
                     camel_case(&name),
-                    pascal_case(&attribute)
+                    pascal_case(&attribute.replace('.', ""))
                 )
             } else {
-                format!("{}.getAttr{}()", camel_case(&name), pascal_case(&attribute))
+                format!(
+                    "{}.getAttr{}()",
+                    camel_case(&name),
+                    pascal_case(&attribute.replace('.', ""))
+                )
             }
         }
         Origin::PseudoParameter(param) => get_pseudo_param(param),
