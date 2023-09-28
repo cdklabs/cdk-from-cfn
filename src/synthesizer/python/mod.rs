@@ -243,7 +243,13 @@ impl ImportInstruction {
 
         let module = parts.join(".");
         if !module.is_empty() {
-            format!("import {} as {}", module, self.name,)
+            // "lambda" is a reserved keyword in python, so we need to change it to aws_lambda
+            if self.name == "lambda"{
+                format!("import {} as aws_{}", module, self.name,)
+            }
+            else {
+                format!("import {} as {}", module, self.name,)
+            }
         } else {
             "".to_string()
         }
@@ -437,7 +443,14 @@ fn emit_resource(
     reference: &ResourceInstruction,
 ) {
     let var_name = camel_case(&reference.name);
-    let service = reference.resource_type.service().to_lowercase();
+    // "lambda" is a reserved keyword in python, so we need to change it to aws_lambda
+    let service: String;
+    if reference.resource_type.service().to_lowercase() == "lambda" {
+        service = format!("aws_{}", reference.resource_type.service().to_lowercase());
+    }
+    else {
+        service = reference.resource_type.service().to_lowercase();
+    }
 
     let maybe_undefined = if let Some(cond) = &reference.condition {
         output.line(format!(
