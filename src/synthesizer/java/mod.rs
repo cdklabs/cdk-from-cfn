@@ -735,7 +735,7 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>) {
         ResourceIr::Join(sep, list) => {
             let items = output.indent_with_options(IndentOptions {
                 indent: DOUBLE_INDENT,
-                leading: Some(format!("String.join(\"{sep}\",").into()),
+                leading: Some(format!("String.join(\"{sep}\",", sep = sep.escape_debug()).into()),
                 trailing: Some(")".into()),
                 trailing_newline: false,
             });
