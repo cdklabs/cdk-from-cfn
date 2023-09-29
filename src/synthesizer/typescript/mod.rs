@@ -84,6 +84,7 @@ impl Synthesizer for Typescript {
             let constructor_type = match param.constructor_type.as_str() {
                 "List<Number>" => "number[]",
                 t if t.contains("List") => "string[]",
+                "Boolean" => "boolean",
                 _ => "string",
             };
             iface_props.line(format!(
