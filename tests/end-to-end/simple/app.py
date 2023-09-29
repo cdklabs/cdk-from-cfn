@@ -10,19 +10,6 @@ import base64
   CloudFormation template, but does not attempt to represent a realistic stack.
 """
 class SimpleStack(Stack):
-  """
-    The ARN of the bucket in this template!
-  """
-  global bucket_arn
-  """
-    The ARN of the SQS Queue
-  """
-  global queue_arn
-  """
-    Whether this is a large region or not
-  """
-  global is_large
-
   def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
     super().__init__(scope, construct_id, **kwargs)
 
@@ -125,6 +112,9 @@ class SimpleStack(Stack):
       bucket.addDependency(queue)
 
     # Outputs
+    """
+      The ARN of the bucket in this template!
+    """
     self.bucket_arn = bucket.attr_arn if is_us_east1 else None
     if (is_us_east1):
       cdk.CfnOutput(self, 'BucketArn', 
@@ -133,15 +123,24 @@ class SimpleStack(Stack):
         value = self.bucket_arn,
       )
 
+
+    """
+      The ARN of the SQS Queue
+    """
     self.queue_arn = queue.ref
     cdk.CfnOutput(self, 'QueueArn', 
       description = 'The ARN of the SQS Queue',
       value = self.queue_arn,
     )
+
+    """
+      Whether this is a large region or not
+    """
     self.is_large = True if is_large_region else False
     cdk.CfnOutput(self, 'IsLarge', 
       description = 'Whether this is a large region or not',
       value = self.is_large,
     )
+
 
 

@@ -168,7 +168,6 @@ impl Synthesizer for Python {
                     let comment = ctor.pydoc();
                     comment.line(description.to_owned());
                 }
-                ctor.newline();
                 if let Some(cond) = &cond {
                     ctor.text(format!("self.{var_name} = "));
                     emit_resource_ir(context, &ctor, &op.value, Some(""));
@@ -189,6 +188,7 @@ impl Synthesizer for Python {
                 } else {
                     emit_cfn_output(context, &ctor, op, &var_name);
                 }
+                ctor.newline();
             }
         }
 
