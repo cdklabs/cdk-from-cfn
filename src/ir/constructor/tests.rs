@@ -39,6 +39,7 @@ fn test_constructor_from() {
         constructor.inputs[0].default_value,
         Some("default1".to_string())
     );
+    assert_eq!(constructor.inputs[0].allowed_values, None);
 
     assert_eq!(constructor.inputs[1].name, "param2");
     assert_eq!(
@@ -47,6 +48,7 @@ fn test_constructor_from() {
     );
     assert_eq!(constructor.inputs[1].constructor_type, "Number");
     assert_eq!(constructor.inputs[1].default_value, None);
+    assert_eq!(constructor.inputs[1].allowed_values, None);
 }
 
 #[test]
@@ -56,10 +58,15 @@ fn test_constructor_parameter() {
         description: Some("description1".to_string()),
         constructor_type: "String".to_string(),
         default_value: Some("default1".to_string()),
+        allowed_values: Some(vec!["true".to_string(), "false".to_string()]),
     };
 
     assert_eq!(param.name, "Param1");
     assert_eq!(param.description, Some("description1".to_string()));
     assert_eq!(param.constructor_type, "String");
     assert_eq!(param.default_value, Some("default1".to_string()));
+    assert_eq!(
+        param.allowed_values,
+        Some(vec!["true".to_string(), "false".to_string()])
+    );
 }

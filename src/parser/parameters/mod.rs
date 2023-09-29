@@ -17,6 +17,7 @@ pub enum ParameterType {
     #[serde(rename = "List<Number>")]
     ListOfNumbers,
     CommaDelimitedList,
+    Bool,
     #[serde(other)]
     Other(String),
 }
@@ -29,6 +30,7 @@ impl fmt::Display for ParameterType {
             ParameterType::ListOfNumbers => write!(f, "List<Number>"),
             ParameterType::CommaDelimitedList => write!(f, "CommaDelimitedList"),
             ParameterType::Other(s) => write!(f, "{}", s),
+            ParameterType::Bool => write!(f, "Boolean"),
         }
     }
 }

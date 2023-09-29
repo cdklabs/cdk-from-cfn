@@ -96,6 +96,7 @@ impl Java {
             let java_type = match input.constructor_type.as_str() {
                 "List<Number>" => "List<Number>",
                 t if t.contains("List") => "String[]",
+                "Boolean" => "Boolean",
                 _ => "String",
             };
 
@@ -103,7 +104,11 @@ impl Java {
                 name: input.name.clone(),
                 description: input.description.clone(),
                 java_type: java_type.into(),
-                constructor_type: input.constructor_type.clone(),
+                constructor_type: if java_type == "Boolean" {
+                    "Boolean".to_string()
+                } else {
+                    input.constructor_type.clone()
+                },
                 default_value: input.default_value.clone(),
             });
         }
@@ -206,9 +211,13 @@ impl Java {
                     prop_details.line(".build()");
                     prop_details.line(format!(".{}();", value_as));
                 }
+                Some(v) if prop.constructor_type == ("Boolean") => writer.line(format!(
+                    "{} = Optional.ofNullable({}).isPresent() ? {}\n{DOUBLE_INDENT}: {v};",
+                    prop.name, prop.name, prop.name
+                )),
                 Some(v) => writer.line(format!(
-                    "{} = Optional.ofNullable({}).isPresent() ? {}\n{DOUBLE_INDENT}: \"{}\";",
-                    prop.name, prop.name, prop.name, v
+                    "{} = Optional.ofNullable({}).isPresent() ? {}\n{DOUBLE_INDENT}: \"{v}\";",
+                    prop.name, prop.name, prop.name
                 )),
             }
         }
