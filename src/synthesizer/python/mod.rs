@@ -443,13 +443,10 @@ fn emit_resource(
 ) {
     let var_name = camel_case(&reference.name);
     // "lambda" is a reserved keyword in python, so we need to change it to aws_lambda
-    let service: String;
-    if reference.resource_type.service().to_lowercase() == "lambda" {
+    let mut service: String = reference.resource_type.service().to_lowercase();
+    if service == "lambda" {
         service = format!("aws_{}", reference.resource_type.service().to_lowercase());
-    } else {
-        service = reference.resource_type.service().to_lowercase();
     }
-
     let maybe_undefined = if let Some(cond) = &reference.condition {
         output.line(format!(
             "{var_name} = {service}.Cfn{rtype}(self, '{}',",
