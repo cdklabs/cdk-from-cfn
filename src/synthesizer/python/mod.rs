@@ -91,25 +91,25 @@ impl Synthesizer for Python {
                         indent: INDENT,
                         leading: Some(
                             format!(
-                                "'{name}': cdk.CfnParameter(self, '{}', {{",
+                                "'{name}': cdk.CfnParameter(self, '{}', ",
                                 camel_case(&param.name)
                             )
                             .into(),
                         ),
-                        trailing: Some("}),".into()),
+                        trailing: Some("),".into()),
                         trailing_newline: true,
                     });
-                    cfn_param.line(format!("'type': '{}',", param.constructor_type));
+                    cfn_param.line(format!("type = '{}',", param.constructor_type));
                     if let Some(v) = &param.default_value {
                         cfn_param.line(format!(
-                            "'default': str({name}) if {name} is not None else '{}',",
+                            "default = str(kwargs.get('{name}')) if kwargs.get('{name}') is not None else '{}',",
                             v.escape_debug()
                         ));
                     } else {
-                        cfn_param.line(format!("default: str({name}),"));
+                        cfn_param.line(format!("default = str(kwargs.get('{name}')),"));
                     };
                     if let Some(v) = &param.description {
-                        cfn_param.line(format!("description: '{}',", v));
+                        cfn_param.line(format!("description = '{}',", v));
                     };
                 } else {
                     let value = match &param.default_value {
@@ -133,7 +133,7 @@ impl Synthesizer for Python {
                     };
 
                     obj.line(format!(
-                        "'{name}': {name} if {name} is not None else {value},"
+                        "'{name}': kwargs.get('{name}') if kwargs.get('{name}') is not None else {value},"
                     ));
                 };
             }

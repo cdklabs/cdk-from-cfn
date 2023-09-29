@@ -15,11 +15,11 @@ class SimpleStack(Stack):
 
     # Applying default props
     props = {
-      'bucketNamePrefix': bucketNamePrefix if bucketNamePrefix is not None else 'bucket',
-      'logDestinationBucketName': cdk.CfnParameter(self, 'logDestinationBucketName', {
-        'type': 'AWS::SSM::Parameter::Value<String>',
-        'default': str(logDestinationBucketName) if logDestinationBucketName is not None else '/logging/bucket/name',
-      }),
+      'bucketNamePrefix': kwargs.get('bucketNamePrefix') if kwargs.get('bucketNamePrefix') is not None else 'bucket',
+      'logDestinationBucketName': cdk.CfnParameter(self, 'logDestinationBucketName', 
+        type = 'AWS::SSM::Parameter::Value<String>',
+        default = str(kwargs.get('logDestinationBucketName')) if kwargs.get('logDestinationBucketName') is not None else '/logging/bucket/name',
+      ),
     }
 
     # Mappings
