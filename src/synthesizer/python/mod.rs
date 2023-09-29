@@ -48,17 +48,6 @@ impl Synthesizer for Python {
             trailing: Some("".into()),
             trailing_newline: true,
         });
-        if !ir.outputs.is_empty() {
-            for op in &ir.outputs {
-                if let Some(description) = &op.description {
-                    let comment = class.pydoc();
-                    comment.line(description.to_owned());
-                }
-                // NOTE: the property type can be inferred by the compiler...
-                class.line(format!("global {name}", name = pretty_name(&op.name)));
-            }
-            class.newline();
-        }
 
         let ctor = class.indent_with_options(IndentOptions {
             indent: INDENT,
@@ -175,7 +164,11 @@ impl Synthesizer for Python {
             for op in &ir.outputs {
                 let var_name = pretty_name(&op.name);
                 let cond = op.condition.as_ref().map(|s| pretty_name(s));
-
+                if let Some(description) = &op.description {
+                    let comment = ctor.pydoc();
+                    comment.line(description.to_owned());
+                }
+                ctor.newline();
                 if let Some(cond) = &cond {
                     ctor.text(format!("self.{var_name} = "));
                     emit_resource_ir(context, &ctor, &op.value, Some(""));
