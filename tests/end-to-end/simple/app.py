@@ -73,11 +73,11 @@ class SimpleStack(Stack):
     queue = sqs.CfnQueue(self, 'Queue',
           delay_seconds = 42.1337,
           fifo_queue = False,
-          kms_master_key_id = cdk.Fn.importValue('Shared.KmsKeyArn'),
+          kms_master_key_id = cdk.Fn.import_value('Shared.KmsKeyArn'),
           queue_name = '-'.join([
-            self.stackName,
+            self.stack_name,
             strings['Bars']['Bar'],
-            cdk.Fn.select(1, cdk.Fn.getAzs(self.region)),
+            cdk.Fn.select(1, cdk.Fn.get_azs(self.region)),
           ]),
           redrive_policy = None,
           visibility_timeout = 120,
@@ -85,7 +85,7 @@ class SimpleStack(Stack):
 
     bucket = s3.CfnBucket(self, 'Bucket',
           access_control = 'private',
-          bucket_name = f"{props['bucketNamePrefix']}-{self.stackName}-bucket",
+          bucket_name = f"{props['bucketNamePrefix']}-{self.stack_name}-bucket",
           logging_configuration = {
             'destinationBucketName': props['logDestinationBucketName'],
           },
@@ -106,7 +106,7 @@ class SimpleStack(Stack):
         ) if is_us_east1 else None
     if (bucket is not None):
       bucket.cfn_options.metadata = {
-        CostCenter: 1337,
+        'CostCenter': 1337,
       }
       bucket.cfn_options.deletion_policy = cdk.CfnDeletionPolicy.RETAIN
       bucket.addDependency(queue)
