@@ -1,19 +1,15 @@
-use aws_sdk_cloudformation::types::OnFailure;
-use serde_with::DurationSeconds;
-use tokio::task;
+use std::io::Write;
 
-use aws_sdk_cloudformation::config::Region;
+use aws_sdk_cloudformation::types::OnFailure;
+
+use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_cloudformation::types::StackStatus;
-use aws_sdk_cloudformation::types::error::StackNotFoundException;
+use aws_sdk_cloudformation::{Client, Error};
 use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::synthesizer::*;
 use cdk_from_cfn::CloudformationParseTree;
-use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_cloudformation::{Client, Error};
-
 
 macro_rules! test_case {
-
     ($name:ident, $stack_name:literal) => {
         mod $name {
             use super::*;
@@ -50,14 +46,21 @@ macro_rules! test_case {
     ($name:ident, $lang:ident, $synthesizer:expr, $stack_name:literal, $expected:literal) => {
         #[test]
         fn $lang() {
-
+            // ? Does cloudformation template deploy successfully
+            // allow disabling with a flag
+            // allow cleaning up and deleting the template at the end with a flag
             let template = include_str!(concat!("end-to-end/", stringify!($name), "/template.yml"));
-            let _res = deployTemplate(stringify!($name), template);
-            println!("{:?}", _res);
+            let result = deploy_template(stringify!($name), template);
+            match result {
+                Err(e) => panic!("{}", e),
+                Ok(_) => {}
+            }
+            println!("{:?}", result);
 
             let expected = include_str!(concat!("end-to-end/", stringify!($name), "/", $expected));
             let actual = {
                 let mut output = Vec::with_capacity(expected.len());
+                // Does IR succeed
                 let cfn: CloudformationParseTree = serde_yaml::from_str(include_str!(concat!(
                     "end-to-end/",
                     stringify!($name),
@@ -65,6 +68,7 @@ macro_rules! test_case {
                 )))
                 .unwrap();
                 let ir = CloudformationProgramIr::from(cfn).unwrap();
+                // Does it synthesize
                 ir.synthesize($synthesizer, &mut output, $stack_name)
                     .unwrap();
                 String::from_utf8(output).unwrap()
@@ -77,55 +81,75 @@ macro_rules! test_case {
             );
             assert_eq!(expected, actual);
 
-            // Add app creation
+            // Add CDK boiler plate stuff
             // instantiate a stack for each possible combination of parameters
-            // add the synth call
+            // Synth the app - does that succeed?
+
+            // Compare each stack to the original
+
+            // What is the delta?
+
+            // Can delta be auto approved?
+
+            // Is there already a file with approved diff?
+
+            // If not, is the flag set to update snapshots? interactive show file to user to approve
         }
     };
 }
 
 #[tokio::main]
-async fn deployTemplate(stack_name: &str, template: &str) -> Result<(), Error> {
+async fn deploy_template(
+    stack_name: impl Into<String>,
+    template: impl Into<String>,
+) -> Result<(), Error> {
     println!("deploy template");
     let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
     let config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&config);
 
-    let resp = client.create_stack()
+    let resp = client
+        .create_stack()
         .stack_name(stack_name)
         .template_body(template)
         .on_failure(OnFailure::Delete)
-        .send().await?;
-
-
-
-    println!("Stacks:");
-
+        .send()
+        .await?;
     let id = resp.stack_id.unwrap_or_default();
-    println!();
-    println!("stack id {}", id);
+    print!("Stack {id} create in progress...");
+    std::io::stdout().flush().unwrap();
 
     let mut status = check_stack_status(&id, &client).await?;
 
     while let StackStatus::CreateInProgress = status {
-        println!("create in progress");
+        print!(".");
+        std::io::stdout().flush().unwrap();
         tokio::time::sleep(std::time::Duration::new(2, 0)).await;
         status = check_stack_status(&id, &client).await?;
     }
-
+    match status {
+        StackStatus::CreateFailed
+        | StackStatus::DeleteComplete
+        | StackStatus::DeleteFailed
+        | StackStatus::DeleteInProgress => {
+            panic!("stack creation failed. stack status: {}", status.as_str())
+        }
+        StackStatus::CreateComplete => println!("create complete!"),
+        _ => panic!("unexpected stack status: {}", status.as_str()),
+    }
     Ok(())
 }
 
-async fn check_stack_status(id: &String, client: &Client) -> Result<StackStatus, Error> {
+async fn check_stack_status(id: impl Into<String>, client: &Client) -> Result<StackStatus, Error> {
     let resp = client.describe_stacks().stack_name(id).send().await?;
     if let Some(stacks) = resp.stacks {
         if let Some(stack) = stacks.first() {
             if let Some(status) = &stack.stack_status {
-                return Ok(status.clone())
+                return Ok(status.clone());
             }
         }
     }
-    Err(Error::StackNotFoundException(StackNotFoundException::builder().message("ugh").build()))
+    unreachable!("describe_stacks returned no stacks");
 }
 
 test_case!(simple, "SimpleStack");
@@ -149,7 +173,6 @@ impl<'a> UpdateSnapshot<'a> {
         }
     }
 }
-
 
 impl Drop for UpdateSnapshot<'_> {
     fn drop(&mut self) {

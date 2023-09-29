@@ -85,7 +85,7 @@ Resources:
   Queue:
     Type: AWS::SQS::Queue
     Properties:
-      DelaySeconds: 42
+      DelaySeconds: 42.7
       SqsManagedSseEnabled: false
       KmsMasterKeyId: !ImportValue Shared-KmsKeyArn
       QueueName:
