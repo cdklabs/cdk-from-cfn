@@ -18,6 +18,13 @@ use super::Synthesizer;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
+const KEYWORDS: &[&str] = &[
+    "False", "await", "else", "import", "pass", "None", "break", "except", "in", "raise", "True",
+    "class", "finally", "is", "return", "and", "continue", "for", "lambda", "try", "as", "def",
+    "from", "nonlocal", "while", "assert", "del", "global", "not", "with", "async", "elif", "if",
+    "or", "yield",
+];
+
 pub struct Python {}
 
 impl Synthesizer for Python {
@@ -236,7 +243,12 @@ impl ImportInstruction {
 
         let module = parts.join(".");
         if !module.is_empty() {
-            format!("import {} as {}", module, self.name,)
+            // lambda is a reserved keyword in python. If we encounter it or another keyword, we prepend 'aws_'
+            if KEYWORDS.contains(&self.name.as_str()) {
+                format!("import {} as aws_{}", module, self.name,)
+            } else {
+                format!("import {} as {}", module, self.name,)
+            }
         } else {
             "".to_string()
         }
@@ -430,8 +442,11 @@ fn emit_resource(
     reference: &ResourceInstruction,
 ) {
     let var_name = camel_case(&reference.name);
-    let service = reference.resource_type.service().to_lowercase();
-
+    // lambda is a reserved keyword in python. If we encounter it or another keyword, we prepend 'aws_'
+    let mut service: String = reference.resource_type.service().to_lowercase();
+    if KEYWORDS.contains(&service.as_str()) {
+        service = format!("aws_{}", reference.resource_type.service().to_lowercase());
+    }
     let maybe_undefined = if let Some(cond) = &reference.condition {
         output.line(format!(
             "{var_name} = {service}.Cfn{rtype}(self, '{}',",

@@ -324,7 +324,7 @@ impl ConstructorParameter {
     fn to_csharp_auto_property(&self) -> String {
         let prop_type = match &self.constructor_type {
             t if t.contains("List") => "string[]",
-            t if t == "Boolean" => "bool",
+            t if t == "Boolean" => "bool?",
             _ => "string",
         };
 
