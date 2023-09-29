@@ -6,6 +6,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
+use crate::parser::resource::DeletionPolicy;
 use crate::specification::Structure;
 use std::borrow::Cow;
 use std::io;
@@ -304,12 +305,26 @@ impl Java {
             extra_line = true;
         }
 
+        // Madness. Why is Java DESTROY instead of DELETE?
+
         if let Some(deletion_policy) = &resource.deletion_policy {
-            writer.text(format!(
-                "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy}){}",
-                trailer
-            ));
-            extra_line = true;
+            // Madness
+            match deletion_policy {
+                DeletionPolicy::Delete => {
+                    writer.text(format!(
+                        "{res_name}.applyRemovalPolicy(RemovalPolicy.DESTROY){}",
+                        trailer
+                    ));
+                    extra_line = true;
+                }
+                _ => {
+                    writer.text(format!(
+                        "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy}){}",
+                        trailer
+                    ));
+                    extra_line = true;
+                }
+            }
         }
 
         if let Some(update_policy) = &resource.update_policy {
