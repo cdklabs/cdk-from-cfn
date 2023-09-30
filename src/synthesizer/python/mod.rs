@@ -224,7 +224,7 @@ fn emit_cfn_output(
         output.text("export_name = ");
         emit_resource_ir(context, &output, export, Some(",\n"));
     }
-    output.line(format!("value = self.{var_name},"));
+    output.line(format!("value = str(self.{var_name}),"));
 }
 
 impl ImportInstruction {
