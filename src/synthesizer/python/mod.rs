@@ -135,9 +135,7 @@ impl Synthesizer for Python {
                         }
                     };
 
-                    obj.line(format!(
-                        "'{name}': kwargs.get('{name}', {value}),"
-                    ));
+                    obj.line(format!("'{name}': kwargs.get('{name}', {value}),"));
                 };
             }
         }
