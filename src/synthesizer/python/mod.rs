@@ -420,7 +420,7 @@ impl Reference {
                 PseudoParameter::StackName => "self.stack_name".into(),
                 PseudoParameter::URLSuffix => "self.url_suffix".into(),
                 PseudoParameter::AccountId => "self.account".into(),
-                PseudoParameter::NotificationArns => "self.notificationArns".into(),
+                PseudoParameter::NotificationArns => "self.notification_arns".into(),
             },
             Origin::GetAttribute {
                 conditional: _,
