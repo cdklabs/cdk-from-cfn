@@ -109,7 +109,7 @@ class SimpleStack(Stack):
         CostCenter: 1337,
       }
       bucket.cfn_options.deletion_policy = cdk.CfnDeletionPolicy.RETAIN
-      bucket.addDependency(queue)
+      bucket.add_dependency(queue)
 
     # Outputs
     """

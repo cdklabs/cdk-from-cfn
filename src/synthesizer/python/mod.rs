@@ -516,7 +516,7 @@ fn emit_resource_attributes(
     if !reference.dependencies.is_empty() {
         for dependency in &reference.dependencies {
             output.line(format!(
-                "{var_name}.addDependency({})",
+                "{var_name}.add_dependency({})",
                 camel_case(dependency)
             ));
         }
