@@ -416,11 +416,11 @@ impl Reference {
             Origin::PseudoParameter(x) => match x {
                 PseudoParameter::Partition => "self.partition".into(),
                 PseudoParameter::Region => "self.region".into(),
-                PseudoParameter::StackId => "self.stackId".into(),
-                PseudoParameter::StackName => "self.stackName".into(),
-                PseudoParameter::URLSuffix => "self.urlSuffix".into(),
+                PseudoParameter::StackId => "self.stack_id".into(),
+                PseudoParameter::StackName => "self.stack_name".into(),
+                PseudoParameter::URLSuffix => "self.url_suffix".into(),
                 PseudoParameter::AccountId => "self.account".into(),
-                PseudoParameter::NotificationArns => "self.notificationArns".into(),
+                PseudoParameter::NotificationArns => "self.notification_arns".into(),
             },
             Origin::GetAttribute {
                 conditional: _,
@@ -516,7 +516,7 @@ fn emit_resource_attributes(
     if !reference.dependencies.is_empty() {
         for dependency in &reference.dependencies {
             output.line(format!(
-                "{var_name}.addDependency({})",
+                "{var_name}.add_dependency({})",
                 camel_case(dependency)
             ));
         }
@@ -531,7 +531,7 @@ fn emit_resource_metadata(
     match metadata {
         ResourceIr::Object(_, entries) => {
             for (name, value) in entries {
-                output.text(format!("{name}: "));
+                output.text(format!("'{name}': "));
                 emit_resource_ir(context, &output, value, Some(",\n"));
             }
         }
@@ -611,7 +611,7 @@ fn emit_resource_ir(
             output.text("))")
         }
         ResourceIr::GetAZs(region) => {
-            output.text("cdk.Fn.getAzs(");
+            output.text("cdk.Fn.get_azs(");
             emit_resource_ir(context, output, region, None);
             output.text(")")
         }
@@ -621,7 +621,7 @@ fn emit_resource_ir(
             emit_resource_ir(context, output, if_false, None)
         }
         ResourceIr::ImportValue(name) => {
-            output.text(format!("cdk.Fn.importValue('{}')", name.escape_debug()))
+            output.text(format!("cdk.Fn.import_value('{}')", name.escape_debug()))
         }
         ResourceIr::Join(sep, list) => {
             let items = output.indent_with_options(IndentOptions {
