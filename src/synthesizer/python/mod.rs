@@ -18,6 +18,8 @@ use super::Synthesizer;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
+// reserved python keywords as of 3.13 (https://docs.python.org/3/reference/lexical_analysis.html#keywords)
+// if we happen to name a module with one of these keywords, we need to prepend 'aws_' to avoid a name conflict
 const KEYWORDS: &[&str] = &[
     "False", "await", "else", "import", "pass", "None", "break", "except", "in", "raise", "True",
     "class", "finally", "is", "return", "and", "continue", "for", "lambda", "try", "as", "def",
@@ -85,7 +87,6 @@ impl Synthesizer for Python {
             });
             for param in have_default_or_special_type_params {
                 let name = &param.name;
-                // example: AWS::EC2::Image::Id, List<AWS::EC2::VPC::Id>, AWS::SSM::Parameter::Value<List<String>>
                 if param.constructor_type.contains("AWS::") {
                     let cfn_param = obj.indent_with_options(IndentOptions {
                         indent: INDENT,
