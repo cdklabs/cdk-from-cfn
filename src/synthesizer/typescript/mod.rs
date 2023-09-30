@@ -312,7 +312,7 @@ impl TypescriptContext {
 impl Reference {
     fn to_typescript(&self) -> Cow<'static, str> {
         match &self.origin {
-            Origin::Parameter => format!("props.{}", camel_case(&self.name)).into(),
+            Origin::Parameter => format!("props.{}!", camel_case(&self.name)).into(),
             Origin::LogicalId { conditional } => format!(
                 "{var}{chain}ref",
                 var = camel_case(&self.name),
