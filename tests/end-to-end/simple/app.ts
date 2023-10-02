@@ -147,7 +147,7 @@ export class SimpleStack extends cdk.Stack {
       new cdk.CfnOutput(this, 'BucketArn', {
         description: 'The ARN of the bucket in this template!',
         exportName: 'ExportName',
-        value: this.bucketArn,
+        value: this.bucketArn?.toString() ?? '',
       });
     }
     this.queueArn = queue.ref;
