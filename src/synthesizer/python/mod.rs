@@ -89,6 +89,7 @@ impl Synthesizer for Python {
             });
             for param in have_default_or_special_type_params {
                 let name = &param.name;
+                // example: AWS::EC2::Image::Id, List<AWS::EC2::VPC::Id>, AWS::SSM::Parameter::Value<List<String>>
                 if param.constructor_type.contains("AWS::") {
                     let cfn_param = obj.indent_with_options(IndentOptions {
                         indent: INDENT,
