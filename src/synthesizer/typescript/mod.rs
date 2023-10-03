@@ -362,7 +362,7 @@ fn emit_cfn_output(
     }
     output.text("exportName: ");
     emit_resource_ir(context, &output, export, Some(",\n"));
-    output.line(format!("value: this.{var_name}?.toString() ?? '',"));
+    output.line(format!("value: this.{var_name}!.toString(),"));
 }
 
 fn emit_resource(
