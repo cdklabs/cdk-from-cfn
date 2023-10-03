@@ -120,7 +120,7 @@ class SimpleStack(Stack):
       cdk.CfnOutput(self, 'BucketArn', 
         description = 'The ARN of the bucket in this template!',
         export_name = 'ExportName',
-        value = self.bucket_arn,
+        value = str(self.bucket_arn),
       )
 
 
@@ -130,7 +130,7 @@ class SimpleStack(Stack):
     self.queue_arn = queue.ref
     cdk.CfnOutput(self, 'QueueArn', 
       description = 'The ARN of the SQS Queue',
-      value = self.queue_arn,
+      value = str(self.queue_arn),
     )
 
     """
@@ -139,7 +139,7 @@ class SimpleStack(Stack):
     self.is_large = True if is_large_region else False
     cdk.CfnOutput(self, 'IsLarge', 
       description = 'Whether this is a large region or not',
-      value = self.is_large,
+      value = str(self.is_large),
     )
 
 

@@ -18,6 +18,8 @@ use super::Synthesizer;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
+// reserved python keywords as of 3.13 (https://docs.python.org/3/reference/lexical_analysis.html#keywords)
+// if we happen to name a module with one of these keywords, we need to prepend 'aws_' to avoid a name conflict
 const KEYWORDS: &[&str] = &[
     "False", "await", "else", "import", "pass", "None", "break", "except", "in", "raise", "True",
     "class", "finally", "is", "return", "and", "continue", "for", "lambda", "try", "as", "def",
@@ -223,7 +225,7 @@ fn emit_cfn_output(
         output.text("export_name = ");
         emit_resource_ir(context, &output, export, Some(",\n"));
     }
-    output.line(format!("value = self.{var_name},"));
+    output.line(format!("value = str(self.{var_name}),"));
 }
 
 impl ImportInstruction {
