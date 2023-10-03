@@ -78,6 +78,8 @@ impl Synthesizer for Python {
             .collect::<Vec<&ConstructorParameter>>();
         if !have_default_or_special_type_params.is_empty() {
             ctor.newline();
+            // props are handled weirdly in python. Python doesn't have interfaces so we try and retrieve
+            // the props from kwargs, and default to None or a default value if one is given.
             ctor.line("# Applying default props");
             let obj = ctor.indent_with_options(IndentOptions {
                 indent: INDENT,
@@ -104,7 +106,7 @@ impl Synthesizer for Python {
                     cfn_param.line(format!("type = '{}',", param.constructor_type));
                     if let Some(v) = &param.default_value {
                         cfn_param.line(format!(
-                            "default = str(kwargs.get('{name}')) if kwargs.get('{name}') is not None else '{}',",
+                            "default = str(kwargs.get('{name}'), '{}'),",
                             v.escape_debug()
                         ));
                     } else {
@@ -134,9 +136,7 @@ impl Synthesizer for Python {
                         }
                     };
 
-                    obj.line(format!(
-                        "'{name}': kwargs.get('{name}') if kwargs.get('{name}') is not None else {value},"
-                    ));
+                    obj.line(format!("'{name}': kwargs.get('{name}', {value}),"));
                 };
             }
         }
