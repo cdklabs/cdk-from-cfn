@@ -1,5 +1,5 @@
 using Amazon.CDK;
-using Amazon.CDK.AWS.docdb;
+using Amazon.CDK.AWS.DocDB;
 using Constructs;
 using System.Collections.Generic;
 

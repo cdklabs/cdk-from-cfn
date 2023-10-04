@@ -292,28 +292,23 @@ impl Synthesizer for CSharp {
 
 impl ImportInstruction {
     fn to_csharp(&self) -> String {
-        let mut parts: Vec<Cow<str>> = vec![match self.path[0].as_str() {
-            "aws-cdk-lib" => "Amazon.CDK".into(),
-            other => other.into(),
-        }];
-
-        if self.path.len() > 1 {
-            for submodule_part in self.path[1].split('-') {
-                parts.push(match submodule_part {
-                    "aws" => "AWS".into(),
-                    // TODO - This is hardcoded for now.
-                    // This part of the namespace needs to be pulled from the jsiirc.json
-                    // of the submodule. In C# there is no consistent rule we can apply to transform
-                    // this string to have the right casing.
-                    // Some are all caps, and some are Pascal case.
-                    "s3" => "S3".into(),
-                    "sqs" => "SQS".into(),
-                    "ec2" => "EC2".into(),
-                    other => other.into(),
-                });
+        let mut parts: Vec<String> = vec!["Amazon".to_string(), "CDK".to_string()];
+        match self.organization.as_str() {
+            "AWS" => {
+                match &self.service {
+                    Some(service) => {
+                        parts.push("AWS".to_string());
+                        parts.push(service.into());
+                    }
+                    None => {}
+                };
             }
-        }
-
+            "Alexa" => {
+                parts.push("Alexa".to_string());
+                parts.push(pascal_case(self.service.as_ref().unwrap()));
+            }
+            _ => unreachable!(),
+        };
         let namespace = parts.join(".");
 
         format!("using {namespace};")
@@ -409,9 +404,13 @@ impl CsharpEmitter for Reference {
             Origin::GetAttribute {
                 attribute,
                 conditional: _,
-            } => output.text(format!("{}.Attr{attribute}", camel_case(&self.name))),
+            } => output.text(format!(
+                "{}.Attr{}",
+                camel_case(&self.name),
+                attribute.replace('.', "")
+            )),
             Origin::LogicalId { conditional: _ } => {
-                output.text(format!("{}.Ref", camel_case(&self.name)))
+                output.text(format!("{}.Ref", camel_case(&self.name.replace('.', ""))))
             }
             Origin::Parameter => output.text(format!("props.{}", pascal_case(&self.name))),
             Origin::PseudoParameter(pseudo) => {
