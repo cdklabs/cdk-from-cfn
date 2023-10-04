@@ -12,7 +12,7 @@ use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::io;
 use std::rc::Rc;
-use voca_rs::case::camel_case;
+use voca_rs::case::{camel_case, pascal_case};
 
 use super::Synthesizer;
 
@@ -130,6 +130,7 @@ impl Synthesizer for Python {
                                         .collect::<Vec<String>>()
                                         .join(",")
                                 ),
+                                "Boolean" => pascal_case(value),
                                 _ => value.clone(),
                             };
                             value
