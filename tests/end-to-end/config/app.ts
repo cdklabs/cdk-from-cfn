@@ -292,7 +292,16 @@ export class ConfigStack extends cdk.Stack {
 
     // Outputs
     this.configRuleForVolumeTagsArn = configRuleForVolumeTags.attrArn;
+    new cdk.CfnOutput(this, 'ConfigRuleForVolumeTagsArn', {
+      value: this.configRuleForVolumeTagsArn!.toString(),
+    });
     this.configRuleForVolumeTagsConfigRuleId = configRuleForVolumeTags.attrConfigRuleId;
+    new cdk.CfnOutput(this, 'ConfigRuleForVolumeTagsConfigRuleId', {
+      value: this.configRuleForVolumeTagsConfigRuleId!.toString(),
+    });
     this.configRuleForVolumeAutoEnableIoComplianceType = configRuleForVolumeAutoEnableIo.attrComplianceType;
+    new cdk.CfnOutput(this, 'ConfigRuleForVolumeAutoEnableIOComplianceType', {
+      value: this.configRuleForVolumeAutoEnableIoComplianceType!.toString(),
+    });
   }
 }
