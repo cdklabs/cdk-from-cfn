@@ -251,18 +251,16 @@ impl Synthesizer for Typescript {
                     emit_resource_ir(context, &ctor, &op.value, Some(";\n"));
                 }
 
-                if let Some(export) = &op.export {
-                    if let Some(cond) = cond {
-                        let indented = ctor.indent_with_options(IndentOptions {
-                            indent: INDENT,
-                            leading: Some(format!("if ({cond}) {{").into()),
-                            trailing: Some("}".into()),
-                            trailing_newline: true,
-                        });
-                        emit_cfn_output(context, &indented, op, export, &var_name);
-                    } else {
-                        emit_cfn_output(context, &ctor, op, export, &var_name);
-                    }
+                if let Some(cond) = cond {
+                    let indented = ctor.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(format!("if ({cond}) {{").into()),
+                        trailing: Some("}".into()),
+                        trailing_newline: true,
+                    });
+                    emit_cfn_output(context, &indented, op, &var_name);
+                } else {
+                    emit_cfn_output(context, &ctor, op, &var_name);
                 }
             }
         }
@@ -356,7 +354,6 @@ fn emit_cfn_output(
     context: &mut TypescriptContext,
     output: &CodeBuffer,
     op: &OutputInstruction,
-    export: &ResourceIr,
     var_name: &str,
 ) {
     let output = output.indent_with_options(IndentOptions {
@@ -369,8 +366,10 @@ fn emit_cfn_output(
     if let Some(description) = &op.description {
         output.line(format!("description: '{}',", description.escape_debug()));
     }
-    output.text("exportName: ");
-    emit_resource_ir(context, &output, export, Some(",\n"));
+    if let Some(export) = &op.export {
+        output.text("exportName: ");
+        emit_resource_ir(context, &output, export, Some(",\n"));
+    }
     output.line(format!("value: this.{var_name}!.toString(),"));
 }
 
