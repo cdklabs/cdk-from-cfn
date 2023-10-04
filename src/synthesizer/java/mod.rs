@@ -9,8 +9,8 @@ use crate::parser::lookup_table::MappingInnerValue;
 use crate::parser::resource::DeletionPolicy;
 use crate::specification::Structure;
 use std::borrow::Cow;
-use std::io;
 use std::rc::Rc;
+use std::{io, vec};
 use voca_rs::case::{camel_case, pascal_case};
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("    ");
@@ -51,11 +51,11 @@ impl Java {
         code.line("import software.constructs.Construct;");
         code.newline();
         code.line("import java.util.*;");
-        code.line("import software.amazon.awscdk.*;");
         code.line("import software.amazon.awscdk.CfnMapping;");
         code.line("import software.amazon.awscdk.CfnTag;");
         code.line("import software.amazon.awscdk.Stack;");
         code.line("import software.amazon.awscdk.StackProps;");
+        code.newline();
     }
 
     fn emit_mappings(mapping: &MappingInnerValue, output: &CodeBuffer) {
@@ -490,32 +490,28 @@ impl Synthesizer for Java {
 
 impl ImportInstruction {
     fn to_java_import(&self) -> String {
-        let mut parts: Vec<Cow<str>> = vec![match self.path[0].as_str() {
-            "aws-cdk-lib" => "software.amazon.awscdk.services".into(),
-            other => other.into(),
-        }];
-        parts.extend(self.path[1..].iter().map(|item| {
-            item.chars()
-                .filter(|ch| ch.is_alphanumeric())
-                .collect::<String>()
-                .into()
-        }));
-
-        let module = parts
-            .iter()
-            .take(parts.len() - 1)
-            .map(|part| part.to_string())
-            .collect::<Vec<_>>()
-            .join(".");
-        if !module.is_empty() {
-            format!(
-                "import {module}.{name}.*;",
-                module = module,
-                name = self.name,
-            )
-        } else {
-            "".to_string()
+        let mut parts: Vec<String> = vec![
+            "software".to_string(),
+            "amazon".to_string(),
+            "awscdk".to_string(),
+        ];
+        match self.organization.as_str() {
+            "AWS" => {
+                match &self.service {
+                    Some(service) => {
+                        parts.push("services".to_string());
+                        parts.push(service.to_lowercase());
+                    }
+                    None => {}
+                };
+            }
+            "Alexa" => {
+                parts.push("alexa".to_string());
+                parts.push(self.service.as_ref().unwrap().to_lowercase());
+            }
+            _ => unreachable!(),
         }
+        format!("import {}.*;", parts.join("."))
     }
 }
 
@@ -587,10 +583,14 @@ fn emit_reference(reference: Reference) -> String {
                     "Optional.of({}.isPresent() ? {}.get().getAttr{}()\n{DOUBLE_INDENT}: Optional.empty())",
                     camel_case(&name),
                     camel_case(&name),
-                    pascal_case(&attribute)
+                    pascal_case(&attribute.replace('.', ""))
                 )
             } else {
-                format!("{}.getAttr{}()", camel_case(&name), pascal_case(&attribute))
+                format!(
+                    "{}.getAttr{}()",
+                    camel_case(&name),
+                    pascal_case(&attribute.replace('.', ""))
+                )
             }
         }
         Origin::PseudoParameter(param) => get_pseudo_param(param),

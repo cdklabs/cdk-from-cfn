@@ -230,30 +230,25 @@ fn emit_cfn_output(
 
 impl ImportInstruction {
     fn to_python(&self) -> String {
-        let mut parts: Vec<String> = vec![match self.path[0].as_str() {
-            "aws-cdk-lib" => "aws_cdk".to_string(),
-            other => other.to_string(),
-        }];
-
-        // mapping all - in imports to _ is a bit hacky but it should always be fine
-        parts.extend(self.path[1..].iter().map(|item| {
-            item.chars()
-                .map(|ch| if ch == '-' { '_' } else { ch })
-                .filter(|ch| ch.is_alphanumeric() || *ch == '_')
-                .collect::<String>()
-        }));
-
-        let module = parts.join(".");
-        if !module.is_empty() {
-            // lambda is a reserved keyword in python. If we encounter it or another keyword, we prepend 'aws_'
-            if KEYWORDS.contains(&self.name.as_str()) {
-                format!("import {} as aws_{}", module, self.name,)
-            } else {
-                format!("import {} as {}", module, self.name,)
+        let import = match self.organization.as_str() {
+            "AWS" => match &self.service {
+                Some(service) => {
+                    let s = service.to_lowercase();
+                    if KEYWORDS.contains(&s.as_str()) {
+                        format!("import aws_cdk.aws_{s} as aws_{s}").to_string()
+                    } else {
+                        format!("import aws_cdk.aws_{s} as {s}").to_string()
+                    }
+                }
+                None => "import aws_cdk as cdk".to_string(),
+            },
+            "Alexa" => {
+                let s = self.service.as_ref().unwrap().to_lowercase();
+                format!("import alexa_{s} as ask from {s}").to_string()
             }
-        } else {
-            "".to_string()
-        }
+            _ => unreachable!(),
+        };
+        import
     }
 }
 
@@ -287,7 +282,7 @@ fn pretty_name(name: &str) -> String {
         }
         pretty.push(ch.to_lowercase().next().unwrap());
     }
-    pretty
+    pretty.replace('.', "")
 }
 
 trait PythonCodeBuffer {

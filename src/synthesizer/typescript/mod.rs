@@ -1,6 +1,7 @@
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
+use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
@@ -17,21 +18,7 @@ use super::Synthesizer;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
-pub struct Typescript {
-    // TODO: Put options in here for different outputs in typescript
-}
-
-impl Typescript {
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    #[deprecated(note = "Prefer using the Synthesizer API instead")]
-    pub fn output(ir: CloudformationProgramIr) -> String {
-        let mut output = Vec::new();
-        Typescript {}
-            .synthesize(ir, &mut output, "NoctStack")
-            .unwrap();
-        String::from_utf8(output).unwrap()
-    }
-}
+pub struct Typescript {}
 
 impl Synthesizer for Typescript {
     fn synthesize(
@@ -44,11 +31,7 @@ impl Synthesizer for Typescript {
 
         let imports = code.section(true);
         for import in &ir.imports {
-            imports.line(format!(
-                "import * as {} from '{}';",
-                import.name,
-                import.path.join("/"),
-            ));
+            imports.line(import.to_typescript())
         }
 
         let context = &mut TypescriptContext::with_imports(imports);
@@ -288,6 +271,32 @@ impl Synthesizer for Typescript {
     }
 }
 
+impl ImportInstruction {
+    fn to_typescript(&self) -> String {
+        let mut parts: Vec<String> = vec!["aws-cdk-lib".to_string()];
+        match self.organization.as_str() {
+            "AWS" => match &self.service {
+                Some(service) => parts.push(format!("aws-{}", service.to_lowercase())),
+                None => {}
+            },
+            "Alexa" => parts.push(format!(
+                "alexa-{}",
+                self.service.as_ref().unwrap().to_lowercase()
+            )),
+            _ => unreachable!(),
+        }
+
+        format!(
+            "import * as {} from '{}';",
+            self.service
+                .as_ref()
+                .unwrap_or(&"cdk".to_string())
+                .to_lowercase(),
+            parts.join("/")
+        )
+    }
+}
+
 struct TypescriptContext {
     imports: Rc<CodeBuffer>,
     imports_buffer: bool,
@@ -336,7 +345,7 @@ impl Reference {
                 "{var_name}{chain}attr{name}",
                 var_name = camel_case(&self.name),
                 chain = if *conditional { "?." } else { "." },
-                name = pascal_case(attribute)
+                name = pascal_case(&attribute.replace('.', ""))
             )
             .into(),
         }
