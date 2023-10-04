@@ -550,21 +550,35 @@ impl Inspectable for ResourceIr {
 
 impl ImportInstruction {
     fn to_golang(&self) -> String {
-        let mut parts: Vec<Cow<str>> = vec![match self.path[0].as_str() {
-            "aws-cdk-lib" => "github.com/aws/aws-cdk-go/awscdk/v2".into(),
-            other => other.into(),
-        }];
-        parts.extend(self.path[1..].iter().map(|item| {
-            item.chars()
-                .filter(|ch| ch.is_alphanumeric())
-                .collect::<String>()
-                .into()
-        }));
+        let mut parts: Vec<String> = vec![
+            "github.com".to_string(),
+            "aws".to_string(),
+            "aws-cdk-go".to_string(),
+            "awscdk".to_string(),
+            "v2".to_string(),
+        ];
+        match self.organization.as_str() {
+            "AWS" => match &self.service {
+                Some(service) => {
+                    parts.push(format!("aws{}", service.to_lowercase()));
+                }
+                None => {}
+            },
+            "Alexa" => parts.push(format!(
+                "alexa{}",
+                self.service.as_ref().unwrap().to_lowercase()
+            )),
+            _ => unreachable!(),
+        }
 
         format!(
-            "{name} {module:?}",
-            name = self.name,
-            module = parts.join("/")
+            "{} \"{}\"",
+            &self
+                .service
+                .as_ref()
+                .unwrap_or(&"cdk".to_string())
+                .to_lowercase(),
+            parts.join("/")
         )
     }
 }

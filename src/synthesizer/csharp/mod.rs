@@ -11,7 +11,7 @@ use crate::parser::lookup_table::MappingInnerValue;
 use crate::specification::{CfnType, Structure};
 use std::borrow::Cow;
 use std::io;
-use voca_rs::case::{camel_case, pascal_case, upper_case};
+use voca_rs::case::{camel_case, pascal_case};
 
 use super::Synthesizer;
 
@@ -292,21 +292,23 @@ impl Synthesizer for CSharp {
 
 impl ImportInstruction {
     fn to_csharp(&self) -> String {
-        let mut parts: Vec<Cow<str>> = vec![match self.path[0].as_str() {
-            "aws-cdk-lib" => "Amazon.CDK".into(),
-            other => other.into(),
-        }];
-
-        if self.path.len() > 1 {
-            for submodule_part in self.path[1].split('-') {
-                parts.push(if submodule_part.len() <= 3 {
-                    upper_case(submodule_part).into()
-                } else {
-                    pascal_case(submodule_part).into()
-                });
+        let mut parts: Vec<String> = vec!["Amazon".to_string(), "CDK".to_string()];
+        match self.organization.as_str() {
+            "AWS" => {
+                match &self.service {
+                    Some(service) => {
+                        parts.push("AWS".to_string());
+                        parts.push(service.into());
+                    }
+                    None => {}
+                };
             }
-        }
-
+            "Alexa" => {
+                parts.push("Alexa".to_string());
+                parts.push(pascal_case(self.service.as_ref().unwrap()));
+            }
+            _ => unreachable!(),
+        };
         let namespace = parts.join(".");
 
         format!("using {namespace};")
