@@ -151,6 +151,14 @@ export class SimpleStack extends cdk.Stack {
       });
     }
     this.queueArn = queue.ref;
+    new cdk.CfnOutput(this, 'QueueArn', {
+      description: 'The ARN of the SQS Queue',
+      value: this.queueArn!.toString(),
+    });
     this.isLarge = isLargeRegion ? true : false;
+    new cdk.CfnOutput(this, 'IsLarge', {
+      description: 'Whether this is a large region or not',
+      value: this.isLarge!.toString(),
+    });
   }
 }
