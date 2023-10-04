@@ -12,7 +12,7 @@ use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::io;
 use std::rc::Rc;
-use voca_rs::case::camel_case;
+use voca_rs::case::{camel_case, pascal_case, snake_case};
 
 use super::Synthesizer;
 
@@ -130,6 +130,7 @@ impl Synthesizer for Python {
                                         .collect::<Vec<String>>()
                                         .join(",")
                                 ),
+                                "Boolean" => pascal_case(value),
                                 _ => value.clone(),
                             };
                             value
@@ -149,7 +150,7 @@ impl Synthesizer for Python {
 
             for cond in &ir.conditions {
                 let synthed = synthesize_condition_recursive(&cond.value);
-                ctor.line(format!("{} = {}", pretty_name(&cond.name), synthed));
+                ctor.line(format!("{} = {}", snake_case(&cond.name), synthed));
             }
         }
 
@@ -171,8 +172,8 @@ impl Synthesizer for Python {
             ctor.line("# Outputs");
 
             for op in &ir.outputs {
-                let var_name = pretty_name(&op.name);
-                let cond = op.condition.as_ref().map(|s| pretty_name(s));
+                let var_name = snake_case(&op.name);
+                let cond = op.condition.as_ref().map(|s| snake_case(s));
                 if let Some(description) = &op.description {
                     let comment = ctor.pydoc();
                     comment.line(description.to_owned());
@@ -230,30 +231,25 @@ fn emit_cfn_output(
 
 impl ImportInstruction {
     fn to_python(&self) -> String {
-        let mut parts: Vec<String> = vec![match self.path[0].as_str() {
-            "aws-cdk-lib" => "aws_cdk".to_string(),
-            other => other.to_string(),
-        }];
-
-        // mapping all - in imports to _ is a bit hacky but it should always be fine
-        parts.extend(self.path[1..].iter().map(|item| {
-            item.chars()
-                .map(|ch| if ch == '-' { '_' } else { ch })
-                .filter(|ch| ch.is_alphanumeric() || *ch == '_')
-                .collect::<String>()
-        }));
-
-        let module = parts.join(".");
-        if !module.is_empty() {
-            // lambda is a reserved keyword in python. If we encounter it or another keyword, we prepend 'aws_'
-            if KEYWORDS.contains(&self.name.as_str()) {
-                format!("import {} as aws_{}", module, self.name,)
-            } else {
-                format!("import {} as {}", module, self.name,)
+        let import = match self.organization.as_str() {
+            "AWS" => match &self.service {
+                Some(service) => {
+                    let s = service.to_lowercase();
+                    if KEYWORDS.contains(&s.as_str()) {
+                        format!("import aws_cdk.aws_{s} as aws_{s}").to_string()
+                    } else {
+                        format!("import aws_cdk.aws_{s} as {s}").to_string()
+                    }
+                }
+                None => "import aws_cdk as cdk".to_string(),
+            },
+            "Alexa" => {
+                let s = self.service.as_ref().unwrap().to_lowercase();
+                format!("import alexa_{s} as ask from {s}").to_string()
             }
-        } else {
-            "".to_string()
-        }
+            _ => unreachable!(),
+        };
+        import
     }
 }
 
@@ -277,17 +273,6 @@ impl PythonContext {
         self.imports.line("import base64");
         self.imports_base64 = true;
     }
-}
-
-fn pretty_name(name: &str) -> String {
-    let mut pretty = String::new();
-    for (i, ch) in name.chars().enumerate() {
-        if ch.is_uppercase() && i != 0 {
-            pretty.push('_');
-        }
-        pretty.push(ch.to_lowercase().next().unwrap());
-    }
-    pretty
 }
 
 trait PythonCodeBuffer {
@@ -382,12 +367,12 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         ConditionIr::Str(x) => {
             format!("'{x}'")
         }
-        ConditionIr::Condition(x) => pretty_name(x),
+        ConditionIr::Condition(x) => snake_case(x),
         ConditionIr::Ref(x) => x.to_python().into(),
         ConditionIr::Map(named_resource, l1, l2) => {
             format!(
                 "{}[{}][{}]",
-                pretty_name(named_resource),
+                snake_case(named_resource),
                 synthesize_condition_recursive(l1.as_ref()),
                 synthesize_condition_recursive(l2.as_ref())
             )
@@ -431,7 +416,7 @@ impl Reference {
                 "{var_name}{chain}attr_{name}",
                 var_name = camel_case(&self.name),
                 chain = ".",
-                name = pretty_name(attribute)
+                name = snake_case(attribute)
             )
             .into(),
         }
@@ -460,7 +445,7 @@ fn emit_resource(
 
         let mid_output = output.indent(INDENT);
         emit_resource_props(context, mid_output.indent(INDENT), &reference.properties);
-        mid_output.line(format!(") if {} else None", pretty_name(cond)));
+        mid_output.line(format!(") if {} else None", snake_case(cond)));
 
         true
     } else {
@@ -547,7 +532,7 @@ fn emit_resource_props<S>(
     props: &IndexMap<String, ResourceIr, S>,
 ) {
     for (name, prop) in props {
-        output.text(format!("{} = ", pretty_name(name)));
+        output.text(format!("{} = ", snake_case(name)));
         emit_resource_ir(context, &output, prop, Some(",\n"));
     }
 }
@@ -619,7 +604,7 @@ fn emit_resource_ir(
         }
         ResourceIr::If(cond_name, if_true, if_false) => {
             emit_resource_ir(context, output, if_true, None);
-            output.text(format!(" if {} else ", pretty_name(cond_name)));
+            output.text(format!(" if {} else ", snake_case(cond_name)));
             emit_resource_ir(context, output, if_false, None)
         }
         ResourceIr::ImportValue(name) => {

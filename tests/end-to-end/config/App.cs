@@ -1,10 +1,10 @@
 using Amazon.CDK;
-using Amazon.CDK.AWS.config;
+using Amazon.CDK.AWS.Config;
 using Amazon.CDK.AWS.EC2;
-using Amazon.CDK.AWS.iam;
-using Amazon.CDK.AWS.lambda;
+using Amazon.CDK.AWS.IAM;
+using Amazon.CDK.AWS.Lambda;
 using Amazon.CDK.AWS.S3;
-using Amazon.CDK.AWS.sns;
+using Amazon.CDK.AWS.SNS;
 using Constructs;
 using System.Collections.Generic;
 

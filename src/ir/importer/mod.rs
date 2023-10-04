@@ -9,8 +9,8 @@ use std::collections::HashSet;
 // which should account for many import styles.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct ImportInstruction {
-    pub name: String,
-    pub path: Vec<String>,
+    pub organization: String,
+    pub service: Option<String>,
 }
 
 impl ImportInstruction {
@@ -33,36 +33,26 @@ impl ImportInstruction {
                 )));
             };
 
-            // These must always exist.
-            // In CloudFormation, typenames are always of the form `<Organization>::<Service>::<Resource>
-            let organization = organization.to_ascii_lowercase();
-            let service = service.to_ascii_lowercase();
             type_names.insert(TypeName {
-                organization,
-                service,
+                organization: organization.to_string(),
+                service: Some(service.to_string()),
             });
         }
 
-        let mut import_instructions: Vec<ImportInstruction> = vec![
-            // We will always include the cdk, as it's used to build the stack.
-            ImportInstruction {
-                name: "cdk".to_string(),
-                path: vec!["aws-cdk-lib".to_string()],
-            },
-        ];
+        let mut import_instructions = vec![ImportInstruction {
+            organization: "AWS".to_string(),
+            service: None,
+        }];
 
         import_instructions.reserve(type_names.len());
         for type_name in &type_names {
             import_instructions.push(ImportInstruction {
-                name: type_name.service.to_string(),
-                path: vec![
-                    "aws-cdk-lib".to_string(),
-                    format!("{}-{}", type_name.organization, type_name.service).to_string(),
-                ],
+                organization: type_name.organization.clone(),
+                service: type_name.service.clone(),
             })
         }
 
-        import_instructions.sort_by(|left, right| left.name.cmp(&right.name));
+        import_instructions.sort_by(|left, right| left.service.cmp(&right.service));
 
         Ok(import_instructions)
     }
@@ -71,5 +61,5 @@ impl ImportInstruction {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd)]
 struct TypeName {
     organization: String,
-    service: String,
+    service: Option<String>,
 }
