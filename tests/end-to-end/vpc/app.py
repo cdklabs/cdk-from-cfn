@@ -21,19 +21,19 @@ class VpcStack(Stack):
         )
 
     subnet1 = ec2.CfnSubnet(self, 'Subnet1',
-          availability_zone = cdk.Fn.select(0, cdk.Fn.getAzs('')),
+          availability_zone = cdk.Fn.select(0, cdk.Fn.get_azs('')),
           cidr_block = cdk.Fn.select(0, cdk.Fn.cidr(vpc.attr_cidr_block, 6, str(8))),
           vpc_id = vpc.ref,
         )
 
     subnet2 = ec2.CfnSubnet(self, 'Subnet2',
-          availability_zone = cdk.Fn.select(1, cdk.Fn.getAzs('')),
+          availability_zone = cdk.Fn.select(1, cdk.Fn.get_azs('')),
           cidr_block = cdk.Fn.select(1, cdk.Fn.cidr(vpc.attr_cidr_block, 6, str(8))),
           vpc_id = vpc.ref,
         )
 
     subnet3 = ec2.CfnSubnet(self, 'Subnet3',
-          availability_zone = cdk.Fn.select(2, cdk.Fn.getAzs('')),
+          availability_zone = cdk.Fn.select(2, cdk.Fn.get_azs('')),
           cidr_block = cdk.Fn.select(2, cdk.Fn.cidr(vpc.attr_cidr_block, 6, str(8))),
           vpc_id = vpc.ref,
         )

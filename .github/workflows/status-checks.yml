@@ -51,38 +51,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
+      - name: Install Rust
+        run: rustup update stable
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
       - name: Tests with Coverage
-        run: bash tasks/coverage.sh
-      - name: Upload CodeCov artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: codecov.json
-          path: target/codecov.json
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-report
-          path: target/coverage/html
-
-  upload:
-    name: Submit Coverage to CodeCov
-    needs: [testing]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@main
-      - name: Download CodeCov artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: codecov.json
-          path: ${{ runner.temp }}
-      - name: Upload coverage to Codecov
+        run: cargo llvm-cov --all-features --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --no-fail-fast --lcov --output-path target/lcov.info
+      - name: Coverage Report
+        run: |
+          cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --codecov --output-path target/codecov.json
+          cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --html --output-dir target/coverage
+          cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$'
+      - name: Submit Coverage to CodeCov
         uses: codecov/codecov-action@v3
         with:
-          files: ${{ runner.temp }}/codecov.json
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/codecov.json
+          name: codecov.json

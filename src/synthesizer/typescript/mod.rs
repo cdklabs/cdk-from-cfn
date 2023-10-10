@@ -1,6 +1,7 @@
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
+use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
@@ -17,21 +18,7 @@ use super::Synthesizer;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
-pub struct Typescript {
-    // TODO: Put options in here for different outputs in typescript
-}
-
-impl Typescript {
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    #[deprecated(note = "Prefer using the Synthesizer API instead")]
-    pub fn output(ir: CloudformationProgramIr) -> String {
-        let mut output = Vec::new();
-        Typescript {}
-            .synthesize(ir, &mut output, "NoctStack")
-            .unwrap();
-        String::from_utf8(output).unwrap()
-    }
-}
+pub struct Typescript {}
 
 impl Synthesizer for Typescript {
     fn synthesize(
@@ -44,11 +31,7 @@ impl Synthesizer for Typescript {
 
         let imports = code.section(true);
         for import in &ir.imports {
-            imports.line(format!(
-                "import * as {} from '{}';",
-                import.name,
-                import.path.join("/"),
-            ));
+            imports.line(import.to_typescript())
         }
 
         let context = &mut TypescriptContext::with_imports(imports);
@@ -84,6 +67,7 @@ impl Synthesizer for Typescript {
             let constructor_type = match param.constructor_type.as_str() {
                 "List<Number>" => "number[]",
                 t if t.contains("List") => "string[]",
+                "Boolean" => "boolean",
                 _ => "string",
             };
             iface_props.line(format!(
@@ -267,23 +251,47 @@ impl Synthesizer for Typescript {
                     emit_resource_ir(context, &ctor, &op.value, Some(";\n"));
                 }
 
-                if let Some(export) = &op.export {
-                    if let Some(cond) = cond {
-                        let indented = ctor.indent_with_options(IndentOptions {
-                            indent: INDENT,
-                            leading: Some(format!("if ({cond}) {{").into()),
-                            trailing: Some("}".into()),
-                            trailing_newline: true,
-                        });
-                        emit_cfn_output(context, &indented, op, export, &var_name);
-                    } else {
-                        emit_cfn_output(context, &ctor, op, export, &var_name);
-                    }
+                if let Some(cond) = cond {
+                    let indented = ctor.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(format!("if ({cond}) {{").into()),
+                        trailing: Some("}".into()),
+                        trailing_newline: true,
+                    });
+                    emit_cfn_output(context, &indented, op, &var_name);
+                } else {
+                    emit_cfn_output(context, &ctor, op, &var_name);
                 }
             }
         }
 
         code.write(output)
+    }
+}
+
+impl ImportInstruction {
+    fn to_typescript(&self) -> String {
+        let mut parts: Vec<String> = vec!["aws-cdk-lib".to_string()];
+        match self.organization.as_str() {
+            "AWS" => match &self.service {
+                Some(service) => parts.push(format!("aws-{}", service.to_lowercase())),
+                None => {}
+            },
+            "Alexa" => parts.push(format!(
+                "alexa-{}",
+                self.service.as_ref().unwrap().to_lowercase()
+            )),
+            _ => unreachable!(),
+        }
+
+        format!(
+            "import * as {} from '{}';",
+            self.service
+                .as_ref()
+                .unwrap_or(&"cdk".to_string())
+                .to_lowercase(),
+            parts.join("/")
+        )
     }
 }
 
@@ -311,7 +319,7 @@ impl TypescriptContext {
 impl Reference {
     fn to_typescript(&self) -> Cow<'static, str> {
         match &self.origin {
-            Origin::Parameter => format!("props.{}", camel_case(&self.name)).into(),
+            Origin::Parameter => format!("props.{}!", camel_case(&self.name)).into(),
             Origin::LogicalId { conditional } => format!(
                 "{var}{chain}ref",
                 var = camel_case(&self.name),
@@ -335,7 +343,7 @@ impl Reference {
                 "{var_name}{chain}attr{name}",
                 var_name = camel_case(&self.name),
                 chain = if *conditional { "?." } else { "." },
-                name = pascal_case(attribute)
+                name = pascal_case(&attribute.replace('.', ""))
             )
             .into(),
         }
@@ -346,7 +354,6 @@ fn emit_cfn_output(
     context: &mut TypescriptContext,
     output: &CodeBuffer,
     op: &OutputInstruction,
-    export: &ResourceIr,
     var_name: &str,
 ) {
     let output = output.indent_with_options(IndentOptions {

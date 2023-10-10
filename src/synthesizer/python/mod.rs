@@ -12,11 +12,20 @@ use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::io;
 use std::rc::Rc;
-use voca_rs::case::camel_case;
+use voca_rs::case::{camel_case, pascal_case, snake_case};
 
 use super::Synthesizer;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
+
+// reserved python keywords as of 3.13 (https://docs.python.org/3/reference/lexical_analysis.html#keywords)
+// if we happen to name a module with one of these keywords, we need to prepend 'aws_' to avoid a name conflict
+const KEYWORDS: &[&str] = &[
+    "False", "await", "else", "import", "pass", "None", "break", "except", "in", "raise", "True",
+    "class", "finally", "is", "return", "and", "continue", "for", "lambda", "try", "as", "def",
+    "from", "nonlocal", "while", "assert", "del", "global", "not", "with", "async", "elif", "if",
+    "or", "yield",
+];
 
 pub struct Python {}
 
@@ -48,17 +57,6 @@ impl Synthesizer for Python {
             trailing: Some("".into()),
             trailing_newline: true,
         });
-        if !ir.outputs.is_empty() {
-            for op in &ir.outputs {
-                if let Some(description) = &op.description {
-                    let comment = class.pydoc();
-                    comment.line(description.to_owned());
-                }
-                // NOTE: the property type can be inferred by the compiler...
-                class.line(format!("global {name}", name = pretty_name(&op.name)));
-            }
-            class.newline();
-        }
 
         let ctor = class.indent_with_options(IndentOptions {
             indent: INDENT,
@@ -80,6 +78,8 @@ impl Synthesizer for Python {
             .collect::<Vec<&ConstructorParameter>>();
         if !have_default_or_special_type_params.is_empty() {
             ctor.newline();
+            // props are handled weirdly in python. Python doesn't have interfaces so we try and retrieve
+            // the props from kwargs, and default to None or a default value if one is given.
             ctor.line("# Applying default props");
             let obj = ctor.indent_with_options(IndentOptions {
                 indent: INDENT,
@@ -95,25 +95,25 @@ impl Synthesizer for Python {
                         indent: INDENT,
                         leading: Some(
                             format!(
-                                "'{name}': cdk.CfnParameter(self, '{}', {{",
+                                "'{name}': cdk.CfnParameter(self, '{}', ",
                                 camel_case(&param.name)
                             )
                             .into(),
                         ),
-                        trailing: Some("}),".into()),
+                        trailing: Some("),".into()),
                         trailing_newline: true,
                     });
-                    cfn_param.line(format!("'type': '{}',", param.constructor_type));
+                    cfn_param.line(format!("type = '{}',", param.constructor_type));
                     if let Some(v) = &param.default_value {
                         cfn_param.line(format!(
-                            "'default': str({name}) if {name} is not None else '{}',",
+                            "default = str(kwargs.get('{name}'), '{}'),",
                             v.escape_debug()
                         ));
                     } else {
-                        cfn_param.line(format!("default: str({name}),"));
+                        cfn_param.line(format!("default = str(kwargs.get('{name}')),"));
                     };
                     if let Some(v) = &param.description {
-                        cfn_param.line(format!("description: '{}',", v));
+                        cfn_param.line(format!("description = '{}',", v));
                     };
                 } else {
                     let value = match &param.default_value {
@@ -130,15 +130,14 @@ impl Synthesizer for Python {
                                         .collect::<Vec<String>>()
                                         .join(",")
                                 ),
+                                "Boolean" => pascal_case(value),
                                 _ => value.clone(),
                             };
                             value
                         }
                     };
 
-                    obj.line(format!(
-                        "'{name}': {name} if {name} is not None else {value},"
-                    ));
+                    obj.line(format!("'{name}': kwargs.get('{name}', {value}),"));
                 };
             }
         }
@@ -151,7 +150,7 @@ impl Synthesizer for Python {
 
             for cond in &ir.conditions {
                 let synthed = synthesize_condition_recursive(&cond.value);
-                ctor.line(format!("{} = {}", pretty_name(&cond.name), synthed));
+                ctor.line(format!("{} = {}", snake_case(&cond.name), synthed));
             }
         }
 
@@ -173,9 +172,12 @@ impl Synthesizer for Python {
             ctor.line("# Outputs");
 
             for op in &ir.outputs {
-                let var_name = pretty_name(&op.name);
-                let cond = op.condition.as_ref().map(|s| pretty_name(s));
-
+                let var_name = snake_case(&op.name);
+                let cond = op.condition.as_ref().map(|s| snake_case(s));
+                if let Some(description) = &op.description {
+                    let comment = ctor.pydoc();
+                    comment.line(description.to_owned());
+                }
                 if let Some(cond) = &cond {
                     ctor.text(format!("self.{var_name} = "));
                     emit_resource_ir(context, &ctor, &op.value, Some(""));
@@ -196,6 +198,7 @@ impl Synthesizer for Python {
                 } else {
                     emit_cfn_output(context, &ctor, op, &var_name);
                 }
+                ctor.newline();
             }
         }
 
@@ -223,30 +226,30 @@ fn emit_cfn_output(
         output.text("export_name = ");
         emit_resource_ir(context, &output, export, Some(",\n"));
     }
-    output.line(format!("value = self.{var_name},"));
+    output.line(format!("value = str(self.{var_name}),"));
 }
 
 impl ImportInstruction {
     fn to_python(&self) -> String {
-        let mut parts: Vec<String> = vec![match self.path[0].as_str() {
-            "aws-cdk-lib" => "aws_cdk".to_string(),
-            other => other.to_string(),
-        }];
-
-        // mapping all - in imports to _ is a bit hacky but it should always be fine
-        parts.extend(self.path[1..].iter().map(|item| {
-            item.chars()
-                .map(|ch| if ch == '-' { '_' } else { ch })
-                .filter(|ch| ch.is_alphanumeric() || *ch == '_')
-                .collect::<String>()
-        }));
-
-        let module = parts.join(".");
-        if !module.is_empty() {
-            format!("import {} as {}", module, self.name,)
-        } else {
-            "".to_string()
-        }
+        let import = match self.organization.as_str() {
+            "AWS" => match &self.service {
+                Some(service) => {
+                    let s = service.to_lowercase();
+                    if KEYWORDS.contains(&s.as_str()) {
+                        format!("import aws_cdk.aws_{s} as aws_{s}").to_string()
+                    } else {
+                        format!("import aws_cdk.aws_{s} as {s}").to_string()
+                    }
+                }
+                None => "import aws_cdk as cdk".to_string(),
+            },
+            "Alexa" => {
+                let s = self.service.as_ref().unwrap().to_lowercase();
+                format!("import alexa_{s} as ask from {s}").to_string()
+            }
+            _ => unreachable!(),
+        };
+        import
     }
 }
 
@@ -270,17 +273,6 @@ impl PythonContext {
         self.imports.line("import base64");
         self.imports_base64 = true;
     }
-}
-
-fn pretty_name(name: &str) -> String {
-    let mut pretty = String::new();
-    for (i, ch) in name.chars().enumerate() {
-        if ch.is_uppercase() && i != 0 {
-            pretty.push('_');
-        }
-        pretty.push(ch.to_lowercase().next().unwrap());
-    }
-    pretty
 }
 
 trait PythonCodeBuffer {
@@ -375,12 +367,12 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         ConditionIr::Str(x) => {
             format!("'{x}'")
         }
-        ConditionIr::Condition(x) => pretty_name(x),
+        ConditionIr::Condition(x) => snake_case(x),
         ConditionIr::Ref(x) => x.to_python().into(),
         ConditionIr::Map(named_resource, l1, l2) => {
             format!(
                 "{}[{}][{}]",
-                pretty_name(named_resource),
+                snake_case(named_resource),
                 synthesize_condition_recursive(l1.as_ref()),
                 synthesize_condition_recursive(l2.as_ref())
             )
@@ -411,11 +403,11 @@ impl Reference {
             Origin::PseudoParameter(x) => match x {
                 PseudoParameter::Partition => "self.partition".into(),
                 PseudoParameter::Region => "self.region".into(),
-                PseudoParameter::StackId => "self.stackId".into(),
-                PseudoParameter::StackName => "self.stackName".into(),
-                PseudoParameter::URLSuffix => "self.urlSuffix".into(),
+                PseudoParameter::StackId => "self.stack_id".into(),
+                PseudoParameter::StackName => "self.stack_name".into(),
+                PseudoParameter::URLSuffix => "self.url_suffix".into(),
                 PseudoParameter::AccountId => "self.account".into(),
-                PseudoParameter::NotificationArns => "self.notificationArns".into(),
+                PseudoParameter::NotificationArns => "self.notification_arns".into(),
             },
             Origin::GetAttribute {
                 conditional: _,
@@ -424,7 +416,7 @@ impl Reference {
                 "{var_name}{chain}attr_{name}",
                 var_name = camel_case(&self.name),
                 chain = ".",
-                name = pretty_name(attribute)
+                name = snake_case(attribute)
             )
             .into(),
         }
@@ -437,8 +429,11 @@ fn emit_resource(
     reference: &ResourceInstruction,
 ) {
     let var_name = camel_case(&reference.name);
-    let service = reference.resource_type.service().to_lowercase();
-
+    // lambda is a reserved keyword in python. If we encounter it or another keyword, we prepend 'aws_'
+    let mut service: String = reference.resource_type.service().to_lowercase();
+    if KEYWORDS.contains(&service.as_str()) {
+        service = format!("aws_{}", reference.resource_type.service().to_lowercase());
+    }
     let maybe_undefined = if let Some(cond) = &reference.condition {
         output.line(format!(
             "{var_name} = {service}.Cfn{rtype}(self, '{}',",
@@ -450,7 +445,7 @@ fn emit_resource(
 
         let mid_output = output.indent(INDENT);
         emit_resource_props(context, mid_output.indent(INDENT), &reference.properties);
-        mid_output.line(format!(") if {} else None", pretty_name(cond)));
+        mid_output.line(format!(") if {} else None", snake_case(cond)));
 
         true
     } else {
@@ -487,7 +482,7 @@ fn emit_resource_attributes(
     if let Some(metadata) = &reference.metadata {
         let md = output.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("{var_name}.cfnOptions.metadata = {{").into()),
+            leading: Some(format!("{var_name}.cfn_options.metadata = {{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -495,20 +490,20 @@ fn emit_resource_attributes(
     }
 
     if let Some(update_policy) = &reference.update_policy {
-        output.text(format!("{var_name}.cfnOptions.updatePolicy = "));
+        output.text(format!("{var_name}.cfn_options.update_policy = "));
         emit_resource_ir(context, output, update_policy, Some(""));
     }
 
     if let Some(deletion_policy) = &reference.deletion_policy {
         output.line(format!(
-            "{var_name}.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.{deletion_policy}"
+            "{var_name}.cfn_options.deletion_policy = cdk.CfnDeletionPolicy.{deletion_policy}"
         ));
     }
 
     if !reference.dependencies.is_empty() {
         for dependency in &reference.dependencies {
             output.line(format!(
-                "{var_name}.addDependency({})",
+                "{var_name}.add_dependency({})",
                 camel_case(dependency)
             ));
         }
@@ -523,7 +518,7 @@ fn emit_resource_metadata(
     match metadata {
         ResourceIr::Object(_, entries) => {
             for (name, value) in entries {
-                output.text(format!("{name}: "));
+                output.text(format!("'{name}': "));
                 emit_resource_ir(context, &output, value, Some(",\n"));
             }
         }
@@ -537,7 +532,7 @@ fn emit_resource_props<S>(
     props: &IndexMap<String, ResourceIr, S>,
 ) {
     for (name, prop) in props {
-        output.text(format!("{} = ", pretty_name(name)));
+        output.text(format!("{} = ", snake_case(name)));
         emit_resource_ir(context, &output, prop, Some(",\n"));
     }
 }
@@ -603,23 +598,23 @@ fn emit_resource_ir(
             output.text("))")
         }
         ResourceIr::GetAZs(region) => {
-            output.text("cdk.Fn.getAzs(");
+            output.text("cdk.Fn.get_azs(");
             emit_resource_ir(context, output, region, None);
             output.text(")")
         }
         ResourceIr::If(cond_name, if_true, if_false) => {
             emit_resource_ir(context, output, if_true, None);
-            output.text(format!(" if {} else ", pretty_name(cond_name)));
+            output.text(format!(" if {} else ", snake_case(cond_name)));
             emit_resource_ir(context, output, if_false, None)
         }
         ResourceIr::ImportValue(name) => {
-            output.text(format!("cdk.Fn.importValue('{}')", name.escape_debug()))
+            output.text(format!("cdk.Fn.import_value('{}')", name.escape_debug()))
         }
         ResourceIr::Join(sep, list) => {
             let items = output.indent_with_options(IndentOptions {
                 indent: INDENT,
-                leading: Some("[".into()),
-                trailing: Some(format!("].join('{sep}')", sep = sep.escape_debug()).into()),
+                leading: Some(format!("'{sep}'.join([", sep = sep.escape_debug()).into()),
+                trailing: Some("])".into()),
                 trailing_newline: false,
             });
             for item in list {
