@@ -1,4 +1,7 @@
+use std::fs::{File, self};
 use std::io::Write;
+use std::path::PathBuf;
+use std::process::Command;
 
 use aws_sdk_cloudformation::types::OnFailure;
 
@@ -50,12 +53,14 @@ macro_rules! test_case {
             // allow disabling with a flag
             // allow cleaning up and deleting the template at the end with a flag
             let template = include_str!(concat!("end-to-end/", stringify!($name), "/template.yml"));
+            /*
             let result = deploy_template(stringify!($name), template);
             match result {
                 Err(e) => panic!("{}", e),
                 Ok(_) => {}
             }
             println!("{:?}", result);
+            */
 
             let expected = include_str!(concat!("end-to-end/", stringify!($name), "/", $expected));
             let actual = {
@@ -85,6 +90,8 @@ macro_rules! test_case {
             // instantiate a stack for each possible combination of parameters
             // Synth the app - does that succeed?
 
+            synth_app(&actual);
+
             // Compare each stack to the original
 
             // What is the delta?
@@ -94,6 +101,8 @@ macro_rules! test_case {
             // Is there already a file with approved diff?
 
             // If not, is the flag set to update snapshots? interactive show file to user to approve
+
+            // Make sure it works in each language
         }
     };
 }
@@ -149,10 +158,38 @@ async fn check_stack_status(id: impl Into<String>, client: &Client) -> Result<St
             }
         }
     }
-    unreachable!("describe_stacks returned no stacks");
+    panic!("describe_stacks returned no stacks");
 }
 
-test_case!(simple, "SimpleStack");
+fn synth_app(actual: &str) {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/end-to-end/typescript-app-scaffolding")
+        .join("stack-under-test.ts");
+    println!("{:?}", path);
+    let mut file = File::create(path).unwrap();
+    file.write_all(actual.as_bytes()).unwrap();
+
+    //npm install
+    let result = Command::new("npm")
+        .arg("install")
+        .current_dir(fs::canonicalize("./tests/end-to-end/typescript-app-scaffolding").unwrap())
+        .output();
+
+    println!("{:?}", result);
+
+    // cdk synth
+    let result = Command::new("npx")
+        .args(["cdk", "synth", "--path-metadata", "false", "--app", "npx ts-node --prefer-ts-exts ./app.ts" ])
+        .current_dir(fs::canonicalize("./tests/end-to-end/typescript-app-scaffolding").unwrap())
+        .status();
+
+    match result {
+        Ok(status) => todo!(),
+        Err(e) => panic!("{e}"),
+    }
+}
+
+test_case!(simple, "StackUnderTest");
 
 test_case!(vpc, "VpcStack");
 
