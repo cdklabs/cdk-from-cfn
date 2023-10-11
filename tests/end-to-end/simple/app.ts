@@ -111,7 +111,7 @@ export class StackUnderTest extends cdk.Stack {
     const bucket = isUsEast1
       ? new s3.CfnBucket(this, 'Bucket', {
           accessControl: 'Private',
-          bucketName: `${props.bucketNamePrefix}-${this.stackName}-bucket`,
+          bucketName: `${props.bucketNamePrefix!}-${this.stackName}-bucket`,
           loggingConfiguration: {
             destinationBucketName: props.logDestinationBucketName!,
           },
@@ -145,7 +145,7 @@ export class StackUnderTest extends cdk.Stack {
       new cdk.CfnOutput(this, 'BucketArn', {
         description: 'The ARN of the bucket in this template!',
         exportName: 'ExportName',
-        value: this.bucketArn!,
+        value: this.bucketArn!.toString(),
       });
     }
     this.queueArn = queue.ref;

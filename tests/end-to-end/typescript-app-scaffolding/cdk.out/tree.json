@@ -52,6 +52,22 @@
               "fqn": "aws-cdk-lib.aws_sqs.CfnQueue",
               "version": "2.99.0"
             }
+          },
+          "QueueArn": {
+            "id": "QueueArn",
+            "path": "Stack/QueueArn",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnOutput",
+              "version": "2.99.0"
+            }
+          },
+          "IsLarge": {
+            "id": "IsLarge",
+            "path": "Stack/IsLarge",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnOutput",
+              "version": "2.99.0"
+            }
           }
         },
         "constructInfo": {

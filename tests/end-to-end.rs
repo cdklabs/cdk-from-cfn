@@ -49,41 +49,19 @@ macro_rules! test_case {
     ($name:ident, $lang:ident, $synthesizer:expr, $stack_name:literal, $expected:literal) => {
         #[test]
         fn $lang() {
-            // ? Does cloudformation template deploy successfully
-            // allow disabling with a flag
-            // allow cleaning up and deleting the template at the end with a flag
-            let template = include_str!(concat!("end-to-end/", stringify!($name), "/template.yml"));
-            /*
-            let result = deploy_template(stringify!($name), template);
-            match result {
-                Err(e) => panic!("{}", e),
-                Ok(_) => {}
-            }
-            println!("{:?}", result);
-            */
+            
+            // ? Does original cloudformation template deploy successfully
+            let template = include_str!(concat!("end-to-end/", stringify!($name), "/template.json"));
+            deploy_template(stringify!($name), template);
 
-            let expected = include_str!(concat!("end-to-end/", stringify!($name), "/", $expected));
-            let actual = {
-                let mut output = Vec::with_capacity(expected.len());
-                // Does IR succeed
-                let cfn: CloudformationParseTree = serde_yaml::from_str(include_str!(concat!(
-                    "end-to-end/",
-                    stringify!($name),
-                    "/template.yml"
-                )))
-                .unwrap();
-                let ir = CloudformationProgramIr::from(cfn).unwrap();
-                // Does it synthesize
-                ir.synthesize($synthesizer, &mut output, $stack_name)
-                    .unwrap();
-                String::from_utf8(output).unwrap()
-            };
+            let cfn: CloudformationParseTree = serde_yaml::from_str(include_str!(concat!(
+                "end-to-end/",
+                stringify!($name),
+                "/template.json"
+            )))
+            .unwrap();
+            generate_cdk_stack(cfn);
 
-            let _update_snapshots = UpdateSnapshot::new(
-                concat!("end-to-end/", stringify!($name), "/", $expected),
-                &actual,
-                &expected,
-            );
             assert_eq!(expected, actual);
 
             // Add CDK boiler plate stuff
@@ -111,7 +89,9 @@ macro_rules! test_case {
 async fn deploy_template(
     stack_name: impl Into<String>,
     template: impl Into<String>,
-) -> Result<(), Error> {
+) {
+    if std::env::var_os("SKIP_DEPLOY").is_some() { return; }
+
     println!("deploy template");
     let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
     let config = aws_config::from_env().region(region_provider).load().await;
@@ -123,18 +103,19 @@ async fn deploy_template(
         .template_body(template)
         .on_failure(OnFailure::Delete)
         .send()
-        .await?;
+        .await
+        .unwrap();
     let id = resp.stack_id.unwrap_or_default();
     print!("Stack {id} create in progress...");
     std::io::stdout().flush().unwrap();
 
-    let mut status = check_stack_status(&id, &client).await?;
+    let mut status = check_stack_status(&id, &client).await.unwrap();
 
     while let StackStatus::CreateInProgress = status {
         print!(".");
         std::io::stdout().flush().unwrap();
         tokio::time::sleep(std::time::Duration::new(2, 0)).await;
-        status = check_stack_status(&id, &client).await?;
+        status = check_stack_status(&id, &client).await.unwrap();
     }
     match status {
         StackStatus::CreateFailed
@@ -146,7 +127,6 @@ async fn deploy_template(
         StackStatus::CreateComplete => println!("create complete!"),
         _ => panic!("unexpected stack status: {}", status.as_str()),
     }
-    Ok(())
 }
 
 async fn check_stack_status(id: impl Into<String>, client: &Client) -> Result<StackStatus, Error> {
@@ -159,6 +139,28 @@ async fn check_stack_status(id: impl Into<String>, client: &Client) -> Result<St
         }
     }
     panic!("describe_stacks returned no stacks");
+}
+
+fn generate_cdk_stack(
+    name: impl Into<String>,
+    cfn: CloudformationParseTree
+) {
+    let expected = include_str!(concat!("end-to-end/", stringify!($name), "/", $expected));
+    let actual = {
+        let mut output = Vec::with_capacity(expected.len());
+        // Does IR succeed
+        let ir = CloudformationProgramIr::from(cfn).unwrap();
+        // Does it synthesize
+        ir.synthesize($synthesizer, &mut output, $stack_name)
+            .unwrap();
+        String::from_utf8(output).unwrap()
+    };
+
+    let _update_snapshots = UpdateSnapshot::new(
+        concat!("end-to-end/", stringify!($name), "/", $expected),
+        &actual,
+        &expected,
+    );
 }
 
 fn synth_app(actual: &str) {

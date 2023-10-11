@@ -366,9 +366,11 @@ fn emit_cfn_output(
     if let Some(description) = &op.description {
         output.line(format!("description: '{}',", description.escape_debug()));
     }
-    output.text("exportName: ");
-    emit_resource_ir(context, &output, export, Some(",\n"));
-    output.line(format!("value: this.{var_name}!,"));
+    if let Some(export) = &op.export {
+        output.text("exportName: ");
+        emit_resource_ir(context, &output, export, Some(",\n"));
+    }
+    output.line(format!("value: this.{var_name}!.toString(),"));
 }
 
 fn emit_resource(

@@ -35,5 +35,17 @@
     "VisibilityTimeout": 120
    }
   }
+ },
+ "Outputs": {
+  "QueueArn": {
+   "Description": "The ARN of the SQS Queue",
+   "Value": {
+    "Ref": "Queue"
+   }
+  },
+  "IsLarge": {
+   "Description": "Whether this is a large region or not",
+   "Value": "false"
+  }
  }
 }

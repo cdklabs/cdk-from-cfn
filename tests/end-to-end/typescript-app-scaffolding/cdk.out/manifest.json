@@ -18,7 +18,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/9f009d59f51871440d6d9162e782dbadc7546a09d7d00fd2590ea4725a09aeef.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/87fc0f6999c40530569d71a77c7fe80d7b84fea21ac9daf8e30b0341859e7a58.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -44,6 +44,18 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "Queue"
+          }
+        ],
+        "/Stack/QueueArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueueArn"
+          }
+        ],
+        "/Stack/IsLarge": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "IsLarge"
           }
         ]
       },

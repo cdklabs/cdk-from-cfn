@@ -111,9 +111,9 @@ export class StackUnderTest extends cdk.Stack {
     const bucket = isUsEast1
       ? new s3.CfnBucket(this, 'Bucket', {
           accessControl: 'Private',
-          bucketName: `${props.bucketNamePrefix}-${this.stackName}-bucket`,
+          bucketName: `${props.bucketNamePrefix!}-${this.stackName}-bucket`,
           loggingConfiguration: {
-            destinationBucketName: props.logDestinationBucketName,
+            destinationBucketName: props.logDestinationBucketName!,
           },
           websiteConfiguration: {
             redirectAllRequestsTo: {
@@ -145,10 +145,18 @@ export class StackUnderTest extends cdk.Stack {
       new cdk.CfnOutput(this, 'BucketArn', {
         description: 'The ARN of the bucket in this template!',
         exportName: 'ExportName',
-        value: this.bucketArn!,
+        value: this.bucketArn!.toString(),
       });
     }
     this.queueArn = queue.ref;
+    new cdk.CfnOutput(this, 'QueueArn', {
+      description: 'The ARN of the SQS Queue',
+      value: this.queueArn!.toString(),
+    });
     this.isLarge = isLargeRegion ? true : false;
+    new cdk.CfnOutput(this, 'IsLarge', {
+      description: 'Whether this is a large region or not',
+      value: this.isLarge!.toString(),
+    });
   }
 }
