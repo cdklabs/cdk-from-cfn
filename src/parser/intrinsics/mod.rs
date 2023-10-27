@@ -68,7 +68,7 @@ static INTRINSIC_FUNCTION_TAGS: &[&str] = &[
 ];
 
 impl IntrinsicFunction {
-    pub(super) fn from_enum<'de, A: serde::de::EnumAccess<'de>>(data: A) -> Result<Self, A::Error> {
+    pub(super) fn from_enum<'de, A: serde::de::EnumAccess<'de>>(data: A) -> Result<ResourceValue, A::Error> {
         let (tag, data): (String, _) = data.variant()?;
 
         Ok(match tag.as_str() {
@@ -124,8 +124,12 @@ impl IntrinsicFunction {
                 Self::Sub { string, replaces }
             }
             "Ref" => Self::Ref(data.newtype_variant()?),
-            unknown => return Err(A::Error::unknown_variant(unknown, INTRINSIC_FUNCTION_TAGS)),
-        })
+            "!" => return Ok(data.newtype_variant()?),
+            unknown => {
+                eprintln!("Failed to parse ({}, {})", tag, data.newtype_variant::<String>()?);
+                return Err(A::Error::unknown_variant(unknown, INTRINSIC_FUNCTION_TAGS))
+            },
+        }.into())
     }
 
     pub(super) fn from_singleton_map<'de, A: serde::de::MapAccess<'de>>(

@@ -52,7 +52,7 @@ impl<'de> serde::de::Deserialize<'de> for ResourceValue {
                 self,
                 data: A,
             ) -> Result<Self::Value, A::Error> {
-                IntrinsicFunction::from_enum(data).map(Into::into)
+                IntrinsicFunction::from_enum(data)
             }
 
             #[inline]
