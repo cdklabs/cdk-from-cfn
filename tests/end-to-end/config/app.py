@@ -42,16 +42,16 @@ class ConfigStack(Stack):
 
     lambdaExecutionRole = iam.CfnRole(self, 'LambdaExecutionRole',
           assume_role_policy_document = {
-            'version': '2012-10-17',
-            'statement': [
+            'Version': '2012-10-17',
+            'Statement': [
               {
-                'effect': 'Allow',
-                'principal': {
-                  'service': [
+                'Effect': 'Allow',
+                'Principal': {
+                  'Service': [
                     'lambda.amazonaws.com',
                   ],
                 },
-                'action': [
+                'Action': [
                   'sts:AssumeRole',
                 ],
               },
@@ -61,16 +61,16 @@ class ConfigStack(Stack):
             {
               'policyName': 'root',
               'policyDocument': {
-                'version': '2012-10-17',
-                'statement': [
+                'Version': '2012-10-17',
+                'Statement': [
                   {
-                    'effect': 'Allow',
-                    'action': [
+                    'Effect': 'Allow',
+                    'Action': [
                       'logs:*',
                       'config:PutEvaluations',
                       'ec2:DescribeVolumeAttribute',
                     ],
-                    'resource': '*',
+                    'Resource': '*',
                   },
                 ],
               },
@@ -80,16 +80,16 @@ class ConfigStack(Stack):
 
     configRole = iam.CfnRole(self, 'ConfigRole',
           assume_role_policy_document = {
-            'version': '2012-10-17',
-            'statement': [
+            'Version': '2012-10-17',
+            'Statement': [
               {
-                'effect': 'Allow',
-                'principal': {
-                  'service': [
+                'Effect': 'Allow',
+                'Principal': {
+                  'Service': [
                     'config.amazonaws.com',
                   ],
                 },
-                'action': [
+                'Action': [
                   'sts:AssumeRole',
                 ],
               },
@@ -102,36 +102,36 @@ class ConfigStack(Stack):
             {
               'policyName': 'root',
               'policyDocument': {
-                'version': '2012-10-17',
-                'statement': [
+                'Version': '2012-10-17',
+                'Statement': [
                   {
-                    'effect': 'Allow',
-                    'action': 's3:GetBucketAcl',
-                    'resource': ''.join([
+                    'Effect': 'Allow',
+                    'Action': 's3:GetBucketAcl',
+                    'Resource': ''.join([
                       'arn:aws:s3:::',
                       configBucket.ref,
                     ]),
                   },
                   {
-                    'effect': 'Allow',
-                    'action': 's3:PutObject',
-                    'resource': ''.join([
+                    'Effect': 'Allow',
+                    'Action': 's3:PutObject',
+                    'Resource': ''.join([
                       'arn:aws:s3:::',
                       configBucket.ref,
                       '/AWSLogs/',
                       self.account,
                       '/*',
                     ]),
-                    'condition': {
-                      'stringEquals': {
-                        's3XAmzAcl': 'bucket-owner-full-control',
+                    'Condition': {
+                      'StringEquals': {
+                        's3:x-amz-acl': 'bucket-owner-full-control',
                       },
                     },
                   },
                   {
-                    'effect': 'Allow',
-                    'action': 'config:Put*',
-                    'resource': '*',
+                    'Effect': 'Allow',
+                    'Action': 'config:Put*',
+                    'Resource': '*',
                   },
                 ],
               },
@@ -141,16 +141,16 @@ class ConfigStack(Stack):
 
     configTopicPolicy = sns.CfnTopicPolicy(self, 'ConfigTopicPolicy',
           policy_document = {
-            'id': 'ConfigTopicPolicy',
-            'version': '2012-10-17',
-            'statement': [
+            'Id': 'ConfigTopicPolicy',
+            'Version': '2012-10-17',
+            'Statement': [
               {
-                'effect': 'Allow',
-                'principal': {
-                  'service': 'config.amazonaws.com',
+                'Effect': 'Allow',
+                'Principal': {
+                  'Service': 'config.amazonaws.com',
                 },
-                'action': 'SNS:Publish',
-                'resource': '*',
+                'Action': 'SNS:Publish',
+                'Resource': '*',
               },
             ],
           },

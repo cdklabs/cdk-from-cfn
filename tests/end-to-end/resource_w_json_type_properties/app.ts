@@ -23,14 +23,14 @@ export class JsonPropsStack extends cdk.Stack {
         {
           policyName: 'MyQueueGroupPolicy',
           policyDocument: {
-            statement: [
+            Statement: [
               {
-                effect: 'Allow',
-                action: [
+                Effect: 'Allow',
+                Action: [
                   'sqs:DeleteMessage',
                   'sqs:ReceiveMessage',
                 ],
-                resource: [
+                Resource: [
                   myQueue1.attrArn,
                   myQueue2.attrArn,
                 ],
