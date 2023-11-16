@@ -56,16 +56,16 @@ export class ConfigStack extends cdk.Stack {
 
     const lambdaExecutionRole = new iam.CfnRole(this, 'LambdaExecutionRole', {
       assumeRolePolicyDocument: {
-        version: '2012-10-17',
-        statement: [
+        Version: '2012-10-17',
+        Statement: [
           {
-            effect: 'Allow',
-            principal: {
-              service: [
+            Effect: 'Allow',
+            Principal: {
+              Service: [
                 'lambda.amazonaws.com',
               ],
             },
-            action: [
+            Action: [
               'sts:AssumeRole',
             ],
           },
@@ -75,16 +75,16 @@ export class ConfigStack extends cdk.Stack {
         {
           policyName: 'root',
           policyDocument: {
-            version: '2012-10-17',
-            statement: [
+            Version: '2012-10-17',
+            Statement: [
               {
-                effect: 'Allow',
-                action: [
+                Effect: 'Allow',
+                Action: [
                   'logs:*',
                   'config:PutEvaluations',
                   'ec2:DescribeVolumeAttribute',
                 ],
-                resource: '*',
+                Resource: '*',
               },
             ],
           },
@@ -95,16 +95,16 @@ export class ConfigStack extends cdk.Stack {
     if (configBucket == null) { throw new Error(`A combination of conditions caused 'configBucket' to be undefined. Fixit.`); }
     const configRole = new iam.CfnRole(this, 'ConfigRole', {
       assumeRolePolicyDocument: {
-        version: '2012-10-17',
-        statement: [
+        Version: '2012-10-17',
+        Statement: [
           {
-            effect: 'Allow',
-            principal: {
-              service: [
+            Effect: 'Allow',
+            Principal: {
+              Service: [
                 'config.amazonaws.com',
               ],
             },
-            action: [
+            Action: [
               'sts:AssumeRole',
             ],
           },
@@ -117,36 +117,36 @@ export class ConfigStack extends cdk.Stack {
         {
           policyName: 'root',
           policyDocument: {
-            version: '2012-10-17',
-            statement: [
+            Version: '2012-10-17',
+            Statement: [
               {
-                effect: 'Allow',
-                action: 's3:GetBucketAcl',
-                resource: [
+                Effect: 'Allow',
+                Action: 's3:GetBucketAcl',
+                Resource: [
                   'arn:aws:s3:::',
                   configBucket.ref,
                 ].join(''),
               },
               {
-                effect: 'Allow',
-                action: 's3:PutObject',
-                resource: [
+                Effect: 'Allow',
+                Action: 's3:PutObject',
+                Resource: [
                   'arn:aws:s3:::',
                   configBucket.ref,
                   '/AWSLogs/',
                   this.account,
                   '/*',
                 ].join(''),
-                condition: {
-                  stringEquals: {
-                    s3XAmzAcl: 'bucket-owner-full-control',
+                Condition: {
+                  StringEquals: {
+                    's3:x-amz-acl': 'bucket-owner-full-control',
                   },
                 },
               },
               {
-                effect: 'Allow',
-                action: 'config:Put*',
-                resource: '*',
+                Effect: 'Allow',
+                Action: 'config:Put*',
+                Resource: '*',
               },
             ],
           },
@@ -157,16 +157,16 @@ export class ConfigStack extends cdk.Stack {
     if (configTopic == null) { throw new Error(`A combination of conditions caused 'configTopic' to be undefined. Fixit.`); }
     const configTopicPolicy = new sns.CfnTopicPolicy(this, 'ConfigTopicPolicy', {
       policyDocument: {
-        id: 'ConfigTopicPolicy',
-        version: '2012-10-17',
-        statement: [
+        Id: 'ConfigTopicPolicy',
+        Version: '2012-10-17',
+        Statement: [
           {
-            effect: 'Allow',
-            principal: {
-              service: 'config.amazonaws.com',
+            Effect: 'Allow',
+            Principal: {
+              Service: 'config.amazonaws.com',
             },
-            action: 'SNS:Publish',
-            resource: '*',
+            Action: 'SNS:Publish',
+            Resource: '*',
           },
         ],
       },
