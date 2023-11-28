@@ -38,7 +38,7 @@ serde_with = "^3.4.0"
 serde_yaml = "^0.9.27"
 topological-sort = "^0.2.2"
 voca_rs = "^1.15.2"
-wasm-bindgen = "^0.2.88"
+wasm-bindgen = "^0.2.89"
 
 
 [build-dependencies]
