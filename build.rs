@@ -1,9 +1,13 @@
 use std::collections::HashMap;
-use std::io::Write;
+use std::io::{Write, Read};
+use std::path::Path;
 use std::{fs, io};
 
 use serde::Deserialize;
 use serde_json::Value;
+use walkdir::WalkDir;
+use zip::ZipWriter;
+use zip::write::FileOptions;
 
 static JSON_SPEC: &str = include_str!("src/specification/spec.json");
 
@@ -52,6 +56,10 @@ fn main() -> io::Result<()> {
             resource_types.build()
         )?;
     }
+
+    println!("cargo:rerun-if-changed=tests/end-to-end.rs");
+    println!("cargo:rerun-if-changed=tests/end-to-end");
+    zip_test_snapshots();
 
     Ok(())
 }
@@ -205,4 +213,53 @@ impl PropertyRule {
 
         format!("super::PropertyRule {{ required: {required}, type_rule: super::TypeRule::{type_rule} }}")
     }
+}
+
+fn zip_test_snapshots() {
+    // Zip the test snapshots so that they can be included in the test binary. This will not affect the size of the cdk-from-cfn binary.
+
+    // Get all the snapshot directories first
+    let src_dir = "./tests/end-to-end";
+    let dst_file = "./tests/snapshots.zip";
+
+    let path = Path::new(dst_file);
+    let file = fs::File::create(&path).unwrap();
+    
+    let walkdir = WalkDir::new(src_dir);
+
+    let mut zip = ZipWriter::new(file);
+    let options = FileOptions::default();
+
+    let mut buffer = Vec::new();
+    'dir_entries: for entry in walkdir.into_iter().map(|e| e.unwrap()) {
+        let path = entry.path();
+        let name = path.strip_prefix(Path::new(src_dir)).unwrap().to_str().unwrap();
+
+        let do_not_zip_dirs = [
+            "node_modules",
+            "working-dir",
+        ];
+
+        for d in do_not_zip_dirs {
+            if name.contains(d) { continue 'dir_entries };
+        }
+
+        if path.is_file() && entry.depth() > 1 {
+            println!("adding file {:?} as {:?} ...", path, name);
+            zip.start_file(name, options).unwrap();
+            let mut f = fs::File::open(path).unwrap();
+  
+            f.read_to_end(&mut buffer).unwrap();
+            zip.write_all(&*buffer).unwrap();
+            buffer.clear();
+        } else if path.is_dir() {
+            // Only if not root! Avoids path spec / warning
+            // and mapname conversion failed error on unzip
+            println!("adding dir {:?} as {:?} ...", path, name);
+            zip.add_directory(name, options);
+        }
+
+    }
+    zip.finish();
+
 }

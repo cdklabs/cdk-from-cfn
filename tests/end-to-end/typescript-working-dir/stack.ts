@@ -3,7 +3,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { Buffer } from 'buffer';
 
-export interface StackUnderTestProps extends cdk.StackProps {
+export interface SimpleStackProps extends cdk.StackProps {
   /**
    * The prefix for the bucket name
    * @default 'bucket'
@@ -19,7 +19,7 @@ export interface StackUnderTestProps extends cdk.StackProps {
  * An example stack that uses many of the syntax elements permitted in a
  * CloudFormation template, but does not attempt to represent a realistic stack.
  */
-export class StackUnderTest extends cdk.Stack {
+export class SimpleStack extends cdk.Stack {
   /**
    * The ARN of the bucket in this template!
    */
@@ -33,7 +33,7 @@ export class StackUnderTest extends cdk.Stack {
    */
   public readonly isLarge;
 
-  public constructor(scope: cdk.App, id: string, props: StackUnderTestProps = {}) {
+  public constructor(scope: cdk.App, id: string, props: SimpleStackProps = {}) {
     super(scope, id, props);
 
     // Applying default props
@@ -111,7 +111,7 @@ export class StackUnderTest extends cdk.Stack {
     const bucket = isUsEast1
       ? new s3.CfnBucket(this, 'Bucket', {
           accessControl: 'Private',
-          bucketName: `${props.bucketNamePrefix!}-${this.stackName}-bucket`,
+          bucketName: `${props.bucketNamePrefix!}-${this.region}-bucket`,
           loggingConfiguration: {
             destinationBucketName: props.logDestinationBucketName!,
           },

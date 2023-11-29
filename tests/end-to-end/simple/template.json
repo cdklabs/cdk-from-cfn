@@ -100,7 +100,7 @@
       "Properties": {
         "AccessControl": "Private",
         "BucketName": {
-          "Fn::Sub": "${BucketNamePrefix}-${AWS::StackName}-bucket"
+          "Fn::Sub": "${BucketNamePrefix}-${AWS::Region}-bucket"
         },
         "LoggingConfiguration": {
           "DestinationBucketName": {

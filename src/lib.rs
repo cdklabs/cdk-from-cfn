@@ -13,8 +13,7 @@ pub mod parser;
 pub mod primitives;
 pub mod specification;
 pub mod synthesizer;
-
-mod code;
+pub mod code;
 
 #[doc(inline)]
 pub use errors::*;
