@@ -69,11 +69,8 @@ macro_rules! test_case {
     ($name:ident, $lang:ident, $synthesizer:expr, $stack_name:literal, $cdk_stack_filename:literal, $cdk_app_filename:literal) => {
         #[test]
         fn $lang() {
-            // What needs to go in the macro:
-            // - Anything that is using an ident as an ident
-            // - anything using include_str
 
-            // ? Does original cloudformation template deploy successfully
+            // Check that the original cloudformation template is valid
             println!("Verifying a CloudFormation stack can be created from original template");
             let original_template = include_str!(concat!("end-to-end/", stringify!($name), "/template.json"));
             create_stack($stack_name, original_template);
@@ -88,15 +85,15 @@ macro_rules! test_case {
                 String::from_utf8(output).unwrap()
             };
 
-            let mut snapshots_zip = get_zip_archive_from_bytes(include_bytes!("./snapshots.zip"));
+            let mut snapshots_zip = get_zip_archive_from_bytes(include_bytes!("./end-to-end-test-snapshots.zip"));
 
-            println!("Checking for cdk stack snapshot");
-            let snapshot_dir = format!("{}/{}", stringify!($name), stringify!($lang));
-            let snapshot_filename = format!("{snapshot_dir}/{}", $cdk_stack_filename);
-            check_cdk_stack_snapshot(&cdk_stack_definition, &snapshot_filename, &mut snapshots_zip);
+            println!("Checking for cdk stack definition in the expected output");
+            let expected_outputs_dir = format!("{}/{}", stringify!($name), stringify!($lang));
+            let expected_cdk_stack_def_filename = format!("{expected_outputs_dir}/{}", $cdk_stack_filename);
+            check_cdk_stack_def_matches_expected(&cdk_stack_definition, &expected_cdk_stack_def_filename, &mut snapshots_zip);
 
             let language_working_dir = concat!("end-to-end/", stringify!($lang), "-working-dir/");
-            synth_cdk_app(&cdk_stack_definition, $stack_name, $cdk_stack_filename, $cdk_app_filename, language_working_dir, &snapshot_dir,  &mut snapshots_zip);
+            synth_cdk_app(&cdk_stack_definition, $stack_name, $cdk_stack_filename, $cdk_app_filename, language_working_dir, &expected_outputs_dir,  &mut snapshots_zip);
 
             // Compare each stack to the original
             //original is at /simple/template.json
@@ -116,6 +113,83 @@ macro_rules! test_case {
 }
 
 test_case!(simple, "SimpleStack");
+
+#[tokio::main]
+async fn create_stack(stack_name: &str, template: &str) {
+    if std::env::var_os("CREATE_STACK").is_none() {
+        // By default, and in CI/CD, skip creating a CloudFormation stack with the original template.
+        println!("Skipping create stack because CREATE_STACK is none");
+        return;
+    }
+    
+    println!("Creating stack from original template");
+    let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
+    let config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&config);
+
+    let resp = client
+        .create_stack()
+        .stack_name(stack_name)
+        .template_body(template)
+        .on_failure(OnFailure::Delete)
+        .send()
+        .await
+        .unwrap();
+    let id = resp.stack_id.unwrap_or_default();
+    print!("Stack {id} create in progress...");
+    std::io::stdout().flush().unwrap();
+
+    let mut status = check_stack_status(&id, &client).await.unwrap();
+
+    while let StackStatus::CreateInProgress = status {
+        print!(".");
+        std::io::stdout().flush().unwrap();
+        tokio::time::sleep(std::time::Duration::new(2, 0)).await;
+        status = check_stack_status(&id, &client).await.unwrap();
+    }
+    match status {
+        StackStatus::CreateFailed
+        | StackStatus::DeleteComplete
+        | StackStatus::DeleteFailed
+        | StackStatus::DeleteInProgress => {
+            panic!("stack creation failed. stack status: {}", status.as_str())
+        }
+        StackStatus::CreateComplete => println!("create complete!"),
+        _ => panic!("unexpected stack status: {}", status.as_str()),
+    }
+}
+
+async fn check_stack_status(id: &str, client: &Client) -> Result<StackStatus, Error> {
+    println!("Checking stack status: {}", id);
+    let resp = client.describe_stacks().stack_name(id).send().await?;
+    if let Some(stacks) = resp.stacks {
+        if let Some(stack) = stacks.first() {
+            if let Some(status) = &stack.stack_status {
+                return Ok(status.clone());
+            }
+        }
+    }
+    panic!("describe_stacks returned no stacks");
+}
+
+fn check_cdk_stack_def_matches_expected(actual_cdk_stack_def: &str, expected_cdk_stack_def_filename: &str, snapshots_zip: & mut ZipArchive<Cursor<&[u8]>>) {
+    println!("Checking cdk stack definition matches the expected output in {}", expected_cdk_stack_def_filename);
+    if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
+        // If UPDATE_SNAPSHOTS is set, then don't bother checking the expected output files, because they will be over-written. This environment variable is for development purposes, and will not be use in CI/CD.
+        println!("Skipping cdk stack definition check because UPDATE_SNAPSHOTS=true");
+        return;
+    } 
+    if let Ok(mut expected_cdk_stack_def) = snapshots_zip.by_name(expected_cdk_stack_def_filename) {
+      let mut contents = String::new();
+      let result = expected_cdk_stack_def.read_to_string(&mut contents);
+      println!("Finished reading snapshot file {:?}", result);
+      // TODO check if it matches the snapshot
+    } else {
+        // If the expected file does not exist, then assume this test is new, and there is no previous snapshot to compare against.  
+        // Fail the test to prevent tests without snapshots from succeeding in CI/CD
+        panic!("There is no cdk stack expected file for this test. If you are developing a new test, set UPDATE_SNAPSHOTS=true in your environment variables and the test will automatically create snapshot files.");
+    }
+}
 
 fn diff_original_template_with_new_templates(test_name: &str, language_working_dir: &str) {
     
@@ -229,83 +303,6 @@ fn compare_templates(
     original_template: impl Into<String>,
     template_synthesized_by_cdk: impl Into<String>,
 ) {
-}
-
-#[tokio::main]
-async fn create_stack(stack_name: &str, template: &str) {
-    if std::env::var_os("CREATE_STACK").is_none() {
-        // By default, and in CI/CD, skip creating a CloudFormation stack with the original template.
-        println!("Skipping create stack because CREATE_STACK is none");
-        return;
-    }
-    
-    println!("Creating stack from original template");
-    let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
-    let config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&config);
-
-    let resp = client
-        .create_stack()
-        .stack_name(stack_name)
-        .template_body(template)
-        .on_failure(OnFailure::Delete)
-        .send()
-        .await
-        .unwrap();
-    let id = resp.stack_id.unwrap_or_default();
-    print!("Stack {id} create in progress...");
-    std::io::stdout().flush().unwrap();
-
-    let mut status = check_stack_status(&id, &client).await.unwrap();
-
-    while let StackStatus::CreateInProgress = status {
-        print!(".");
-        std::io::stdout().flush().unwrap();
-        tokio::time::sleep(std::time::Duration::new(2, 0)).await;
-        status = check_stack_status(&id, &client).await.unwrap();
-    }
-    match status {
-        StackStatus::CreateFailed
-        | StackStatus::DeleteComplete
-        | StackStatus::DeleteFailed
-        | StackStatus::DeleteInProgress => {
-            panic!("stack creation failed. stack status: {}", status.as_str())
-        }
-        StackStatus::CreateComplete => println!("create complete!"),
-        _ => panic!("unexpected stack status: {}", status.as_str()),
-    }
-}
-
-async fn check_stack_status(id: &str, client: &Client) -> Result<StackStatus, Error> {
-    println!("Checking stack status: {}", id);
-    let resp = client.describe_stacks().stack_name(id).send().await?;
-    if let Some(stacks) = resp.stacks {
-        if let Some(stack) = stacks.first() {
-            if let Some(status) = &stack.stack_status {
-                return Ok(status.clone());
-            }
-        }
-    }
-    panic!("describe_stacks returned no stacks");
-}
-
-fn check_cdk_stack_snapshot(actual_cdk_stack_def: &str, expected_cdk_stack_def_filename: &str, snapshots_zip: & mut ZipArchive<Cursor<&[u8]>>) {
-    println!("Checking cdk stack snapshot for {}", expected_cdk_stack_def_filename);
-    if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
-        // If UPDATE_SNAPSHOTS is set, then don't bother checking the snapshots, because they will be over-written. This environment variable is for development purposes, and will not be use in CI/CD.
-        println!("Skipping snapshot check because UPDATE_SNAPSHOTS=true");
-        return;
-   } 
-    // If the snapshot file doesn't exist, then assume this test is new, and there is no previous snapshot to compare against.  
-    if let Ok(mut expected_cdk_stack_def) = snapshots_zip.by_name(expected_cdk_stack_def_filename) {
-      let mut contents = String::new();
-      let result = expected_cdk_stack_def.read_to_string(&mut contents);
-      println!("Finished reading snapshot file {:?}", result);
-      // TODO check if it matches the snapshot
-    } else {
-        // Fail the test to prevent tests without snapshots from succeeding in CI/CD
-        panic!("There is no cdk stack snapshot for this test. If you are developing a new test, set UPDATE_SNAPSHOTS=true in your environment variables and the test will automatically create snapshot files.");
-    }
 }
 
 fn get_zip_archive_from_bytes(zip: &[u8]) -> ZipArchive<Cursor<&[u8]>> {

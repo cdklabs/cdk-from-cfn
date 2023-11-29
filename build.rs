@@ -216,11 +216,11 @@ impl PropertyRule {
 }
 
 fn zip_test_snapshots() {
-    // Zip the test snapshots so that they can be included in the test binary. This will not affect the size of the cdk-from-cfn binary.
+    // Zip the expected output files for the end-to-end tests so that they can be included in the test binary. This will not affect the size of the cdk-from-cfn binary.
 
     // Get all the snapshot directories first
     let src_dir = "./tests/end-to-end";
-    let dst_file = "./tests/snapshots.zip";
+    let dst_file = "./tests/end-to-end-test-snapshots.zip";
 
     let path = Path::new(dst_file);
     let file = fs::File::create(&path).unwrap();
@@ -261,5 +261,4 @@ fn zip_test_snapshots() {
 
     }
     zip.finish();
-
 }
