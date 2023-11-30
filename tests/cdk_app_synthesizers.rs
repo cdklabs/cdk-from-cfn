@@ -2,12 +2,11 @@ use std::{fs::canonicalize, process::Command};
 
 pub trait CdkAppSynthesizer {
     fn synthesize(&self, test_working_dir: &str);
-    fn lang() -> String;
 }
 
-pub struct TypescriptAppSynthesizer {}
+pub struct Typescript {}
 
-impl CdkAppSynthesizer for TypescriptAppSynthesizer {
+impl CdkAppSynthesizer for Typescript {
     fn synthesize(&self, test_working_dir: &str) {
         println!("Synthesizing typescript app");
         // lang-specific install or setup commands
@@ -33,8 +32,12 @@ impl CdkAppSynthesizer for TypescriptAppSynthesizer {
             .output()
             .expect("synth failed");
     }
+}
 
-    fn lang() -> String {
-        String::from("Typescript")
+pub struct Python {}
+
+impl CdkAppSynthesizer for Python {
+    fn synthesize(&self, test_working_dir: &str) {
+        println!("Synthesizing python app")
     }
 }

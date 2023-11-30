@@ -96,6 +96,7 @@ fn main() -> anyhow::Result<()> {
         "typescript" => Box::new(Typescript {}),
         #[cfg(feature = "golang")]
         "go" => Box::<Golang>::default(),
+        
         #[cfg(feature = "python")]
         "python" => Box::new(Python {}),
         #[cfg(feature = "java")]

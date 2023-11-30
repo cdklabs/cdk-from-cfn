@@ -1,8 +1,7 @@
 use std::borrow::Cow;
-use std::fs::{self, canonicalize, copy, create_dir_all, remove_dir_all, File};
+use std::fs::{self, copy, create_dir_all, remove_dir_all, File};
 use std::io::{Cursor, Read, Write};
 use std::path::PathBuf;
-use std::process::Command;
 
 use aws_sdk_cloudformation::types::OnFailure;
 
@@ -108,8 +107,9 @@ macro_rules! test_case {
                 stringify!($lang)
             );
 
-            let cdk_app_synthesizer = match stringify!($lang) {
-                "typescript" => cdk_app_synthesizers::TypescriptAppSynthesizer {},
+            let cdk_app_synthesizer: Box<dyn CdkAppSynthesizer> = match stringify!($lang) {
+                "typescript" => Box::new(cdk_app_synthesizers::Typescript {}),
+                "python" => Box::new(cdk_app_synthesizers::Python {}),
                 &_ => todo!(),
             };
             synth_cdk_app(
@@ -121,7 +121,7 @@ macro_rules! test_case {
                 &test_working_dir,
                 &expected_outputs_dir,
                 &mut snapshots_zip,
-                cdk_app_synthesizer,
+                cdk_app_synthesizer.as_ref(),
             );
 
             diff_original_template_with_new_templates(stringify!($name), &test_working_dir);
@@ -241,7 +241,7 @@ fn synth_cdk_app(
     test_working_dir: &str,
     expected_outputs_dir: &str,
     snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>,
-    synthesizer: impl CdkAppSynthesizer,
+    synthesizer: &dyn CdkAppSynthesizer,
 ) {
     println!("Synth CDK app");
 
