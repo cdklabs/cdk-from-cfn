@@ -266,17 +266,20 @@ class ConfigStack(Stack):
 
     # Outputs
     self.config_rule_for_volume_tags_arn = configRuleForVolumeTags.attr_arn
-    cdk.CfnOutput(self, 'ConfigRuleForVolumeTagsArn', 
+    cdk.CfnOutput(self, 'CfnOutputConfigRuleForVolumeTagsArn', 
+      key = 'ConfigRuleForVolumeTagsArn',
       value = str(self.config_rule_for_volume_tags_arn),
     )
 
     self.config_rule_for_volume_tags_config_rule_id = configRuleForVolumeTags.attr_config_rule_id
-    cdk.CfnOutput(self, 'ConfigRuleForVolumeTagsConfigRuleId', 
+    cdk.CfnOutput(self, 'CfnOutputConfigRuleForVolumeTagsConfigRuleId', 
+      key = 'ConfigRuleForVolumeTagsConfigRuleId',
       value = str(self.config_rule_for_volume_tags_config_rule_id),
     )
 
     self.config_rule_for_volume_auto_enable_io_compliance_type = configRuleForVolumeAutoEnableIo.attr_compliance_type
-    cdk.CfnOutput(self, 'ConfigRuleForVolumeAutoEnableIOComplianceType', 
+    cdk.CfnOutput(self, 'CfnOutputConfigRuleForVolumeAutoEnableIOComplianceType', 
+      key = 'ConfigRuleForVolumeAutoEnableIOComplianceType',
       value = str(self.config_rule_for_volume_auto_enable_io_compliance_type),
     )
 

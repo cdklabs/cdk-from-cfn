@@ -240,17 +240,20 @@ class ConfigStack extends Stack {
         configRuleForVolumeTags.addDependency(configRecorder);
 
         this.configRuleForVolumeTagsArn = configRuleForVolumeTags.getAttrArn();
-        CfnOutput.Builder.create(this, "ConfigRuleForVolumeTagsArn")
+        CfnOutput.Builder.create(this, "CfnOutputConfigRuleForVolumeTagsArn")
+                .key("ConfigRuleForVolumeTagsArn")
                 .value(this.configRuleForVolumeTagsArn.toString())
                 .build();
 
         this.configRuleForVolumeTagsConfigRuleId = configRuleForVolumeTags.getAttrConfigRuleId();
-        CfnOutput.Builder.create(this, "ConfigRuleForVolumeTagsConfigRuleId")
+        CfnOutput.Builder.create(this, "CfnOutputConfigRuleForVolumeTagsConfigRuleId")
+                .key("ConfigRuleForVolumeTagsConfigRuleId")
                 .value(this.configRuleForVolumeTagsConfigRuleId.toString())
                 .build();
 
         this.configRuleForVolumeAutoEnableIoComplianceType = configRuleForVolumeAutoEnableIo.getAttrComplianceType();
-        CfnOutput.Builder.create(this, "ConfigRuleForVolumeAutoEnableIOComplianceType")
+        CfnOutput.Builder.create(this, "CfnOutputConfigRuleForVolumeAutoEnableIOComplianceType")
+                .key("ConfigRuleForVolumeAutoEnableIOComplianceType")
                 .value(this.configRuleForVolumeAutoEnableIoComplianceType.toString())
                 .build();
 

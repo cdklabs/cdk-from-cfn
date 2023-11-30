@@ -260,14 +260,15 @@ impl Synthesizer for Golang {
                     indent: INDENT,
                     leading: Some(
                         format!(
-                            "cdk.NewCfnOutput(stack, jsii.String({name:?}), &cdk.CfnOutputProps{{",
-                            name = output.name
+                            "cdk.NewCfnOutput(stack, jsii.String(\"CfnOutput{}\"), &cdk.CfnOutputProps{{",
+                            output.name
                         )
                         .into(),
                     ),
                     trailing: Some("})".into()),
                     trailing_newline: true,
                 });
+                props.line(format!("Key: jsii.String({name:?}),", name = output.name));
                 if let Some(description) = &output.description {
                     props.line(format!("Description: jsii.String({description:?}),"));
                 }
