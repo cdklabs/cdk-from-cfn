@@ -250,8 +250,8 @@ fn zip_test_snapshots() {
             zip.write_all(&*buffer).unwrap();
             buffer.clear();
         } else if path.is_dir() {
-            zip.add_directory(name, options);
+            zip.add_directory(name, options).unwrap();
         }
     }
-    zip.finish();
+    zip.finish().unwrap();
 }
