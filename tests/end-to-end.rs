@@ -1,7 +1,7 @@
 use std::borrow::Cow;
-use std::fs::{self, File, canonicalize, create_dir_all, copy, remove_dir_all};
-use std::io::{Write, Read, Cursor, stdout};
-use std::path::{PathBuf, Path};
+use std::fs::{self, canonicalize, copy, create_dir_all, remove_dir_all, File};
+use std::io::{stdout, Cursor, Read, Write};
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use aws_sdk_cloudformation::types::OnFailure;
@@ -9,15 +9,15 @@ use aws_sdk_cloudformation::types::OnFailure;
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_cloudformation::types::StackStatus;
 use aws_sdk_cloudformation::{Client, Error};
+use cdk_from_cfn::code::{CodeBuffer, IndentOptions};
 use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::synthesizer::*;
 use cdk_from_cfn::CloudformationParseTree;
-use cdk_from_cfn::code::{CodeBuffer, IndentOptions};
 
 use nom::AsBytes;
 use walkdir::WalkDir;
-use zip::ZipArchive;
 use zip::result::ZipResult;
+use zip::ZipArchive;
 
 mod cdk_synthesizers;
 
@@ -25,7 +25,7 @@ const INDENT: Cow<'static, str> = Cow::Borrowed("    ");
 
 macro_rules! test_case {
     ($name:ident, $stack_name:literal) => {
-        mod $name { 
+        mod $name {
             use super::*;
 
             #[cfg(feature = "golang")]
@@ -69,10 +69,10 @@ macro_rules! test_case {
     ($name:ident, $lang:ident, $synthesizer:expr, $stack_name:literal, $cdk_stack_filename:literal, $cdk_app_filename:literal) => {
         #[test]
         fn $lang() {
-
             // Check that the original cloudformation template is valid
             println!("Verifying a CloudFormation stack can be created from original template");
-            let original_template = include_str!(concat!("end-to-end/", stringify!($name), "/template.json"));
+            let original_template =
+                include_str!(concat!("end-to-end/", stringify!($name), "/template.json"));
             create_stack($stack_name, original_template);
 
             println!("Creating the cdk stack definition");
@@ -85,21 +85,49 @@ macro_rules! test_case {
                 String::from_utf8(output).unwrap()
             };
 
-            let mut snapshots_zip = get_zip_archive_from_bytes(include_bytes!("./end-to-end-test-snapshots.zip"));
+            let mut snapshots_zip =
+                get_zip_archive_from_bytes(include_bytes!("./end-to-end-test-snapshots.zip"));
 
             println!("Checking for cdk stack definition in the expected output");
             let expected_outputs_dir = format!("{}/{}", stringify!($name), stringify!($lang));
-            let expected_cdk_stack_def_filename = format!("{expected_outputs_dir}/{}", $cdk_stack_filename);
-            check_cdk_stack_def_matches_expected(&cdk_stack_definition, &expected_cdk_stack_def_filename, &mut snapshots_zip);
+            let expected_cdk_stack_def_filename =
+                format!("{expected_outputs_dir}/{}", $cdk_stack_filename);
+            check_cdk_stack_def_matches_expected(
+                &cdk_stack_definition,
+                &expected_cdk_stack_def_filename,
+                &mut snapshots_zip,
+            );
 
-            let test_working_dir = format!("tests/end-to-end/{}-{}-working-dir", stringify!($name), stringify!($lang));
-            let language_boilerplate_dir = format!("tests/end-to-end/app-boilerplate-files/{}", stringify!($lang));
-            synth_cdk_app(&cdk_stack_definition, $stack_name, $cdk_stack_filename, $cdk_app_filename, &language_boilerplate_dir, &test_working_dir, &expected_outputs_dir,  &mut snapshots_zip);
+            let test_working_dir = format!(
+                "tests/end-to-end/{}-{}-working-dir",
+                stringify!($name),
+                stringify!($lang)
+            );
+            let language_boilerplate_dir = format!(
+                "tests/end-to-end/app-boilerplate-files/{}",
+                stringify!($lang)
+            );
+            synth_cdk_app(
+                &cdk_stack_definition,
+                $stack_name,
+                $cdk_stack_filename,
+                $cdk_app_filename,
+                &language_boilerplate_dir,
+                &test_working_dir,
+                &expected_outputs_dir,
+                &mut snapshots_zip,
+            );
 
             diff_original_template_with_new_templates(stringify!($name), &test_working_dir);
 
             // update snapshots
-            update_snapshots($cdk_stack_filename, $cdk_app_filename, &test_working_dir, &expected_outputs_dir,  &mut snapshots_zip);
+            update_snapshots(
+                $cdk_stack_filename,
+                $cdk_app_filename,
+                &test_working_dir,
+                &expected_outputs_dir,
+                &mut snapshots_zip,
+            );
             // clean up test working dir
             remove_dir_all(&test_working_dir).unwrap();
         }
@@ -115,7 +143,7 @@ async fn create_stack(stack_name: &str, template: &str) {
         println!("Skipping create stack because CREATE_STACK is none");
         return;
     }
-    
+
     println!("Creating stack from original template");
     let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
     let config = aws_config::from_env().region(region_provider).load().await;
@@ -166,20 +194,27 @@ async fn check_stack_status(id: &str, client: &Client) -> Result<StackStatus, Er
     panic!("describe_stacks returned no stacks");
 }
 
-fn check_cdk_stack_def_matches_expected(actual_cdk_stack_def: &str, expected_cdk_stack_def_filename: &str, snapshots_zip: & mut ZipArchive<Cursor<&[u8]>>) {
-    println!("Checking cdk stack definition matches the expected output in {}", expected_cdk_stack_def_filename);
+fn check_cdk_stack_def_matches_expected(
+    actual_cdk_stack_def: &str,
+    expected_cdk_stack_def_filename: &str,
+    snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>,
+) {
+    println!(
+        "Checking cdk stack definition matches the expected output in {}",
+        expected_cdk_stack_def_filename
+    );
     if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
         // If UPDATE_SNAPSHOTS is set, then don't bother checking the expected output files, because they will be over-written. This environment variable is for development purposes, and will not be use in CI/CD.
         println!("Skipping cdk stack definition check because UPDATE_SNAPSHOTS=true");
         return;
-    } 
+    }
     if let Ok(mut expected_cdk_stack_def) = snapshots_zip.by_name(expected_cdk_stack_def_filename) {
-      let mut contents = String::new();
-      let result = expected_cdk_stack_def.read_to_string(&mut contents);
-      println!("Finished reading snapshot file {:?}", result);
-      // TODO check if it matches the snapshot
+        let mut contents = String::new();
+        let result = expected_cdk_stack_def.read_to_string(&mut contents);
+        println!("Finished reading snapshot file {:?}", result);
+        // TODO check if it matches the snapshot
     } else {
-        // If the expected file does not exist, then assume this test is new, and there is no previous snapshot to compare against.  
+        // If the expected file does not exist, then assume this test is new, and there is no previous snapshot to compare against.
         // Fail the test to prevent tests without snapshots from succeeding in CI/CD
         panic!("There is no cdk stack expected file for this test. If you are developing a new test, set UPDATE_SNAPSHOTS=true in your environment variables and the test will automatically create snapshot files.");
     }
@@ -190,7 +225,16 @@ fn get_zip_archive_from_bytes(zip: &[u8]) -> ZipArchive<Cursor<&[u8]>> {
     zip::read::ZipArchive::new(cursor).unwrap()
 }
 
-fn synth_cdk_app(cdk_stack_definition: &str, cdk_stack_classname: &str, cdk_stack_filename: &str, cdk_app_filename: &str, language_boilerplate_dir: &str, test_working_dir: &str, expected_outputs_dir: &str, snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>) {
+fn synth_cdk_app(
+    cdk_stack_definition: &str,
+    cdk_stack_classname: &str,
+    cdk_stack_filename: &str,
+    cdk_app_filename: &str,
+    language_boilerplate_dir: &str,
+    test_working_dir: &str,
+    expected_outputs_dir: &str,
+    snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>,
+) {
     println!("Synth cdk app");
     println!("DEBUG: {test_working_dir}, {expected_outputs_dir}");
 
@@ -207,7 +251,7 @@ fn synth_cdk_app(cdk_stack_definition: &str, cdk_stack_classname: &str, cdk_stac
 
     // App file
     let cdk_app_file_path = format!("{expected_outputs_dir}/{cdk_app_filename}");
-    println!("Checking for cdk app file in snapshots: {cdk_app_file_path}", );
+    println!("Checking for cdk app file in snapshots: {cdk_app_file_path}",);
 
     // If the app file already exists in the snapshot, copy to the test's working dir
     let app_dst_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -221,7 +265,6 @@ fn synth_cdk_app(cdk_stack_definition: &str, cdk_stack_classname: &str, cdk_stac
         println!("found an app file and copying it to: {:?}", app_dst_path);
         let mut file = File::create(app_dst_path).unwrap();
         file.write_all(contents.as_bytes()).unwrap();
-
     } else if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
         // create new app file
         println!("UPDATE_SNAPSHOTS=true, and there is no existing app file, creating default one at {:?}...", app_dst_path);
@@ -230,18 +273,21 @@ fn synth_cdk_app(cdk_stack_definition: &str, cdk_stack_classname: &str, cdk_stac
         // recommend to manually instantiate a stack for each combination of parameters that should be tested
         code.line("// auto-generated! a human should update this!");
         code.line("import * as cdk from \"aws-cdk-lib\";");
-        code.line(format!("import {{ {} }} from \"./stack\";", cdk_stack_classname));
+        code.line(format!(
+            "import {{ {} }} from \"./stack\";",
+            cdk_stack_classname
+        ));
         let app = code.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some("const app = new cdk.App({".into()),
             trailing: Some("});".into()),
-            trailing_newline: true
+            trailing_newline: true,
         });
         let app_props = app.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some("defaultStackSynthesizer: new cdk.DefaultStackSynthesizer({".into()),
             trailing: Some("}),".into()),
-            trailing_newline: true
+            trailing_newline: true,
         });
         app_props.line("generateBootstrapVersionRule: false,");
         code.line(format!("new {}(app, \"Stack\");", cdk_stack_classname));
@@ -272,26 +318,35 @@ fn synth_cdk_app(cdk_stack_definition: &str, cdk_stack_classname: &str, cdk_stac
 
     // Synth the app
     let res = Command::new("npx")
-        .args(["cdk", "synth", "--no-version-reporting", "--no-path-metadata", "--app", "npx ts-node ./app.ts"])
+        .args([
+            "cdk",
+            "synth",
+            "--no-version-reporting",
+            "--no-path-metadata",
+            "--app",
+            "npx ts-node ./app.ts",
+        ])
         .current_dir(&test_working_dir_abs_path)
         .output()
         .expect("synth failed");
     println!("{}", String::from_utf8(res.stdout).unwrap());
     println!("{}", String::from_utf8(res.stderr).unwrap());
-
-
 }
 
 fn diff_original_template_with_new_templates(test_name: &str, test_working_dir: &str) {
-    
-     let walkdir = WalkDir::new(format!("{test_working_dir}/cdk.out/"));
+    let walkdir = WalkDir::new(format!("{test_working_dir}/cdk.out/"));
 
-     for entry in walkdir.into_iter().map(|e| e.unwrap()) {
+    for entry in walkdir.into_iter().map(|e| e.unwrap()) {
         let filename = entry.file_name().to_str().unwrap();
         if filename.contains("template.json") {
             println!("Comparing {filename} to the original template");
             let res = std::process::Command::new("git")
-                .args(["diff", "--no-index", &format!("./tests/end-to-end/{test_name}/template.json"), entry.path().to_str().unwrap()])
+                .args([
+                    "diff",
+                    "--no-index",
+                    &format!("./tests/end-to-end/{test_name}/template.json"),
+                    entry.path().to_str().unwrap(),
+                ])
                 .output()
                 .expect("git diff failed");
 
@@ -303,7 +358,13 @@ fn diff_original_template_with_new_templates(test_name: &str, test_working_dir: 
 }
 
 // update_snapshots($cdk_stack_filename, $cdk_app_filename, &test_working_dir, &expected_outputs_dir,  &mut snapshots_zip);
-fn update_snapshots(cdk_stack_filename: &str, cdk_app_filename: & str, test_working_dir: &str, expected_outputs_dir: &str, snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>) {
+fn update_snapshots(
+    cdk_stack_filename: &str,
+    cdk_app_filename: &str,
+    test_working_dir: &str,
+    expected_outputs_dir: &str,
+    snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>,
+) {
     if std::env::var_os("UPDATE_SNAPSHOTS").is_none() {
         // By default, and in CI/CD, skip updating the snapshots
         println!("Not updating snapshots because UPDATE_SNAPSHOTS is none.");
@@ -313,17 +374,25 @@ fn update_snapshots(cdk_stack_filename: &str, cdk_app_filename: & str, test_work
 
     let d = &format!("tests/end-to-end/{expected_outputs_dir}/");
     create_dir_all(d).unwrap();
-    
+
     // App file
     let cdk_app_file_path = format!("{expected_outputs_dir}/{cdk_app_filename}");
 
     // If the app file does not already exist in the snapshot, copy the one generated by this test run to the test's directory
     if snapshots_zip.by_name(&cdk_app_file_path).is_err() {
-        copy(format!("{test_working_dir}/{cdk_app_filename}"), format!("{d}/{cdk_app_filename}")).unwrap();
+        copy(
+            format!("{test_working_dir}/{cdk_app_filename}"),
+            format!("{d}/{cdk_app_filename}"),
+        )
+        .unwrap();
     }
 
     // Stack file
-    copy(format!("{test_working_dir}/{cdk_stack_filename}"), format!("{d}/{cdk_stack_filename}")).unwrap();
+    copy(
+        format!("{test_working_dir}/{cdk_stack_filename}"),
+        format!("{d}/{cdk_stack_filename}"),
+    )
+    .unwrap();
 
     // Template and diff files
     let walkdir = WalkDir::new(test_working_dir);
@@ -333,10 +402,18 @@ fn update_snapshots(cdk_stack_filename: &str, cdk_app_filename: & str, test_work
             continue;
         }
         if filename.contains("template.json") {
-            copy(entry.path(), format!("tests/end-to-end/{expected_outputs_dir}/{filename}")).unwrap();
+            copy(
+                entry.path(),
+                format!("tests/end-to-end/{expected_outputs_dir}/{filename}"),
+            )
+            .unwrap();
         }
         if filename.contains(".diff") {
-            copy(entry.path(), format!("tests/end-to-end/{expected_outputs_dir}/{filename}")).unwrap();
+            copy(
+                entry.path(),
+                format!("tests/end-to-end/{expected_outputs_dir}/{filename}"),
+            )
+            .unwrap();
         }
-    }    
+    }
 }

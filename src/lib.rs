@@ -7,13 +7,13 @@ use parser::output::Output;
 use parser::parameters::Parameter;
 use parser::resource::ResourceAttributes;
 
+pub mod code;
 pub mod errors;
 pub mod ir;
 pub mod parser;
 pub mod primitives;
 pub mod specification;
 pub mod synthesizer;
-pub mod code;
 
 #[doc(inline)]
 pub use errors::*;
