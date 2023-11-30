@@ -218,19 +218,17 @@ impl PropertyRule {
 fn zip_test_snapshots() {
     // Zip the expected output files for the end-to-end tests so that they can be included in the test binary. This will not affect the size of the cdk-from-cfn binary.
 
-    // Get all the snapshot directories first
     let src_dir = "./tests/end-to-end";
     let dst_file = "./tests/end-to-end-test-snapshots.zip";
+    let do_not_zip_dirs = ["app-boiler-plate-files", "working-dir"];
 
-    let path = Path::new(dst_file);
-    let file = fs::File::create(&path).unwrap();
+    let file = fs::File::create(Path::new(dst_file)).unwrap();
 
     let walkdir = WalkDir::new(src_dir);
-
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::default();
-
     let mut buffer = Vec::new();
+    
     'dir_entries: for entry in walkdir.into_iter().map(|e| e.unwrap()) {
         let path = entry.path();
         let name = path
@@ -239,8 +237,6 @@ fn zip_test_snapshots() {
             .to_str()
             .unwrap();
 
-        let do_not_zip_dirs = ["node_modules", "working-dir"];
-
         for d in do_not_zip_dirs {
             if name.contains(d) {
                 continue 'dir_entries;
@@ -248,17 +244,12 @@ fn zip_test_snapshots() {
         }
 
         if path.is_file() && entry.depth() > 1 {
-            println!("adding file {:?} as {:?} ...", path, name);
             zip.start_file(name, options).unwrap();
             let mut f = fs::File::open(path).unwrap();
-
             f.read_to_end(&mut buffer).unwrap();
             zip.write_all(&*buffer).unwrap();
             buffer.clear();
         } else if path.is_dir() {
-            // Only if not root! Avoids path spec / warning
-            // and mapname conversion failed error on unzip
-            println!("adding dir {:?} as {:?} ...", path, name);
             zip.add_directory(name, options);
         }
     }

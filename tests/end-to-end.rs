@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 use std::fs::{self, canonicalize, copy, create_dir_all, remove_dir_all, File};
-use std::io::{stdout, Cursor, Read, Write};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::io::{Cursor, Read, Write};
+use std::path::PathBuf;
+use std::process::Command;
 
 use aws_sdk_cloudformation::types::OnFailure;
 
@@ -16,10 +16,7 @@ use cdk_from_cfn::CloudformationParseTree;
 
 use nom::AsBytes;
 use walkdir::WalkDir;
-use zip::result::ZipResult;
 use zip::ZipArchive;
-
-mod cdk_synthesizers;
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("    ");
 
