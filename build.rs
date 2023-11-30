@@ -228,7 +228,7 @@ fn zip_test_snapshots() {
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::default();
     let mut buffer = Vec::new();
-    
+
     'dir_entries: for entry in walkdir.into_iter().map(|e| e.unwrap()) {
         let path = entry.path();
         let name = path

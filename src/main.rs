@@ -112,6 +112,5 @@ fn main() -> anyhow::Result<()> {
 
     ir.synthesize(synthesizer.as_ref(), &mut output, stack_name)?;
 
-    println!("Madeline");
     Ok(())
 }
