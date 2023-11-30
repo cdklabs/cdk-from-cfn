@@ -1,7 +1,7 @@
-diff --git a/./tests/end-to-end/simple/template.json b/./tests/end-to-end/typescript-working-dir/cdk.out/Stack.template.json
+diff --git a/./tests/end-to-end/simple/template.json b/tests/end-to-end/simple-typescript-working-dir/cdk.out/Stack.template.json
 index a4bcc72..e630782 100644
 --- a/./tests/end-to-end/simple/template.json
-+++ b/./tests/end-to-end/typescript-working-dir/cdk.out/Stack.template.json
++++ b/tests/end-to-end/simple-typescript-working-dir/cdk.out/Stack.template.json
 @@ -1,226 +1,51 @@
  {
 -  "Description": "An example stack that uses many of the syntax elements permitted in a\nCloudFormation template, but does not attempt to represent a realistic stack.",

@@ -1,10 +1,9 @@
 use std::borrow::Cow;
-use std::fs::{self, File, canonicalize};
+use std::fs::{self, File, canonicalize, create_dir_all, copy, remove_dir_all};
 use std::io::{Write, Read, Cursor, stdout};
 use std::path::{PathBuf, Path};
 use std::process::{Command, Stdio};
 
-use assert_json_diff::assert_json_eq;
 use aws_sdk_cloudformation::types::OnFailure;
 
 use aws_config::meta::region::RegionProviderChain;
@@ -18,6 +17,7 @@ use cdk_from_cfn::code::{CodeBuffer, IndentOptions};
 use nom::AsBytes;
 use walkdir::WalkDir;
 use zip::ZipArchive;
+use zip::result::ZipResult;
 
 mod cdk_synthesizers;
 
@@ -92,22 +92,16 @@ macro_rules! test_case {
             let expected_cdk_stack_def_filename = format!("{expected_outputs_dir}/{}", $cdk_stack_filename);
             check_cdk_stack_def_matches_expected(&cdk_stack_definition, &expected_cdk_stack_def_filename, &mut snapshots_zip);
 
-            let language_working_dir = concat!("end-to-end/", stringify!($lang), "-working-dir/");
-            synth_cdk_app(&cdk_stack_definition, $stack_name, $cdk_stack_filename, $cdk_app_filename, language_working_dir, &expected_outputs_dir,  &mut snapshots_zip);
+            let test_working_dir = format!("tests/end-to-end/{}-{}-working-dir", stringify!($name), stringify!($lang));
+            let language_boilerplate_dir = format!("tests/end-to-end/app-boilerplate-files/{}", stringify!($lang));
+            synth_cdk_app(&cdk_stack_definition, $stack_name, $cdk_stack_filename, $cdk_app_filename, &language_boilerplate_dir, &test_working_dir, &expected_outputs_dir,  &mut snapshots_zip);
 
-            // Compare each stack to the original
-            //original is at /simple/template.json
-            //new is at language-working-dir/cdk.out/*.template.json
-
-            diff_original_template_with_new_templates(stringify!($name), language_working_dir);
-
-            // What is the delta?
-
-            // If not, is the flag set to update snapshots? interactive show file to user to approve
-
-            // Make sure it works in each language
+            diff_original_template_with_new_templates(stringify!($name), &test_working_dir);
 
             // update snapshots
+            update_snapshots($cdk_stack_filename, $cdk_app_filename, &test_working_dir, &expected_outputs_dir,  &mut snapshots_zip);
+            // clean up test working dir
+            remove_dir_all(&test_working_dir).unwrap();
         }
     };
 }
@@ -191,44 +185,35 @@ fn check_cdk_stack_def_matches_expected(actual_cdk_stack_def: &str, expected_cdk
     }
 }
 
-fn diff_original_template_with_new_templates(test_name: &str, language_working_dir: &str) {
-    
-     let walkdir = WalkDir::new(format!("./tests/{language_working_dir}cdk.out/"));
-
-     for entry in walkdir.into_iter().map(|e| e.unwrap()) {
-        println!("{:?}", entry.path());
-        if entry.file_name().to_str().unwrap().contains("template.json") {
-            println!("    This is a template file. comparing it to the original");
-            // use git diff 
-            println!("{}", format!("tests/end-to-end/{test_name}"));
-            let working_dir = canonicalize("./").unwrap();
-            let res = std::process::Command::new("git")
-                .args(["diff", "--no-index", &format!("./tests/end-to-end/{test_name}/template.json"), entry.path().to_str().unwrap()])
-                .output()
-                .expect("git diff failed");
-
-            let mut f = fs::File::create(format!("./tests/end-to-end/{test_name}/simplestack.diff")).unwrap();
-            f.write_all(&res.stdout);
-            //println!("{:?}", res);
-        }
-     }
- 
-    //walk the cdk out dir
+fn get_zip_archive_from_bytes(zip: &[u8]) -> ZipArchive<Cursor<&[u8]>> {
+    let cursor = std::io::Cursor::new(zip);
+    zip::read::ZipArchive::new(cursor).unwrap()
 }
 
-fn synth_cdk_app(cdk_stack_definition: &str, stack_classname: &str, cdk_stack_filename: &str, cdk_app_filename: &str, language_working_dir: &str, test_dir: &str, snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>) {
+fn synth_cdk_app(cdk_stack_definition: &str, cdk_stack_classname: &str, cdk_stack_filename: &str, cdk_app_filename: &str, language_boilerplate_dir: &str, test_working_dir: &str, expected_outputs_dir: &str, snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>) {
     println!("Synth cdk app");
+    println!("DEBUG: {test_working_dir}, {expected_outputs_dir}");
+
+    // Create a temporary working directory, and copy language-specific boiler plate files into it
+    create_dir_all(test_working_dir).unwrap();
+    let walkdir = WalkDir::new(language_boilerplate_dir);
+    for entry in walkdir.into_iter().map(|e| e.unwrap()) {
+        if entry.path().is_file() {
+            let filename = entry.file_name().to_str().unwrap();
+            println!("Copying {filename} into {test_working_dir}");
+            copy(entry.path(), format!("{test_working_dir}/{filename}")).unwrap();
+        }
+    }
 
     // App file
-    let cdk_app_file_path = format!("{test_dir}/{cdk_app_filename}");
+    let cdk_app_file_path = format!("{expected_outputs_dir}/{cdk_app_filename}");
     println!("Checking for cdk app file in snapshots: {cdk_app_file_path}", );
-    snapshots_zip.file_names().for_each(|n| println!("{n}"));
 
-    // If the app file already exists in the snapshot, copy to the languages working dir
+    // If the app file already exists in the snapshot, copy to the test's working dir
     let app_dst_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join(language_working_dir)
+        .join(test_working_dir)
         .join(cdk_app_filename);
+    println!("DEBUG: app_dst_path: {:?}", app_dst_path);
     if let Ok(mut cdk_app_file) = snapshots_zip.by_name(&cdk_app_file_path) {
         let mut contents = Vec::<u8>::new();
         let result = cdk_app_file.read_to_end(&mut contents);
@@ -245,7 +230,7 @@ fn synth_cdk_app(cdk_stack_definition: &str, stack_classname: &str, cdk_stack_fi
         // recommend to manually instantiate a stack for each combination of parameters that should be tested
         code.line("// auto-generated! a human should update this!");
         code.line("import * as cdk from \"aws-cdk-lib\";");
-        code.line(format!("import {{ {} }} from \"./stack\";", stack_classname));
+        code.line(format!("import {{ {} }} from \"./stack\";", cdk_stack_classname));
         let app = code.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some("const app = new cdk.App({".into()),
@@ -259,7 +244,7 @@ fn synth_cdk_app(cdk_stack_definition: &str, stack_classname: &str, cdk_stack_fi
             trailing_newline: true
         });
         app_props.line("generateBootstrapVersionRule: false,");
-        code.line(format!("new {}(app, \"Stack\");", stack_classname));
+        code.line(format!("new {}(app, \"Stack\");", cdk_stack_classname));
         code.line("app.synth();");
         code.write(&mut file);
     } else {
@@ -269,20 +254,18 @@ fn synth_cdk_app(cdk_stack_definition: &str, stack_classname: &str, cdk_stack_fi
 
     // Stack file
     let stack_dst_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join(language_working_dir)
+        .join(test_working_dir)
         .join(cdk_stack_filename);
     let mut file = File::create(stack_dst_path).unwrap();
     file.write_all(cdk_stack_definition.as_bytes());
 
     // lang-specific install or setup commands
     // npm install --no-package-lock
-    let working_dir = canonicalize(format!("tests/{language_working_dir}")).unwrap();
-    println!("{:?}", canonicalize(format!("tests/{language_working_dir}")));
+    let test_working_dir_abs_path = canonicalize(test_working_dir).unwrap();
     let res = Command::new("npm")
         .arg("install")
         .arg("--no-package-lock")
-        .current_dir(&working_dir)
+        .current_dir(&test_working_dir_abs_path)
         .output()
         .expect("command failed");
     println!("{}", String::from_utf8(res.stdout).unwrap());
@@ -290,7 +273,7 @@ fn synth_cdk_app(cdk_stack_definition: &str, stack_classname: &str, cdk_stack_fi
     // Synth the app
     let res = Command::new("npx")
         .args(["cdk", "synth", "--no-version-reporting", "--no-path-metadata", "--app", "npx ts-node ./app.ts"])
-        .current_dir(&working_dir)
+        .current_dir(&test_working_dir_abs_path)
         .output()
         .expect("synth failed");
     println!("{}", String::from_utf8(res.stdout).unwrap());
@@ -299,45 +282,61 @@ fn synth_cdk_app(cdk_stack_definition: &str, stack_classname: &str, cdk_stack_fi
 
 }
 
-fn compare_templates(
-    original_template: impl Into<String>,
-    template_synthesized_by_cdk: impl Into<String>,
-) {
-}
+fn diff_original_template_with_new_templates(test_name: &str, test_working_dir: &str) {
+    
+     let walkdir = WalkDir::new(format!("{test_working_dir}/cdk.out/"));
 
-fn get_zip_archive_from_bytes(zip: &[u8]) -> ZipArchive<Cursor<&[u8]>> {
-    let cursor = std::io::Cursor::new(zip);
-    zip::read::ZipArchive::new(cursor).unwrap()
-}
+     for entry in walkdir.into_iter().map(|e| e.unwrap()) {
+        let filename = entry.file_name().to_str().unwrap();
+        if filename.contains("template.json") {
+            println!("Comparing {filename} to the original template");
+            let res = std::process::Command::new("git")
+                .args(["diff", "--no-index", &format!("./tests/end-to-end/{test_name}/template.json"), entry.path().to_str().unwrap()])
+                .output()
+                .expect("git diff failed");
 
-struct UpdateSnapshot<'a> {
-    path: &'static str,
-    actual: &'a str,
-    expected: &'a str,
-}
-
-impl<'a> UpdateSnapshot<'a> {
-    fn new(path: &'static str, actual: &'a str, expected: &'a str) -> Self {
-        Self {
-            path,
-            actual,
-            expected,
+            let stack_name = filename.split(".").next().unwrap();
+            let mut f = fs::File::create(format!("{test_working_dir}/{stack_name}.diff")).unwrap();
+            f.write_all(&res.stdout).unwrap();
         }
     }
 }
 
-impl Drop for UpdateSnapshot<'_> {
-    fn drop(&mut self) {
-        use std::fs::File;
-        use std::io::Write;
-        use std::path::PathBuf;
-
-        if std::env::var_os("UPDATE_SNAPSHOTS").is_some() && self.actual != self.expected {
-            let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("tests")
-                .join(self.path);
-            let mut file = File::create(path).unwrap();
-            file.write_all(self.actual.as_bytes()).unwrap();
-        }
+// update_snapshots($cdk_stack_filename, $cdk_app_filename, &test_working_dir, &expected_outputs_dir,  &mut snapshots_zip);
+fn update_snapshots(cdk_stack_filename: &str, cdk_app_filename: & str, test_working_dir: &str, expected_outputs_dir: &str, snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>) {
+    if std::env::var_os("UPDATE_SNAPSHOTS").is_none() {
+        // By default, and in CI/CD, skip updating the snapshots
+        println!("Not updating snapshots because UPDATE_SNAPSHOTS is none.");
+        return;
     }
+    println!("Updating snapshots...");
+
+    let d = &format!("tests/end-to-end/{expected_outputs_dir}/");
+    create_dir_all(d).unwrap();
+    
+    // App file
+    let cdk_app_file_path = format!("{expected_outputs_dir}/{cdk_app_filename}");
+
+    // If the app file does not already exist in the snapshot, copy the one generated by this test run to the test's directory
+    if snapshots_zip.by_name(&cdk_app_file_path).is_err() {
+        copy(format!("{test_working_dir}/{cdk_app_filename}"), format!("{d}/{cdk_app_filename}")).unwrap();
+    }
+
+    // Stack file
+    copy(format!("{test_working_dir}/{cdk_stack_filename}"), format!("{d}/{cdk_stack_filename}")).unwrap();
+
+    // Template and diff files
+    let walkdir = WalkDir::new(test_working_dir);
+    for entry in walkdir.into_iter().map(|e| e.unwrap()) {
+        let filename = entry.file_name().to_str().unwrap();
+        if entry.path().to_str().unwrap().contains("node_modules") {
+            continue;
+        }
+        if filename.contains("template.json") {
+            copy(entry.path(), format!("tests/end-to-end/{expected_outputs_dir}/{filename}")).unwrap();
+        }
+        if filename.contains(".diff") {
+            copy(entry.path(), format!("tests/end-to-end/{expected_outputs_dir}/{filename}")).unwrap();
+        }
+    }    
 }
