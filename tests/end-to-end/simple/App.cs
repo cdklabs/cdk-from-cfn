@@ -125,7 +125,8 @@ namespace SimpleStack
                 ? bucket.AttrArn
                 : null;
             if (isUsEast1) {
-                new CfnOutput(this, "BucketArn", new CfnOutputProps {
+                new CfnOutput(this, "CfnOutputBucketArn", new CfnOutputProps {
+                    Key = "BucketArn",
                     Description = "The ARN of the bucket in this template!",
                     ExportName = "ExportName",
                     Value = BucketArn as string,

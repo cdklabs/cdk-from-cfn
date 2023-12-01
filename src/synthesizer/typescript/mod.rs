@@ -360,11 +360,12 @@ fn emit_cfn_output(
 ) {
     let output = output.indent_with_options(IndentOptions {
         indent: INDENT,
-        leading: Some(format!("new cdk.CfnOutput(this, '{}', {{", &op.name).into()),
+        leading: Some(format!("new cdk.CfnOutput(this, 'CfnOutput{}', {{", &op.name).into()),
         trailing: Some("});".into()),
         trailing_newline: true,
     });
 
+    output.line(format!("key: '{}',", &op.name));
     if let Some(description) = &op.description {
         output.line(format!("description: '{}',", description.escape_debug()));
     }

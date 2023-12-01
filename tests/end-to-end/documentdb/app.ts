@@ -64,19 +64,23 @@ export class DocumentDbStack extends cdk.Stack {
 
     // Outputs
     this.clusterId = dbCluster.ref;
-    new cdk.CfnOutput(this, 'ClusterId', {
+    new cdk.CfnOutput(this, 'CfnOutputClusterId', {
+      key: 'ClusterId',
       value: this.clusterId!.toString(),
     });
     this.clusterEndpoint = dbCluster.attrEndpoint;
-    new cdk.CfnOutput(this, 'ClusterEndpoint', {
+    new cdk.CfnOutput(this, 'CfnOutputClusterEndpoint', {
+      key: 'ClusterEndpoint',
       value: this.clusterEndpoint!.toString(),
     });
     this.clusterPort = dbCluster.attrPort;
-    new cdk.CfnOutput(this, 'ClusterPort', {
+    new cdk.CfnOutput(this, 'CfnOutputClusterPort', {
+      key: 'ClusterPort',
       value: this.clusterPort!.toString(),
     });
     this.engineVersion = '4.0.0';
-    new cdk.CfnOutput(this, 'EngineVersion', {
+    new cdk.CfnOutput(this, 'CfnOutputEngineVersion', {
+      key: 'EngineVersion',
       value: this.engineVersion!.toString(),
     });
   }

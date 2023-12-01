@@ -396,11 +396,16 @@ impl Java {
                     let output_writer = writer.indent_with_options(IndentOptions {
                         indent: DOUBLE_INDENT,
                         leading: Some(
-                            format!("CfnOutput.Builder.create(this, \"{}\")", &output.name).into(),
+                            format!(
+                                "CfnOutput.Builder.create(this, \"CfnOutput{}\")",
+                                &output.name
+                            )
+                            .into(),
                         ),
                         trailing: Some(format!("{DOUBLE_INDENT}.build();").into()),
                         trailing_newline: true,
                     });
+                    output_writer.line(format!(".key(\"{}\")", &output.name));
                     output_writer.line(format!(".value(this.{var_name}.toString())"));
                     output_writer
                 }
@@ -416,7 +421,7 @@ impl Java {
                         indent: DOUBLE_INDENT,
                         leading: Some(
                             format!(
-                                "this.{var_name}.ifPresent(_{var_name} -> CfnOutput.Builder.create(this, \"{}\")",
+                                "this.{var_name}.ifPresent(_{var_name} -> CfnOutput.Builder.create(this, \"CfnOutput{}\")",
                                 &output.name
                             )
                             .into(),
@@ -424,6 +429,7 @@ impl Java {
                         trailing: Some(format!("{DOUBLE_INDENT}.build());").into()),
                         trailing_newline: true,
                     });
+                    output_writer.line(format!(".key(\"{}\")", &output.name));
                     output_writer.line(format!(".value(_{var_name}.toString())"));
                     output_writer
                 }
