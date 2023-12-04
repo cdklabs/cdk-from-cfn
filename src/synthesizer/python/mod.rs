@@ -106,7 +106,7 @@ impl Synthesizer for Python {
                     cfn_param.line(format!("type = '{}',", param.constructor_type));
                     if let Some(v) = &param.default_value {
                         cfn_param.line(format!(
-                            "default = str(kwargs.get('{name}'), '{}'),",
+                            "default = str(kwargs.get('{name}', '{}')),",
                             v.escape_debug()
                         ));
                     } else {
