@@ -18,8 +18,8 @@ use nom::AsBytes;
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
-mod cdk_app_synthesizers;
-use cdk_app_synthesizers::CdkAppCodeWriter;
+mod cdk_app_code_writers;
+use cdk_app_code_writers::CdkAppCodeWriter;
 
 macro_rules! test_case {
     ($name:ident, $stack_name:literal) => {
