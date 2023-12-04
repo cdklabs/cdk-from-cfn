@@ -13,7 +13,6 @@ class SimpleStack(Stack):
   def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
     super().__init__(scope, construct_id, **kwargs)
 
-    print()
     # Applying default props
     props = {
       'bucketNamePrefix': kwargs.get('bucketNamePrefix', 'bucket'),
