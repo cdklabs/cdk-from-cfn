@@ -10,8 +10,5 @@ source .venv/bin/activate
 echo "pip install"
 pip install --disable-pip-version-check -q -r requirements.txt
 
-echo "run the app"
-python3 app.py
-
-echo "synth"
+echo "cdk synth"
 npx cdk synth --no-version-reporting --no-path-metadata --app 'python3 app.py'

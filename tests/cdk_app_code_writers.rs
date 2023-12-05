@@ -62,3 +62,24 @@ impl CdkAppCodeWriter for Python {
         code.line("app.synth()");
     }
 }
+
+pub struct Java {}
+
+impl CdkAppCodeWriter for Java {
+    fn app_file(&self, code: &CodeBuffer, cdk_stack_classname: &str) {
+        println!("Writing java app file");
+        code.line("//auto-generated");
+        code.line("package com.myorg");
+        code.line("import software.amazon.awscdk.App");
+        code.line("import software.amazon.awscdk.AppProps");
+        code.line("import software.amazon.awscdk.DefaultStackSynthesizer");
+        code.line("import software.amazon.awscdk.StackProps");
+        code.indent_with_options(IndentOptions { 
+            indent: INDENT, 
+            leading: Some("public class MyApp {".into()), 
+            trailing: Some("}".into()
+        ), 
+            trailing_newline: true,
+        });
+    }
+}

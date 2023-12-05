@@ -42,8 +42,8 @@ macro_rules! test_case {
                 java,
                 &Java::new(concat!("com.myorg")),
                 $stack_name,
-                "Stack.java",
-                "App.java"
+                "src/main/java/com/myorg/Stack.java",
+                "src/main/java/com/myorg/MyApp.java"
             );
 
             #[cfg(feature = "python")]
@@ -107,8 +107,9 @@ macro_rules! test_case {
             );
 
             let cdk_app_code_writer: Box<dyn CdkAppCodeWriter> = match stringify!($lang) {
-                "typescript" => Box::new(cdk_app_synthesizers::Typescript {}),
-                "python" => Box::new(cdk_app_synthesizers::Python {}),
+                "typescript" => Box::new(cdk_app_code_writers::Typescript {}),
+                "python" => Box::new(cdk_app_code_writers::Python {}),
+                "java" => Box::new(cdk_app_code_writers::Java {}),
                 &_ => todo!(),
             };
             synth_cdk_app(
@@ -134,7 +135,7 @@ macro_rules! test_case {
                 &mut snapshots_zip,
             );
             // clean up test working dir
-            remove_dir_all(&test_working_dir).unwrap();
+            //remove_dir_all(&test_working_dir).unwrap();
         }
     };
 }
@@ -262,7 +263,10 @@ fn synth_cdk_app(
     let app_dst_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join(test_working_dir)
         .join(cdk_app_filename);
+    let prefix = app_dst_path.parent().unwrap();
+    create_dir_all(prefix).unwrap();
     println!("DEBUG: app_dst_path: {:?}", app_dst_path);
+    //snapshots_zip.file_names().for_each(|f| println!("{f}"));
     if let Ok(mut cdk_app_file) = snapshots_zip.by_name(&cdk_app_file_path) {
         let mut contents = Vec::<u8>::new();
         cdk_app_file.read_to_end(&mut contents).unwrap();
@@ -293,7 +297,7 @@ fn synth_cdk_app(
 
     let test_working_dir_abs_path = canonicalize(test_working_dir).unwrap();
     let res = Command::new("bash")
-        .arg("setup.sh")
+        .arg("setup-and-synth.sh")
         .current_dir(&test_working_dir_abs_path)
         .output()
         .expect("cdk app setup or synth failed");
