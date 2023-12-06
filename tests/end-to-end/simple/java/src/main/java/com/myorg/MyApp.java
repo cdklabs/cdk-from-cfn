@@ -1,24 +1,18 @@
+//auto-generated
 package com.myorg;
-
 import software.amazon.awscdk.App;
 import software.amazon.awscdk.AppProps;
 import software.amazon.awscdk.DefaultStackSynthesizer;
-import software.amazon.awscdk.Environment;
 import software.amazon.awscdk.StackProps;
-
-import java.util.Arrays;
-
 public class MyApp {
     public static void main(final String[] args) {
         App app = new App(AppProps.builder()
-                .defaultStackSynthesizer(DefaultStackSynthesizer.Builder.create()
-                        .generateBootstrapVersionRule(false)
-                        .build())
-                .build());
+            .defaultStackSynthesizer(DefaultStackSynthesizer.Builder.create()
+                .generateBootstrapVersionRule(false)
+                .build())
+            .build());
+            new SimpleStack(app, "Stack");
+            app.synth();
 
-        new SimpleStack(app, "Stack", StackProps.builder()
-                .build());
-
-        app.synth();
     }
 }
