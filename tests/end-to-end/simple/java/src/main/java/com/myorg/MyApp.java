@@ -11,7 +11,8 @@ public class MyApp {
                 .generateBootstrapVersionRule(false)
                 .build())
             .build());
-            new SimpleStack(app, "Stack");
+            new SimpleStack(app, "Stack", StackProps.builder()
+                .build());
             app.synth();
 
     }

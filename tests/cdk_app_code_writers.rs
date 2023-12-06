@@ -104,10 +104,14 @@ impl CdkAppCodeWriter for Java {
         stack_synthesizer_props.line(".build())");
         app_constructor.line(".build());");
 
-        app_constructor.line(format!("new {}(app, \"Stack\");", cdk_stack_classname));
+        let stack_props = app_constructor.indent_with_options(IndentOptions { 
+            indent: INDENT, 
+            leading: Some(format!("new {}(app, \"Stack\", StackProps.builder()", cdk_stack_classname).into()), 
+            trailing: None, 
+            trailing_newline: false,
+        });
+        stack_props.line(".build());");
         app_constructor.line("app.synth();");
-
-        
     }
 }
 

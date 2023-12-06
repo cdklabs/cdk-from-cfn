@@ -1,9 +1,9 @@
 diff --git a/./tests/end-to-end/simple/template.json b/tests/end-to-end/simple-java-working-dir/cdk.out/Stack.template.json
-index a4bcc72..9e26dfe 100644
+index a4bcc72..f94aeab 100644
 --- a/./tests/end-to-end/simple/template.json
 +++ b/tests/end-to-end/simple-java-working-dir/cdk.out/Stack.template.json
-@@ -1,226 +1 @@
--{
+@@ -1,226 +1,112 @@
+ {
 -  "Description": "An example stack that uses many of the syntax elements permitted in a\nCloudFormation template, but does not attempt to represent a realistic stack.",
 -  "Mappings": {
 -    "Booleans": {
@@ -55,7 +55,21 @@ index a4bcc72..9e26dfe 100644
 -        "String": "Baz"
 -      }
 -    }
--  },
++ "Parameters": {
++  "LogDestinationBucketName": {
++   "Type": "AWS::SSM::Parameter::Value<String>",
++   "Default": "/logging/bucket/name"
++  }
++ },
++ "Mappings": {
++  "booleans": {
++   "True": {
++    "true": true
++   },
++   "False": {
++    "false": false
++   }
+   },
 -  "Conditions": {
 -    "IsLargeRegion": {
 -      "Condition": "IsUsEast1"
@@ -86,7 +100,20 @@ index a4bcc72..9e26dfe 100644
 -        "us"
 -      ]
 -    }
--  },
++  "lists": {
++   "Candidates": {
++    "Empty": [
++     ""
++    ],
++    "Singleton": [
++     "One"
++    ],
++    "Pair": [
++     "One",
++     "Two"
++    ]
++   }
+   },
 -  "Parameters": {
 -    "BucketNamePrefix": {
 -      "Type": "String",
@@ -97,7 +124,13 @@ index a4bcc72..9e26dfe 100644
 -      "Type": "AWS::SSM::Parameter::Value<String>",
 -      "Default": "/logging/bucket/name"
 -    }
--  },
++  "numbers": {
++   "Prime": {
++    "Eleven": 11,
++    "Thirteen": 13,
++    "Seventeen": 17
++   }
+   },
 -  "Resources": {
 -    "Bucket": {
 -      "Condition": "IsUsEast1",
@@ -138,8 +171,59 @@ index a4bcc72..9e26dfe 100644
 -                }
 -              ]
 -            }
--          }
--        ]
++  "strings": {
++   "Foos": {
++    "Foo1": "Foo1",
++    "Foo2": "Foo2"
++   },
++   "Bars": {
++    "Bar": "Bar"
++   }
++  },
++  "table": {
++   "Values": {
++    "Boolean": true,
++    "Float": 3.14,
++    "List": [
++     "1",
++     "2",
++     "3"
++    ],
++    "Number": 42,
++    "String": "Baz"
++   }
++  }
++ },
++ "Resources": {
++  "Queue": {
++   "Type": "AWS::SQS::Queue",
++   "Properties": {
++    "DelaySeconds": 42,
++    "KmsMasterKeyId": {
++     "Fn::ImportValue": "Shared-KmsKeyArn"
++    },
++    "QueueName": {
++     "Fn::Join": [
++      "",
++      [
++       "Stack-",
++       {
++        "Fn::FindInMap": [
++         "strings",
++         "Bars",
++         "Bar"
++        ]
++       },
++       "-",
++       {
++        "Fn::Select": [
++         1,
++         {
++          "Fn::GetAZs": {
++           "Ref": "AWS::Region"
+           }
++         }
+         ]
 -      },
 -      "DependsOn": [
 -        "Queue"
@@ -148,7 +232,10 @@ index a4bcc72..9e26dfe 100644
 -      "Metadata": {
 -        "CostCenter": 1337
 -      }
--    },
++       }
++      ]
++     ]
+     },
 -    "Queue": {
 -      "Type": "AWS::SQS::Queue",
 -      "Properties": {
@@ -199,7 +286,18 @@ index a4bcc72..9e26dfe 100644
 -        }
 -      }
 -    }
--  },
++    "SqsManagedSseEnabled": false,
++    "VisibilityTimeout": 120
++   }
++  }
++ },
++ "Outputs": {
++  "QueueArn": {
++   "Description": "The ARN of the SQS Queue",
++   "Value": {
++    "Ref": "Queue"
++   }
+   },
 -  "Outputs": {
 -    "BucketArn": {
 -      "Condition": "IsUsEast1",
@@ -227,8 +325,10 @@ index a4bcc72..9e26dfe 100644
 -        ]
 -      }
 -    }
--  }
--}
-\ No newline at end of file
-+{}
++  "IsLarge": {
++   "Description": "Whether this is a large region or not",
++   "Value": "false"
+   }
++ }
+ }
 \ No newline at end of file
