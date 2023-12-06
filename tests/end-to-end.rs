@@ -111,6 +111,7 @@ macro_rules! test_case {
                 "python" => Box::new(cdk_app_code_writers::Python {}),
                 "java" => Box::new(cdk_app_code_writers::Java {}),
                 "csharp" => Box::new(cdk_app_code_writers::CSharp {}),
+                "golang" => Box::new(cdk_app_code_writers::Go {}),
                 &_ => todo!(),
             };
             synth_cdk_app(

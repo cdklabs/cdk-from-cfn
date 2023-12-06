@@ -157,3 +157,12 @@ impl CdkAppCodeWriter for CSharp {
         
     }
 }
+
+pub struct Go {}
+
+impl CdkAppCodeWriter for Go {
+    fn app_file(&self, code: &CodeBuffer, cdk_stack_classname: &str) {
+        println!("go lang");
+    }
+    
+}

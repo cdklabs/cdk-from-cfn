@@ -1,0 +1,2 @@
+npx cdk synth --no-version-reporting --no-path-metadata --app 'go mod download && go run stack.go'
+

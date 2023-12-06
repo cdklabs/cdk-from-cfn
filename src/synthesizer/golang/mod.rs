@@ -47,7 +47,7 @@ impl Synthesizer for Golang {
     ) -> io::Result<()> {
         let code = CodeBuffer::default();
 
-        code.line(format!("package {}", self.package_name));
+        code.line("package main");
         code.newline();
 
         let imports = code.indent_with_options(IndentOptions {
