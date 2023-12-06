@@ -58,6 +58,7 @@ impl CdkAppCodeWriter for Python {
         app_props.line("generate_bootstrap_version_rule=False");
         app_props.line(")");
         app.line(")");
+        // make generic
         code.line("SimpleStack(app, 'Stack')");
         code.line("app.synth()");
     }
@@ -77,9 +78,52 @@ impl CdkAppCodeWriter for Java {
         code.indent_with_options(IndentOptions { 
             indent: INDENT, 
             leading: Some("public class MyApp {".into()), 
-            trailing: Some("}".into()
-        ), 
+            trailing: Some("}".into()), 
             trailing_newline: true,
         });
+        //finish java
+    }
+}
+
+pub struct CSharp {}
+
+impl CdkAppCodeWriter for CSharp {
+    fn app_file(&self, code: &CodeBuffer, cdk_stack_classname: &str) {
+        println!("Generating Program.cs file");
+        code.line("//Auto-generated");
+        code.line("using Amazon.CDK;");
+        code.line("sealed class Program");
+        let main_class = code.indent_with_options(IndentOptions { 
+            indent: INDENT, 
+            leading: Some("{".into()), 
+            trailing: Some("}".into()), 
+            trailing_newline: true,
+        });
+        main_class.line("public static void Main(string[] args)");
+        let main_function = main_class.indent_with_options(IndentOptions { 
+            indent: INDENT, 
+            leading: Some("{".into()), 
+            trailing: Some("}".into()), 
+            trailing_newline: true,
+        });
+        main_function.line("var app = new App(new AppProps");
+        let app_constructor = main_function.indent_with_options(IndentOptions { 
+            indent: INDENT, 
+            leading: Some("{".into()), 
+            trailing: Some("});".into()), 
+            trailing_newline: true,
+        });
+        app_constructor.line("DefaultStackSynthesizer = new DefaultStackSynthesizer(new DefaultStackSynthesizerProps");
+        let stack_synthesizer_props = app_constructor.indent_with_options(IndentOptions { 
+            indent: INDENT, 
+            leading: Some("{".into()), 
+            trailing: Some("}),".into()), 
+            trailing_newline: true,
+        });
+        stack_synthesizer_props.line("GenerateBootstrapVersionRule = false,");
+
+        main_function.line(format!("new {}.{}(app, \"Stack\");", cdk_stack_classname, cdk_stack_classname));
+        main_function.line("app.Synth();");
+        
     }
 }

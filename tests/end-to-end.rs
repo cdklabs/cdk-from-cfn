@@ -60,7 +60,7 @@ macro_rules! test_case {
             );
 
             #[cfg(feature = "csharp")]
-            test_case!($name, csharp, &CSharp {}, $stack_name, "Stack.cs", "App.cs");
+            test_case!($name, csharp, &CSharp {}, $stack_name, "Stack.cs", "Program.cs");
         }
     };
 
@@ -110,6 +110,7 @@ macro_rules! test_case {
                 "typescript" => Box::new(cdk_app_code_writers::Typescript {}),
                 "python" => Box::new(cdk_app_code_writers::Python {}),
                 "java" => Box::new(cdk_app_code_writers::Java {}),
+                "csharp" => Box::new(cdk_app_code_writers::CSharp {}),
                 &_ => todo!(),
             };
             synth_cdk_app(

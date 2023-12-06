@@ -6,6 +6,8 @@ import software.amazon.awscdk.DefaultStackSynthesizer;
 import software.amazon.awscdk.Environment;
 import software.amazon.awscdk.StackProps;
 
+import java.util.Arrays;
+
 public class MyApp {
     public static void main(final String[] args) {
         App app = new App(AppProps.builder()
