@@ -27,7 +27,7 @@ impl Synthesizer for CSharp {
         stack_name: &str,
     ) -> io::Result<()> {
         // Initialize the code buffer in which all of the code will be generated
-        let code: CodeBuffer = CodeBuffer::default();
+        let code = CodeBuffer::default();
 
         // Imports
         for import in &ir.imports {

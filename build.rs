@@ -220,7 +220,7 @@ fn zip_test_snapshots() {
 
     let src_dir = "./tests/end-to-end";
     let dst_file = "./tests/end-to-end-test-snapshots.zip";
-    let do_not_zip_dirs = ["app-boiler-plate-files", "working-dir"];
+    let do_not_zip = ["app-boiler-plate-files", "working-dir"];
 
     let file = fs::File::create(Path::new(dst_file)).unwrap();
 
@@ -233,25 +233,31 @@ fn zip_test_snapshots() {
         let path = entry.path();
         let name = path
             .strip_prefix(Path::new(src_dir))
-            .unwrap()
+            .expect(&format!("{src_dir} should be a prefix of {:?}", path))
             .to_str()
-            .unwrap();
+            .expect("failed to convert filename to string");
 
-        for d in do_not_zip_dirs {
+        for d in do_not_zip {
             if name.contains(d) {
                 continue 'dir_entries;
             };
         }
 
         if path.is_file() && entry.depth() > 1 {
-            zip.start_file(name, options).unwrap();
-            let mut f = fs::File::open(path).unwrap();
-            f.read_to_end(&mut buffer).unwrap();
-            zip.write_all(&*buffer).unwrap();
+            zip.start_file(name, options)
+                .expect("failed to start zip file");
+            let mut f = fs::File::open(path).expect(&format!("failed to open {:?}", path));
+            f.read_to_end(&mut buffer)
+                .expect(&format!("failed to read {:?}", path));
+            zip.write_all(&*buffer)
+                .expect(&format!("failed to write {:?} to the zip file", path));
             buffer.clear();
         } else if path.is_dir() {
-            zip.add_directory(name, options).unwrap();
+            zip.add_directory(name, options).expect(&format!(
+                "failed to add directory {:?} to the zip file",
+                path
+            ));
         }
     }
-    zip.finish().unwrap();
+    zip.finish().expect("failed to write zip file");
 }

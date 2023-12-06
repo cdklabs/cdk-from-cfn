@@ -75,39 +75,47 @@ impl CdkAppCodeWriter for Java {
         code.line("import software.amazon.awscdk.AppProps;");
         code.line("import software.amazon.awscdk.DefaultStackSynthesizer;");
         code.line("import software.amazon.awscdk.StackProps;");
-        let main_class = code.indent_with_options(IndentOptions { 
-            indent: INDENT, 
-            leading: Some("public class MyApp {".into()), 
-            trailing: Some("}".into()), 
+        let main_class = code.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("public class MyApp {".into()),
+            trailing: Some("}".into()),
             trailing_newline: true,
         });
 
-        let main_function = main_class.indent_with_options(IndentOptions { 
-            indent: INDENT, 
-            leading: Some("public static void main(final String[] args) {".into()), 
-            trailing: Some("}".into()), 
+        let main_function = main_class.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("public static void main(final String[] args) {".into()),
+            trailing: Some("}".into()),
             trailing_newline: true,
         });
-        let app_constructor = main_function.indent_with_options(IndentOptions { 
-            indent: INDENT, 
-            leading: Some("App app = new App(AppProps.builder()".into()), 
-            trailing: None, 
+        let app_constructor = main_function.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("App app = new App(AppProps.builder()".into()),
+            trailing: None,
             trailing_newline: true,
         });
-        let stack_synthesizer_props = app_constructor.indent_with_options(IndentOptions { 
-            indent: INDENT, 
-            leading: Some(".defaultStackSynthesizer(DefaultStackSynthesizer.Builder.create()".into()), 
-            trailing: None, 
+        let stack_synthesizer_props = app_constructor.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(
+                ".defaultStackSynthesizer(DefaultStackSynthesizer.Builder.create()".into(),
+            ),
+            trailing: None,
             trailing_newline: false,
         });
         stack_synthesizer_props.line(".generateBootstrapVersionRule(false)");
         stack_synthesizer_props.line(".build())");
         app_constructor.line(".build());");
 
-        let stack_props = app_constructor.indent_with_options(IndentOptions { 
-            indent: INDENT, 
-            leading: Some(format!("new {}(app, \"Stack\", StackProps.builder()", cdk_stack_classname).into()), 
-            trailing: None, 
+        let stack_props = app_constructor.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some(
+                format!(
+                    "new {}(app, \"Stack\", StackProps.builder()",
+                    cdk_stack_classname
+                )
+                .into(),
+            ),
+            trailing: None,
             trailing_newline: false,
         });
         stack_props.line(".build());");
@@ -123,38 +131,40 @@ impl CdkAppCodeWriter for CSharp {
         code.line("//Auto-generated");
         code.line("using Amazon.CDK;");
         code.line("sealed class Program");
-        let main_class = code.indent_with_options(IndentOptions { 
-            indent: INDENT, 
-            leading: Some("{".into()), 
-            trailing: Some("}".into()), 
+        let main_class = code.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("{".into()),
+            trailing: Some("}".into()),
             trailing_newline: true,
         });
         main_class.line("public static void Main(string[] args)");
-        let main_function = main_class.indent_with_options(IndentOptions { 
-            indent: INDENT, 
-            leading: Some("{".into()), 
-            trailing: Some("}".into()), 
+        let main_function = main_class.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("{".into()),
+            trailing: Some("}".into()),
             trailing_newline: true,
         });
         main_function.line("var app = new App(new AppProps");
-        let app_constructor = main_function.indent_with_options(IndentOptions { 
-            indent: INDENT, 
-            leading: Some("{".into()), 
-            trailing: Some("});".into()), 
+        let app_constructor = main_function.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("{".into()),
+            trailing: Some("});".into()),
             trailing_newline: true,
         });
         app_constructor.line("DefaultStackSynthesizer = new DefaultStackSynthesizer(new DefaultStackSynthesizerProps");
-        let stack_synthesizer_props = app_constructor.indent_with_options(IndentOptions { 
-            indent: INDENT, 
-            leading: Some("{".into()), 
-            trailing: Some("}),".into()), 
+        let stack_synthesizer_props = app_constructor.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("{".into()),
+            trailing: Some("}),".into()),
             trailing_newline: true,
         });
         stack_synthesizer_props.line("GenerateBootstrapVersionRule = false,");
 
-        main_function.line(format!("new {}.{}(app, \"Stack\");", cdk_stack_classname, cdk_stack_classname));
+        main_function.line(format!(
+            "new {}.{}(app, \"Stack\");",
+            cdk_stack_classname, cdk_stack_classname
+        ));
         main_function.line("app.Synth();");
-        
     }
 }
 
@@ -164,5 +174,4 @@ impl CdkAppCodeWriter for Go {
     fn app_file(&self, code: &CodeBuffer, cdk_stack_classname: &str) {
         println!("go lang");
     }
-    
 }

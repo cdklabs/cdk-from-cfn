@@ -436,7 +436,6 @@ impl Java {
             }
             if output.export.is_some() {
                 output_writer.text(".exportName(");
-                println!("{:?}", output.export);
                 emit_java(output.export.clone().unwrap(), &output_writer, None);
                 output_writer.text(")\n");
             }

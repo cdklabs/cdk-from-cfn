@@ -60,7 +60,14 @@ macro_rules! test_case {
             );
 
             #[cfg(feature = "csharp")]
-            test_case!($name, csharp, &CSharp {}, $stack_name, "Stack.cs", "Program.cs");
+            test_case!(
+                $name,
+                csharp,
+                &CSharp {},
+                $stack_name,
+                "Stack.cs",
+                "Program.cs"
+            );
         }
     };
 
