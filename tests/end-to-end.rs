@@ -1,4 +1,5 @@
 use core::panic;
+use std::error;
 use std::fs::{self, canonicalize, copy, create_dir_all, remove_dir_all, File};
 use std::io::{Cursor, Read, Write};
 use std::path::PathBuf;
@@ -83,11 +84,18 @@ macro_rules! test_case {
             println!("Creating the cdk stack definition");
             let cdk_stack_definition = {
                 let mut output = Vec::new();
-                let cfn: CloudformationParseTree = serde_yaml::from_str(original_template).unwrap();
-                let ir = CloudformationProgramIr::from(cfn).unwrap();
+                let cfn: CloudformationParseTree =
+                    serde_yaml::from_str(original_template).expect(&format!(
+                        "{} should be valid json",
+                        concat!("end-to-end/", stringify!($name), "/template.json")
+                    ));
+                let ir = CloudformationProgramIr::from(cfn)
+                    .expect("failed to convert cfn template into CloudformationProgramIr");
                 ir.synthesize($synthesizer, &mut output, $stack_name)
-                    .unwrap();
-                String::from_utf8(output).unwrap()
+                    .expect(
+                        "failed to synthesize cdk stack definition from cloudformation template",
+                    );
+                String::from_utf8(output).expect("ir.synthesize() output should be utf8")
             };
 
             let mut snapshots_zip =
@@ -144,7 +152,14 @@ macro_rules! test_case {
                 &mut snapshots_zip,
             );
             // clean up test working dir
-            //remove_dir_all(&test_working_dir).unwrap();
+            if std::env::var_os("SKIP_CLEAN").is_some() {
+                println!("Skipping test cleanup because SKIP_CLEAN=true");
+            } else {
+                remove_dir_all(&test_working_dir).expect(&format!(
+                    "failed to remove test working directory: {}",
+                    &test_working_dir
+                ));
+            }
         }
     };
 }
@@ -171,18 +186,22 @@ async fn create_stack(stack_name: &str, template: &str) {
         .on_failure(OnFailure::Delete)
         .send()
         .await
-        .unwrap();
+        .expect("cfn create stack failed");
     let id = resp.stack_id.unwrap_or_default();
     print!("Stack {id} create in progress...");
-    std::io::stdout().flush().unwrap();
+    std::io::stdout().flush().expect("failed to flush stdout");
 
-    let mut status = check_stack_status(&id, &client).await.unwrap();
+    let mut status = check_stack_status(&id, &client)
+        .await
+        .expect(&format!("failed to check stack status: {id}"));
 
     while let StackStatus::CreateInProgress = status {
         print!(".");
-        std::io::stdout().flush().unwrap();
+        std::io::stdout().flush().expect("failed to flush stdout");
         tokio::time::sleep(std::time::Duration::new(2, 0)).await;
-        status = check_stack_status(&id, &client).await.unwrap();
+        status = check_stack_status(&id, &client)
+            .await
+            .expect(&format!("failed to check stack status: {}", &id));
     }
     match status {
         StackStatus::CreateFailed
@@ -225,20 +244,20 @@ fn check_cdk_stack_def_matches_expected(
     }
     if let Ok(mut expected_cdk_stack_def) = snapshots_zip.by_name(expected_cdk_stack_def_filename) {
         let mut expected = String::new();
-        expected_cdk_stack_def
-            .read_to_string(&mut expected)
-            .unwrap();
+        expected_cdk_stack_def.read_to_string(&mut expected).expect(
+            "failed to read expected cdk stack definition from end-to-end-test-snapshots.zip",
+        );
         assert_eq!(expected, actual_cdk_stack_def);
     } else {
-        // If the expected file does not exist, then assume this test is new, and there is no previous snapshot to compare against.
         // Fail the test to prevent tests without snapshots from succeeding in CI/CD
-        panic!("There is no cdk stack expected file for this test. If you are developing a new test, set UPDATE_SNAPSHOTS=true in your environment variables and the test will automatically create snapshot files.");
+        panic!("Did not find the expected cdk stack definition in end-to-end-test-snapshots.zip at {expected_cdk_stack_def_filename}. If you are developing a new test, set UPDATE_SNAPSHOTS=true in your environment variables and the test will automatically create snapshot files.");
     }
 }
 
 fn get_zip_archive_from_bytes(zip: &[u8]) -> ZipArchive<Cursor<&[u8]>> {
     let cursor = std::io::Cursor::new(zip);
-    zip::read::ZipArchive::new(cursor).unwrap()
+    zip::read::ZipArchive::new(cursor)
+        .expect("failed to convert end-to-end-test-snapshots.zip contents into ZipArchive")
 }
 
 fn synth_cdk_app(
@@ -255,56 +274,73 @@ fn synth_cdk_app(
     println!("Synth CDK app");
 
     // Create a temporary working directory, and copy language-specific boiler plate files into it
-    create_dir_all(test_working_dir).unwrap();
+    create_dir_all(test_working_dir).expect(&format!(
+        "failed to create test working directory: {test_working_dir}"
+    ));
     let walkdir = WalkDir::new(language_boilerplate_dir);
-    for entry in walkdir.into_iter().map(|e| e.unwrap()) {
+    for entry in walkdir.into_iter().map(|e| e.expect("walkdir failed")) {
         if entry.path().is_file() {
-            let filename = entry.file_name().to_str().unwrap();
+            let filename = entry.file_name().to_str().expect(&format!(
+                "{:?} should be convertible to a string",
+                entry.file_name()
+            ));
             println!("Copying {filename} into {test_working_dir}");
-            copy(entry.path(), format!("{test_working_dir}/{filename}")).unwrap();
+
+            let from = entry.path();
+            let to = format!("{test_working_dir}/{filename}");
+            copy(from, &to).expect(&format!("failed to copy {:?} to {}", from, &to));
         }
     }
 
+    // App file
     let cdk_app_file_path = format!("{expected_outputs_dir}/{cdk_app_filename}");
     println!("Checking for cdk app file in snapshots: {cdk_app_file_path}",);
 
-    // If the app file already exists in the snapshot, copy to the test's working dir
-    let app_dst_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join(test_working_dir)
-        .join(cdk_app_filename);
-    let prefix = app_dst_path.parent().unwrap();
-    create_dir_all(prefix).unwrap();
-    println!("DEBUG: app_dst_path: {:?}", app_dst_path);
-    //snapshots_zip.file_names().for_each(|f| println!("{f}"));
+    let test_working_dir_abs_path = canonicalize(test_working_dir).expect(&format!(
+        "failed to get absolute path for {test_working_dir}"
+    ));
+    let app_dst_path = test_working_dir_abs_path.join(cdk_app_filename);
+    // The parent directory for the app file might not exist yet. Example: Java uses src/main/java/com/myorg/MyApp.java
+    let prefix = app_dst_path
+        .parent()
+        .expect("failed to get parent path for cdk app file");
+    create_dir_all(prefix).expect("failed to create parent directory for cdk app file");
+
     if let Ok(mut cdk_app_file) = snapshots_zip.by_name(&cdk_app_file_path) {
-        let mut contents = Vec::<u8>::new();
-        cdk_app_file.read_to_end(&mut contents).unwrap();
         println!(
             "An app file already exists. Copying it to: {:?}",
             app_dst_path
         );
-        let mut file = File::create(app_dst_path).unwrap();
-        file.write_all(contents.as_bytes()).unwrap();
+        let mut contents = Vec::<u8>::new();
+        cdk_app_file
+            .read_to_end(&mut contents)
+            .expect("failed to read cdk app file from end-to-end-test-snapshots.zip");
+        let mut file = File::create(app_dst_path).expect("failed to create cdk app file");
+        file.write_all(contents.as_bytes())
+            .expect("failed to write contents into cdk app file");
     } else if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
-        // If it does not already exist, create new app file
-        println!("UPDATE_SNAPSHOTS=true, and there is no existing app file, creating default one at {}...", app_dst_path.to_str().unwrap());
-        let mut file = File::create(app_dst_path).unwrap();
+        println!("UPDATE_SNAPSHOTS=true, and there is no existing app file, creating default one at {}...", app_dst_path.to_str().unwrap_or(""));
+        let mut file = File::create(app_dst_path).expect("failed to create cdk app file");
         let code: CodeBuffer = CodeBuffer::default();
         cdk_app_code_writer.app_file(&code, cdk_stack_classname);
-        code.write(&mut file).unwrap();
+        code.write(&mut file)
+            .expect("failed to write contents into cdk app file");
     } else {
         // Fail the test to prevent tests without snapshots from succeeding in CI/CD
         panic!("CDK App file not found at {}. If you are developing a new test, set UPDATE_SNAPSHOTS=true in your environment variables and the test will create a default app file.", cdk_app_filename);
     }
 
     // Stack file
-    let stack_dst_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join(test_working_dir)
-        .join(cdk_stack_filename);
-    let mut file = File::create(stack_dst_path).unwrap();
-    file.write_all(cdk_stack_definition.as_bytes()).unwrap();
+    let stack_dst_path = test_working_dir_abs_path.join(cdk_stack_filename);
+    println!(
+        "Writing cdk stack definition to file: {}",
+        stack_dst_path.to_str().unwrap_or("")
+    );
 
-    let test_working_dir_abs_path = canonicalize(test_working_dir).unwrap();
+    let mut file = File::create(stack_dst_path).expect("failed to create cdk stack file");
+    file.write_all(cdk_stack_definition.as_bytes())
+        .expect("failed to write contents into cdk stack file");
+
     let res = Command::new("bash")
         .arg("setup-and-synth.sh")
         .current_dir(&test_working_dir_abs_path)
@@ -312,37 +348,53 @@ fn synth_cdk_app(
         .expect("cdk app setup or synth failed");
     if !res.status.success() {
         println!("===== cdk synth stdout ===== START =====");
-        println!("{}", String::from_utf8(res.stdout).unwrap());
+        println!(
+            "{}",
+            String::from_utf8(res.stdout).expect("failed to convert stdout to utf8")
+        );
         println!("===== cdk synth stdout ===== END =======\n");
 
         println!("===== cdk synth stderr ===== START =====");
-        println!("{}", String::from_utf8(res.stderr).unwrap());
+        println!(
+            "{}",
+            String::from_utf8(res.stderr).expect("failed to convert stderr to utf8")
+        );
         println!("===== cdk synth stderr ===== END =======\n");
 
-        panic!("cdk app setup or synth failed")
+        panic!("cdk app setup or synth failed");
     }
 }
 
 fn diff_original_template_with_new_templates(test_name: &str, test_working_dir: &str) {
     let walkdir = WalkDir::new(format!("{test_working_dir}/cdk.out/"));
 
-    for entry in walkdir.into_iter().map(|e| e.unwrap()) {
-        let filename = entry.file_name().to_str().unwrap();
+    for entry in walkdir.into_iter().map(|e| e.expect("walkdir failed")) {
+        let filename = entry.file_name().to_str().expect(&format!(
+            "{:?} should be convertible to a string",
+            entry.file_name()
+        ));
         if filename.contains("template.json") {
             println!("Comparing {filename} to the original template");
+            let expected = &format!("./tests/end-to-end/{test_name}/template.json");
+            let actual = entry.path().to_str().expect(&format!(
+                "{:?} should be convertible to a string",
+                entry.path()
+            ));
             let res = std::process::Command::new("git")
-                .args([
-                    "diff",
-                    "--no-index",
-                    &format!("./tests/end-to-end/{test_name}/template.json"),
-                    entry.path().to_str().unwrap(),
-                ])
+                .args(["diff", "--no-index", actual, expected])
                 .output()
                 .expect("git diff failed");
 
-            let stack_name = filename.split(".").next().unwrap();
-            let mut f = fs::File::create(format!("{test_working_dir}/{stack_name}.diff")).unwrap();
-            f.write_all(&res.stdout).unwrap();
+            let stack_name = filename
+                .split(".")
+                .next()
+                .expect(&format!("failed to extract stack name from {filename}"));
+            let diff_filename = &format!("{test_working_dir}/{stack_name}.diff");
+            let mut f = fs::File::create(diff_filename)
+                .expect(&format!("failed to create diff file: {diff_filename}"));
+            f.write_all(&res.stdout).expect(&format!(
+                "failed to write contents to diff file: {diff_filename}"
+            ));
         }
     }
 }
@@ -359,43 +411,53 @@ fn update_snapshots(
         println!("Not updating snapshots because UPDATE_SNAPSHOTS is none.");
         return;
     }
-    println!("Updating snapshots...");
+    println!("Updating snapshots because UPDATE_SNAPSHOTS=true...");
 
     let expected_outputs_path = &format!("tests/end-to-end/{expected_outputs_dir_name}/");
-    create_dir_all(expected_outputs_path).unwrap();
+    create_dir_all(expected_outputs_path).expect(&format!(
+        "failed to create directory for updated snapshots at: {expected_outputs_path}"
+    ));
 
     // App file
     // If the app file does not already exist in the snapshot, copy the one generated by this test run to the test's directory
+    let app_file_src = &format!("{test_working_dir}/{cdk_app_filename}");
+    let app_file_dst = &format!("{expected_outputs_dir_name}/{cdk_app_filename}");
     if snapshots_zip
         .by_name(&format!("{expected_outputs_dir_name}/{cdk_app_filename}"))
         .is_err()
     {
-        copy(
-            format!("{test_working_dir}/{cdk_app_filename}"),
-            format!("{expected_outputs_path}/{cdk_app_filename}"),
-        )
-        .unwrap();
+        println!("Updating app file snapshot");
+        copy(app_file_src, app_file_dst)
+            .expect(&format!("failed to copy {app_file_src} to {app_file_dst}"));
     }
 
     // Stack file
-    copy(
-        format!("{test_working_dir}/{cdk_stack_filename}"),
-        format!("{expected_outputs_path}/{cdk_stack_filename}"),
-    )
-    .unwrap();
+    let stack_file_src = &format!("{test_working_dir}/{cdk_stack_filename}");
+    let stack_file_dst = &format!("{expected_outputs_path}/{cdk_stack_filename}");
+    println!("Updating stack file snapshot");
+    copy(stack_file_src, stack_file_dst).expect(&format!(
+        "failed to copy {stack_file_src} to {stack_file_dst}"
+    ));
 
     // Template and diff files
+    println!("Updating template and diff file(s) snapshot(s)");
     let walkdir = WalkDir::new(test_working_dir);
-    for entry in walkdir.into_iter().map(|e| e.unwrap()) {
-        let filename = entry.file_name().to_str().unwrap();
-        if entry.path().to_str().unwrap().contains("node_modules") {
+    for entry in walkdir.into_iter().map(|e| e.expect("walkdir failed")) {
+        let filename = entry.file_name().to_str().expect(&format!(
+            "{:?} should be convertible to a string",
+            entry.file_name()
+        ));
+        let src_path = entry.path().to_str().expect(&format!(
+            "{:?} should be convertible to a string",
+            entry.path()
+        ));
+
+        if src_path.contains("node_modules") {
             continue;
         }
-        if filename.contains("template.json") {
-            copy(entry.path(), format!("{expected_outputs_path}/{filename}")).unwrap();
-        }
-        if filename.contains(".diff") {
-            copy(entry.path(), format!("{expected_outputs_path}/{filename}")).unwrap();
+        if filename.contains("template.json") || filename.contains(".diff") {
+            let dst_path = &format!("{expected_outputs_path}/{filename}");
+            copy(src_path, dst_path).expect(&format!("failed to copy {src_path} to {dst_path}"));
         }
     }
 }
