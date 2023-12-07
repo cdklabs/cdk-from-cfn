@@ -120,13 +120,13 @@ macro_rules! test_case {
                 &_ => todo!(),
             };
             let options = TestOptions {
-                cdk_stack_classname : $stack_name,
-                cdk_stack_filename : $cdk_stack_filename,
-                cdk_app_filename : $cdk_app_filename,
-                language_boilerplate_dir : &language_boilerplate_dir,
-                test_working_dir : &test_working_dir,
-                expected_outputs_dir : &expected_outputs_dir,
-                cdk_app_code_writer : cdk_app_code_writer.as_ref(),
+                cdk_stack_classname: $stack_name,
+                cdk_stack_filename: $cdk_stack_filename,
+                cdk_app_filename: $cdk_app_filename,
+                language_boilerplate_dir: &language_boilerplate_dir,
+                test_working_dir: &test_working_dir,
+                expected_outputs_dir: &expected_outputs_dir,
+                cdk_app_code_writer: cdk_app_code_writer.as_ref(),
             };
 
             // Check that the original cloudformation template is valid
@@ -156,8 +156,13 @@ macro_rules! test_case {
             };
 
             println!("Checking for cdk stack definition in the expected output");
-            let mut snapshots_zip = get_zip_archive_from_bytes(include_bytes!("./end-to-end-test-snapshots.zip"));
-            check_cdk_stack_def_matches_expected(&cdk_stack_definition, &options, &mut snapshots_zip);
+            let mut snapshots_zip =
+                get_zip_archive_from_bytes(include_bytes!("./end-to-end-test-snapshots.zip"));
+            check_cdk_stack_def_matches_expected(
+                &cdk_stack_definition,
+                &options,
+                &mut snapshots_zip,
+            );
 
             synth_cdk_app(&cdk_stack_definition, &options, &mut snapshots_zip);
 
@@ -183,7 +188,10 @@ test_case!(simple, "SimpleStack");
 
 #[tokio::main]
 async fn create_stack(options: CreateStackOptions) {
-    let CreateStackOptions { template, stack_name } = options;
+    let CreateStackOptions {
+        template,
+        stack_name,
+    } = options;
     if std::env::var_os("CREATE_STACK").is_none() {
         // By default, and in CI/CD, skip creating a CloudFormation stack with the original template.
         println!("Skipping create stack because CREATE_STACK is none");
@@ -244,8 +252,16 @@ async fn check_stack_status(id: &str, client: &Client) -> Result<StackStatus, Er
     panic!("describe_stacks returned no stacks");
 }
 
-fn check_cdk_stack_def_matches_expected(actual_cdk_stack_def: &str, options: &TestOptions, snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>) {
-    let TestOptions { cdk_stack_filename, expected_outputs_dir, .. } = options;
+fn check_cdk_stack_def_matches_expected(
+    actual_cdk_stack_def: &str,
+    options: &TestOptions,
+    snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>,
+) {
+    let TestOptions {
+        cdk_stack_filename,
+        expected_outputs_dir,
+        ..
+    } = options;
     let expected_cdk_stack_def_filename = &format!("{expected_outputs_dir}/{cdk_stack_filename}");
     println!(
         "Checking cdk stack definition matches the expected output in {}",
@@ -274,7 +290,11 @@ fn get_zip_archive_from_bytes(zip: &[u8]) -> ZipArchive<Cursor<&[u8]>> {
         .expect("failed to convert end-to-end-test-snapshots.zip contents into ZipArchive")
 }
 
-fn synth_cdk_app(cdk_stack_definition: &str, options: &TestOptions, snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>) {
+fn synth_cdk_app(
+    cdk_stack_definition: &str,
+    options: &TestOptions,
+    snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>,
+) {
     println!("Synth CDK app");
     let TestOptions {
         cdk_stack_classname,
@@ -416,7 +436,13 @@ fn diff_original_template_with_new_templates(test_name: &str, test_working_dir: 
 }
 
 fn update_snapshots(options: &TestOptions, snapshots_zip: &mut ZipArchive<Cursor<&[u8]>>) {
-    let TestOptions {cdk_stack_filename, cdk_app_filename, test_working_dir, expected_outputs_dir, ..} = options;
+    let TestOptions {
+        cdk_stack_filename,
+        cdk_app_filename,
+        test_working_dir,
+        expected_outputs_dir,
+        ..
+    } = options;
 
     if std::env::var_os("UPDATE_SNAPSHOTS").is_none() {
         // By default, and in CI/CD, skip updating the snapshots
