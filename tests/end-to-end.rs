@@ -21,31 +21,13 @@ mod cdk_app_code_writers;
 use cdk_app_code_writers::CdkAppCodeWriter;
 
 struct TestOptions<'a> {
-    // in synth
     cdk_stack_classname: &'a str,
-    // in check stack def
-    // in synth
-    // in update snapshots
     cdk_stack_filename: &'a str,
-    // in synth
-    // in update snapshots
     cdk_app_filename: &'a str,
-    // in synth
     language_boilerplate_dir: &'a str,
-    // in synth
-    // in update snapshots
     test_working_dir: &'a str,
-    // in check stack def
-    // in synth
-    // in update snapshots
     expected_outputs_dir: &'a str,
-    // in synth
     cdk_app_code_writer: &'a dyn CdkAppCodeWriter,
-}
-
-struct CreateStackOptions<'a> {
-    template: &'a str,
-    stack_name: &'a str,
 }
 
 macro_rules! test_case {
@@ -133,10 +115,7 @@ macro_rules! test_case {
             println!("Verifying a CloudFormation stack can be created from original template");
             let original_template =
                 include_str!(concat!("end-to-end/", stringify!($name), "/template.json"));
-            create_stack(CreateStackOptions {
-                template: original_template,
-                stack_name: $stack_name,
-            });
+            create_stack(original_template, $stack_name);
 
             println!("Creating the cdk stack definition");
             let cdk_stack_definition = {
@@ -187,11 +166,7 @@ macro_rules! test_case {
 test_case!(simple, "SimpleStack");
 
 #[tokio::main]
-async fn create_stack(options: CreateStackOptions) {
-    let CreateStackOptions {
-        template,
-        stack_name,
-    } = options;
+async fn create_stack(template: &str, stack_name: &str) {
     if std::env::var_os("CREATE_STACK").is_none() {
         // By default, and in CI/CD, skip creating a CloudFormation stack with the original template.
         println!("Skipping create stack because CREATE_STACK is none");
