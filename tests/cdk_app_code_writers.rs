@@ -59,7 +59,7 @@ impl CdkAppCodeWriter for Python {
         app_props.line(")");
         app.line(")");
         // make generic
-        code.line("SimpleStack(app, 'Stack')");
+        code.line(format!("{cdk_stack_classname}(app, 'Stack')"));
         code.line("app.synth()");
     }
 }
@@ -171,7 +171,7 @@ impl CdkAppCodeWriter for CSharp {
 pub struct Go {}
 
 impl CdkAppCodeWriter for Go {
-    fn app_file(&self, code: &CodeBuffer, cdk_stack_classname: &str) {
+    fn app_file(&self, _code: &CodeBuffer, _cdk_stack_classname: &str) {
         println!("go lang");
     }
 }

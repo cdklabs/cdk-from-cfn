@@ -101,8 +101,6 @@ macro_rules! test_case {
     ($name:ident, $lang:ident, $synthesizer:expr, $stack_name:literal, $cdk_stack_filename:literal, $cdk_app_filename:literal) => {
         #[test]
         fn $lang() {
-
-            let mut snapshots_zip = get_zip_archive_from_bytes(include_bytes!("./end-to-end-test-snapshots.zip"));
             let expected_outputs_dir = format!("{}/{}", stringify!($name), stringify!($lang));
             let test_working_dir = format!(
                 "tests/end-to-end/{}-{}-working-dir",
@@ -157,8 +155,8 @@ macro_rules! test_case {
                 String::from_utf8(output).expect("ir.synthesize() output should be utf8")
             };
 
-            
             println!("Checking for cdk stack definition in the expected output");
+            let mut snapshots_zip = get_zip_archive_from_bytes(include_bytes!("./end-to-end-test-snapshots.zip"));
             check_cdk_stack_def_matches_expected(&cdk_stack_definition, &options, &mut snapshots_zip);
 
             synth_cdk_app(&cdk_stack_definition, &options, &mut snapshots_zip);
@@ -171,6 +169,7 @@ macro_rules! test_case {
             if std::env::var_os("SKIP_CLEAN").is_some() {
                 println!("Skipping test cleanup because SKIP_CLEAN=true");
             } else {
+                println!("Cleaning up test working directory: {test_working_dir}");
                 remove_dir_all(&test_working_dir).expect(&format!(
                     "failed to remove test working directory: {}",
                     &test_working_dir
@@ -356,6 +355,7 @@ fn synth_cdk_app(cdk_stack_definition: &str, options: &TestOptions, snapshots_zi
     file.write_all(cdk_stack_definition.as_bytes())
         .expect("failed to write contents into cdk stack file");
 
+    println!("Executing {language_boilerplate_dir}/setup-and-synth.sh in {test_working_dir}");
     let res = Command::new("bash")
         .arg("setup-and-synth.sh")
         .current_dir(&test_working_dir_abs_path)
@@ -378,6 +378,7 @@ fn synth_cdk_app(cdk_stack_definition: &str, options: &TestOptions, snapshots_zi
 
         panic!("cdk app setup or synth failed");
     }
+    println!("CDK synth complete");
 }
 
 fn diff_original_template_with_new_templates(test_name: &str, test_working_dir: &str) {
@@ -451,7 +452,7 @@ fn update_snapshots(options: &TestOptions, snapshots_zip: &mut ZipArchive<Cursor
     ));
 
     // Template and diff files
-    println!("Updating template and diff file(s) snapshot(s)");
+    println!("Updating template and diff file snapshot(s)");
     let walkdir = WalkDir::new(test_working_dir);
     for entry in walkdir.into_iter().map(|e| e.expect("walkdir failed")) {
         let filename = entry.file_name().to_str().expect(&format!(
