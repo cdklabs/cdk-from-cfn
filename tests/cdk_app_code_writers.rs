@@ -168,10 +168,10 @@ impl CdkAppCodeWriter for CSharp {
     }
 }
 
-pub struct Go {}
+pub struct Golang {}
 
-impl CdkAppCodeWriter for Go {
+impl CdkAppCodeWriter for Golang {
     fn app_file(&self, _code: &CodeBuffer, _cdk_stack_classname: &str) {
-        println!("go lang");
+        // Go does not need a separate file, because cdk_from_cfn puts the app logic into the stack file that it generates.
     }
 }
