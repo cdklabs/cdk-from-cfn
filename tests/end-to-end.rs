@@ -27,28 +27,40 @@ macro_rules! include_template_str {
 }
 
 macro_rules! test_case {
-    ($name:ident, $lang:ident, $stack_name:literal) => {
+    ($name:ident, $stack_name:literal, $skip_cdk_synth:expr) => {
         mod $name {
             use super::*;
-            #[test]
-            fn $lang() {
-                let mut test = EndToEndTest::new(
-                    stringify!($name),
-                    include_template_str!(stringify!($name)),
-                    stringify!($lang),
-                    $stack_name,
-                );
-                test.run();
-            }
+            test_case!($name, typescript, $stack_name, $skip_cdk_synth);
+            test_case!($name, java, $stack_name, $skip_cdk_synth);
+            test_case!($name, golang, $stack_name, $skip_cdk_synth);
+            test_case!($name, csharp, $stack_name, $skip_cdk_synth);
+            test_case!($name, python, $stack_name, $skip_cdk_synth);
+        }
+    };
+
+    ($name: ident, $lang:ident, $stack_name:literal, $skip_cdk_synth:expr) => {
+        #[test]
+        fn $lang() {
+            let mut test = EndToEndTest::new(
+                stringify!($name),
+                stringify!($lang),
+                $stack_name,
+                $skip_cdk_synth,
+                include_template_str!(stringify!($name)),
+            );
+            test.run();
         }
     };
 }
 
-test_case!(simple, typescript, "SimpleStack");
+const SKIP_SYNTH: [&str; 1] = ["golang"];
+
+test_case!(simple, "SimpleStack", &SKIP_SYNTH);
 // Add new test cases here
 
 struct EndToEndTest<'a> {
     name: &'a str,
+    lang: &'a str,
     original_template: &'a str,
     stack_name: &'a str,
     cdk_app_code_writer: Box<dyn CdkAppCodeWriter>,
@@ -59,14 +71,16 @@ struct EndToEndTest<'a> {
     test_working_dir: String,
     expected_outputs_dir: String,
     snapshots_zip: ZipArchive<Cursor<&'a [u8]>>,
+    skip_cdk_synth: bool,
 }
 
 impl EndToEndTest<'_> {
     fn new<'a>(
         name: &'a str,
-        original_template: &'a str,
         lang: &'a str,
         stack_name: &'a str,
+        skip_cdk_synth: &[&str],
+        original_template: &'a str,
     ) -> EndToEndTest<'a> {
         let (cdk_app_code_writer, cdk_from_cfn_synthesizer, cdk_stack_filename, cdk_app_filename) =
             match lang {
@@ -79,26 +93,26 @@ impl EndToEndTest<'_> {
                 "python" => (
                     Box::new(cdk_app_code_writers::Python {}) as Box<dyn CdkAppCodeWriter>,
                     Box::new(Python {}) as Box<dyn Synthesizer>,
-                    "stack.ts",
-                    "app.ts",
+                    "stack.py",
+                    "app.py",
                 ),
                 "java" => (
                     Box::new(cdk_app_code_writers::Java {}) as Box<dyn CdkAppCodeWriter>,
                     Box::<Java>::default() as Box<dyn Synthesizer>,
-                    "stack.ts",
-                    "app.ts",
+                    "src/main/java/com/myorg/Stack.java",
+                    "src/main/java/com/myorg/MyApp.java",
                 ),
                 "csharp" => (
                     Box::new(cdk_app_code_writers::CSharp {}) as Box<dyn CdkAppCodeWriter>,
                     Box::new(CSharp {}) as Box<dyn Synthesizer>,
-                    "stack.ts",
-                    "app.ts",
+                    "Stack.cs",
+                    "Program.cs",
                 ),
                 "golang" => (
                     Box::new(cdk_app_code_writers::Golang {}) as Box<dyn CdkAppCodeWriter>,
                     Box::<Golang>::default() as Box<dyn Synthesizer>,
-                    "stack.ts",
-                    "app.ts",
+                    "stack.go",
+                    "",
                 ),
                 other => panic!("Unsupported language: {other}"),
             };
@@ -110,6 +124,7 @@ impl EndToEndTest<'_> {
 
         EndToEndTest {
             name,
+            lang,
             original_template,
             stack_name,
             cdk_app_code_writer,
@@ -122,6 +137,7 @@ impl EndToEndTest<'_> {
             test_working_dir: String::from(format!("tests/end-to-end/{name}-{lang}-working-dir")),
             expected_outputs_dir: String::from(format!("{name}/{lang}")),
             snapshots_zip,
+            skip_cdk_synth: skip_cdk_synth.contains(&lang),
         }
     }
 
@@ -253,12 +269,32 @@ impl EndToEndTest<'_> {
     }
 
     fn synth_cdk_app(&mut self, actual_cdk_stack_def: &str) {
-        println!("Synth CDK app");
-        // Create a temporary working directory, and copy language-specific boiler plate files into it
+        // Create a temporary working directory to execute cdk synth
         create_dir_all(&self.test_working_dir).expect(&format!(
             "failed to create test working directory: {}",
             self.test_working_dir
         ));
+        let test_working_dir_abs_path = canonicalize(&self.test_working_dir).expect(&format!(
+            "failed to get absolute path for {}",
+            self.test_working_dir
+        ));
+        // Write Stack definition to file
+        let stack_dst_path = test_working_dir_abs_path.join(self.cdk_stack_filename);
+        println!(
+            "Writing cdk stack definition to file: {}",
+            stack_dst_path.to_str().unwrap_or("")
+        );
+        let mut file = File::create(stack_dst_path).expect("failed to create cdk stack file");
+        file.write_all(actual_cdk_stack_def.as_bytes())
+            .expect("failed to write contents into cdk stack file");
+
+        if self.skip_cdk_synth {
+            println!("Skipping cdk synth for {}::{}", self.name, self.lang);
+            return;
+        }
+        println!("Synth CDK app");
+
+        // Copy language-specific boiler plate files to the working directory
         let walkdir = WalkDir::new(&self.language_boilerplate_dir);
         for entry in walkdir.into_iter().map(|e| e.expect("walkdir failed")) {
             if entry.path().is_file() {
@@ -278,10 +314,6 @@ impl EndToEndTest<'_> {
         let cdk_app_file_path = format!("{}/{}", self.test_working_dir, self.cdk_app_filename);
         println!("Checking for cdk app file in snapshots: {cdk_app_file_path}",);
 
-        let test_working_dir_abs_path = canonicalize(&self.test_working_dir).expect(&format!(
-            "failed to get absolute path for {}",
-            self.test_working_dir
-        ));
         let app_dst_path = test_working_dir_abs_path.join(self.cdk_app_filename);
         // The parent directory for the app file might not exist yet. Example: Java uses src/main/java/com/myorg/MyApp.java
         let prefix = app_dst_path
@@ -313,17 +345,6 @@ impl EndToEndTest<'_> {
             panic!("CDK App file not found at {}. If you are developing a new test, set UPDATE_SNAPSHOTS=true in your environment variables and the test will create a default app file.", self.cdk_app_filename);
         }
 
-        // Stack file
-        let stack_dst_path = test_working_dir_abs_path.join(self.cdk_stack_filename);
-        println!(
-            "Writing cdk stack definition to file: {}",
-            stack_dst_path.to_str().unwrap_or("")
-        );
-
-        let mut file = File::create(stack_dst_path).expect("failed to create cdk stack file");
-        file.write_all(actual_cdk_stack_def.as_bytes())
-            .expect("failed to write contents into cdk stack file");
-
         println!(
             "Executing {}/setup-and-synth.sh in {}",
             self.language_boilerplate_dir, self.test_working_dir
@@ -354,6 +375,10 @@ impl EndToEndTest<'_> {
     }
 
     fn diff_original_template_with_new_templates(&self) {
+        if self.skip_cdk_synth {
+            println!("CDK synth was skipped; skipping template comparison as well");
+            return;
+        }
         let walkdir = WalkDir::new(format!("{}/cdk.out/", self.test_working_dir));
 
         for entry in walkdir.into_iter().map(|e| {
@@ -399,14 +424,15 @@ impl EndToEndTest<'_> {
         }
         println!("Updating snapshots because UPDATE_SNAPSHOTS=true");
 
-        let expected_outputs_path = &format!("tests/end-to-end/{}/", self.expected_outputs_dir);
+        let expected_outputs_path = &format!("tests/end-to-end/{}", self.expected_outputs_dir);
         create_dir_all(expected_outputs_path).expect(&format!(
             "failed to create directory for updated snapshots at: {expected_outputs_path}"
         ));
 
         // App file
         // If the app file does not already exist in the snapshot, copy the one generated by this test run to the test's directory
-        if self.snapshots_zip
+        if self
+            .snapshots_zip
             .by_name(&format!(
                 "{}/{}",
                 self.expected_outputs_dir, self.cdk_app_filename
