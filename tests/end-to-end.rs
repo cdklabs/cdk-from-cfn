@@ -395,7 +395,7 @@ impl EndToEndTest<'_> {
                     entry.path()
                 ));
                 let res = std::process::Command::new("git")
-                    .args(["diff", "--no-index", actual, expected])
+                    .args(["diff", "--no-index", expected, actual])
                     .output()
                     .expect("git diff failed");
 
