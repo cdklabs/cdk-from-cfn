@@ -142,8 +142,6 @@ impl EndToEndTest<'_> {
     }
 
     fn run(&mut self) {
-        // Check that the original CloudFormation template is valid
-        println!("Verifying a CloudFormation stack can be created from original template");
         self.create_stack();
 
         let cdk_stack_definition = self.run_cdk_from_cfn();
@@ -166,8 +164,7 @@ impl EndToEndTest<'_> {
             println!("Skipping create stack because CREATE_STACK is none");
             return;
         }
-
-        println!("Creating stack from original template");
+        println!("Verifying a CloudFormation stack can be created from original template");
         let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
         let config = aws_config::from_env().region(region_provider).load().await;
         let client = Client::new(&config);
