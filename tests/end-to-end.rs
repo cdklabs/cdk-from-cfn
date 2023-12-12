@@ -360,7 +360,7 @@ impl EndToEndTest<'_> {
 
     fn create_app_file(&mut self, test_working_dir_abs_path: &PathBuf) {
         // App file
-        let cdk_app_file_path = format!("{}/{}", self.test_working_dir, self.cdk_app_filename);
+        let cdk_app_file_path = format!("{}/{}", self.expected_outputs_dir, self.cdk_app_filename);
         println!("Checking for cdk app file in snapshots: {cdk_app_file_path}",);
 
         let app_dst_path = test_working_dir_abs_path.join(self.cdk_app_filename);
