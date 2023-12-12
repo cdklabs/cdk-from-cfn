@@ -176,35 +176,35 @@ impl CdkAppCodeWriter for Golang {
         code.line("// auto-generated");
         code.line("package main");
         let imports = code.indent_with_options(IndentOptions {
-            indent: INDENT, 
+            indent: INDENT,
             leading: Some("import (".into()),
-            trailing: Some(")".into()), 
-            trailing_newline: true, 
+            trailing: Some(")".into()),
+            trailing_newline: true,
         });
         imports.line("\"github.com/aws/aws-cdk-go/awscdk/v2\"");
         imports.line("\"github.com/aws/jsii-runtime-go\"");
-        
+
         let main_function = code.indent_with_options(IndentOptions {
-            indent: INDENT, 
+            indent: INDENT,
             leading: Some("func main() {".into()),
-            trailing: Some("}".into()), 
-            trailing_newline: true, 
+            trailing: Some("}".into()),
+            trailing_newline: true,
         });
         main_function.line("defer jsii.Close()");
         let app_constructor = main_function.indent_with_options(IndentOptions {
-            indent: INDENT, 
+            indent: INDENT,
             leading: Some("app := awscdk.NewApp(&awscdk.AppProps{".into()),
-            trailing: Some("})".into()), 
-            trailing_newline: true, 
+            trailing: Some("})".into()),
+            trailing_newline: true,
         });
         let stack_synthesizer_props = app_constructor.indent_with_options(IndentOptions {
-            indent: INDENT, 
+            indent: INDENT,
             leading: Some("DefaultStackSynthesizer: awscdk.NewDefaultStackSynthesizer(&awscdk.DefaultStackSynthesizerProps{".into()),
             trailing: Some("}),".into()), 
-            trailing_newline: true, 
+            trailing_newline: true,
         });
         stack_synthesizer_props.line("GenerateBootstrapVersionRule: jsii.Bool(false),");
-        
+
         main_function.line(format!("New{cdk_stack_classname}(app, \"Stack\", nil)"));
         main_function.line("app.Synth(nil)");
     }
