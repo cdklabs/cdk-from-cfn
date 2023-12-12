@@ -29,7 +29,7 @@ type SimpleStack struct {
 	IsLarge interface{} // TODO: fix to appropriate type
 }
 
-func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProps) *SimpleStack {
+func NewSimpleStack(scope constructs.Construct, id string, props *SimpleStackProps) *SimpleStack {
 	/*
 	booleans := map[*string]map[*string]*bool{
 		jsii.String("True"): map[*string]*bool{
@@ -91,7 +91,10 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 		},
 	}
 
-	stack := cdk.NewStack(scope, &id, &props.StackProps)
+	var sprops cdk.StackProps
+	if props != nil {
+	}
+	stack := cdk.NewStack(scope, &id, &sprops)
 
 	isUs := cdk.Fn_Select(jsii.Number(0), cdk.Fn_Split(jsii.String("-"), stack.Region())) == jsii.String("us")
 
@@ -173,45 +176,3 @@ func ifCondition[T any](cond bool, whenTrue T, whenFalse T) T {
 	return whenFalse
 }
 
-func main() {
-	defer jsii.Close()
-
-	app := cdk.NewApp(nil)
-
-	NewSimpleStack(app, "Simple", SimpleStackProps{
-		cdk.StackProps{
-			Env: env(),
-		},
-		BucketNamePrefix: "bucket",
-		LogDestinationBucketName: "/logging/bucket/name",
-	})
-
-	app.Synth(nil)
-}
-
-// env determines the AWS environment (account+region) in which our stack is to
-// be deployed. For more information see: https://docs.aws.amazon.com/cdk/latest/guide/environments.html
-func env() *cdk.Environment {
-	// If unspecified, this stack will be "environment-agnostic".
-	// Account/Region-dependent features and context lookups will not work, but a
-	// single synthesized template can be deployed anywhere.
-	//---------------------------------------------------------------------------
-	return nil
-
-	// Uncomment if you know exactly what account and region you want to deploy
-	// the stack to. This is the recommendation for production stacks.
-	//---------------------------------------------------------------------------
-	// return &cdk.Environment{
-	//  Account: jsii.String("123456789012"),
-	//  Region:  jsii.String("us-east-1"),
-	// }
-
-	// Uncomment to specialize this stack for the AWS Account and Region that are
-	// implied by the current CLI configuration. This is recommended for dev
-	// stacks.
-	//---------------------------------------------------------------------------
-	// return &cdk.Environment{
-	//  Account: jsii.String(os.Getenv("CDK_DEFAULT_ACCOUNT")),
-	//  Region:  jsii.String(os.Getenv("CDK_DEFAULT_REGION")),
-	// }
-}
