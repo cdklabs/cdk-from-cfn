@@ -176,7 +176,7 @@ impl EndToEndTest<'_> {
     }
 
     #[tokio::main]
-    async fn create_stack(&self) {
+    async fn create_stack(&mut self) {
         if std::env::var_os("CREATE_STACK").is_none() {
             // By default, and in CI/CD, skip creating a CloudFormation stack
             // with the original template.
@@ -188,29 +188,52 @@ impl EndToEndTest<'_> {
         let config = aws_config::from_env().region(region_provider).load().await;
         let client = Client::new(&config);
 
+        if let Ok(mut create_first_template) = self
+            .snapshots_zip
+            .by_name(&format!("{}/create_first.json", self.name))
+        {
+            let mut create_first_template_str = String::new();
+            create_first_template
+                .read_to_string(&mut create_first_template_str)
+                .expect("failed to read create_first.json from end-to-end-test-snapshots.zip");
+            let stack_name = &format!("{}CreateFirst", self.stack_name);
+            EndToEndTest::create_stack_from_template(
+                &client,
+                stack_name,
+                &create_first_template_str,
+            )
+            .await
+            .expect(&format!("failed to create stack: {stack_name}"));
+        }
+
+        EndToEndTest::create_stack_from_template(&client, self.stack_name, self.original_template)
+            .await
+            .expect(&format!("failed to create stack: {}", self.stack_name));
+    }
+
+    async fn create_stack_from_template(
+        client: &Client,
+        stack_name: &str,
+        template: &str,
+    ) -> Result<StackStatus, Error> {
         let resp = client
             .create_stack()
-            .stack_name(self.stack_name)
-            .template_body(self.original_template)
+            .stack_name(stack_name)
+            .template_body(template)
             .on_failure(OnFailure::Delete)
             .send()
-            .await
-            .expect("cfn create stack failed");
+            .await?;
         let id = resp.stack_id.unwrap_or_default();
         print!("Stack {id} create in progress...");
         std::io::stdout().flush().expect("failed to flush stdout");
 
-        let mut status = EndToEndTest::check_stack_status(&id, &client)
-            .await
-            .expect(&format!("failed to check stack status: {id}"));
+        let mut status = EndToEndTest::check_stack_status(&id, &client).await?;
 
         while let StackStatus::CreateInProgress = status {
             print!(".");
             std::io::stdout().flush().expect("failed to flush stdout");
             tokio::time::sleep(std::time::Duration::new(2, 0)).await;
-            status = EndToEndTest::check_stack_status(&id, &client)
-                .await
-                .expect(&format!("failed to check stack status: {id}"));
+            status = EndToEndTest::check_stack_status(&id, &client).await?;
         }
         match status {
             StackStatus::CreateFailed
@@ -219,7 +242,10 @@ impl EndToEndTest<'_> {
             | StackStatus::DeleteInProgress => {
                 panic!("stack creation failed. stack status: {}", status.as_str())
             }
-            StackStatus::CreateComplete => println!("create complete!"),
+            StackStatus::CreateComplete => {
+                println!("create complete!");
+                Ok(status)
+            }
             _ => panic!("unexpected stack status: {}", status.as_str()),
         }
     }
