@@ -4,7 +4,7 @@ use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use aws_sdk_cloudformation::types::OnFailure;
+use aws_sdk_cloudformation::types::{OnFailure, Capability};
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_cloudformation::types::StackStatus;
@@ -225,6 +225,7 @@ impl EndToEndTest<'_> {
             .create_stack()
             .stack_name(stack_name)
             .template_body(template)
+            .capabilities(Capability::CapabilityIam)
             .on_failure(OnFailure::Delete)
             .send()
             .await?;

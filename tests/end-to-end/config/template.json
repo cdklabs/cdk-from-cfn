@@ -211,7 +211,7 @@
             }
           },
           "Handler": "index.handler",
-          "Runtime": "nodejs",
+          "Runtime": "nodejs18.x",
           "Timeout": "30",
           "Role": {
             "Fn::GetAtt": [
@@ -281,7 +281,7 @@
             ]
           },
           "ManagedPolicyArns": [
-            "arn:aws:iam::aws:policy/service-role/AWSConfigRole"
+            "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"
           ],
           "Policies": [
             {

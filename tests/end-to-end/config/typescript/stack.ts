@@ -111,7 +111,7 @@ export class ConfigStack extends cdk.Stack {
         ],
       },
       managedPolicyArns: [
-        'arn:aws:iam::aws:policy/service-role/AWSConfigRole',
+        'arn:aws:iam::aws:policy/service-role/AWS_ConfigRole',
       ],
       policies: [
         {
@@ -224,7 +224,7 @@ export class ConfigStack extends cdk.Stack {
         ].join('\n'),
       },
       handler: 'index.handler',
-      runtime: 'nodejs',
+      runtime: 'nodejs18.x',
       timeout: 30,
       role: lambdaExecutionRole.attrArn,
     });
