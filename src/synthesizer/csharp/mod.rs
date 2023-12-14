@@ -639,7 +639,7 @@ impl OutputInstruction {
             indent: INDENT,
             leading: Some(
                 format!(
-                    "new CfnOutput(this, \"{}\", new CfnOutputProps {{",
+                    "new CfnOutput(this, \"CfnOutput{}\", new CfnOutputProps {{",
                     &self.name
                 )
                 .into(),
@@ -648,6 +648,7 @@ impl OutputInstruction {
             trailing_newline: true,
         });
 
+        output.line(format!("Key = \"{}\",", &self.name));
         if let Some(description) = &self.description {
             output.line(format!("Description = \"{}\",", description.escape_debug()));
         }

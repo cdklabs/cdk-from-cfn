@@ -78,22 +78,26 @@ class DocumentDbStack extends Stack {
         dbInstance.addDependency(dbCluster);
 
         this.clusterId = dbCluster.getRef();
-        CfnOutput.Builder.create(this, "ClusterId")
+        CfnOutput.Builder.create(this, "CfnOutputClusterId")
+                .key("ClusterId")
                 .value(this.clusterId.toString())
                 .build();
 
-        this.clusterEndpoint = Map.of("GetAtt", "DBCluster.Endpoint");
-        CfnOutput.Builder.create(this, "ClusterEndpoint")
+        this.clusterEndpoint = dbCluster.getAttrEndpoint();
+        CfnOutput.Builder.create(this, "CfnOutputClusterEndpoint")
+                .key("ClusterEndpoint")
                 .value(this.clusterEndpoint.toString())
                 .build();
 
-        this.clusterPort = Map.of("GetAtt", "DBCluster.Port");
-        CfnOutput.Builder.create(this, "ClusterPort")
+        this.clusterPort = dbCluster.getAttrPort();
+        CfnOutput.Builder.create(this, "CfnOutputClusterPort")
+                .key("ClusterPort")
                 .value(this.clusterPort.toString())
                 .build();
 
         this.engineVersion = "4.0.0";
-        CfnOutput.Builder.create(this, "EngineVersion")
+        CfnOutput.Builder.create(this, "CfnOutputEngineVersion")
+                .key("EngineVersion")
                 .value(this.engineVersion.toString())
                 .build();
 

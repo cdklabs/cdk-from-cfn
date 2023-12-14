@@ -20,14 +20,14 @@ class JsonPropsStack(Stack):
             {
               'policyName': 'MyQueueGroupPolicy',
               'policyDocument': {
-                'statement': [
+                'Statement': [
                   {
-                    'effect': 'Allow',
-                    'action': [
+                    'Effect': 'Allow',
+                    'Action': [
                       'sqs:DeleteMessage',
                       'sqs:ReceiveMessage',
                     ],
-                    'resource': [
+                    'Resource': [
                       myQueue1.attr_arn,
                       myQueue2.attr_arn,
                     ],

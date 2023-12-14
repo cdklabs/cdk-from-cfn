@@ -8,11 +8,13 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
+use crate::specification::Structure;
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::io;
 use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case};
+use voca_rs::Voca;
 
 use super::Synthesizer;
 
@@ -358,11 +360,12 @@ fn emit_cfn_output(
 ) {
     let output = output.indent_with_options(IndentOptions {
         indent: INDENT,
-        leading: Some(format!("new cdk.CfnOutput(this, '{}', {{", &op.name).into()),
+        leading: Some(format!("new cdk.CfnOutput(this, 'CfnOutput{}', {{", &op.name).into()),
         trailing: Some("});".into()),
         trailing_newline: true,
     });
 
+    output.line(format!("key: '{}',", &op.name));
     if let Some(description) = &op.description {
         output.line(format!("description: '{}',", description.escape_debug()));
     }
@@ -519,7 +522,7 @@ fn emit_resource_ir(
                 emit_resource_ir(context, &arr, item, Some(",\n"));
             }
         }
-        ResourceIr::Object(_, entries) => {
+        ResourceIr::Object(structure, entries) => {
             let obj = output.indent_with_options(IndentOptions {
                 indent: INDENT,
                 leading: Some("{".into()),
@@ -527,7 +530,19 @@ fn emit_resource_ir(
                 trailing_newline: false,
             });
             for (name, value) in entries {
-                obj.text(format!("{key}: ", key = pretty_name(name)));
+                match structure {
+                    Structure::Simple(_) => {
+                        if name.chars().all(|c| c.is_alphanumeric()) && name._char_at(0)._is_alpha()
+                        {
+                            obj.text(format!("{name}: "));
+                        } else {
+                            obj.text(format!("'{name}': "));
+                        }
+                    }
+                    _ => {
+                        obj.text(format!("{key}: ", key = pretty_name(name)));
+                    }
+                }
                 emit_resource_ir(context, &obj, value, Some(",\n"));
             }
         }

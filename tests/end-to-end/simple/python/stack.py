@@ -115,7 +115,8 @@ class SimpleStack(Stack):
     """
     self.bucket_arn = bucket.attr_arn if is_us_east1 else None
     if (is_us_east1):
-      cdk.CfnOutput(self, 'BucketArn', 
+      cdk.CfnOutput(self, 'CfnOutputBucketArn', 
+        key = 'BucketArn',
         description = 'The ARN of the bucket in this template!',
         export_name = 'ExportName',
         value = str(self.bucket_arn),
@@ -126,7 +127,8 @@ class SimpleStack(Stack):
       The ARN of the SQS Queue
     """
     self.queue_arn = queue.ref
-    cdk.CfnOutput(self, 'QueueArn', 
+    cdk.CfnOutput(self, 'CfnOutputQueueArn', 
+      key = 'QueueArn',
       description = 'The ARN of the SQS Queue',
       value = str(self.queue_arn),
     )
@@ -135,7 +137,8 @@ class SimpleStack(Stack):
       Whether this is a large region or not
     """
     self.is_large = True if is_large_region else False
-    cdk.CfnOutput(self, 'IsLarge', 
+    cdk.CfnOutput(self, 'CfnOutputIsLarge', 
+      key = 'IsLarge',
       description = 'Whether this is a large region or not',
       value = str(self.is_large),
     )

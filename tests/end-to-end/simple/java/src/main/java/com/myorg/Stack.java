@@ -123,21 +123,24 @@ class SimpleStack extends Stack {
 
         this.bucketArn = isUsEast1 ? Optional.of(bucket.isPresent() ? bucket.get().getAttrArn()
                 : Optional.empty()) : Optional.empty();
-        this.bucketArn.ifPresent(_bucketArn -> CfnOutput.Builder.create(this, "BucketArn")
+        this.bucketArn.ifPresent(_bucketArn -> CfnOutput.Builder.create(this, "CfnOutputBucketArn")
+                .key("BucketArn")
                 .value(_bucketArn.toString())
                 .description("The ARN of the bucket in this template!")
                 .exportName("ExportName")
                 .build());
 
         this.queueArn = queue.getRef();
-        CfnOutput.Builder.create(this, "QueueArn")
+        CfnOutput.Builder.create(this, "CfnOutputQueueArn")
+                .key("QueueArn")
                 .value(this.queueArn.toString())
                 .description("The ARN of the SQS Queue")
                 .build();
 
         this.isLarge = isLargeRegion ? true
                 : false;
-        CfnOutput.Builder.create(this, "IsLarge")
+        CfnOutput.Builder.create(this, "CfnOutputIsLarge")
+                .key("IsLarge")
                 .value(this.isLarge.toString())
                 .description("Whether this is a large region or not")
                 .build();

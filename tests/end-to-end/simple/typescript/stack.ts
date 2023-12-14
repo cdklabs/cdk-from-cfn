@@ -142,19 +142,22 @@ export class SimpleStack extends cdk.Stack {
       ? bucket?.attrArn
       : undefined;
     if (isUsEast1) {
-      new cdk.CfnOutput(this, 'BucketArn', {
+      new cdk.CfnOutput(this, 'CfnOutputBucketArn', {
+        key: 'BucketArn',
         description: 'The ARN of the bucket in this template!',
         exportName: 'ExportName',
         value: this.bucketArn!.toString(),
       });
     }
     this.queueArn = queue.ref;
-    new cdk.CfnOutput(this, 'QueueArn', {
+    new cdk.CfnOutput(this, 'CfnOutputQueueArn', {
+      key: 'QueueArn',
       description: 'The ARN of the SQS Queue',
       value: this.queueArn!.toString(),
     });
     this.isLarge = isLargeRegion ? true : false;
-    new cdk.CfnOutput(this, 'IsLarge', {
+    new cdk.CfnOutput(this, 'CfnOutputIsLarge', {
+      key: 'IsLarge',
       description: 'Whether this is a large region or not',
       value: this.isLarge!.toString(),
     });
