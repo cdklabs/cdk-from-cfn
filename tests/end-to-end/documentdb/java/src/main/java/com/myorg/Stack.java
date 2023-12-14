@@ -56,9 +56,12 @@ class DocumentDbStack extends Stack {
                 : "MyCluster";
         dbInstanceName = Optional.ofNullable(dbInstanceName).isPresent() ? dbInstanceName
                 : "MyInstance";
-
-
-
+        masterUser = Optional.ofNullable(masterUser).isPresent() ? masterUser
+                : "MainUser";
+        masterPassword = Optional.ofNullable(masterPassword).isPresent() ? masterPassword
+                : "password";
+        dbInstanceClass = Optional.ofNullable(dbInstanceClass).isPresent() ? dbInstanceClass
+                : "db.t3.medium";
 
         CfnDBCluster dbCluster = CfnDBCluster.Builder.create(this, "DBCluster")
                 .dbClusterIdentifier(dbClusterName)

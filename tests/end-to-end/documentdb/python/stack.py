@@ -14,6 +14,9 @@ class DocumentDbStack(Stack):
     props = {
       'dbClusterName': kwargs.get('dbClusterName', 'MyCluster'),
       'dbInstanceName': kwargs.get('dbInstanceName', 'MyInstance'),
+      'masterUser': kwargs.get('masterUser', 'MainUser'),
+      'masterPassword': kwargs.get('masterPassword', 'password'),
+      'dbInstanceClass': kwargs.get('dbInstanceClass', 'db.t3.medium'),
     }
 
     # Resources

@@ -1,0 +1,113 @@
+diff --git a/./tests/end-to-end/vpc/template.json b/tests/end-to-end/vpc-csharp-working-dir/cdk.out/Stack.template.json
+index a218efd..70cd1b0 100644
+--- a/./tests/end-to-end/vpc/template.json
++++ b/tests/end-to-end/vpc-csharp-working-dir/cdk.out/Stack.template.json
+@@ -4,12 +4,12 @@
+    "Type": "AWS::EC2::VPC",
+    "Properties": {
+     "CidrBlock": "10.42.0.0/16",
+-          "EnableDnsSupport": true,
+     "EnableDnsHostnames": true,
++    "EnableDnsSupport": true,
+     "Tags": [
+      {
+       "Key": "cost-center",
+-              "Value": 1337
++      "Value": "1337"
+      }
+     ]
+    }
+@@ -17,6 +17,9 @@
+   "Subnet1": {
+    "Type": "AWS::EC2::Subnet",
+    "Properties": {
++    "VpcId": {
++     "Ref": "VPC"
++    },
+     "AvailabilityZone": {
+      "Fn::Select": [
+       0,
+@@ -31,22 +34,25 @@
+       {
+        "Fn::Cidr": [
+         {
+-                    "Fn::GetAtt": "VPC.CidrBlock"
++         "Fn::GetAtt": [
++          "VPC",
++          "CidrBlock"
++         ]
+         },
+         6,
+-                  8
++        "8"
+        ]
+       }
+      ]
+-          },
+-          "VpcId": {
+-            "Ref": "VPC"
+     }
+    }
+   },
+   "Subnet2": {
+    "Type": "AWS::EC2::Subnet",
+    "Properties": {
++    "VpcId": {
++     "Ref": "VPC"
++    },
+     "AvailabilityZone": {
+      "Fn::Select": [
+       1,
+@@ -61,22 +67,25 @@
+       {
+        "Fn::Cidr": [
+         {
+-                    "Fn::GetAtt": "VPC.CidrBlock"
++         "Fn::GetAtt": [
++          "VPC",
++          "CidrBlock"
++         ]
+         },
+         6,
+-                  8
++        "8"
+        ]
+       }
+      ]
+-          },
+-          "VpcId": {
+-            "Ref": "VPC"
+     }
+    }
+   },
+   "Subnet3": {
+    "Type": "AWS::EC2::Subnet",
+    "Properties": {
++    "VpcId": {
++     "Ref": "VPC"
++    },
+     "AvailabilityZone": {
+      "Fn::Select": [
+       2,
+@@ -91,16 +100,16 @@
+       {
+        "Fn::Cidr": [
+         {
+-                    "Fn::GetAtt": "VPC.CidrBlock"
++         "Fn::GetAtt": [
++          "VPC",
++          "CidrBlock"
++         ]
+         },
+         6,
+-                  8
++        "8"
+        ]
+       }
+      ]
+-          },
+-          "VpcId": {
+-            "Ref": "VPC"
+     }
+    }
+   }

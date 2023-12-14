@@ -1,0 +1,45 @@
+{
+ "Resources": {
+  "MyQueue1": {
+   "Type": "AWS::SQS::Queue"
+  },
+  "MyQueue2": {
+   "Type": "AWS::SQS::Queue"
+  },
+  "MyRDMessageQueueGroup": {
+   "Type": "AWS::IAM::Group",
+   "Properties": {
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Resource": [
+          {
+           "Fn::GetAtt": [
+            "MyQueue1",
+            "Arn"
+           ]
+          },
+          {
+           "Fn::GetAtt": [
+            "MyQueue2",
+            "Arn"
+           ]
+          }
+         ],
+         "Effect": "Allow",
+         "Action": [
+          "sqs:DeleteMessage",
+          "sqs:ReceiveMessage"
+         ]
+        }
+       ]
+      },
+      "PolicyName": "MyQueueGroupPolicy"
+     }
+    ]
+   }
+  }
+ }
+}

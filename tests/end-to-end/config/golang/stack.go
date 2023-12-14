@@ -125,7 +125,7 @@ func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackPro
 				},
 			},
 			ManagedPolicyArns: &[]*string{
-				jsii.String("arn:aws:iam::aws:policy/service-role/AWSConfigRole"),
+				jsii.String("arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"),
 			},
 			Policies: &[]*Policy /* FIXME */{
 				&Policy/* FIXME */{
@@ -246,7 +246,7 @@ func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackPro
 				}),
 			},
 			Handler: jsii.String("index.handler"),
-			Runtime: jsii.String("nodejs"),
+			Runtime: jsii.String("nodejs18.x"),
 			Timeout: jsii.Number(30),
 			Role: lambdaExecutionRole.AttrArn(),
 		},

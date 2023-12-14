@@ -60,15 +60,14 @@ macro_rules! test_case {
     };
 }
 
-const SKIP_SYNTH: [&str; 1] = ["golang"];
 const ALL: [&str; 5] = ["csharp", "golang", "java", "python", "typescript"];
 
-test_case!(simple, "SimpleStack", &SKIP_SYNTH);
+test_case!(simple, "SimpleStack", &["golang"]);
 test_case!(bucket, "BucketStack");
-test_case!(config, "ConfigStack", &ALL);
-test_case!(documentdb, "DocumentDbStack", &ALL);
-test_case!(resource_w_json_type_properties, "JsonPropsStack", &ALL);
-test_case!(vpc, "VpcStack", &ALL);
+test_case!(config, "ConfigStack", &["csharp", "golang", "java", "python"]);
+test_case!(documentdb, "DocumentDbStack", &["csharp", "golang", "java", "python"]);
+test_case!(resource_w_json_type_properties, "JsonPropsStack", &["golang"]);
+test_case!(vpc, "VpcStack", &["golang", "python"]);
 
 // Add new test cases here
 

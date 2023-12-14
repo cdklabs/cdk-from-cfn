@@ -16,7 +16,7 @@ export class VpcStack extends cdk.Stack {
       tags: [
         {
           key: 'cost-center',
-          value: 1337,
+          value: '1337',
         },
       ],
     });

@@ -1,0 +1,28 @@
+diff --git a/./tests/end-to-end/resource_w_json_type_properties/template.json b/tests/end-to-end/resource_w_json_type_properties-typescript-working-dir/cdk.out/Stack.template.json
+index 3fc1712..415a5dc 100644
+--- a/./tests/end-to-end/resource_w_json_type_properties/template.json
++++ b/tests/end-to-end/resource_w_json_type_properties-typescript-working-dir/cdk.out/Stack.template.json
+@@ -1,5 +1,4 @@
+ {
+-    "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+   "MyQueue1": {
+    "Type": "AWS::SQS::Queue"
+@@ -12,7 +11,6 @@
+    "Properties": {
+     "Policies": [
+      {
+-              "PolicyName": "MyQueueGroupPolicy",
+       "PolicyDocument": {
+        "Statement": [
+         {
+@@ -37,7 +35,8 @@
+          ]
+         }
+        ]
+-              }
++      },
++      "PolicyName": "MyQueueGroupPolicy"
+      }
+     ]
+    }

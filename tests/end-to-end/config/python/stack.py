@@ -96,7 +96,7 @@ class ConfigStack(Stack):
             ],
           },
           managed_policy_arns = [
-            'arn:aws:iam::aws:policy/service-role/AWSConfigRole',
+            'arn:aws:iam::aws:policy/service-role/AWS_ConfigRole',
           ],
           policies = [
             {
@@ -205,7 +205,7 @@ class ConfigStack(Stack):
             ]),
           },
           handler = 'index.handler',
-          runtime = 'nodejs',
+          runtime = 'nodejs18.x',
           timeout = 30,
           role = lambdaExecutionRole.attr_arn,
         )

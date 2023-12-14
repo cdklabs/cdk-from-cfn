@@ -1,0 +1,117 @@
+{
+ "Resources": {
+  "VPC": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.42.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "Tags": [
+     {
+      "Key": "cost-center",
+      "Value": "1337"
+     }
+    ]
+   }
+  },
+  "Subnet1": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "VpcId": {
+     "Ref": "VPC"
+    },
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::Cidr": [
+        {
+         "Fn::GetAtt": [
+          "VPC",
+          "CidrBlock"
+         ]
+        },
+        6,
+        "8"
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "Subnet2": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "VpcId": {
+     "Ref": "VPC"
+    },
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::Cidr": [
+        {
+         "Fn::GetAtt": [
+          "VPC",
+          "CidrBlock"
+         ]
+        },
+        6,
+        "8"
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "Subnet3": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "VpcId": {
+     "Ref": "VPC"
+    },
+    "AvailabilityZone": {
+     "Fn::Select": [
+      2,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": {
+     "Fn::Select": [
+      2,
+      {
+       "Fn::Cidr": [
+        {
+         "Fn::GetAtt": [
+          "VPC",
+          "CidrBlock"
+         ]
+        },
+        6,
+        "8"
+       ]
+      }
+     ]
+    }
+   }
+  }
+ }
+}

@@ -101,7 +101,7 @@ class ConfigStack extends Stack {
                         "Action", Arrays.asList(
                                 "sts:AssumeRole")))))
                 .managedPolicyArns(Arrays.asList(
-                        "arn:aws:iam::aws:policy/service-role/AWSConfigRole"))
+                        "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"))
                 .policies(Arrays.asList(
                         CfnRole.PolicyProperty.builder()
                                 .policyName("root")
@@ -184,7 +184,7 @@ class ConfigStack extends Stack {
                                 "}"))
                         .build())
                 .handler("index.handler")
-                .runtime("nodejs")
+                .runtime("nodejs18.x")
                 .timeout(30)
                 .role(lambdaExecutionRole.getAttrArn())
                 .build();

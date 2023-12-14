@@ -53,6 +53,9 @@ namespace DocumentDbStack
             props ??= new SimpleStackProps();
             props.DbClusterName ??= "MyCluster";
             props.DbInstanceName ??= "MyInstance";
+            props.MasterUser ??= "MainUser";
+            props.MasterPassword ??= "password";
+            props.DbInstanceClass ??= "db.t3.medium";
 
 
             // Resources

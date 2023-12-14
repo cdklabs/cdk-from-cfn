@@ -134,7 +134,7 @@ namespace ConfigStack
                 },
                 ManagedPolicyArns = new []
                 {
-                    "arn:aws:iam::aws:policy/service-role/AWSConfigRole",
+                    "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole",
                 },
                 Policies = new []
                 {
@@ -262,7 +262,7 @@ namespace ConfigStack
                     }),
                 },
                 Handler = "index.handler",
-                Runtime = "nodejs",
+                Runtime = "nodejs18.x",
                 Timeout = 30,
                 Role = lambdaExecutionRole.AttrArn,
             });

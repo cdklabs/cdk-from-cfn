@@ -9,7 +9,7 @@
           "Tags": [
             {
               "Key": "cost-center",
-              "Value": 1337
+              "Value": "1337"
             }
           ]
         }

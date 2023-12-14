@@ -14,16 +14,19 @@ export interface DocumentDbStackProps extends cdk.StackProps {
   readonly dbInstanceName?: string;
   /**
    * The database admin account username
+   * @default 'MainUser'
    */
-  readonly masterUser: string;
+  readonly masterUser?: string;
   /**
    * The database admin account password
+   * @default 'password'
    */
-  readonly masterPassword: string;
+  readonly masterPassword?: string;
   /**
    * Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region
+   * @default 'db.t3.medium'
    */
-  readonly dbInstanceClass: string;
+  readonly dbInstanceClass?: string;
 }
 
 /**
@@ -35,7 +38,7 @@ export class DocumentDbStack extends cdk.Stack {
   public readonly clusterPort;
   public readonly engineVersion;
 
-  public constructor(scope: cdk.App, id: string, props: DocumentDbStackProps) {
+  public constructor(scope: cdk.App, id: string, props: DocumentDbStackProps = {}) {
     super(scope, id, props);
 
     // Applying default props
@@ -43,6 +46,9 @@ export class DocumentDbStack extends cdk.Stack {
       ...props,
       dbClusterName: props.dbClusterName ?? 'MyCluster',
       dbInstanceName: props.dbInstanceName ?? 'MyInstance',
+      masterUser: props.masterUser ?? 'MainUser',
+      masterPassword: props.masterPassword ?? 'password',
+      dbInstanceClass: props.dbInstanceClass ?? 'db.t3.medium',
     };
 
     // Resources
