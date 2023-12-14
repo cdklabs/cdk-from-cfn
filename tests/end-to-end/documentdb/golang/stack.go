@@ -60,12 +60,8 @@ func NewDocumentDbStack(scope constructs.Construct, id string, props *DocumentDb
 	return &DocumentDbStack{
 		Stack: stack,
 		ClusterId: dbCluster.Ref(),
-		ClusterEndpoint: map[string]interface{} {
-			"GetAtt": jsii.String("DBCluster.Endpoint"),
-		},
-		ClusterPort: map[string]interface{} {
-			"GetAtt": jsii.String("DBCluster.Port"),
-		},
+		ClusterEndpoint: dbCluster.AttrEndpoint(),
+		ClusterPort: dbCluster.AttrPort(),
 		EngineVersion: jsii.String("4.0.0"),
 	}
 }

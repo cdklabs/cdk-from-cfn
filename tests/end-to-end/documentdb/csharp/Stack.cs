@@ -72,14 +72,8 @@ namespace DocumentDbStack
 
             // Outputs
             ClusterId = dbCluster.Ref;
-            ClusterEndpoint = new Dictionary<string, object>
-            {
-                { "GetAtt", "DBCluster.Endpoint"},
-            };
-            ClusterPort = new Dictionary<string, object>
-            {
-                { "GetAtt", "DBCluster.Port"},
-            };
+            ClusterEndpoint = dbCluster.AttrEndpoint;
+            ClusterPort = dbCluster.AttrPort;
             EngineVersion = "4.0.0";
         }
     }

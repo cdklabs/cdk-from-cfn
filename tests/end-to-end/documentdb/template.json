@@ -93,12 +93,12 @@
       },
       "ClusterEndpoint": {
         "Value": {
-          "GetAtt": "DBCluster.Endpoint"
+          "Fn::GetAtt": "DBCluster.Endpoint"
         }
       },
       "ClusterPort": {
         "Value": {
-          "GetAtt": "DBCluster.Port"
+          "Fn::GetAtt": "DBCluster.Port"
         }
       },
       "EngineVersion": {
