@@ -68,6 +68,7 @@ test_case!(bucket, "BucketStack");
 test_case!(config, "ConfigStack", &ALL);
 test_case!(documentdb, "DocumentDbStack", &ALL);
 test_case!(resource_w_json_type_properties, "JsonPropsStack", &ALL);
+test_case!(vpc, "VpcStack", &ALL);
 
 // Add new test cases here
 
