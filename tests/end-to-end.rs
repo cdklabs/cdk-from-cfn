@@ -66,6 +66,7 @@ const ALL: [&str; 5] = ["csharp", "golang", "java", "python", "typescript"];
 test_case!(simple, "SimpleStack", &SKIP_SYNTH);
 test_case!(bucket, "BucketStack");
 test_case!(config, "ConfigStack", &ALL);
+test_case!(documentdb, "DocumentDbStack", &ALL);
 
 // Add new test cases here
 
