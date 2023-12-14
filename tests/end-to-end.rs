@@ -61,9 +61,11 @@ macro_rules! test_case {
 }
 
 const SKIP_SYNTH: [&str; 1] = ["golang"];
+const ALL: [&str; 5] = ["csharp", "golang", "java", "python", "typescript"];
 
 test_case!(simple, "SimpleStack", &SKIP_SYNTH);
 test_case!(bucket, "BucketStack");
+test_case!(config, "ConfigStack", &ALL);
 
 // Add new test cases here
 
