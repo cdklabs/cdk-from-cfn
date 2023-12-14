@@ -67,6 +67,7 @@ test_case!(simple, "SimpleStack", &SKIP_SYNTH);
 test_case!(bucket, "BucketStack");
 test_case!(config, "ConfigStack", &ALL);
 test_case!(documentdb, "DocumentDbStack", &ALL);
+test_case!(resource_w_json_type_properties, "JsonPropsStack", &ALL);
 
 // Add new test cases here
 
@@ -266,7 +267,6 @@ impl EndToEndTest<'_> {
     }
 
     fn run_cdk_from_cfn(&self) -> String {
-        println!("Creating the cdk stack definition");
         let mut output = Vec::new();
         let cfn: CloudformationParseTree =
             serde_yaml::from_str(self.original_template).expect(&format!(
