@@ -18,7 +18,7 @@ class SimpleStack(Stack):
       'bucketNamePrefix': kwargs.get('bucketNamePrefix', 'bucket'),
       'logDestinationBucketName': cdk.CfnParameter(self, 'logDestinationBucketName', 
         type = 'AWS::SSM::Parameter::Value<String>',
-        default = str(kwargs.get('logDestinationBucketName'), '/logging/bucket/name'),
+        default = str(kwargs.get('logDestinationBucketName', '/logging/bucket/name')),
       ),
     }
 
