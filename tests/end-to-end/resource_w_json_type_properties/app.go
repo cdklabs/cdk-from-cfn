@@ -1,4 +1,4 @@
-package resource_w_json_type_properties
+package main
 
 import (
 	cdk "github.com/aws/aws-cdk-go/awscdk/v2"
@@ -16,8 +16,12 @@ type JsonPropsStack struct {
 	cdk.Stack
 }
 
-func NewJsonPropsStack(scope constructs.Construct, id string, props JsonPropsStackProps) *JsonPropsStack {
-	stack := cdk.NewStack(scope, &id, &props.StackProps)
+func NewJsonPropsStack(scope constructs.Construct, id string, props *JsonPropsStackProps) *JsonPropsStack {
+	var sprops cdk.StackProps
+	if props != nil {
+		sprops = props.StackProps
+	}
+	stack := cdk.NewStack(scope, &id, &sprops)
 
 	myQueue1 := sqs.NewCfnQueue(
 		stack,

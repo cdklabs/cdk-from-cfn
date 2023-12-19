@@ -1,4 +1,4 @@
-package vpc
+package main
 
 import (
 	cdk "github.com/aws/aws-cdk-go/awscdk/v2"
@@ -15,8 +15,12 @@ type VpcStack struct {
 	cdk.Stack
 }
 
-func NewVpcStack(scope constructs.Construct, id string, props VpcStackProps) *VpcStack {
-	stack := cdk.NewStack(scope, &id, &props.StackProps)
+func NewVpcStack(scope constructs.Construct, id string, props *VpcStackProps) *VpcStack {
+	var sprops cdk.StackProps
+	if props != nil {
+		sprops = props.StackProps
+	}
+	stack := cdk.NewStack(scope, &id, &sprops)
 
 	vpc := ec2.NewCfnVPC(
 		stack,

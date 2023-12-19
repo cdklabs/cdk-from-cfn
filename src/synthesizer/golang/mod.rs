@@ -47,7 +47,7 @@ impl Synthesizer for Golang {
     ) -> io::Result<()> {
         let code = CodeBuffer::default();
 
-        code.line(format!("package {}", self.package_name));
+        code.line("package main");
         code.newline();
 
         let imports = code.indent_with_options(IndentOptions {
@@ -107,7 +107,7 @@ impl Synthesizer for Golang {
             indent: INDENT,
             leading: Some(
                 format!(
-                    "func New{}(scope constructs.Construct, id string, props {}Props) *{} {{",
+                    "func New{}(scope constructs.Construct, id string, props *{}Props) *{} {{",
                     stack_name, stack_name, stack_name
                 )
                 .into(),
@@ -196,8 +196,15 @@ impl Synthesizer for Golang {
             }
             ctor.newline();
         }
-
-        ctor.line("stack := cdk.NewStack(scope, &id, &props.StackProps)");
+        ctor.line("var sprops cdk.StackProps");
+        let props_nil_block = ctor.indent_with_options(IndentOptions {
+            indent: INDENT,
+            leading: Some("if props != nil {".into()),
+            trailing: Some("}".into()),
+            trailing_newline: true,
+        });
+        props_nil_block.line("sprops = props.StackProps");
+        ctor.line("stack := cdk.NewStack(scope, &id, &sprops)");
         ctor.newline();
 
         for condition in &ir.conditions {
