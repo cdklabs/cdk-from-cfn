@@ -197,13 +197,13 @@ impl Synthesizer for Golang {
             ctor.newline();
         }
         ctor.line("var sprops cdk.StackProps");
-        let props_nil_block = ctor.indent_with_options(IndentOptions {
+        let props_not_nil_block = ctor.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some("if props != nil {".into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        props_nil_block.line("sprops = props.StackProps");
+        props_not_nil_block.line("sprops = props.StackProps");
         ctor.line("stack := cdk.NewStack(scope, &id, &sprops)");
         ctor.newline();
 
