@@ -41,6 +41,7 @@ namespace SimpleStack
         public SimpleStack(Construct scope, string id, SimpleStackProps props = null) : base(scope, id, props)
         {
             // Applying default props
+            props ??= new SimpleStackProps();
             props.BucketNamePrefix ??= "bucket";
             props.LogDestinationBucketName = new CfnParameter(this, "LogDestinationBucketName", new CfnParameterProps
             {

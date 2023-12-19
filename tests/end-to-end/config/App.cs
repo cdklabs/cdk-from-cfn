@@ -32,6 +32,7 @@ namespace ConfigStack
         public ConfigStack(Construct scope, string id, ConfigStackProps props = null) : base(scope, id, props)
         {
             // Applying default props
+            props ??= new SimpleStackProps();
             props.Ec2VolumeAutoEnableIo ??= false;
             props.Ec2VolumeTagKey ??= "CostCenter";
 
