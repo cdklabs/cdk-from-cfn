@@ -1,4 +1,4 @@
-package config
+package main
 
 import (
 	cdk "github.com/aws/aws-cdk-go/awscdk/v2"
@@ -26,8 +26,12 @@ type ConfigStack struct {
 	ConfigRuleForVolumeAutoEnableIoComplianceType interface{} // TODO: fix to appropriate type
 }
 
-func NewConfigStack(scope constructs.Construct, id string, props ConfigStackProps) *ConfigStack {
-	stack := cdk.NewStack(scope, &id, &props.StackProps)
+func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackProps) *ConfigStack {
+	var sprops cdk.StackProps
+	if props != nil {
+		sprops = props.StackProps
+	}
+	stack := cdk.NewStack(scope, &id, &sprops)
 
 	configBucket := s3.NewCfnBucket(
 		stack,

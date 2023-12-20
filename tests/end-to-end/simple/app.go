@@ -1,4 +1,4 @@
-package simple
+package main
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ type SimpleStack struct {
 	IsLarge interface{} // TODO: fix to appropriate type
 }
 
-func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProps) *SimpleStack {
+func NewSimpleStack(scope constructs.Construct, id string, props *SimpleStackProps) *SimpleStack {
 	/*
 	booleans := map[*string]map[*string]*bool{
 		jsii.String("True"): map[*string]*bool{
@@ -91,7 +91,11 @@ func NewSimpleStack(scope constructs.Construct, id string, props SimpleStackProp
 		},
 	}
 
-	stack := cdk.NewStack(scope, &id, &props.StackProps)
+	var sprops cdk.StackProps
+	if props != nil {
+		sprops = props.StackProps
+	}
+	stack := cdk.NewStack(scope, &id, &sprops)
 
 	isUs := cdk.Fn_Select(jsii.Number(0), cdk.Fn_Split(jsii.String("-"), stack.Region())) == jsii.String("us")
 

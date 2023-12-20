@@ -1,4 +1,4 @@
-package documentdb
+package main
 
 import (
 	cdk "github.com/aws/aws-cdk-go/awscdk/v2"
@@ -30,8 +30,12 @@ type DocumentDbStack struct {
 	EngineVersion interface{} // TODO: fix to appropriate type
 }
 
-func NewDocumentDbStack(scope constructs.Construct, id string, props DocumentDbStackProps) *DocumentDbStack {
-	stack := cdk.NewStack(scope, &id, &props.StackProps)
+func NewDocumentDbStack(scope constructs.Construct, id string, props *DocumentDbStackProps) *DocumentDbStack {
+	var sprops cdk.StackProps
+	if props != nil {
+		sprops = props.StackProps
+	}
+	stack := cdk.NewStack(scope, &id, &sprops)
 
 	dbCluster := doc_db.NewCfnDBCluster(
 		stack,
