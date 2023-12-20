@@ -205,7 +205,7 @@ impl Synthesizer for Golang {
             trailing_newline: true,
         });
         props_not_nil_block.line("sprops = props.StackProps");
-        ctor.line("stack := cdk.NewStack(scope, &id, &props.StackProps)");
+        ctor.line("stack := cdk.NewStack(scope, &id, &sprops)");
         ctor.newline();
 
         for condition in &ir.conditions {
