@@ -15,7 +15,7 @@ class VpcStack(Stack):
           tags = [
             {
               'key': 'cost-center',
-              'value': 1337,
+              'value': '1337',
             },
           ],
         )

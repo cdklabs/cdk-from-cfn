@@ -1,8 +1,8 @@
 diff --git a/./tests/end-to-end/vpc/template.json b/tests/end-to-end/vpc-csharp-working-dir/cdk.out/Stack.template.json
-index a218efd..70cd1b0 100644
+index cddd267..70cd1b0 100644
 --- a/./tests/end-to-end/vpc/template.json
 +++ b/tests/end-to-end/vpc-csharp-working-dir/cdk.out/Stack.template.json
-@@ -4,12 +4,12 @@
+@@ -4,8 +4,8 @@
     "Type": "AWS::EC2::VPC",
     "Properties": {
      "CidrBlock": "10.42.0.0/16",
@@ -12,11 +12,6 @@ index a218efd..70cd1b0 100644
      "Tags": [
       {
        "Key": "cost-center",
--              "Value": 1337
-+      "Value": "1337"
-      }
-     ]
-    }
 @@ -17,6 +17,9 @@
    "Subnet1": {
     "Type": "AWS::EC2::Subnet",

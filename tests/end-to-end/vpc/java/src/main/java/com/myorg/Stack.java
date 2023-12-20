@@ -26,7 +26,7 @@ class VpcStack extends Stack {
                 .tags(Arrays.asList(
                         CfnTag.builder()
                                 .key("cost-center")
-                                .value(String.valueOf(1337))
+                                .value("1337")
                                 .build()))
                 .build();
 
