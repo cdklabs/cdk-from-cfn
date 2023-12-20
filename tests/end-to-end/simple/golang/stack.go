@@ -93,6 +93,7 @@ func NewSimpleStack(scope constructs.Construct, id string, props *SimpleStackPro
 
 	var sprops cdk.StackProps
 	if props != nil {
+		sprops = props.StackProps
 	}
 	stack := cdk.NewStack(scope, &id, &sprops)
 

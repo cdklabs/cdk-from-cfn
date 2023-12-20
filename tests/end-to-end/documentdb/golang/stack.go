@@ -33,6 +33,7 @@ type DocumentDbStack struct {
 func NewDocumentDbStack(scope constructs.Construct, id string, props *DocumentDbStackProps) *DocumentDbStack {
 	var sprops cdk.StackProps
 	if props != nil {
+		sprops = props.StackProps
 	}
 	stack := cdk.NewStack(scope, &id, &sprops)
 

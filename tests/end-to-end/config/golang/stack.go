@@ -29,6 +29,7 @@ type ConfigStack struct {
 func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackProps) *ConfigStack {
 	var sprops cdk.StackProps
 	if props != nil {
+		sprops = props.StackProps
 	}
 	stack := cdk.NewStack(scope, &id, &sprops)
 

@@ -18,6 +18,7 @@ type BucketStack struct {
 func NewBucketStack(scope constructs.Construct, id string, props *BucketStackProps) *BucketStack {
 	var sprops cdk.StackProps
 	if props != nil {
+		sprops = props.StackProps
 	}
 	stack := cdk.NewStack(scope, &id, &sprops)
 

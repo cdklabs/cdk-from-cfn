@@ -18,6 +18,7 @@ type VpcStack struct {
 func NewVpcStack(scope constructs.Construct, id string, props *VpcStackProps) *VpcStack {
 	var sprops cdk.StackProps
 	if props != nil {
+		sprops = props.StackProps
 	}
 	stack := cdk.NewStack(scope, &id, &sprops)
 
@@ -31,7 +32,7 @@ func NewVpcStack(scope constructs.Construct, id string, props *VpcStackProps) *V
 			Tags: &[]*cdk.CfnTag{
 				&cdk.CfnTag{
 					Key: jsii.String("cost-center"),
-					Value: jsii.Number(1337),
+					Value: jsii.String("1337"),
 				},
 			},
 		},
