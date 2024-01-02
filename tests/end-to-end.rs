@@ -4,7 +4,7 @@ use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use aws_sdk_cloudformation::types::{OnFailure, Capability};
+use aws_sdk_cloudformation::types::{Capability, OnFailure};
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_cloudformation::types::StackStatus;
@@ -64,7 +64,11 @@ test_case!(simple, "SimpleStack", &["golang"]);
 test_case!(bucket, "BucketStack");
 test_case!(config, "ConfigStack", &["golang", "java"]); //java fails cdk synth bc template produced has non-deterministic order
 test_case!(documentdb, "DocumentDbStack", &["golang"]);
-test_case!(resource_w_json_type_properties, "JsonPropsStack", &["golang", "java"]); //java fails cdk synth bc template produced has non-deterministic order
+test_case!(
+    resource_w_json_type_properties,
+    "JsonPropsStack",
+    &["golang", "java"]
+); //java fails cdk synth bc template produced has non-deterministic order
 test_case!(vpc, "VpcStack");
 
 // Add new test cases here
