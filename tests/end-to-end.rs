@@ -60,13 +60,11 @@ macro_rules! test_case {
     };
 }
 
-const GO: [&str; 1] = ["golang"];
-
 test_case!(simple, "SimpleStack", &["golang"]);
 test_case!(bucket, "BucketStack");
-test_case!(config, "ConfigStack", &["golang", "java"]); //java fails cdk synth bc template produced sometimes changes order
+test_case!(config, "ConfigStack", &["golang", "java"]); //java fails cdk synth bc template produced has non-deterministic order
 test_case!(documentdb, "DocumentDbStack", &["golang"]);
-test_case!(resource_w_json_type_properties, "JsonPropsStack", &["golang", "java"]); //java fails cdk synth bc template produced sometimes changes order
+test_case!(resource_w_json_type_properties, "JsonPropsStack", &["golang", "java"]); //java fails cdk synth bc template produced has non-deterministic order
 test_case!(vpc, "VpcStack");
 
 // Add new test cases here
