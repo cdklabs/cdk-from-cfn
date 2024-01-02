@@ -1,5 +1,5 @@
 diff --git a/./tests/end-to-end/resource_w_json_type_properties/template.json b/tests/end-to-end/resource_w_json_type_properties-java-working-dir/cdk.out/Stack.template.json
-index 3fc1712..ef11b51 100644
+index 3fc1712..c9f1391 100644
 --- a/./tests/end-to-end/resource_w_json_type_properties/template.json
 +++ b/tests/end-to-end/resource_w_json_type_properties-java-working-dir/cdk.out/Stack.template.json
 @@ -1,5 +1,4 @@
@@ -8,7 +8,7 @@ index 3fc1712..ef11b51 100644
   "Resources": {
    "MyQueue1": {
     "Type": "AWS::SQS::Queue"
-@@ -12,11 +11,9 @@
+@@ -12,15 +11,14 @@
     "Properties": {
      "Policies": [
       {
@@ -20,13 +20,13 @@ index 3fc1712..ef11b51 100644
           "Action": [
            "sqs:DeleteMessage",
            "sqs:ReceiveMessage"
-@@ -34,10 +31,12 @@
-             "Arn"
-            ]
-           }
--                    ]
-+         ],
-+         "Effect": "Allow"
+          ],
++         "Effect": "Allow",
+          "Resource": [
+           {
+            "Fn::GetAtt": [
+@@ -37,7 +35,8 @@
+          ]
          }
         ]
 -              }

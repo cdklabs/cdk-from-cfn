@@ -18,6 +18,7 @@
           "sqs:DeleteMessage",
           "sqs:ReceiveMessage"
          ],
+         "Effect": "Allow",
          "Resource": [
           {
            "Fn::GetAtt": [
@@ -31,8 +32,7 @@
             "Arn"
            ]
           }
-         ],
-         "Effect": "Allow"
+         ]
         }
        ]
       },

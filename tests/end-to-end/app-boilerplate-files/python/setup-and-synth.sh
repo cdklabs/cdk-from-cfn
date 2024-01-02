@@ -11,4 +11,4 @@ echo "pip install"
 pip install --disable-pip-version-check -q -r requirements.txt
 
 echo "cdk synth"
-npx cdk synth --no-version-reporting --no-path-metadata --app 'python3 app.py'
+npx --yes cdk@latest synth --no-version-reporting --no-path-metadata --app 'python3 app.py'
