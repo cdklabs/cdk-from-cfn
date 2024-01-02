@@ -196,7 +196,6 @@ impl Synthesizer for Golang {
             }
             ctor.newline();
         }
-
         ctor.line("var sprops cdk.StackProps");
         let props_not_nil_block = ctor.indent_with_options(IndentOptions {
             indent: INDENT,
