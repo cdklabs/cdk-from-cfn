@@ -1,7 +1,7 @@
-diff --git a/./tests/end-to-end/vpc/template.json b/tests/end-to-end/vpc-csharp-working-dir/cdk.out/Stack.template.json
+diff --git a/./tests/end-to-end/vpc/template.json b/tests/end-to-end/vpc-golang-working-dir/cdk.out/Stack.template.json
 index cddd267..b101d46 100644
 --- a/./tests/end-to-end/vpc/template.json
-+++ b/tests/end-to-end/vpc-csharp-working-dir/cdk.out/Stack.template.json
++++ b/tests/end-to-end/vpc-golang-working-dir/cdk.out/Stack.template.json
 @@ -4,8 +4,8 @@
     "Type": "AWS::EC2::VPC",
     "Properties": {

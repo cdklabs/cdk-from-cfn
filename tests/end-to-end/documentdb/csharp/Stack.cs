@@ -50,7 +50,7 @@ namespace DocumentDbStack
         public DocumentDbStack(Construct scope, string id, DocumentDbStackProps props = null) : base(scope, id, props)
         {
             // Applying default props
-            props ??= new SimpleStackProps();
+            props ??= new DocumentDbStackProps();
             props.DbClusterName ??= "MyCluster";
             props.DbInstanceName ??= "MyInstance";
             props.MasterUser ??= "MainUser";

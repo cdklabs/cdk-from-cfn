@@ -17,9 +17,6 @@
   "Subnet1": {
    "Type": "AWS::EC2::Subnet",
    "Properties": {
-    "VpcId": {
-     "Ref": "VPC"
-    },
     "AvailabilityZone": {
      "Fn::Select": [
       0,
@@ -44,15 +41,15 @@
        ]
       }
      ]
+    },
+    "VpcId": {
+     "Ref": "VPC"
     }
    }
   },
   "Subnet2": {
    "Type": "AWS::EC2::Subnet",
    "Properties": {
-    "VpcId": {
-     "Ref": "VPC"
-    },
     "AvailabilityZone": {
      "Fn::Select": [
       1,
@@ -77,15 +74,15 @@
        ]
       }
      ]
+    },
+    "VpcId": {
+     "Ref": "VPC"
     }
    }
   },
   "Subnet3": {
    "Type": "AWS::EC2::Subnet",
    "Properties": {
-    "VpcId": {
-     "Ref": "VPC"
-    },
     "AvailabilityZone": {
      "Fn::Select": [
       2,
@@ -110,6 +107,9 @@
        ]
       }
      ]
+    },
+    "VpcId": {
+     "Ref": "VPC"
     }
    }
   }

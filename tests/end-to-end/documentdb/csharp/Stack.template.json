@@ -1,0 +1,23 @@
+{
+ "Resources": {
+  "DBCluster": {
+   "Type": "AWS::DocDB::DBCluster",
+   "Properties": {
+    "DBClusterIdentifier": "MyCluster",
+    "EngineVersion": "4.0.0",
+    "MasterUserPassword": "password",
+    "MasterUsername": "MainUser"
+   }
+  },
+  "DBInstance": {
+   "Type": "AWS::DocDB::DBInstance",
+   "Properties": {
+    "DBClusterIdentifier": {
+     "Ref": "DBCluster"
+    },
+    "DBInstanceClass": "db.t3.medium",
+    "DBInstanceIdentifier": "MyInstance"
+   }
+  }
+ }
+}

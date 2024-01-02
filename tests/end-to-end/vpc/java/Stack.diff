@@ -1,5 +1,5 @@
 diff --git a/./tests/end-to-end/vpc/template.json b/tests/end-to-end/vpc-java-working-dir/cdk.out/Stack.template.json
-index cddd267..70cd1b0 100644
+index cddd267..b101d46 100644
 --- a/./tests/end-to-end/vpc/template.json
 +++ b/tests/end-to-end/vpc-java-working-dir/cdk.out/Stack.template.json
 @@ -4,8 +4,8 @@
@@ -12,17 +12,7 @@ index cddd267..70cd1b0 100644
      "Tags": [
       {
        "Key": "cost-center",
-@@ -17,6 +17,9 @@
-   "Subnet1": {
-    "Type": "AWS::EC2::Subnet",
-    "Properties": {
-+    "VpcId": {
-+     "Ref": "VPC"
-+    },
-     "AvailabilityZone": {
-      "Fn::Select": [
-       0,
-@@ -31,22 +34,25 @@
+@@ -31,10 +31,13 @@
        {
         "Fn::Cidr": [
          {
@@ -38,22 +28,7 @@ index cddd267..70cd1b0 100644
         ]
        }
       ]
--          },
--          "VpcId": {
--            "Ref": "VPC"
-     }
-    }
-   },
-   "Subnet2": {
-    "Type": "AWS::EC2::Subnet",
-    "Properties": {
-+    "VpcId": {
-+     "Ref": "VPC"
-+    },
-     "AvailabilityZone": {
-      "Fn::Select": [
-       1,
-@@ -61,22 +67,25 @@
+@@ -61,10 +64,13 @@
        {
         "Fn::Cidr": [
          {
@@ -69,22 +44,7 @@ index cddd267..70cd1b0 100644
         ]
        }
       ]
--          },
--          "VpcId": {
--            "Ref": "VPC"
-     }
-    }
-   },
-   "Subnet3": {
-    "Type": "AWS::EC2::Subnet",
-    "Properties": {
-+    "VpcId": {
-+     "Ref": "VPC"
-+    },
-     "AvailabilityZone": {
-      "Fn::Select": [
-       2,
-@@ -91,16 +100,16 @@
+@@ -91,10 +97,13 @@
        {
         "Fn::Cidr": [
          {
@@ -100,9 +60,3 @@ index cddd267..70cd1b0 100644
         ]
        }
       ]
--          },
--          "VpcId": {
--            "Ref": "VPC"
-     }
-    }
-   }

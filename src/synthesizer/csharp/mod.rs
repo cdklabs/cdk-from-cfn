@@ -118,7 +118,7 @@ impl Synthesizer for CSharp {
             .collect::<Vec<&ConstructorParameter>>();
         if !have_default_or_special_type_params.is_empty() {
             ctor.line("// Applying default props");
-            ctor.line("props ??= new SimpleStackProps();");
+            ctor.line(format!("props ??= new {stack_name}Props();"));
             for param in have_default_or_special_type_params {
                 let name = pascal_case(&param.name);
                 // example: AWS::EC2::Image::Id, List<AWS::EC2::VPC::Id>, AWS::SSM::Parameter::Value<List<String>>
