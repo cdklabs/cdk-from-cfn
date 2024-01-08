@@ -670,7 +670,7 @@ fn emit_resource_ir(
                     ResourceIr::String(lit) => {
                         let escaped_lit = lit.replace("{", "{{").replace("}", "}}");
                         output.text(escaped_lit);
-                    },
+                    }
                     other => {
                         output.text("{");
                         emit_resource_ir(context, output, other, None);
