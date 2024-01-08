@@ -90,7 +90,6 @@ impl Synthesizer for Python {
             });
             for param in have_default_or_special_type_params {
                 let name = &param.name;
-                // example: AWS::EC2::Image::Id, List<AWS::EC2::VPC::Id>, AWS::SSM::Parameter::Value<List<String>>
                 if param.constructor_type.contains("AWS::") {
                     let cfn_param = obj.indent_with_options(IndentOptions {
                         indent: INDENT,
@@ -665,10 +664,13 @@ fn emit_resource_ir(
             }
         },
         ResourceIr::Sub(parts) => {
-            output.text("f\"");
+            output.text("f\"\"\"");
             for part in parts {
                 match part {
-                    ResourceIr::String(lit) => output.text(lit.clone()),
+                    ResourceIr::String(lit) => {
+                        let escaped_lit = lit.replace('{', "{{").replace('}', "}}");
+                        output.text(escaped_lit);
+                    }
                     other => {
                         output.text("{");
                         emit_resource_ir(context, output, other, None);
@@ -676,7 +678,7 @@ fn emit_resource_ir(
                     }
                 }
             }
-            output.text("\"")
+            output.text("\"\"\"")
         }
 
         // References
