@@ -16,8 +16,6 @@ export class JsonPropsStack extends cdk.Stack {
     const myQueue2 = new sqs.CfnQueue(this, 'MyQueue2', {
     });
 
-    if (myQueue1 == null) { throw new Error(`A combination of conditions caused 'myQueue1' to be undefined. Fixit.`); }
-    if (myQueue2 == null) { throw new Error(`A combination of conditions caused 'myQueue2' to be undefined. Fixit.`); }
     const myRdMessageQueueGroup = new iam.CfnGroup(this, 'MyRDMessageQueueGroup', {
       policies: [
         {
