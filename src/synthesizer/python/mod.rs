@@ -664,10 +664,13 @@ fn emit_resource_ir(
             }
         },
         ResourceIr::Sub(parts) => {
-            output.text("f\"");
+            output.text("f\"\"\"");
             for part in parts {
                 match part {
-                    ResourceIr::String(lit) => output.text(lit.clone()),
+                    ResourceIr::String(lit) => {
+                        let escaped_lit = lit.replace("{", "{{").replace("}", "}}");
+                        output.text(escaped_lit);
+                    },
                     other => {
                         output.text("{");
                         emit_resource_ir(context, output, other, None);
@@ -675,7 +678,7 @@ fn emit_resource_ir(
                     }
                 }
             }
-            output.text("\"")
+            output.text("\"\"\"")
         }
 
         // References
