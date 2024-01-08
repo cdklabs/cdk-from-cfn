@@ -668,7 +668,7 @@ fn emit_resource_ir(
             for part in parts {
                 match part {
                     ResourceIr::String(lit) => {
-                        let escaped_lit = lit.replace("{", "{{").replace("}", "}}");
+                        let escaped_lit = lit.replace('{', "{{").replace('}', "}}");
                         output.text(escaped_lit);
                     }
                     other => {
