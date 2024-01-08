@@ -106,7 +106,7 @@ checksum = "50d30906286121d95be3d479533b458f87493b30a4b5f79a607db8f5d11aa91f"
 
 [[package]]
 name = "cdk-from-cfn"
-version = "0.112.0"
+version = "0.113.0"
 dependencies = [
  "anyhow",
  "base64",
