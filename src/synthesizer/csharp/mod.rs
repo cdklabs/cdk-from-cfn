@@ -187,6 +187,14 @@ impl Synthesizer for CSharp {
             ctor.newline();
         }
 
+        // Transforms
+        if !ir.transforms.is_empty() {
+            ctor.line("// Transforms");
+            for transform in &ir.transforms {
+                ctor.line(format!("AddTransform(\"{transform}\");"));
+            }
+        }
+
         // Mappings
         if !ir.mappings.is_empty() {
             ctor.line("// Mappings");

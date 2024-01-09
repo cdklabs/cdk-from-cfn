@@ -7,6 +7,8 @@ use parser::output::Output;
 use parser::parameters::Parameter;
 use parser::resource::ResourceAttributes;
 
+use serde::{Deserialize, Deserializer};
+
 pub mod errors;
 pub mod ir;
 pub mod parser;
@@ -24,7 +26,11 @@ pub use errors::*;
 pub struct CloudformationParseTree {
     pub description: Option<String>,
 
-    #[serde(default, rename = "Transform")]
+    #[serde(
+        default,
+        rename = "Transform",
+        deserialize_with = "string_or_seq_string"
+    )]
     pub transforms: Vec<String>,
 
     #[serde(default)]
@@ -37,6 +43,23 @@ pub struct CloudformationParseTree {
     pub parameters: IndexMap<String, Parameter>,
 
     pub resources: IndexMap<String, ResourceAttributes>,
+}
+
+fn string_or_seq_string<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    pub enum Transform<'a> {
+        String(&'a str),
+        Vec(Vec<String>),
+    }
+
+    Ok(match Transform::deserialize(deserializer)? {
+        Transform::String(transform) => vec![transform.to_owned()],
+        Transform::Vec(transform) => transform,
+    })
 }
 
 #[cfg(target_family = "wasm")]

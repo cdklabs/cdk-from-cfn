@@ -74,6 +74,11 @@ test_case!(config, "ConfigStack");
 
 test_case!(documentdb, "DocumentDbStack");
 
+test_case!(sam_nodejs_lambda, "SAMNodeJSLambda");
+
+// These stack should be identical to the ones above
+test_case!(sam_nodejs_lambda_arr_transform, "SAMNodeJSLambda");
+
 struct UpdateSnapshot<'a> {
     path: &'static str,
     actual: &'a str,
