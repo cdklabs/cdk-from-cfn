@@ -142,6 +142,15 @@ impl Synthesizer for Python {
             }
         }
 
+        if !ir.transforms.is_empty() {
+            ctor.newline();
+            ctor.line("# Transforms");
+
+            for transform in &ir.transforms {
+                ctor.line(format!("Stack.add_transform(self, '{transform}')"))
+            }
+        }
+
         emit_mappings(&ctor, &ir.mappings);
 
         if !ir.conditions.is_empty() {

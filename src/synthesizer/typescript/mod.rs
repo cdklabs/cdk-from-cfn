@@ -206,6 +206,15 @@ impl Synthesizer for Typescript {
             }
         }
 
+        if !ir.transforms.is_empty() {
+            ctor.newline();
+            ctor.line("// Transforms");
+
+            for transform in &ir.transforms {
+                ctor.line(format!("this.addTransform('{transform}');"));
+            }
+        }
+
         emit_mappings(&ctor, &ir.mappings);
 
         if !ir.conditions.is_empty() {

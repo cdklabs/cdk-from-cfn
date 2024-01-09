@@ -254,6 +254,15 @@ impl Java {
         }
     }
 
+    fn write_transforms(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
+        if !ir.transforms.is_empty() {
+            writer.newline();
+            for transform in &ir.transforms {
+                writer.line(format!("this.addTransform(\"{transform}\");"));
+            }
+        }
+    }
+
     fn write_resources(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
         for resource in &ir.resources {
             let maybe_undefined = Self::write_resource(resource, writer);
@@ -484,6 +493,7 @@ impl Synthesizer for Java {
 
         let definitions = Self::write_stack_definitions(&props, &class, stack_name);
         Self::write_props(&props, &definitions);
+        Self::write_transforms(&ir, &definitions);
 
         Self::write_mappings(&ir, &definitions);
         Self::write_conditions(&ir, &definitions);

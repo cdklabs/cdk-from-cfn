@@ -480,7 +480,13 @@ impl ResourceType {
                             "invalid resource type: {from:?} (missing service name)"
                         )))
                     }
-                    Some(service) => service.into(),
+                    Some(service) => {
+                        if service.to_lowercase().eq("serverless") {
+                            "SAM".into()
+                        } else {
+                            service.into()
+                        }
+                    }
                 };
                 let type_name = match parts.next() {
                     Some("") | None => {
