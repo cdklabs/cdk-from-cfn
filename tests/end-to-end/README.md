@@ -72,9 +72,9 @@ To describe the relationship between these terms: A **CDK stack** generates **CF
     ```
 1. Make sure the input CloudFormation template is a valid CloudFormation
    template.
-    1. Set the `CREATE_STACK` environment variable to true.
+    1. Set the `CREATE_CFN_STACK` environment variable to true.
         
-        `export CREATE_STACK=true`
+        `export CREATE_CFN_STACK=true`
 
         This will tell the tests to use the Rust AWS SDK to create a
         CloudFormation stack from the test's input CloudFormation stack. Your
@@ -83,7 +83,7 @@ To describe the relationship between these terms: A **CDK stack** generates **CF
 
         To turn this off, run:
 
-        `unset CREATE_STACK`
+        `unset CREATE_CFN_STACK`
 
         You must use `unset` and not set the variable to 0 or false, because the
         logic used in the tests just checks for absence or presence of a value
@@ -125,7 +125,7 @@ end-to-end.rs. For example:
 
 9. Review the test outputs
 
-10. Unset CREATE_STACK and UPDATE_SNAPSHOTS env variables, and run your tests
+10. Unset CREATE_CFN_STACK and UPDATE_SNAPSHOTS env variables, and run your tests
     again to make sure they will pass in CI.
 
 
@@ -241,7 +241,7 @@ used to execute `cdk synth` in.
 title: End to End Tests Workflow Diagram
 ---
 flowchart TB
-    if-create-stack{"1. if CREATE_STACK"}
+    if-create-stack{"1. if CREATE_CFN_STACK"}
     create-cfn-stack{"2. create CFN stack"}
     exec-cdk-from-cfn{"3. execute cdk-from-cfn"}
     if-update-snapshot-1{"4. if UPDATE_SNAPSHOTS"}

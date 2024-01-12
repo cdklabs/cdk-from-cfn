@@ -158,7 +158,7 @@ impl EndToEndTest<'_> {
 
     fn run(&mut self) {
         // GIVEN
-        self.create_stack();
+        self.create_cfn_stack();
 
         // WHEN
         let cdk_stack_definition = self.run_cdk_from_cfn();
@@ -182,11 +182,11 @@ impl EndToEndTest<'_> {
     }
 
     #[tokio::main]
-    async fn create_stack(&mut self) {
-        if std::env::var_os("CREATE_STACK").is_none() {
+    async fn create_cfn_stack(&mut self) {
+        if std::env::var_os("CREATE_CFN_STACK").is_none() {
             // By default, and in CI/CD, skip creating a CloudFormation stack
             // with the original template.
-            println!("Skipping create stack because CREATE_STACK is none");
+            println!("Skipping create stack because CREATE_CFN_STACK is none");
             return;
         }
         println!("Verifying a CloudFormation stack can be created from original template");
@@ -203,7 +203,7 @@ impl EndToEndTest<'_> {
                 .read_to_string(&mut create_first_template_str)
                 .expect("failed to read create_first.json from end-to-end-test-snapshots.zip");
             let stack_name = &format!("{}CreateFirst", self.stack_name);
-            EndToEndTest::create_stack_from_template(
+            EndToEndTest::create_cfn_stack_from_template(
                 &client,
                 stack_name,
                 &create_first_template_str,
@@ -212,12 +212,12 @@ impl EndToEndTest<'_> {
             .expect(&format!("failed to create stack: {stack_name}"));
         }
 
-        EndToEndTest::create_stack_from_template(&client, self.stack_name, self.original_template)
+        EndToEndTest::create_cfn_stack_from_template(&client, self.stack_name, self.original_template)
             .await
             .expect(&format!("failed to create stack: {}", self.stack_name));
     }
 
-    async fn create_stack_from_template(
+    async fn create_cfn_stack_from_template(
         client: &Client,
         stack_name: &str,
         template: &str,
