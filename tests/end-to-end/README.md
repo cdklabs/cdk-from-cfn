@@ -316,56 +316,56 @@ cdk-from-cfn
 └── tests
     ├── end-to-end.rs
     └── end-to-end
-        ├── README.md
-        ├── app-boilerplate-files
-        │   ├── csharp
-        │   │   ├── CSharp.csproj
-        │   │   └── setup-and-synth.sh
-        │   ├── golang
-        │   │   ├── go.mod
-        │   │   ├── go.sum
-        │   │   └── setup-and-synth.sh
-        │   ├── java
-        │   │   ├── pom.xml
-        │   │   └── setup-and-synth.sh
-        │   ├── python
-        │   │   ├── requirements.txt
-        │   │   └── setup-and-synth.sh
-        │   └── typescript
-        │       ├── package.json
-        │       └── setup-and-synth.sh
-        ├── simple
-        │   ├── template.json
-	 	│   ├── create_first.json
-        │   ├── csharp
-        │   │   ├── Program.cs
-        │   │   ├── Stack.cs
-        │   │   ├── Stack.diff
-        │   │   └── Stack.template.json
-        │   ├── golang
-        │   │   └── stack.go
-        │   ├── java
-        │   │   ├── src/java/com/myorg
-        │   │   │   ├── MyApp.java
-        │   │   │   └── Stack.java
-        │   │   ├── Stack.diff
-        │   │   └── Stack.template.json
-        │   ├── python
-        │   │   ├── app.py
-        │   │   ├── stack.py
-        │   │   ├── Stack.diff
-        │   │   └── Stack.template.json
-        │   └── typescript
-        │       ├── app.ts
-        │       ├── stack.ts
-        │       ├── Stack.diff
-        │       └── Stack.template.json
-	    ├── simple-csharp-working-dir/                  
-	    ├── simple-java-working-dir/             
-		├── simple-python-working-dir/           
-		├── simple-typescript-working-dir/
-	    ├── vpc/
-		└── ... // more test cases
+        ├── README.md
+        ├── app-boilerplate-files
+        │   ├── csharp
+        │   │   ├── CSharp.csproj
+        │   │   └── setup-and-synth.sh
+        │   ├── golang
+        │   │   ├── go.mod
+        │   │   ├── go.sum
+        │   │   └── setup-and-synth.sh
+        │   ├── java
+        │   │   ├── pom.xml
+        │   │   └── setup-and-synth.sh
+        │   ├── python
+        │   │   ├── requirements.txt
+        │   │   └── setup-and-synth.sh
+        │   └── typescript
+        │       ├── package.json
+        │       └── setup-and-synth.sh
+        ├── simple
+        │   ├── template.json
+        │   ├── create_first.json
+        │   ├── csharp
+        │   │   ├── Program.cs
+        │   │   ├── Stack.cs
+        │   │   ├── Stack.diff
+        │   │   └── Stack.template.json
+        │   ├── golang
+        │   │   └── stack.go
+        │   ├── java
+        │   │   ├── src/java/com/myorg
+        │   │   │   ├── MyApp.java
+        │   │   │   └── Stack.java
+        │   │   ├── Stack.diff
+        │   │   └── Stack.template.json
+        │   ├── python
+        │   │   ├── app.py
+        │   │   ├── stack.py
+        │   │   ├── Stack.diff
+        │   │   └── Stack.template.json
+        │   └── typescript
+        │       ├── app.ts
+        │       ├── stack.ts
+        │       ├── Stack.diff
+        │       └── Stack.template.json
+        ├── simple-csharp-working-dir/
+        ├── simple-java-working-dir/
+        ├── simple-python-working-dir/
+        ├── simple-typescript-working-dir/
+        ├── vpc/
+        └── ... // more test cases
 ```
 
 The `cdk-from-cfn/tests/end-to-end.rs` Rust module contains the source code for
