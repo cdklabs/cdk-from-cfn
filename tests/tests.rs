@@ -9,7 +9,6 @@ use indexmap::IndexMap;
 use std::vec;
 
 mod json;
-mod end_to_end;
 
 macro_rules! map{
     ($($key:expr => $value:expr),+) => {

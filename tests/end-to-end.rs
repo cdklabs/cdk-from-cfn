@@ -60,6 +60,8 @@ macro_rules! test_case {
     };
 }
 
+const ALL: &[&str; 5] = &["csharp", "golang", "java", "python", "typescript"];
+
 test_case!(simple, "SimpleStack", &["golang"]);
 test_case!(bucket, "BucketStack");
 test_case!(config, "ConfigStack", &["golang", "java"]); //java fails cdk synth bc template produced has non-deterministic order
@@ -70,10 +72,10 @@ test_case!(
     &["golang", "java"]
 ); //java fails cdk synth bc template produced has non-deterministic order
 test_case!(vpc, "VpcStack");
-test_case!(sam_nodejs_lambda, "SAMNodeJSLambda");
 
+test_case!(sam_nodejs_lambda, "SAMNodeJSLambda", ALL);
 // These stack should be identical to the ones above
-test_case!(sam_nodejs_lambda_arr_transform, "SAMNodeJSLambda");
+test_case!(sam_nodejs_lambda_arr_transform, "SAMNodeJSLambda", ALL);
 
 // Add new test cases here
 
