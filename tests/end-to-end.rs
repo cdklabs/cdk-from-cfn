@@ -158,37 +158,46 @@ impl EndToEndTest<'_> {
 
     fn run(&mut self) {
         // GIVEN
-        self.create_cfn_stack();
+        if std::env::var_os("CREATE_CFN_STACK").is_some() {
+            // Only create a CloudFormation stack if the developer has set this
+            // env var.
+            self.create_cfn_stack();
+        }
 
         // WHEN
         let cdk_stack_definition = self.run_cdk_from_cfn();
 
         // THEN
-        self.check_cdk_stack_def_matches_expected(&cdk_stack_definition);
+        if std::env::var_os("UPDATE_SNAPSHOTS").is_none() {
+            // Only check the expected output files if UPDATE_SNAPSHOTS is not
+            // set. If it is set, then don't bother checking the expected output
+            // files, because they will be over-written.
+            self.check_cdk_stack_def_matches_expected(&cdk_stack_definition);
+        }
 
-        if self.skip_cdk_synth {
+        if self.skip_cdk_synth && std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
             self.update_cdk_stack_def_snapshot(&cdk_stack_definition);
         } else {
             self.synth_cdk_app(&cdk_stack_definition);
 
             self.diff_original_template_with_new_templates();
 
-            self.check_new_templates_and_diffs_match_expected();
+            if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
+                self.update_snapshots(&cdk_stack_definition);
+            } else {
+                self.check_new_templates_and_diffs_match_expected();
+            }
 
-            self.update_snapshots(&cdk_stack_definition);
-
-            self.clean();
+            if std::env::var_os("SKIP_CLEAN").is_none() {
+                self.clean();
+            } else {
+                println!("Skipping test directory cleanup because SKIP_CLEAN=true");
+            }
         }
     }
 
     #[tokio::main]
     async fn create_cfn_stack(&mut self) {
-        if std::env::var_os("CREATE_CFN_STACK").is_none() {
-            // By default, and in CI/CD, skip creating a CloudFormation stack
-            // with the original template.
-            println!("Skipping create stack because CREATE_CFN_STACK is none");
-            return;
-        }
         println!("Verifying a CloudFormation stack can be created from original template");
         let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
         let config = aws_config::from_env().region(region_provider).load().await;
@@ -299,15 +308,6 @@ impl EndToEndTest<'_> {
     }
 
     fn check_cdk_stack_def_matches_expected(&mut self, actual_cdk_stack_def: &str) {
-        if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
-            // If UPDATE_SNAPSHOTS is set, then don't bother checking the
-            // expected output files, because they will be over-written. This
-            // environment variable is for development purposes, and will not be
-            // used in CI/CD.
-            println!("Skipping cdk stack definition check because UPDATE_SNAPSHOTS=true");
-            return;
-        }
-
         let expected_cdk_stack_def_filename =
             &format!("{}/{}", self.expected_outputs_dir, self.cdk_stack_filename);
         println!("Checking cdk stack definition matches the expected output in {expected_cdk_stack_def_filename}");
@@ -328,11 +328,6 @@ impl EndToEndTest<'_> {
     }
 
     fn update_cdk_stack_def_snapshot(&mut self, actual_cdk_stack_def: &str) {
-        if std::env::var_os("UPDATE_SNAPSHOTS").is_none() {
-            // By default, and in CI/CD, skip updating the snapshots
-            println!("Not updating snapshots because UPDATE_SNAPSHOTS is none.");
-            return;
-        }
         println!("Updating cdk stack definition snapshot because UPDATE_SNAPSHOTS=true");
 
         let expected_outputs_path = &format!("tests/end-to-end/{}", self.expected_outputs_dir);
@@ -500,14 +495,7 @@ impl EndToEndTest<'_> {
     }
 
     fn check_new_templates_and_diffs_match_expected(&self) {
-        if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
-            // If UPDATE_SNAPSHOTS is set, then don't bother checking the
-            // expected output files, because they will be over-written. This
-            // environment variable is for development purposes, and will not be
-            // used in CI/CD.
-            println!("Skipping template files and diff files check because UPDATE_SNAPSHOTS=true");
-            return;
-        }
+
 
         println!("Checking the diff between new template(s) and the original template match expected diff file(s)");
         println!("Checking new template(s) match expected template file(s)");
@@ -646,11 +634,6 @@ impl EndToEndTest<'_> {
     }
 
     fn update_snapshots(&mut self, actual_cdk_stack_def: &str) {
-        if std::env::var_os("UPDATE_SNAPSHOTS").is_none() {
-            // By default, and in CI/CD, skip updating the snapshots
-            println!("Not updating snapshots because UPDATE_SNAPSHOTS is none.");
-            return;
-        }
         println!("Updating snapshots because UPDATE_SNAPSHOTS=true");
         self.update_cdk_stack_def_snapshot(actual_cdk_stack_def);
 
@@ -721,10 +704,6 @@ impl EndToEndTest<'_> {
     }
 
     fn clean(&self) {
-        if std::env::var_os("SKIP_CLEAN").is_some() {
-            println!("Skipping test cleanup because SKIP_CLEAN=true");
-            return;
-        }
         println!(
             "Cleaning up test working directory: {}",
             self.test_working_dir
