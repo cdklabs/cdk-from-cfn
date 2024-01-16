@@ -79,7 +79,7 @@ types and importing their names.
 ### Parameter Usage
 
 If you think of a cloudformation template as a giant "function", Parameters are the inputs into the function. If you
-have a single parameter called AmiId in your cloudformation template, then you need a prop that corresponds to that
+have a single parameter called `AmiId` in your cloudformation template, then you need a prop that corresponds to that
 in your properties. 
 
 There is an argument to be had about retaining parameters in the stack using `new CfnParameter` instead of props.
