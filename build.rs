@@ -233,7 +233,7 @@ fn zip_test_snapshots() {
         let path = entry.path();
         let name = path
             .strip_prefix(Path::new(src_dir))
-            .expect(&format!("{src_dir} should be a prefix of {:?}", path))
+            .unwrap_or_else(|_| panic!("{src_dir} should be a prefix of {:?}", path))
             .to_str()
             .expect("failed to convert filename to string");
 
@@ -246,17 +246,15 @@ fn zip_test_snapshots() {
         if path.is_file() && entry.depth() > 1 {
             zip.start_file(name, options)
                 .expect("failed to start zip file");
-            let mut f = fs::File::open(path).expect(&format!("failed to open {:?}", path));
+            let mut f = fs::File::open(path).unwrap_or_else(|_| panic!("failed to open {:?}", path));
             f.read_to_end(&mut buffer)
-                .expect(&format!("failed to read {:?}", path));
-            zip.write_all(&*buffer)
-                .expect(&format!("failed to write {:?} to the zip file", path));
+                .unwrap_or_else(|_| panic!("failed to read {:?}", path));
+            zip.write_all(&buffer)
+                .unwrap_or_else(|_| panic!("failed to write {:?} to the zip file", path));
             buffer.clear();
         } else if path.is_dir() {
-            zip.add_directory(name, options).expect(&format!(
-                "failed to add directory {:?} to the zip file",
-                path
-            ));
+            zip.add_directory(name, options).unwrap_or_else(|_| panic!("failed to add directory {:?} to the zip file",
+                path));
         }
     }
     zip.finish().expect("failed to write zip file");
