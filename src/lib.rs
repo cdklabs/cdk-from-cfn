@@ -6,17 +6,15 @@ use parser::lookup_table::MappingTable;
 use parser::output::Output;
 use parser::parameters::Parameter;
 use parser::resource::ResourceAttributes;
-
 use serde::{Deserialize, Deserializer};
 
+pub mod code;
 pub mod errors;
 pub mod ir;
 pub mod parser;
 pub mod primitives;
 pub mod specification;
 pub mod synthesizer;
-
-mod code;
 
 #[doc(inline)]
 pub use errors::*;

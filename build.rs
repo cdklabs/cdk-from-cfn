@@ -1,9 +1,13 @@
 use std::collections::HashMap;
-use std::io::Write;
+use std::io::{Read, Write};
+use std::path::Path;
 use std::{fs, io};
 
 use serde::Deserialize;
 use serde_json::Value;
+use walkdir::WalkDir;
+use zip::write::FileOptions;
+use zip::ZipWriter;
 
 static JSON_SPEC: &str = include_str!("src/specification/spec.json");
 
@@ -52,6 +56,10 @@ fn main() -> io::Result<()> {
             resource_types.build()
         )?;
     }
+
+    println!("cargo:rerun-if-changed=tests/end-to-end.rs");
+    println!("cargo:rerun-if-changed=tests/end-to-end");
+    zip_test_snapshots();
 
     Ok(())
 }
@@ -205,4 +213,50 @@ impl PropertyRule {
 
         format!("super::PropertyRule {{ required: {required}, type_rule: super::TypeRule::{type_rule} }}")
     }
+}
+
+fn zip_test_snapshots() {
+    // Zip the expected output files for the end-to-end tests so that they can be included in the test binary. This will not affect the size of the cdk-from-cfn binary.
+
+    let src_dir = "./tests/end-to-end";
+    let dst_file = "./tests/end-to-end-test-snapshots.zip";
+    let do_not_zip = ["app-boiler-plate-files", "working-dir"];
+
+    let file = fs::File::create(Path::new(dst_file)).unwrap();
+
+    let walkdir = WalkDir::new(src_dir);
+    let mut zip = ZipWriter::new(file);
+    let options = FileOptions::default();
+    let mut buffer = Vec::new();
+
+    'dir_entries: for entry in walkdir.into_iter().map(|e| e.unwrap()) {
+        let path = entry.path();
+        let name = path
+            .strip_prefix(Path::new(src_dir))
+            .unwrap_or_else(|_| panic!("{src_dir} should be a prefix of {:?}", path))
+            .to_str()
+            .expect("failed to convert filename to string");
+
+        for d in do_not_zip {
+            if name.contains(d) {
+                continue 'dir_entries;
+            };
+        }
+
+        if path.is_file() && entry.depth() > 1 {
+            zip.start_file(name, options)
+                .expect("failed to start zip file");
+            let mut f =
+                fs::File::open(path).unwrap_or_else(|_| panic!("failed to open {:?}", path));
+            f.read_to_end(&mut buffer)
+                .unwrap_or_else(|_| panic!("failed to read {:?}", path));
+            zip.write_all(&buffer)
+                .unwrap_or_else(|_| panic!("failed to write {:?} to the zip file", path));
+            buffer.clear();
+        } else if path.is_dir() {
+            zip.add_directory(name, options)
+                .unwrap_or_else(|_| panic!("failed to add directory {:?} to the zip file", path));
+        }
+    }
+    zip.finish().expect("failed to write zip file");
 }
