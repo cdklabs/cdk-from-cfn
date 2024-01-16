@@ -344,8 +344,8 @@ cdk-from-cfn
 ```
 
 The `cdk-from-cfn/tests/end-to-end.rs` Rust module contains the source code for
-the end to end tests, and then the `cdk-from-cfn/tests/end-to-end/` contains all
-end to end test cases, and all the files needed to run the tests.
+the end-to-end tests, and then the `cdk-from-cfn/tests/end-to-end/` contains all
+end-to-end test cases, and all the files needed to run the tests.
 
 The `app-boilerplate-files/` directory has a directory for each language, which
 contains any files necessary to run a CDK app in that language. It also contains
@@ -380,7 +380,7 @@ used to execute `cdk synth` in.
 
 ```mermaid
 ---
-title: End to End Tests Workflow Diagram
+title: End-to-end Tests Workflow Diagram
 ---
 flowchart TB
     if-create-stack{"`1\. if CREATE_CFN_STACK`"}
@@ -546,3 +546,14 @@ All paths in the descriptions below are relative to
     is expected that there is no diff and template file saved in the snapshot,
     so the test passes. As mentioned in step 22, there is no point to save the
     diff or template when the diff is empty.
+
+## Some detail about the snapshots
+
+The snapshot files are zipped during build time ([here](../../build.rs#L62)) to
+an archive at `tests/end-to-end-test-snapshots.zip`. This zip file is
+git-ignored. The snapshots zip is included in the end-to-end tests as part of
+the binary ([here](../end-to-end.rs#L136)). This is to optimize runtime
+performance of the test, by avoiding loading and reading all of these files
+during runtime. As a developer working with this repo, you shouldn't have to do
+anything different because of this. The zip file is automatically regenerated
+whenever any relevant files change.
