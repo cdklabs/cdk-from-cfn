@@ -181,8 +181,10 @@ impl EndToEndTest<'_> {
             self.check_cdk_stack_def_matches_expected(&cdk_stack_definition);
         }
 
-        if self.skip_cdk_synth && std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
-            self.update_cdk_stack_def_snapshot(&cdk_stack_definition);
+        if self.skip_cdk_synth {
+            if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
+                self.update_cdk_stack_def_snapshot(&cdk_stack_definition);
+            }
         } else {
             self.synth_cdk_app(&cdk_stack_definition);
 
@@ -227,9 +229,13 @@ impl EndToEndTest<'_> {
             .expect(&format!("failed to create stack: {stack_name}"));
         }
 
-        EndToEndTest::create_cfn_stack_from_template(&client, self.stack_name, self.original_template)
-            .await
-            .expect(&format!("failed to create stack: {}", self.stack_name));
+        EndToEndTest::create_cfn_stack_from_template(
+            &client,
+            self.stack_name,
+            self.original_template,
+        )
+        .await
+        .expect(&format!("failed to create stack: {}", self.stack_name));
     }
 
     async fn create_cfn_stack_from_template(
@@ -501,8 +507,6 @@ impl EndToEndTest<'_> {
     }
 
     fn check_new_templates_and_diffs_match_expected(&self) {
-
-
         println!("Checking the diff between new template(s) and the original template match expected diff file(s)");
         println!("Checking new template(s) match expected template file(s)");
         let mut actual_outputs = self.get_template_and_diff_dir_entries(&self.test_working_dir);
