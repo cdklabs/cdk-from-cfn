@@ -60,7 +60,6 @@ export class DocumentDbStack extends cdk.Stack {
     });
     dbCluster.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
 
-    if (dbCluster == null) { throw new Error(`A combination of conditions caused 'dbCluster' to be undefined. Fixit.`); }
     const dbInstance = new docdb.CfnDBInstance(this, 'DBInstance', {
       dbClusterIdentifier: dbCluster.ref,
       dbInstanceIdentifier: props.dbInstanceName!,

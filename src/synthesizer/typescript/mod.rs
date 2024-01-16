@@ -206,6 +206,15 @@ impl Synthesizer for Typescript {
             }
         }
 
+        if !ir.transforms.is_empty() {
+            ctor.newline();
+            ctor.line("// Transforms");
+
+            for transform in &ir.transforms {
+                ctor.line(format!("this.addTransform('{transform}');"));
+            }
+        }
+
         emit_mappings(&ctor, &ir.mappings);
 
         if !ir.conditions.is_empty() {
@@ -385,8 +394,6 @@ fn emit_resource(
     let service = reference.resource_type.service().to_lowercase();
 
     let maybe_undefined = if let Some(cond) = &reference.condition {
-        append_references(output, reference);
-
         output.line(format!(
             "const {var_name} = {cond}",
             cond = pretty_name(cond)
@@ -408,7 +415,6 @@ fn emit_resource(
 
         true
     } else {
-        append_references(output, reference);
         output.line(format!(
             "const {var_name} = new {service}.Cfn{rtype}(this, '{}', {{",
             reference.name.escape_debug(),
@@ -761,13 +767,6 @@ fn emit_mapping_instruction(output: Rc<CodeBuffer>, mapping_instruction: &Mappin
 fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, MappingInnerValue>) {
     for (name, value) in inner_mapping {
         output.line(format!("'{key}': {value},", key = name.escape_debug()));
-    }
-}
-
-fn append_references(output: &CodeBuffer, reference: &ResourceInstruction) {
-    // Need something that doesn't allow repeats or just don't add the repeats
-    for dep in &reference.references {
-        output.line(format!("if ({dep} == null) {{ throw new Error(`A combination of conditions caused '{dep}' to be undefined. Fixit.`); }}", dep=pretty_name(dep)));
     }
 }
 

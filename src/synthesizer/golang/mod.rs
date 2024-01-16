@@ -207,6 +207,13 @@ impl Synthesizer for Golang {
         ctor.line("stack := cdk.NewStack(scope, &id, &sprops)");
         ctor.newline();
 
+        if !ir.transforms.is_empty() {
+            for transform in &ir.transforms {
+                ctor.line(format!("stack.AddTransform(jsii.String(\"{transform}\"))"));
+            }
+            ctor.newline();
+        }
+
         for condition in &ir.conditions {
             ctor.text(format!(
                 "{name} := ",

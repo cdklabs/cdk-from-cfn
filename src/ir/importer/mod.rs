@@ -33,9 +33,15 @@ impl ImportInstruction {
                 )));
             };
 
+            let service_name = if service.to_string().to_lowercase().eq("serverless") {
+                "SAM".to_string()
+            } else {
+                service.to_string()
+            };
+
             type_names.insert(TypeName {
                 organization: organization.to_string(),
-                service: Some(service.to_string()),
+                service: Some(service_name),
             });
         }
 

@@ -92,7 +92,6 @@ export class ConfigStack extends cdk.Stack {
       ],
     });
 
-    if (configBucket == null) { throw new Error(`A combination of conditions caused 'configBucket' to be undefined. Fixit.`); }
     const configRole = new iam.CfnRole(this, 'ConfigRole', {
       assumeRolePolicyDocument: {
         Version: '2012-10-17',
@@ -154,7 +153,6 @@ export class ConfigStack extends cdk.Stack {
       ],
     });
 
-    if (configTopic == null) { throw new Error(`A combination of conditions caused 'configTopic' to be undefined. Fixit.`); }
     const configTopicPolicy = new sns.CfnTopicPolicy(this, 'ConfigTopicPolicy', {
       policyDocument: {
         Id: 'ConfigTopicPolicy',
@@ -175,8 +173,6 @@ export class ConfigStack extends cdk.Stack {
       ],
     });
 
-    if (configBucket == null) { throw new Error(`A combination of conditions caused 'configBucket' to be undefined. Fixit.`); }
-    if (configTopic == null) { throw new Error(`A combination of conditions caused 'configTopic' to be undefined. Fixit.`); }
     const deliveryChannel = new config.CfnDeliveryChannel(this, 'DeliveryChannel', {
       configSnapshotDeliveryProperties: {
         deliveryFrequency: 'Six_Hours',
@@ -185,7 +181,6 @@ export class ConfigStack extends cdk.Stack {
       snsTopicArn: configTopic.ref,
     });
 
-    if (lambdaExecutionRole == null) { throw new Error(`A combination of conditions caused 'lambdaExecutionRole' to be undefined. Fixit.`); }
     const volumeAutoEnableIoComplianceCheck = new lambda.CfnFunction(this, 'VolumeAutoEnableIOComplianceCheck', {
       code: {
         zipFile: [
@@ -229,14 +224,12 @@ export class ConfigStack extends cdk.Stack {
       role: lambdaExecutionRole.attrArn,
     });
 
-    if (volumeAutoEnableIoComplianceCheck == null) { throw new Error(`A combination of conditions caused 'volumeAutoEnableIoComplianceCheck' to be undefined. Fixit.`); }
     const configPermissionToCallLambda = new lambda.CfnPermission(this, 'ConfigPermissionToCallLambda', {
       functionName: volumeAutoEnableIoComplianceCheck.attrArn,
       action: 'lambda:InvokeFunction',
       principal: 'config.amazonaws.com',
     });
 
-    if (configRole == null) { throw new Error(`A combination of conditions caused 'configRole' to be undefined. Fixit.`); }
     const configRecorder = new config.CfnConfigurationRecorder(this, 'ConfigRecorder', {
       name: 'default',
       recordingGroup: {
@@ -247,10 +240,6 @@ export class ConfigStack extends cdk.Stack {
       roleArn: configRole.attrArn,
     });
 
-    if (configPermissionToCallLambda == null) { throw new Error(`A combination of conditions caused 'configPermissionToCallLambda' to be undefined. Fixit.`); }
-    if (configRecorder == null) { throw new Error(`A combination of conditions caused 'configRecorder' to be undefined. Fixit.`); }
-    if (ec2Volume == null) { throw new Error(`A combination of conditions caused 'ec2Volume' to be undefined. Fixit.`); }
-    if (volumeAutoEnableIoComplianceCheck == null) { throw new Error(`A combination of conditions caused 'volumeAutoEnableIoComplianceCheck' to be undefined. Fixit.`); }
     const configRuleForVolumeAutoEnableIo = new config.CfnConfigRule(this, 'ConfigRuleForVolumeAutoEnableIO', {
       configRuleName: 'ConfigRuleForVolumeAutoEnableIO',
       scope: {
@@ -273,7 +262,6 @@ export class ConfigStack extends cdk.Stack {
     configRuleForVolumeAutoEnableIo.addDependency(configPermissionToCallLambda);
     configRuleForVolumeAutoEnableIo.addDependency(configRecorder);
 
-    if (configRecorder == null) { throw new Error(`A combination of conditions caused 'configRecorder' to be undefined. Fixit.`); }
     const configRuleForVolumeTags = new config.CfnConfigRule(this, 'ConfigRuleForVolumeTags', {
       inputParameters: {
         tag1Key: 'CostCenter',

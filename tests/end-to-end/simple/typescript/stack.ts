@@ -107,7 +107,6 @@ export class SimpleStack extends cdk.Stack {
       visibilityTimeout: 120,
     });
 
-    if (queue == null) { throw new Error(`A combination of conditions caused 'queue' to be undefined. Fixit.`); }
     const bucket = isUsEast1
       ? new s3.CfnBucket(this, 'Bucket', {
           accessControl: 'Private',
