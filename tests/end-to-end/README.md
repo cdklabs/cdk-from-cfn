@@ -236,7 +236,8 @@ all-encompassing.*
               to see if the changes are acceptable.
     
     Note: This diff mechanism should be improved so that this manual review is
-    either not necessary, or to make it easier. See [issue](TODO add link).
+    either not necessary, or to make it easier. See
+    [issue](https://github.com/cdklabs/cdk-from-cfn/issues/506).
 
 10. To be sure your test will succeed in CI/CD, you can unset `CREATE_CFN_STACK`
     and `UPDATE_SNAPSHOTS` env variables, and run your test again.
