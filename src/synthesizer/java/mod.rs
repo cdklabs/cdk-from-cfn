@@ -658,7 +658,13 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
         ResourceIr::Bool(bool) => output.text(bool.to_string()),
         ResourceIr::Double(number) => output.text(format!("{number}")),
         ResourceIr::Number(number) => output.text(format!("{number}")),
-        ResourceIr::String(text) => output.text(format!("\"{text}\"")),
+        ResourceIr::String(text) => {
+            if text.lines().count() > 1 {
+                output.text(format!("\"\"\"\n{text}\"\"\""))
+            } else {
+                output.text(format!("\"{text}\""))
+            }
+        }
 
         // Collection values
         ResourceIr::Array(_, array) => {

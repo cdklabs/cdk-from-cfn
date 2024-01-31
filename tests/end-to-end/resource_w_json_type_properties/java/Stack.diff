@@ -1,0 +1,37 @@
+diff --git a/./tests/end-to-end/resource_w_json_type_properties/template.json b/tests/end-to-end/resource_w_json_type_properties-java-working-dir/cdk.out/Stack.template.json
+index 3fc1712..ef11b51 100644
+--- a/./tests/end-to-end/resource_w_json_type_properties/template.json
++++ b/tests/end-to-end/resource_w_json_type_properties-java-working-dir/cdk.out/Stack.template.json
+@@ -1,5 +1,4 @@
+ {
+-    "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+   "MyQueue1": {
+    "Type": "AWS::SQS::Queue"
+@@ -12,11 +11,9 @@
+    "Properties": {
+     "Policies": [
+      {
+-              "PolicyName": "MyQueueGroupPolicy",
+       "PolicyDocument": {
+        "Statement": [
+         {
+-                    "Effect": "Allow",
+          "Action": [
+           "sqs:DeleteMessage",
+           "sqs:ReceiveMessage"
+@@ -34,10 +31,12 @@
+             "Arn"
+            ]
+           }
+-                    ]
++         ],
++         "Effect": "Allow"
+         }
+        ]
+-              }
++      },
++      "PolicyName": "MyQueueGroupPolicy"
+      }
+     ]
+    }
