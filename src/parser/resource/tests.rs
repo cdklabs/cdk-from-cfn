@@ -322,7 +322,7 @@ fn intrinsic_sub() {
             .unwrap(),
         IntrinsicFunction::Sub {
             string: STRING.into(),
-            replaces: Some(ResourceValue::Object(IndexMap::from([(
+            replaces: Some(ResourceValue::Object(IndexMap::from_iter([(
                 "CUSTOM_VARIABLE".to_string(),
                 ResourceValue::Number(CUSTOM)
             )])))
@@ -339,7 +339,7 @@ fn intrinsic_sub() {
         .unwrap(),
         IntrinsicFunction::Sub {
             string: STRING.into(),
-            replaces: Some(ResourceValue::Object(IndexMap::from([(
+            replaces: Some(ResourceValue::Object(IndexMap::from_iter([(
                 "CUSTOM_VARIABLE".to_string(),
                 ResourceValue::Number(CUSTOM)
             )]))),

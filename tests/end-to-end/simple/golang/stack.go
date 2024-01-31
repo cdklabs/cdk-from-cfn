@@ -126,11 +126,11 @@ func NewSimpleStack(scope constructs.Construct, id string, props *SimpleStackPro
 		&s3.CfnBucketProps{
 			AccessControl: jsii.String("Private"),
 			BucketName: jsii.String(fmt.Sprintf("%v-%v-bucket", props.BucketNamePrefix, stack.Region())),
-			LoggingConfiguration: &LoggingConfiguration/* FIXME */{
+			LoggingConfiguration: &LoggingConfigurationProperty{
 				DestinationBucketName: props.LogDestinationBucketName,
 			},
-			WebsiteConfiguration: &WebsiteConfiguration/* FIXME */{
-				RedirectAllRequestsTo: &RedirectAllRequestsTo/* FIXME */{
+			WebsiteConfiguration: &WebsiteConfigurationProperty{
+				RedirectAllRequestsTo: &RedirectAllRequestsToProperty{
 					HostName: jsii.String("example.com"),
 					Protocol: jsii.String("https"),
 				},

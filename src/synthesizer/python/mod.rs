@@ -1,3 +1,4 @@
+use crate::cdk::TypeReference;
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
@@ -8,7 +9,6 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::specification::Structure;
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::io;
@@ -582,7 +582,7 @@ fn emit_resource_ir(
             });
             for (name, value) in entries {
                 match structure {
-                    Structure::Simple(_) => {
+                    TypeReference::Primitive(_) => {
                         obj.text(format!("'{name}': "));
                     }
                     _ => {

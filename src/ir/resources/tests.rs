@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 
 use crate::ir::reference::{Origin, Reference};
 use crate::ir::resources::{order, ResourceInstruction, ResourceIr, ResourceType};
+use crate::Hasher;
 
 #[test]
 fn test_ir_ordering() {
@@ -104,6 +105,6 @@ fn parse_resource_type() {
 }
 
 #[inline]
-fn create_property(name: &str, resource: ResourceIr) -> IndexMap<String, ResourceIr> {
-    IndexMap::from([(name.into(), resource)])
+fn create_property(name: &str, resource: ResourceIr) -> IndexMap<String, ResourceIr, Hasher> {
+    IndexMap::from_iter([(name.into(), resource)])
 }

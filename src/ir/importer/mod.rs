@@ -1,8 +1,9 @@
+use std::collections::HashSet;
+
 use indexmap::IndexMap;
 
 use crate::parser::resource::ResourceAttributes;
-use crate::TransmuteError;
-use std::collections::HashSet;
+use crate::{Hasher, TransmuteError};
 
 // ImportInstruction look something like:
 // import * as $name from '$path[0]/$path[1]...';
@@ -15,7 +16,7 @@ pub struct ImportInstruction {
 
 impl ImportInstruction {
     pub(super) fn from(
-        parse_tree: &IndexMap<String, ResourceAttributes>,
+        parse_tree: &IndexMap<String, ResourceAttributes, Hasher>,
     ) -> Result<Vec<Self>, TransmuteError> {
         let mut type_names = HashSet::new();
         for (_, resource) in parse_tree {

@@ -1,19 +1,21 @@
+use std::collections::{BTreeSet, HashMap, HashSet};
+use std::convert::TryInto;
+use std::fmt;
+use std::ops::Deref;
+
+use base64::Engine;
+use indexmap::IndexMap;
+use topological_sort::TopologicalSort;
+
+use crate::cdk::*;
 use crate::ir::reference::{Origin, Reference};
 use crate::ir::sub::{sub_parse_tree, SubValue};
 use crate::parser::resource::{
     DeletionPolicy, IntrinsicFunction, ResourceAttributes, ResourceValue,
 };
 use crate::primitives::WrapperF64;
-use crate::specification::{CfnType, Specification, Structure};
+use crate::Hasher;
 use crate::TransmuteError;
-use base64::Engine;
-use indexmap::IndexMap;
-use std::borrow::Cow;
-use std::collections::{BTreeSet, HashMap, HashSet};
-use std::convert::TryInto;
-use std::fmt;
-use std::ops::Deref;
-use topological_sort::TopologicalSort;
 
 use super::ReferenceOrigins;
 
@@ -30,11 +32,11 @@ pub enum ResourceIr {
     String(String),
 
     // Higher level resolutions
-    Array(Structure, Vec<ResourceIr>),
-    Object(Structure, IndexMap<String, ResourceIr>),
+    Array(TypeReference, Vec<ResourceIr>),
+    Object(TypeReference, IndexMap<String, ResourceIr, Hasher>),
 
-    /// Rest is meta functions
-    /// https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html#w2ab1c33c28c21c29
+    // Rest is meta functions
+    // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html#w2ab1c33c28c21c29
     If(String, Box<ResourceIr>, Box<ResourceIr>),
     Join(String, Vec<ResourceIr>),
     Split(String, Box<ResourceIr>),
@@ -48,21 +50,21 @@ pub enum ResourceIr {
     Cidr(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
 }
 
-/// ResourceTranslationInputs is a place to store all the intermediate recursion
-/// for resource types.
-#[derive(Clone, Debug)]
-pub(super) struct ResourceTranslator<'t> {
-    pub complexity: Structure,
-    pub origins: &'t ReferenceOrigins,
-    pub resource_metadata: Option<ResourceMetadata<'t>>,
+// ResourceTranslationInputs is a place to store all the intermediate recursion
+// for resource types.
+#[derive(Clone)]
+pub(super) struct ResourceTranslator<'a, 'b> {
+    pub schema: &'a Schema,
+    pub origins: &'b ReferenceOrigins,
+    pub value_type: Option<TypeReference>,
 }
 
-impl<'t> ResourceTranslator<'t> {
-    const fn json(origins: &'t ReferenceOrigins) -> Self {
+impl<'a, 'b> ResourceTranslator<'a, 'b> {
+    const fn json(schema: &'a Schema, origins: &'b ReferenceOrigins) -> Self {
         Self {
-            complexity: Structure::Simple(CfnType::Json),
+            schema,
             origins,
-            resource_metadata: None,
+            value_type: Some(TypeReference::Primitive(Primitive::Json)),
         }
     }
 
@@ -76,83 +78,78 @@ impl<'t> ResourceTranslator<'t> {
             ResourceValue::Number(n) => Ok(ResourceIr::Number(n)),
             ResourceValue::Double(d) => Ok(ResourceIr::Double(d)),
             ResourceValue::String(s) => {
-                if let Structure::Simple(simple_type) = &self.complexity {
+                if let Some(TypeReference::Primitive(simple_type)) = self.value_type {
                     return match simple_type {
-                        CfnType::Boolean => {
+                        Primitive::Boolean => {
                             Ok(ResourceIr::Bool(s.parse().map_err(|cause| {
                                 TransmuteError::new(format!("{cause}"))
                             })?))
                         }
-                        CfnType::Integer => {
+                        Primitive::Number => {
                             Ok(ResourceIr::Number(s.parse().map_err(|cause| {
                                 TransmuteError::new(format!("{cause}"))
                             })?))
                         }
-                        CfnType::Double => {
-                            Ok(ResourceIr::Number(s.parse().map_err(|cause| {
-                                TransmuteError::new(format!("{cause}"))
-                            })?))
-                        }
-                        &_ => Ok(ResourceIr::String(s)),
+                        _ => Ok(ResourceIr::String(s)),
                     };
                 }
                 Ok(ResourceIr::String(s))
             }
             ResourceValue::Array(parse_resource_vec) => {
-                let mut array_ir = Vec::with_capacity(parse_resource_vec.len());
-                for parse_resource in parse_resource_vec {
-                    array_ir.push(self.translate(parse_resource)?);
-                }
-
-                Ok(ResourceIr::Array(self.complexity.clone(), array_ir))
-            }
-            ResourceValue::Object(o) => {
-                let mut new_hash = IndexMap::with_capacity(o.len());
-                for (s, rv) in o {
-                    let property_ir = match &self.complexity {
-                        Structure::Simple(_) => self.translate(rv)?,
-                        Structure::Composite(_) => {
-                            // Update the rule with it's underlying property rule.
-                            let resource_metadata = self.resource_metadata.as_ref().unwrap();
-                            let rule = resource_metadata
-                                .specification
-                                .property_type(
-                                    self.resource_metadata
-                                        .as_ref()
-                                        .unwrap()
-                                        .property_type
-                                        .as_ref()
-                                        .unwrap(),
-                                )
-                                .unwrap();
-                            let properties = rule.as_properties().unwrap();
-                            let property_rule = properties.get(&s).unwrap();
-
-                            let opt = Specification::full_property_name(
-                                &property_rule.get_structure(),
-                                &resource_metadata.resource_type.to_string(),
-                            );
-
-                            self.with_complexity_and_metadata(
-                                property_rule.get_structure(),
-                                Some(ResourceMetadata {
-                                    property_type: opt.map(Into::into),
-                                    ..resource_metadata.clone()
-                                }),
-                            )
-                            .translate(rv)?
-                        }
+                let item_type = match &self.value_type {
+                    Some(TypeReference::List(item_type)) => Some(item_type.deref().clone()),
+                    value_type => value_type.clone(),
+                };
+                let array_ir = {
+                    let item_translator = Self {
+                        schema: self.schema,
+                        origins: self.origins,
+                        value_type: item_type.clone(),
                     };
 
-                    new_hash.insert(s.to_string(), property_ir);
+                    let mut array_ir = Vec::with_capacity(parse_resource_vec.len());
+                    for parse_resource in parse_resource_vec {
+                        array_ir.push(item_translator.translate(parse_resource)?);
+                    }
+                    array_ir
+                };
+
+                Ok(ResourceIr::Array(item_type.unwrap_or_default(), array_ir))
+            }
+            ResourceValue::Object(o) => {
+                let property_bag: Box<dyn PropertyBag> = match &self.value_type {
+                    Some(TypeReference::Named(name)) => {
+                        Box::new(self.schema.type_named(name).cloned().unwrap())
+                    }
+                    Some(TypeReference::Map(item_type)) => Box::new(MapOf(item_type)),
+                    Some(TypeReference::Primitive(Primitive::Json)) => {
+                        Box::new(MapOf(&TypeReference::Primitive(Primitive::Json)))
+                    }
+                    other => unimplemented!("{other:?}"),
+                };
+
+                let mut new_hash = IndexMap::with_capacity_and_hasher(o.len(), Hasher::default());
+                for (s, rv) in o {
+                    let property_type = property_bag.property(&s);
+                    let property_ir = Self {
+                        schema: self.schema,
+                        origins: self.origins,
+                        value_type: property_type.map(|pt| pt.value_type),
+                    }
+                    .translate(rv)?;
+
+                    new_hash.insert(s, property_ir);
                 }
 
-                Ok(ResourceIr::Object(self.complexity.clone(), new_hash))
+                Ok(ResourceIr::Object(
+                    self.value_type.clone().unwrap_or_default(),
+                    new_hash,
+                ))
             }
             ResourceValue::IntrinsicFunction(intrinsic) => {
                 match *intrinsic {
                     IntrinsicFunction::Sub { string, replaces } => {
-                        let mut excess_map = IndexMap::new();
+                        let mut excess_map = IndexMap::<_, _, Hasher>::default();
                         if let Some(replaces) = replaces {
                             match replaces {
                                 ResourceValue::Object(obj) => {
@@ -188,7 +185,7 @@ impl<'t> ResourceTranslator<'t> {
                         top_level_key,
                         second_level_key,
                     } => {
-                        let rt = self.with_complexity(Structure::Simple(CfnType::String));
+                        let rt = self.with_value_type(TypeReference::Primitive(Primitive::String));
                         let top_level_key_str = rt.translate(top_level_key)?;
                         let second_level_key_str = rt.translate(second_level_key)?;
                         Ok(ResourceIr::Map(
@@ -292,7 +289,7 @@ impl<'t> ResourceTranslator<'t> {
                         count,
                         cidr_bits,
                     } => {
-                        let rt = self.with_complexity(Structure::Simple(CfnType::String));
+                        let rt = self.with_value_type(TypeReference::Primitive(Primitive::String));
                         let ip_block_str = rt.translate(ip_block)?;
                         let count_str = rt.translate(count)?;
                         let cidr_bits_str = rt.translate(cidr_bits)?;
@@ -326,33 +323,25 @@ impl<'t> ResourceTranslator<'t> {
     }
 
     #[inline]
-    fn with_complexity(&self, complexity: Structure) -> Self {
+    fn with_value_type(&self, value_type: TypeReference) -> Self {
         Self {
-            complexity,
+            schema: self.schema,
             origins: self.origins,
-            resource_metadata: self.resource_metadata.clone(),
-        }
-    }
-
-    #[inline]
-    fn with_complexity_and_metadata(
-        &self,
-        complexity: Structure,
-        resource_metadata: Option<ResourceMetadata<'t>>,
-    ) -> Self {
-        Self {
-            complexity,
-            origins: self.origins,
-            resource_metadata,
+            value_type: Some(value_type),
         }
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct ResourceMetadata<'t> {
-    specification: &'t Specification,
-    property_type: Option<Cow<'t, str>>,
-    resource_type: &'t ResourceType,
+#[derive(Clone)]
+struct MapOf<'a>(&'a TypeReference);
+impl PropertyBag for MapOf<'_> {
+    fn property(&self, key: &str) -> Option<Property> {
+        Some(Property {
+            name: voca_rs::case::camel_case(key).into(),
+            required: false,
+            value_type: self.0.clone(),
+        })
+    }
 }
 
 // ResourceInstruction is all the information needed to output a resource assignment.
@@ -365,54 +354,46 @@ pub struct ResourceInstruction {
     pub deletion_policy: Option<DeletionPolicy>,
     pub dependencies: Vec<String>,
     pub resource_type: ResourceType,
-    pub properties: IndexMap<String, ResourceIr>,
+    pub properties: IndexMap<String, ResourceIr, Hasher>,
 
-    /// `references` identify the logical ID of all other template entities that this resource
-    /// contains a reference to (i.e: it uses them).
+    // `references` identify the logical ID of all other template entities that this resource
+    // contains a reference to (i.e: it uses them).
     pub references: BTreeSet<String>,
 }
 
 impl ResourceInstruction {
-    pub(super) fn from<S>(
-        parse_tree: IndexMap<String, ResourceAttributes, S>,
+    pub(super) fn from(
+        parse_tree: IndexMap<String, ResourceAttributes, Hasher>,
+        schema: &Schema,
         origins: &ReferenceOrigins,
     ) -> Result<Vec<Self>, TransmuteError> {
-        let specification = &Specification::default();
-
         let mut instructions = Vec::with_capacity(parse_tree.len());
 
         for (name, attributes) in parse_tree {
-            let resource_spec = specification.get_resource(&attributes.resource_type);
             let resource_type = ResourceType::parse(&attributes.resource_type)?;
+            let resource_spec = schema.resource_type(&attributes.resource_type);
 
             let metadata = if let Some(metadata) = attributes.metadata {
-                Some(ResourceTranslator::json(origins).translate(metadata)?)
+                Some(ResourceTranslator::json(schema, origins).translate(metadata)?)
             } else {
                 None
             };
 
             let update_policy = if let Some(up) = attributes.update_policy {
-                Some(ResourceTranslator::json(origins).translate(up)?)
+                Some(ResourceTranslator::json(schema, origins).translate(up)?)
             } else {
                 None
             };
 
-            let mut properties = IndexMap::with_capacity(attributes.properties.len());
+            let mut properties =
+                IndexMap::with_capacity_and_hasher(attributes.properties.len(), Hasher::default());
             for (name, prop) in attributes.properties {
-                let complexity = resource_spec
-                    .as_ref()
-                    .and_then(|spec| spec.structure(&name))
-                    .unwrap_or_default();
-                let property_type =
-                    Specification::full_property_name(&complexity, &resource_type.to_string());
+                let property_type = resource_spec.and_then(|spec| spec.property(&name));
+                let property_type = property_type.map(|prop| prop.value_type);
                 let translator = ResourceTranslator {
-                    complexity,
+                    schema,
                     origins,
-                    resource_metadata: Some(ResourceMetadata {
-                        specification,
-                        property_type: property_type.map(Into::into),
-                        resource_type: &resource_type,
-                    }),
+                    value_type: property_type,
                 };
                 properties.insert(name, translator.translate(prop)?);
             }
@@ -445,9 +426,10 @@ impl ResourceInstruction {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ResourceType {
-    /// A standard resource type (AWS::<service>::<type_name>)
+    Alexa { service: String, type_name: String },
+    // A standard resource type (AWS::<service>::<type_name>)
     AWS { service: String, type_name: String },
-    /// A custom resource type (Custom::<something>)
+    // A custom resource type (Custom::<something>)
     Custom(String),
 }
 
@@ -472,6 +454,30 @@ impl ResourceType {
                     )));
                 }
                 Ok(Self::Custom(name.into()))
+            }
+            "Alexa" => {
+                let service = match parts.next() {
+                    Some("") | None => {
+                        return Err(TransmuteError::new(format!(
+                            "invalid resource type: {from:?} (missing service name)"
+                        )))
+                    }
+                    Some(service) => service.into(),
+                };
+                let type_name = match parts.next() {
+                    Some("") | None => {
+                        return Err(TransmuteError::new(format!(
+                            "invalid resource type: {from:?} (missing resource type name)"
+                        )))
+                    }
+                    Some(type_name) => type_name.into(),
+                };
+                if parts.next().is_some() {
+                    return Err(TransmuteError::new(format!(
+                        "invalid resource type: {from:?} (only three segments expected)"
+                    )));
+                }
+                Ok(Self::Alexa { service, type_name })
             }
             "AWS" => {
                 let service = match parts.next() {
@@ -509,16 +515,23 @@ impl ResourceType {
         }
     }
 
+    pub fn scope(&self) -> &str {
+        match self {
+            Self::Alexa { .. } => "alexa",
+            Self::AWS { .. } => "aws",
+            Self::Custom(..) => "custom",
+        }
+    }
     pub fn service(&self) -> &str {
         match self {
-            Self::AWS { service, .. } => service,
+            Self::Alexa { service, .. } | Self::AWS { service, .. } => service,
             Self::Custom(_) => "CloudFormation",
         }
     }
 
     pub fn type_name(&self) -> &str {
         match self {
-            Self::AWS { type_name, .. } => type_name,
+            Self::Alexa { type_name, .. } | Self::AWS { type_name, .. } => type_name,
             Self::Custom(_) => "CustomResource",
         }
     }
@@ -527,6 +540,7 @@ impl ResourceType {
 impl fmt::Display for ResourceType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Alexa { service, type_name } => write!(f, "Alexa::{}::{}", service, type_name),
             Self::AWS { service, type_name } => write!(f, "AWS::{}::{}", service, type_name),
             Self::Custom(name) => write!(f, "Custom::{}", name),
         }

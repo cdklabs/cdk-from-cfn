@@ -41,8 +41,8 @@ func NewJsonPropsStack(scope constructs.Construct, id string, props *JsonPropsSt
 		stack,
 		jsii.String("MyRDMessageQueueGroup"),
 		&iam.CfnGroupProps{
-			Policies: &[]*Policy /* FIXME */{
-				&Policy/* FIXME */{
+			Policies: &[]interface{}{
+				&PolicyProperty{
 					PolicyName: jsii.String("MyQueueGroupPolicy"),
 					PolicyDocument: map[string]interface{} {
 						"Statement": &[]interface{}{
