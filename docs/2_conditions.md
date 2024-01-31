@@ -74,7 +74,7 @@ This is a valid condition set, which **requires** the following ordering in type
 But the ordering of the conditions in json are in a map which is unordered. This means the two-phases:
 
 1. Loop through and parse an internal representation of Conditions
-2. dep-chain: Look through Condition blocks and add dependency chains, such as `IsCelluar -> IsBeta`
+2. dep-chain: Look through Condition blocks and add dependency chains, such as `IsInCanadaOrVirginia -> IsBeta`
 3. When outputting, reverse output by dependencies.
 
 This will always ensure a correct program in typescript (if the json is correct).
@@ -185,7 +185,7 @@ Then you start with the first outter `and` and do:
 
 1. Build `(`
 2. start resolving first condition
-3. First condition is literally `Condition` which resolves by replacing with condition name `isRootCell`
+3. First condition is literally `Condition` which resolves by replacing with condition name `IsOtherCondition`
 4. exit back out to outer `and`, build " && ".
 5. Second condition is or, start building: `(`
 6. Inner part of Or is equals, start resolving equal's first condition: String. Emit string. `"BETA"`
