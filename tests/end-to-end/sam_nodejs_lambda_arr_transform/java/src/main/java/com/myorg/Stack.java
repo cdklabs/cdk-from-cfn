@@ -24,10 +24,11 @@ class SAMNodeJSLambda extends Stack {
         CfnFunction myFunction = CfnFunction.Builder.create(this, "MyFunction")
                 .runtime("nodejs18.x")
                 .handler("index.handler")
-                .inlineCode("exports.handler = async (event) => {
+                .inlineCode("""
+                exports.handler = async (event) => {
                   console.log(event);
                 }
-                ")
+                """)
                 .build();
 
     }
