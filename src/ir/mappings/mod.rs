@@ -2,20 +2,21 @@ use indexmap::IndexMap;
 
 use crate::ir::mappings::OutputType::{Complex, Consistent};
 use crate::parser::lookup_table::{MappingInnerValue, MappingTable};
+use crate::Hasher;
 
 pub struct MappingInstruction {
     pub name: String,
-    pub map: IndexMap<String, IndexMap<String, MappingInnerValue>>,
+    pub map: IndexMap<String, IndexMap<String, MappingInnerValue, Hasher>, Hasher>,
 }
 
-/// When printing out to a file, sometimes there are non ordinal types in mappings.
-/// An example of this is something like:
-///    {
-///       "DisableScaleIn": true,
-///       "ScaleInCooldown": 10
-///    }
-///
-/// The above example has both a number and a bool. This is considered "Complex".
+// When printing out to a file, sometimes there are non ordinal types in mappings.
+// An example of this is something like:
+//    {
+//       "DisableScaleIn": true,
+//       "ScaleInCooldown": 10
+//    }
+//
+// The above example has both a number and a bool. This is considered "Complex".
 #[derive(Clone, Debug, PartialEq)]
 pub enum OutputType {
     Consistent(MappingInnerValue),
@@ -23,8 +24,8 @@ pub enum OutputType {
 }
 
 impl MappingInstruction {
-    pub(super) fn from<S>(
-        parse_tree: IndexMap<String, MappingTable, S>,
+    pub(super) fn from(
+        parse_tree: IndexMap<String, MappingTable, Hasher>,
     ) -> Vec<MappingInstruction> {
         parse_tree
             .into_iter()

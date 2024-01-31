@@ -1,9 +1,10 @@
 use indexmap::IndexMap;
 
+use crate::cdk::{Primitive, Schema, TypeReference};
 use crate::ir::resources::{ResourceIr, ResourceTranslator};
 use crate::parser::output::Output;
 use crate::parser::resource::ResourceValue;
-use crate::specification::{CfnType, Structure};
+use crate::util::Hasher;
 use crate::TransmuteError;
 
 use super::ReferenceOrigins;
@@ -18,17 +19,18 @@ pub struct OutputInstruction {
 }
 
 impl OutputInstruction {
-    pub(super) fn from<S>(
-        parse_tree: IndexMap<String, Output, S>,
+    pub(super) fn from(
+        parse_tree: IndexMap<String, Output, Hasher>,
+        schema: &Schema,
         origins: &ReferenceOrigins,
     ) -> Result<Vec<Self>, TransmuteError> {
         let mut list = Vec::with_capacity(parse_tree.len());
 
         for (name, output) in parse_tree {
             let resource_translator = ResourceTranslator {
-                complexity: Structure::Simple(CfnType::Json),
+                schema,
                 origins,
-                resource_metadata: None,
+                value_type: Some(TypeReference::Primitive(Primitive::Json)),
             };
 
             let value = resource_translator.translate(output.value)?;

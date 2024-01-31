@@ -9,6 +9,7 @@ use aws_sdk_cloudformation::types::{Capability, OnFailure};
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_cloudformation::types::StackStatus;
 use aws_sdk_cloudformation::{Client, Error};
+use cdk_from_cfn::cdk::Schema;
 use cdk_from_cfn::code::CodeBuffer;
 use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::synthesizer::{self, *};
@@ -107,7 +108,7 @@ impl EndToEndTest<'_> {
             match lang {
                 "csharp" => (
                     Box::new(cdk_app_code_writers::CSharp {}) as Box<dyn CdkAppCodeWriter>,
-                    Box::new(CSharp {}) as Box<dyn Synthesizer>,
+                    Box::<CSharp>::default() as Box<dyn Synthesizer>,
                     "Stack.cs",
                     "Program.cs",
                 ),
@@ -297,7 +298,9 @@ impl EndToEndTest<'_> {
                 "end-to-end/{}/template.json should be valid json",
                 self.name
             ));
-        let ir = CloudformationProgramIr::from(cfn)
+        let schema = Schema::builtin();
+
+        let ir = CloudformationProgramIr::from(cfn, &schema)
             .expect("failed to convert cfn template into CloudformationProgramIr");
         ir.synthesize(
             self.cdk_from_cfn_synthesizer.as_ref(),

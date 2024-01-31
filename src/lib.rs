@@ -8,16 +8,21 @@ use parser::parameters::Parameter;
 use parser::resource::ResourceAttributes;
 use serde::{Deserialize, Deserializer};
 
+pub mod cdk;
 pub mod code;
 pub mod errors;
 pub mod ir;
 pub mod parser;
 pub mod primitives;
-pub mod specification;
 pub mod synthesizer;
+
+mod util;
 
 #[doc(inline)]
 pub use errors::*;
+
+#[doc(inline)]
+pub use util::Hasher;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "PascalCase")]
@@ -32,15 +37,15 @@ pub struct CloudformationParseTree {
     pub transforms: Vec<String>,
 
     #[serde(default)]
-    pub conditions: IndexMap<String, ConditionFunction>,
+    pub conditions: IndexMap<String, ConditionFunction, Hasher>,
     #[serde(default)]
-    pub mappings: IndexMap<String, MappingTable>,
+    pub mappings: IndexMap<String, MappingTable, Hasher>,
     #[serde(default)]
-    pub outputs: IndexMap<String, Output>,
+    pub outputs: IndexMap<String, Output, Hasher>,
     #[serde(default)]
-    pub parameters: IndexMap<String, Parameter>,
+    pub parameters: IndexMap<String, Parameter, Hasher>,
 
-    pub resources: IndexMap<String, ResourceAttributes>,
+    pub resources: IndexMap<String, ResourceAttributes, Hasher>,
 }
 
 fn string_or_seq_string<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>

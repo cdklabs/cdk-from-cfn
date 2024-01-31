@@ -1,3 +1,11 @@
+use std::borrow::Cow;
+use std::io;
+use std::rc::Rc;
+
+use indexmap::IndexMap;
+use voca_rs::case::{camel_case, pascal_case};
+
+use crate::cdk::TypeReference;
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
@@ -8,13 +16,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::specification::Structure;
-use indexmap::IndexMap;
-use std::borrow::Cow;
-use std::io;
-use std::rc::Rc;
-use voca_rs::case::{camel_case, pascal_case};
-use voca_rs::Voca;
+use crate::util::Hasher;
 
 use super::Synthesizer;
 
@@ -491,10 +493,10 @@ fn emit_resource_metadata(
     }
 }
 
-fn emit_resource_props<S>(
+fn emit_resource_props(
     context: &mut TypescriptContext,
     output: Rc<CodeBuffer>,
-    props: &IndexMap<String, ResourceIr, S>,
+    props: &IndexMap<String, ResourceIr, Hasher>,
 ) {
     for (name, prop) in props {
         output.text(format!("{}: ", pretty_name(name)));
@@ -537,8 +539,9 @@ fn emit_resource_ir(
             });
             for (name, value) in entries {
                 match structure {
-                    Structure::Simple(_) => {
-                        if name.chars().all(|c| c.is_alphanumeric()) && name._char_at(0)._is_alpha()
+                    TypeReference::Primitive(_) => {
+                        if name.chars().all(|c| c.is_alphanumeric())
+                            && name.chars().next().unwrap().is_alphabetic()
                         {
                             obj.text(format!("{name}: "));
                         } else {
@@ -764,7 +767,10 @@ fn emit_mapping_instruction(output: Rc<CodeBuffer>, mapping_instruction: &Mappin
     }
 }
 
-fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, MappingInnerValue>) {
+fn emit_inner_mapping(
+    output: Rc<CodeBuffer>,
+    inner_mapping: &IndexMap<String, MappingInnerValue, Hasher>,
+) {
     for (name, value) in inner_mapping {
         output.line(format!("'{key}': {value},", key = name.escape_debug()));
     }

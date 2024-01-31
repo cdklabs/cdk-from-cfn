@@ -1,4 +1,5 @@
 use crate::primitives::WrapperF64;
+use crate::Hasher;
 use indexmap::map::Entry;
 use indexmap::IndexMap;
 use serde::de::Error;
@@ -17,7 +18,7 @@ pub enum ResourceValue {
     Double(WrapperF64),
     String(String),
     Array(Vec<ResourceValue>),
-    Object(IndexMap<String, ResourceValue>),
+    Object(IndexMap<String, ResourceValue, Hasher>),
 
     IntrinsicFunction(Box<IntrinsicFunction>),
 }
@@ -78,7 +79,10 @@ impl<'de> serde::de::Deserialize<'de> for ResourceValue {
                 self,
                 mut data: A,
             ) -> Result<Self::Value, A::Error> {
-                let mut map = IndexMap::with_capacity(data.size_hint().unwrap_or_default());
+                let mut map = IndexMap::with_capacity_and_hasher(
+                    data.size_hint().unwrap_or_default(),
+                    Hasher::default(),
+                );
                 while let Some(key) = data.next_key::<String>()? {
                     if let Some(intrinsic) = IntrinsicFunction::from_singleton_map(&key, &mut data)?
                     {

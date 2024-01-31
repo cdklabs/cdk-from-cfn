@@ -83,8 +83,8 @@ func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackPro
 					},
 				},
 			},
-			Policies: &[]*Policy /* FIXME */{
-				&Policy/* FIXME */{
+			Policies: &[]interface{}{
+				&PolicyProperty{
 					PolicyName: jsii.String("root"),
 					PolicyDocument: map[string]interface{} {
 						"Version": jsii.String("2012-10-17"),
@@ -128,8 +128,8 @@ func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackPro
 			ManagedPolicyArns: &[]*string{
 				jsii.String("arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"),
 			},
-			Policies: &[]*Policy /* FIXME */{
-				&Policy/* FIXME */{
+			Policies: &[]interface{}{
+				&PolicyProperty{
 					PolicyName: jsii.String("root"),
 					PolicyDocument: map[string]interface{} {
 						"Version": jsii.String("2012-10-17"),
@@ -198,7 +198,7 @@ func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackPro
 		stack,
 		jsii.String("DeliveryChannel"),
 		&config.CfnDeliveryChannelProps{
-			ConfigSnapshotDeliveryProperties: &ConfigSnapshotDeliveryProperties/* FIXME */{
+			ConfigSnapshotDeliveryProperties: &ConfigSnapshotDeliveryPropertiesProperty{
 				DeliveryFrequency: jsii.String("Six_Hours"),
 			},
 			S3BucketName: configBucket.Ref(),
@@ -210,7 +210,7 @@ func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackPro
 		stack,
 		jsii.String("VolumeAutoEnableIOComplianceCheck"),
 		&lambda.CfnFunctionProps{
-			Code: &Code/* FIXME */{
+			Code: &CodeProperty{
 				ZipFile: cdk.Fn_Join(jsii.String("\n"), &[]*string{
 					jsii.String("var aws  = require('aws-sdk');"),
 					jsii.String("var config = new aws.ConfigService();"),
@@ -268,7 +268,7 @@ func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackPro
 		jsii.String("ConfigRecorder"),
 		&config.CfnConfigurationRecorderProps{
 			Name: jsii.String("default"),
-			RecordingGroup: &RecordingGroup/* FIXME */{
+			RecordingGroup: &RecordingGroupProperty{
 				ResourceTypes: &[]*string{
 					jsii.String("AWS::EC2::Volume"),
 				},
@@ -282,16 +282,16 @@ func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackPro
 		jsii.String("ConfigRuleForVolumeAutoEnableIO"),
 		&config.CfnConfigRuleProps{
 			ConfigRuleName: jsii.String("ConfigRuleForVolumeAutoEnableIO"),
-			Scope: &Scope/* FIXME */{
+			Scope: &ScopeProperty{
 				ComplianceResourceId: ec2Volume.Ref(),
 				ComplianceResourceTypes: &[]*string{
 					jsii.String("AWS::EC2::Volume"),
 				},
 			},
-			Source: &Source/* FIXME */{
+			Source: &SourceProperty{
 				Owner: jsii.String("CUSTOM_LAMBDA"),
-				SourceDetails: &[]*SourceDetail /* FIXME */{
-					&SourceDetail/* FIXME */{
+				SourceDetails: &[]interface{}{
+					&SourceDetailProperty{
 						EventSource: jsii.String("aws.config"),
 						MessageType: jsii.String("ConfigurationItemChangeNotification"),
 					},
@@ -308,12 +308,12 @@ func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackPro
 			InputParameters: map[string]interface{} {
 				"Tag1Key": jsii.String("CostCenter"),
 			},
-			Scope: &Scope/* FIXME */{
+			Scope: &ScopeProperty{
 				ComplianceResourceTypes: &[]*string{
 					jsii.String("AWS::EC2::Volume"),
 				},
 			},
-			Source: &Source/* FIXME */{
+			Source: &SourceProperty{
 				Owner: jsii.String("AWS"),
 				SourceIdentifier: jsii.String("REQUIRED_TAGS"),
 			},

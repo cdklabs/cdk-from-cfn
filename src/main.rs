@@ -1,7 +1,9 @@
+use cdk_from_cfn::cdk::Schema;
 use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::synthesizer::*;
 use cdk_from_cfn::CloudformationParseTree;
 use clap::{Arg, ArgAction, Command};
+use std::borrow::Cow;
 use std::{fs, io};
 
 // Ensure at least one target language is enabled...
@@ -76,7 +78,9 @@ fn main() -> anyhow::Result<()> {
         serde_yaml::from_reader(reader)?
     };
 
-    let ir = CloudformationProgramIr::from(cfn_tree)?;
+    let schema = Cow::Borrowed(Schema::builtin());
+
+    let ir = CloudformationProgramIr::from(cfn_tree, &schema)?;
 
     let mut output: Box<dyn io::Write> = match matches
         .get_one::<String>("OUTPUT")
@@ -101,7 +105,7 @@ fn main() -> anyhow::Result<()> {
         #[cfg(feature = "java")]
         "java" => Box::<Java>::default(),
         #[cfg(feature = "csharp")]
-        "csharp" => Box::new(CSharp {}),
+        "csharp" => Box::<CSharp>::default(),
         unsupported => panic!("unsupported language: {}", unsupported),
     };
 

@@ -6,7 +6,8 @@ use super::*;
 pub fn none() {
     assert_eq!(
         OutputInstruction::from(
-            IndexMap::new(),
+            IndexMap::default(),
+            Schema::builtin(),
             &ReferenceOrigins::new(&CloudformationParseTree {
                 description: None,
                 transforms: vec![],
