@@ -77,7 +77,7 @@ test_case!(
 test_case!(vpc, "VpcStack");
 
 // csharp fix forthcoming
-test_case!(sam_nodejs_lambda, "SAMNodeJSLambda", &["csharp", "golang"]);
+test_case!(sam_nodejs_lambda, "SAMNodeJSLambda", &["golang"]);
 // These stack should be identical to the ones above
 test_case!(sam_nodejs_lambda_arr_transform, "SAMNodeJSLambda", ALL);
 

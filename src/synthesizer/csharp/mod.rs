@@ -459,8 +459,13 @@ impl ResourceIr {
             ResourceIr::Bool(bool) => output.text(bool.to_string()),
             ResourceIr::Number(number) => output.text(number.to_string()),
             ResourceIr::Double(double) => output.text(double.to_string()),
-            ResourceIr::String(str) => output.text(format!("\"{str}\"")),
-
+            ResourceIr::String(str) => {
+                if str.lines().count() > 1 {
+                    output.text(format!("@\"{str}\""));
+                } else {
+                    output.text(format!("\"{str}\""));
+                };
+            }
             ResourceIr::Array(_structure, array) => {
                 let array_block = output.indent_with_options(IndentOptions {
                     indent: INDENT,
