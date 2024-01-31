@@ -1,7 +1,9 @@
+use std::env;
 use std::io;
 
 use std::fs;
 use std::io::{Read, Write};
+use std::path;
 use std::path::Path;
 
 use walkdir::WalkDir;
@@ -10,7 +12,7 @@ use zip::ZipWriter;
 
 fn main() -> io::Result<()> {
     cdk::update_schema()?;
-    zip_test_snapshots();
+    zip_test_snapshots()?;
     Ok(())
 }
 
@@ -191,18 +193,6 @@ mod cdk {
         }
     }
 
-    // struct WrappedOptionalTypeReference<'a>(&'a Option<TypeReference>);
-    // impl fmt::Debug for WrappedOptionalTypeReference<'_> {
-    //     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    //         match self.0 {
-    //             Some(r) => {
-    //                 write!(f, "Some({:#?})", &WrappedTypeReference(r))
-    //             }
-    //             None => write!(f, "None"),
-    //         }
-    //     }
-    // }
-
     struct WrappedTypeReference<'a>(&'a TypeReference);
     impl fmt::Debug for WrappedTypeReference<'_> {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -359,14 +349,16 @@ mod cdk {
     }
 }
 
-fn zip_test_snapshots() {
+fn zip_test_snapshots() -> io::Result<()> {
     // Zip the expected output files for the end-to-end tests so that they can be included in the test binary. This will not affect the size of the cdk-from-cfn binary.
 
     let src_dir = "./tests/end-to-end";
-    let dst_file = "./tests/end-to-end-test-snapshots.zip";
+    let out_dir = path::PathBuf::from(env::var("OUT_DIR").unwrap()).join("test");
+    fs::create_dir_all(&out_dir)?;
+    let out_file = out_dir.join("end-to-end-test-snapshots.zip");
     let do_not_zip = ["app-boiler-plate-files", "working-dir"];
 
-    let file = fs::File::create(Path::new(dst_file)).unwrap();
+    let file = fs::File::create(&out_file)?;
 
     let walkdir = WalkDir::new(src_dir);
     let mut zip = ZipWriter::new(file);
@@ -403,4 +395,11 @@ fn zip_test_snapshots() {
         }
     }
     zip.finish().expect("failed to write zip file");
+
+    println!(
+        "cargo:rustc-env=END_TO_END_SNAPSHOTS={}",
+        out_file.display()
+    );
+
+    Ok(())
 }

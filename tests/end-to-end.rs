@@ -1,9 +1,11 @@
 use core::panic;
 use std::fs::{self, canonicalize, copy, create_dir_all, remove_dir_all, File};
-use std::io::{Cursor, Read, Write};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::{env, path};
 
+use aws_config::BehaviorVersion;
 use aws_sdk_cloudformation::types::{Capability, OnFailure};
 
 use aws_config::meta::region::RegionProviderChain;
@@ -92,7 +94,7 @@ struct EndToEndTest<'a> {
     language_boilerplate_dir: String,
     test_working_dir: String,
     expected_outputs_dir: String,
-    snapshots_zip: ZipArchive<Cursor<&'a [u8]>>,
+    snapshots_zip: ZipArchive<File>,
     skip_cdk_synth: bool,
 }
 
@@ -139,9 +141,11 @@ impl EndToEndTest<'_> {
                 other => panic!("Unsupported language: {other}"),
             };
 
-        let cursor: Cursor<&[u8]> =
-            std::io::Cursor::new(include_bytes!("./end-to-end-test-snapshots.zip"));
-        let snapshots_zip = zip::read::ZipArchive::new(cursor)
+        let source = File::open(path::PathBuf::from(
+            env::var("END_TO_END_SNAPSHOTS").unwrap(),
+        ))
+        .unwrap();
+        let snapshots_zip = ZipArchive::new(source)
             .expect("Failed to convert end-to-end-test-snapshots.zip contents into ZipArchive");
 
         EndToEndTest {
@@ -209,7 +213,10 @@ impl EndToEndTest<'_> {
     async fn create_cfn_stack(&mut self) {
         println!("Verifying a CloudFormation stack can be created from original template");
         let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
-        let config = aws_config::from_env().region(region_provider).load().await;
+        let config = aws_config::defaults(BehaviorVersion::latest())
+            .region(region_provider)
+            .load()
+            .await;
         let client = Client::new(&config);
 
         if let Ok(mut create_first_template) = self
