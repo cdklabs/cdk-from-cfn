@@ -21,7 +21,7 @@ namespace SAMNodeJSLambda
             {
                 Runtime = "nodejs18.x",
                 Handler = "index.handler",
-                InlineCode = "exports.handler = async (event) => {
+                InlineCode = @"exports.handler = async (event) => {
                   console.log(event);
                 }
                 ",
