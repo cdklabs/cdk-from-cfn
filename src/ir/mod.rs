@@ -64,12 +64,17 @@ impl ReferenceOrigins {
     fn new(parse_tree: &CloudformationParseTree) -> Self {
         let mut origins = HashMap::default();
 
-        origins.extend(
-            parse_tree
-                .parameters
-                .iter()
-                .map(|(name, _)| (name.clone(), Origin::Parameter)),
-        );
+        origins.extend(parse_tree.parameters.iter().map(|(name, param)| {
+            if param
+                .no_echo
+                .as_ref()
+                .is_some_and(|x| x.to_lowercase() == "true")
+            {
+                (name.clone(), Origin::CfnParameter)
+            } else {
+                (name.clone(), Origin::Parameter)
+            }
+        }));
 
         origins.extend(parse_tree.resources.iter().map(|(name, res)| {
             (

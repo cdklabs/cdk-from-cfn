@@ -1,12 +1,30 @@
 {
+ "Parameters": {
+  "masterUser": {
+   "Type": "String",
+   "Default": "MainUser",
+   "Description": "The database admin account username",
+   "NoEcho": true
+  },
+  "masterPassword": {
+   "Type": "String",
+   "Default": "password",
+   "Description": "The database admin account password",
+   "NoEcho": true
+  }
+ },
  "Resources": {
   "DBCluster": {
    "Type": "AWS::DocDB::DBCluster",
    "Properties": {
     "DBClusterIdentifier": "MyCluster",
     "EngineVersion": "4.0.0",
-    "MasterUserPassword": "password",
-    "MasterUsername": "MainUser"
+    "MasterUserPassword": {
+     "Ref": "masterPassword"
+    },
+    "MasterUsername": {
+     "Ref": "masterUser"
+    }
    },
    "DeletionPolicy": "Delete"
   },

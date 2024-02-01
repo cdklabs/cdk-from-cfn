@@ -960,7 +960,7 @@ impl GolangEmitter for Reference {
                 "{name}.Ref()",
                 name = golang_identifier(&self.name, IdentifierKind::Unexported)
             )),
-            Origin::Parameter => output.text(format!(
+            Origin::CfnParameter | Origin::Parameter => output.text(format!(
                 "props.{name}",
                 name = golang_identifier(&self.name, IdentifierKind::Exported)
             )),

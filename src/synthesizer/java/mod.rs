@@ -113,6 +113,7 @@ impl<'a> Java<'a> {
                     input.constructor_type.clone()
                 },
                 default_value: input.default_value.clone(),
+                no_echo: input.no_echo.clone(),
             });
         }
         v
@@ -179,7 +180,10 @@ impl<'a> Java<'a> {
         for prop in props {
             match &prop.default_value {
                 None => writer.newline(),
-                Some(v) if prop.constructor_type.contains("AWS::") => {
+                Some(v)
+                    if prop.constructor_type.contains("AWS::")
+                        || prop.no_echo.as_ref().is_some_and(|x| x == "true") =>
+                {
                     let value_as = match &prop.constructor_type {
                         t if t.contains("List") => "getValueAsList",
                         _ => "getValueAsString",
@@ -211,6 +215,9 @@ impl<'a> Java<'a> {
                     });
                     prop_details.line(format!(".type(\"{}\")", prop.constructor_type));
                     prop_details.line(format!(".defaultValue(\"{}\")", v));
+                    if let Some(v) = &prop.no_echo {
+                        prop_details.line(format!(".noEcho({v})"))
+                    }
                     prop_details.line(".build()");
                     prop_details.line(format!(".{}();", value_as));
                 }
@@ -617,7 +624,7 @@ fn emit_reference(reference: Reference) -> String {
             }
         }
         Origin::PseudoParameter(param) => get_pseudo_param(param),
-        Origin::Parameter => camel_case(&name),
+        Origin::CfnParameter | Origin::Parameter => camel_case(&name),
         Origin::Condition => name,
     }
 }
@@ -873,6 +880,7 @@ pub struct JavaConstructorParameter {
     pub constructor_type: String,
     pub java_type: String,
     pub default_value: Option<String>,
+    pub no_echo: Option<String>,
 }
 
 pub struct JavaResourceInstruction {}
