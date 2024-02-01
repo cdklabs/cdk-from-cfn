@@ -67,6 +67,8 @@ where
 
 #[cfg(target_family = "wasm")]
 pub mod wasm {
+    use std::borrow::Cow;
+
     use cdk::Schema;
     use wasm_bindgen::prelude::*;
 
