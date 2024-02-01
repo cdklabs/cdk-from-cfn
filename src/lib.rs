@@ -67,6 +67,9 @@ where
 
 #[cfg(target_family = "wasm")]
 pub mod wasm {
+    use std::borrow::Cow;
+
+    use cdk::Schema;
     use wasm_bindgen::prelude::*;
 
     use super::*;
@@ -94,7 +97,8 @@ pub mod wasm {
     #[wasm_bindgen]
     pub fn transmute(template: &str, language: &str, stack_name: &str) -> Result<String, JsError> {
         let cfn_tree: CloudformationParseTree = serde_yaml::from_str(template)?;
-        let ir = crate::ir::CloudformationProgramIr::from(cfn_tree)?;
+        let schema = Cow::Borrowed(Schema::builtin());
+        let ir = crate::ir::CloudformationProgramIr::from(cfn_tree, &schema)?;
         let mut output = Vec::new();
 
         let synthesizer: Box<dyn crate::synthesizer::Synthesizer> = match language {
@@ -107,7 +111,7 @@ pub mod wasm {
             #[cfg(feature = "java")]
             "java" => Box::<crate::synthesizer::Java>::default(),
             #[cfg(feature = "csharp")]
-            "csharp" => Box::new(crate::synthesizer::CSharp {}),
+            "csharp" => Box::<crate::synthesizer::CSharp>::default(),
             unsupported => panic!("unsupported language: {}", unsupported),
         };
 
