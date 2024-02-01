@@ -149,7 +149,9 @@ impl Synthesizer for Typescript {
             for param in have_default_or_special_type_params {
                 let name = &param.name;
                 // example: AWS::EC2::Image::Id, List<AWS::EC2::VPC::Id>, AWS::SSM::Parameter::Value<List<String>>
-                if param.constructor_type.contains("AWS::") {
+                if param.constructor_type.contains("AWS::")
+                    || param.no_echo.as_ref().is_some_and(|x| x == "true")
+                {
                     let value_as = match &param.constructor_type {
                         t if t.contains("List") => "valueAsList",
                         _ => "valueAsString",
@@ -182,6 +184,9 @@ impl Synthesizer for Typescript {
                     if let Some(v) = &param.description {
                         cfn_param.line(format!("description: '{}',", v));
                     };
+                    if let Some(v) = &param.no_echo {
+                        cfn_param.line(format!("noEcho: {v},"));
+                    }
                 } else {
                     let value = match &param.default_value {
                         None => "".to_owned(),
@@ -332,7 +337,9 @@ impl TypescriptContext {
 impl Reference {
     fn to_typescript(&self) -> Cow<'static, str> {
         match &self.origin {
-            Origin::Parameter => format!("props.{}!", camel_case(&self.name)).into(),
+            Origin::CfnParameter | Origin::Parameter => {
+                format!("props.{}!", camel_case(&self.name)).into()
+            }
             Origin::LogicalId { conditional } => format!(
                 "{var}{chain}ref",
                 var = camel_case(&self.name),

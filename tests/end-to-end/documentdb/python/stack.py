@@ -14,16 +14,26 @@ class DocumentDbStack(Stack):
     props = {
       'dbClusterName': kwargs.get('dbClusterName', 'MyCluster'),
       'dbInstanceName': kwargs.get('dbInstanceName', 'MyInstance'),
-      'masterUser': kwargs.get('masterUser', 'MainUser'),
-      'masterPassword': kwargs.get('masterPassword', 'password'),
+      'masterUser': cdk.CfnParameter(self, 'masterUser', 
+        type = 'String',
+        default = str(kwargs.get('masterUser', 'MainUser')),
+        description = 'The database admin account username',
+        no_echo = True,
+      ),
+      'masterPassword': cdk.CfnParameter(self, 'masterPassword', 
+        type = 'String',
+        default = str(kwargs.get('masterPassword', 'password')),
+        description = 'The database admin account password',
+        no_echo = True,
+      ),
       'dbInstanceClass': kwargs.get('dbInstanceClass', 'db.t3.medium'),
     }
 
     # Resources
     dbCluster = docdb.CfnDBCluster(self, 'DBCluster',
           db_cluster_identifier = props['dbClusterName'],
-          master_username = props['masterUser'],
-          master_user_password = props['masterPassword'],
+          master_username = props['masterUser'].value_as_string,
+          master_user_password = props['masterPassword'].value_as_string,
           engine_version = '4.0.0',
         )
     dbCluster.cfn_options.deletion_policy = cdk.CfnDeletionPolicy.DELETE

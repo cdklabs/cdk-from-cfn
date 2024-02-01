@@ -1,11 +1,11 @@
 diff --git a/./tests/end-to-end/documentdb/template.json b/tests/end-to-end/documentdb-csharp-working-dir/cdk.out/Stack.template.json
-index efdfe54..d1012e6 100644
+index efdfe54..1bb8789 100644
 --- a/./tests/end-to-end/documentdb/template.json
 +++ b/tests/end-to-end/documentdb-csharp-working-dir/cdk.out/Stack.template.json
-@@ -1,75 +1,12 @@
+@@ -1,75 +1,30 @@
  {
 - "Description": "AWS CloudFormation Sample Template DocumentDB_Quick_Create: Sample template showing how to create a DocumentDB DB cluster and DB instance. **WARNING** This template creates an Amazon DocumentDB resources and you will be billed for the AWS resources used if you create a stack from this template.",
-- "Parameters": {
+  "Parameters": {
 -  "DBClusterName": {
 -   "Default": "MyCluster",
 -   "Description": "Cluster name",
@@ -24,20 +24,23 @@ index efdfe54..d1012e6 100644
 -   "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*",
 -   "ConstraintDescription": "Must begin with a letter and contain only alphanumeric characters."
 -  },
--  "MasterUser": {
--   "Default": "MainUser",
+   "MasterUser": {
++   "Type": "String",
+    "Default": "MainUser",
 -   "NoEcho": "true",
--   "Description": "The database admin account username",
+    "Description": "The database admin account username",
 -   "Type": "String",
 -   "MinLength": "1",
 -   "MaxLength": "16",
 -   "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
 -   "ConstraintDescription": "Must begin with a letter and contain only alphanumeric characters."
--  },
--  "MasterPassword": {
--   "Default": "password",
++   "NoEcho": true
+   },
+   "MasterPassword": {
++   "Type": "String",
+    "Default": "password",
 -   "NoEcho": "true",
--   "Description": "The database admin account password",
+    "Description": "The database admin account password",
 -   "Type": "String",
 -   "MinLength": "1",
 -   "MaxLength": "41",
@@ -58,8 +61,9 @@ index efdfe54..d1012e6 100644
 -    "db.r5.24xlarge"
 -   ],
 -   "ConstraintDescription": "Instance type must be of the ones supported for the region. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
--  }
-- },
++   "NoEcho": true
+   }
+  },
   "Resources": {
    "DBCluster": {
     "Type": "AWS::DocDB::DBCluster",
@@ -71,18 +75,19 @@ index efdfe54..d1012e6 100644
 -    "MasterUsername": {
 -     "Ref": "MasterUser"
 -    },
--    "MasterUserPassword": {
--     "Ref": "MasterPassword"
--    },
--    "EngineVersion": "4.0.0"
 +    "DBClusterIdentifier": "MyCluster",
 +    "EngineVersion": "4.0.0",
-+    "MasterUserPassword": "password",
-+    "MasterUsername": "MainUser"
+     "MasterUserPassword": {
+      "Ref": "MasterPassword"
+     },
+-    "EngineVersion": "4.0.0"
++    "MasterUsername": {
++     "Ref": "MasterUser"
++    }
     }
    },
    "DBInstance": {
-@@ -78,34 +15,9 @@
+@@ -78,34 +33,9 @@
      "DBClusterIdentifier": {
       "Ref": "DBCluster"
      },
@@ -91,9 +96,7 @@ index efdfe54..d1012e6 100644
 -    },
 -    "DBInstanceClass": {
 -     "Ref": "DBInstanceClass"
-+    "DBInstanceClass": "db.t3.medium",
-+    "DBInstanceIdentifier": "MyInstance"
-    }
+-    }
 -   },
 -   "DependsOn": "DBCluster"
 -  }
@@ -107,7 +110,9 @@ index efdfe54..d1012e6 100644
 -  "ClusterEndpoint": {
 -   "Value": {
 -    "Fn::GetAtt": "DBCluster.Endpoint"
--   }
++    "DBInstanceClass": "db.t3.medium",
++    "DBInstanceIdentifier": "MyInstance"
+    }
 -  },
 -  "ClusterPort": {
 -   "Value": {

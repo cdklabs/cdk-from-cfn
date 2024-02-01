@@ -14,6 +14,7 @@ use std::borrow::Cow;
 use std::io;
 use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case, snake_case};
+use voca_rs::Voca;
 
 use super::Synthesizer;
 
@@ -90,7 +91,9 @@ impl Synthesizer for Python {
             });
             for param in have_default_or_special_type_params {
                 let name = &param.name;
-                if param.constructor_type.contains("AWS::") {
+                if param.constructor_type.contains("AWS::")
+                    || param.no_echo.as_ref().is_some_and(|x| x == "true")
+                {
                     let cfn_param = obj.indent_with_options(IndentOptions {
                         indent: INDENT,
                         leading: Some(
@@ -114,6 +117,9 @@ impl Synthesizer for Python {
                     };
                     if let Some(v) = &param.description {
                         cfn_param.line(format!("description = '{}',", v));
+                    };
+                    if let Some(v) = &param.no_echo {
+                        cfn_param.line(format!("no_echo = {},", v._pascal_case()));
                     };
                 } else {
                     let value = match &param.default_value {
@@ -405,6 +411,9 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
 impl Reference {
     fn to_python(&self) -> Cow<'static, str> {
         match &self.origin {
+            Origin::CfnParameter => {
+                format!("props['{}'].value_as_string", camel_case(&self.name)).into()
+            }
             Origin::Parameter => format!("props['{}']", camel_case(&self.name)).into(),
             Origin::LogicalId { conditional: _ } => {
                 format!("{var}{chain}ref", var = camel_case(&self.name), chain = ".").into()

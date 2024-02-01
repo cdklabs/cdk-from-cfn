@@ -35,6 +35,7 @@ impl Constructor {
                     },
                     default_value: param.default,
                     allowed_values: param.allowed_values,
+                    no_echo: param.no_echo,
                 })
                 .collect(),
         }
@@ -47,6 +48,7 @@ pub struct ConstructorParameter {
     pub constructor_type: String,
     pub default_value: Option<String>,
     pub allowed_values: Option<Vec<String>>,
+    pub no_echo: Option<String>,
 }
 
 #[cfg(test)]

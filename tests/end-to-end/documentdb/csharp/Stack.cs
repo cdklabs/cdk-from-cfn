@@ -53,8 +53,20 @@ namespace DocumentDbStack
             props ??= new DocumentDbStackProps();
             props.DbClusterName ??= "MyCluster";
             props.DbInstanceName ??= "MyInstance";
-            props.MasterUser ??= "MainUser";
-            props.MasterPassword ??= "password";
+            props.MasterUser = new CfnParameter(this, "MasterUser", new CfnParameterProps
+            {
+                Type = "String",
+                Default = props.MasterUser ?? "MainUser",
+                Description = "The database admin account username",
+                NoEcho = true,
+            }).ValueAsString;
+            props.MasterPassword = new CfnParameter(this, "MasterPassword", new CfnParameterProps
+            {
+                Type = "String",
+                Default = props.MasterPassword ?? "password",
+                Description = "The database admin account password",
+                NoEcho = true,
+            }).ValueAsString;
             props.DbInstanceClass ??= "db.t3.medium";
 
 

@@ -46,8 +46,18 @@ export class DocumentDbStack extends cdk.Stack {
       ...props,
       dbClusterName: props.dbClusterName ?? 'MyCluster',
       dbInstanceName: props.dbInstanceName ?? 'MyInstance',
-      masterUser: props.masterUser ?? 'MainUser',
-      masterPassword: props.masterPassword ?? 'password',
+      masterUser: new cdk.CfnParameter(this, 'MasterUser', {
+        type: 'String',
+        default: props.masterUser?.toString() ?? 'MainUser',
+        description: 'The database admin account username',
+        noEcho: true,
+      }).valueAsString,
+      masterPassword: new cdk.CfnParameter(this, 'MasterPassword', {
+        type: 'String',
+        default: props.masterPassword?.toString() ?? 'password',
+        description: 'The database admin account password',
+        noEcho: true,
+      }).valueAsString,
       dbInstanceClass: props.dbInstanceClass ?? 'db.t3.medium',
     };
 

@@ -8,6 +8,7 @@ pub struct Parameter {
     pub description: Option<String>,
     #[serde(rename = "Type")]
     pub parameter_type: ParameterType,
+    pub no_echo: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, serde_enum_str::Deserialize_enum_str)]

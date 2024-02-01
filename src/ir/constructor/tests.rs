@@ -13,6 +13,7 @@ fn test_constructor_from() {
             default: Some("default1".to_string()),
             description: Some("description1".to_string()),
             parameter_type: ParameterType::String,
+            no_echo: None,
         },
     );
     parse_tree.insert(
@@ -22,6 +23,7 @@ fn test_constructor_from() {
             default: None,
             description: Some("description2".to_string()),
             parameter_type: ParameterType::Number,
+            no_echo: None,
         },
     );
 
@@ -59,6 +61,7 @@ fn test_constructor_parameter() {
         constructor_type: "String".to_string(),
         default_value: Some("default1".to_string()),
         allowed_values: Some(vec!["true".to_string(), "false".to_string()]),
+        no_echo: None,
     };
 
     assert_eq!(param.name, "Param1");

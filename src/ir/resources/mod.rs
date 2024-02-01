@@ -610,8 +610,10 @@ pub(crate) fn find_references(resource: &ResourceIr) -> HashSet<String> {
         }
         ResourceIr::Split(_, ir) => set = find_references(ir),
         ResourceIr::Ref(x) => match x.origin {
-            Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => { /* No references */
-            }
+            Origin::CfnParameter
+            | Origin::Parameter
+            | Origin::Condition
+            | Origin::PseudoParameter(_) => { /* No references */ }
             Origin::GetAttribute { .. } | Origin::LogicalId { .. } => {
                 set.insert(x.name.clone());
             }
@@ -672,7 +674,10 @@ fn find_dependencies(
         }
         ResourceIr::Split(_, ir) => find_dependencies(resource_name, ir, topo),
         ResourceIr::Ref(x) => match x.origin {
-            Origin::Parameter | Origin::Condition | Origin::PseudoParameter(_) => {}
+            Origin::CfnParameter
+            | Origin::Parameter
+            | Origin::Condition
+            | Origin::PseudoParameter(_) => {}
             Origin::LogicalId { .. } => {
                 topo.add_dependency(x.name.to_string(), resource_name.to_string());
             }
