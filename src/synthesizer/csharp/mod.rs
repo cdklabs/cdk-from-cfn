@@ -136,7 +136,9 @@ impl Synthesizer for CSharp<'_> {
             for param in have_default_or_special_type_params {
                 let name = pascal_case(&param.name);
                 // example: AWS::EC2::Image::Id, List<AWS::EC2::VPC::Id>, AWS::SSM::Parameter::Value<List<String>>
-                if param.constructor_type.contains("AWS::") {
+                if param.constructor_type.contains("AWS::")
+                    || param.no_echo.as_ref().is_some_and(|x| x == "true")
+                {
                     let value_as = match &param.constructor_type {
                         t if t.contains("List") => "ValueAsList",
                         _ => "ValueAsString",
@@ -173,6 +175,9 @@ impl Synthesizer for CSharp<'_> {
                     if let Some(v) = &param.description {
                         cfn_param.line(format!("Description = \"{}\",", v));
                     };
+                    if let Some(v) = &param.no_echo {
+                        cfn_param.line(format!("NoEcho = {v},"));
+                    }
                 } else {
                     let value = match &param.default_value {
                         None => "".to_owned(),
@@ -435,7 +440,9 @@ impl Reference {
             Origin::LogicalId { conditional: _ } => {
                 output.text(format!("{}.Ref", camel_case(&self.name.replace('.', ""))))
             }
-            Origin::Parameter => output.text(format!("props.{}", pascal_case(&self.name))),
+            Origin::CfnParameter | Origin::Parameter => {
+                output.text(format!("props.{}", pascal_case(&self.name)))
+            }
             Origin::PseudoParameter(pseudo) => {
                 let pseudo = match pseudo {
                     PseudoParameter::AccountId => "Account",

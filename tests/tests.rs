@@ -691,6 +691,7 @@ fn test_parse_tree_resource_with_fn_and() {
                     description: Option::None,
                     allowed_values: Option::Some(vec!["dev".into(), "test".into(), "prod".into()]),
                     default: Option::Some("dev".into()),
+                    no_echo: None,
                 },
             ),
             (
@@ -700,6 +701,7 @@ fn test_parse_tree_resource_with_fn_and() {
                     description: Option::None,
                     allowed_values: Option::Some(vec!["mysql".into(), "postgresql".into()]),
                     default: Option::Some("postgresql".into()),
+                    no_echo: None,
                 },
             ),
             (
@@ -709,6 +711,7 @@ fn test_parse_tree_resource_with_fn_and() {
                     description: Option::None,
                     allowed_values: Option::Some(vec!["true".into(), "false".into()]),
                     default: Option::Some("false".into()),
+                    no_echo: None,
                 },
             ),
             (
@@ -718,6 +721,7 @@ fn test_parse_tree_resource_with_fn_and() {
                     description: Option::None,
                     allowed_values: Option::None,
                     default: Option::Some("ami-1234567890abcdef0".into()),
+                    no_echo: None,
                 },
             ),
             (
@@ -727,6 +731,7 @@ fn test_parse_tree_resource_with_fn_and() {
                     description: Option::None,
                     allowed_values: Option::None,
                     default: Option::Some("ami-0987654321fedcba0".into()),
+                    no_echo: None,
                 },
             ),
         ]),

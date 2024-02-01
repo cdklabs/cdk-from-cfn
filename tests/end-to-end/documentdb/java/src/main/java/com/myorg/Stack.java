@@ -56,10 +56,24 @@ class DocumentDbStack extends Stack {
                 : "MyCluster";
         dbInstanceName = Optional.ofNullable(dbInstanceName).isPresent() ? dbInstanceName
                 : "MyInstance";
-        masterUser = Optional.ofNullable(masterUser).isPresent() ? masterUser
-                : "MainUser";
-        masterPassword = Optional.ofNullable(masterPassword).isPresent() ? masterPassword
-                : "password";
+        masterUser = Optional.ofNullable(masterUser).isPresent()
+                ? masterUser
+                : CfnParameter.Builder.create(this, "MasterUser")
+                        .type("String")
+                        .defaultValue("MainUser")
+                        .noEcho(true)
+                        .build()
+                        .getValueAsString();
+
+        masterPassword = Optional.ofNullable(masterPassword).isPresent()
+                ? masterPassword
+                : CfnParameter.Builder.create(this, "MasterPassword")
+                        .type("String")
+                        .defaultValue("password")
+                        .noEcho(true)
+                        .build()
+                        .getValueAsString();
+
         dbInstanceClass = Optional.ofNullable(dbInstanceClass).isPresent() ? dbInstanceClass
                 : "db.t3.medium";
 

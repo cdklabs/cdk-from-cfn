@@ -17,6 +17,7 @@ impl Reference {
 // Origin for the ReferenceTable
 #[derive(Debug, Clone, PartialEq)]
 pub enum Origin {
+    CfnParameter,
     Parameter,
     LogicalId {
         conditional: bool,
