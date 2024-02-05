@@ -28,7 +28,7 @@ impl ConditionInstruction {
         order
             .into_iter()
             .map(|name| {
-                let value = parse_tree.remove(&name).unwrap().into_ir();
+                let value = parse_tree.shift_remove(&name).unwrap().into_ir();
                 ConditionInstruction { name, value }
             })
             .collect()
