@@ -41,7 +41,7 @@ voca_rs = "^1.15.2"
 wasm-bindgen = "^0.2.91"
 
 [dev-dependencies]
-aws-config = "^1.1.4"
+aws-config = "^1.1.5"
 aws-sdk-cloudformation = "^1.14.0"
 tokio = { version = "1", features = ["full"] }
 walkdir = "2.4.0"
