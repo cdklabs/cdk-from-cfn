@@ -120,7 +120,7 @@ impl<'a> Java<'a> {
     }
 
     fn write_stack_definitions(
-        props: &Vec<JavaConstructorParameter>,
+        props: &[JavaConstructorParameter],
         writer: &CodeBuffer,
         stack_name: &str,
     ) -> Rc<CodeBuffer> {
@@ -176,7 +176,7 @@ impl<'a> Java<'a> {
         }
     }
 
-    fn write_props(props: &Vec<JavaConstructorParameter>, writer: &CodeBuffer) {
+    fn write_props(props: &[JavaConstructorParameter], writer: &CodeBuffer) {
         for prop in props {
             match &prop.default_value {
                 None => writer.newline(),
