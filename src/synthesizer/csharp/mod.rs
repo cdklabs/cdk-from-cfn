@@ -515,9 +515,9 @@ impl ResourceIr {
                     });
                     match val {
                         ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::Double(_) => {
-                            object_block.text("\"");
+                            // object_block.text("\"");
                             val.emit_csharp(&object_block, schema);
-                            object_block.text("\"");
+                            // object_block.text("\"");
                         }
                         _ => val.emit_csharp(&object_block, schema),
                     }

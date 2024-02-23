@@ -1,7 +1,7 @@
-diff --git a/./tests/end-to-end/batch/template.json b/tests/end-to-end/batch-java-working-dir/cdk.out/Stack.template.json
-index c503353..161f294 100644
+diff --git a/./tests/end-to-end/batch/template.json b/tests/end-to-end/batch-csharp-working-dir/cdk.out/Stack.template.json
+index c503353..684c8cb 100644
 --- a/./tests/end-to-end/batch/template.json
-+++ b/tests/end-to-end/batch-java-working-dir/cdk.out/Stack.template.json
++++ b/tests/end-to-end/batch-csharp-working-dir/cdk.out/Stack.template.json
 @@ -1,62 +1,5 @@
  {
 -  "AWSTemplateFormatVersion" : "2010-09-09",
@@ -65,20 +65,6 @@ index c503353..161f294 100644
    "BatchServiceRole": {
     "Type": "AWS::IAM::Role",
     "Properties": {
-@@ -64,11 +7,11 @@
-      "Version": "2012-10-17",
-      "Statement": [
-       {
-+       "Action": "sts:AssumeRole",
-        "Effect": "Allow",
-        "Principal": {
-         "Service": "batch.amazonaws.com"
--              },
--              "Action" : "sts:AssumeRole"
-+       }
-       }
-      ]
-     },
 @@ -77,12 +20,6 @@
      ]
     }
@@ -92,23 +78,7 @@ index c503353..161f294 100644
    "EcsInstanceRole": {
     "Type": "AWS::IAM::Role",
     "Properties": {
-@@ -90,12 +27,12 @@
-      "Version": "2008-10-17",
-      "Statement": [
-       {
--              "Sid" : "",
-+       "Action": "sts:AssumeRole",
-        "Effect": "Allow",
-+       "Sid": "",
-        "Principal": {
-         "Service": "ec2.amazonaws.com"
--              },
--              "Action" : "sts:AssumeRole"
-+       }
-       }
-      ]
-     },
-@@ -104,64 +41,176 @@
+@@ -104,64 +41,159 @@
      ]
     }
    },
@@ -256,20 +226,27 @@ index c503353..161f294 100644
 -        "ServiceRole" : { "Ref" : "BatchServiceRole" }
 +    "RouteTableId": {
 +     "Ref": "RouteTable"
-+    }
-+   }
-+  },
+     }
+    }
+   },
+-  "Outputs" : {
+-    "ComputeEnvironmentArn" : {
+-      "Value" : { "Ref" : "ComputeEnvironment" }
 +  "SubnetRouteTableAssociation": {
 +   "Type": "AWS::EC2::SubnetRouteTableAssociation",
 +   "Properties": {
 +    "RouteTableId": {
 +     "Ref": "RouteTable"
-+    },
+     },
+-    "JobQueueArn" : {
+-      "Value" : { "Ref" : "JobQueue" }
 +    "SubnetId": {
 +     "Ref": "Subnet"
 +    }
 +   }
-+  },
+   },
+-    "JobDefinitionArn": {
+-      "Value" : { "Ref" : "JobDefinition" }
 +  "JobQueue": {
 +   "Type": "AWS::Batch::JobQueue",
 +   "Properties": {
@@ -282,26 +259,6 @@ index c503353..161f294 100644
 +     }
 +    ],
 +    "Priority": 1
-    }
-   }
-  },
-  "Outputs": {
-   "ComputeEnvironmentArn": {
--      "Value" : { "Ref" : "ComputeEnvironment" }
-+   "Value": {
-+    "Ref": "ComputeEnvironment"
-+   }
-   },
-   "JobQueueArn": {
--      "Value" : { "Ref" : "JobQueue" }
-+   "Value": {
-+    "Ref": "JobQueue"
-+   }
-   },
-   "JobDefinitionArn": {
--      "Value" : { "Ref" : "JobDefinition" }
-+   "Value": {
-+    "Ref": "JobDefinition"
 +   }
    }
   }

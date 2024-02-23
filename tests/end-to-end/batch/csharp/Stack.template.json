@@ -7,11 +7,11 @@
      "Version": "2012-10-17",
      "Statement": [
       {
-       "Action": "sts:AssumeRole",
        "Effect": "Allow",
        "Principal": {
         "Service": "batch.amazonaws.com"
-       }
+       },
+       "Action": "sts:AssumeRole"
       }
      ]
     },
@@ -27,12 +27,12 @@
      "Version": "2008-10-17",
      "Statement": [
       {
-       "Action": "sts:AssumeRole",
-       "Effect": "Allow",
        "Sid": "",
+       "Effect": "Allow",
        "Principal": {
         "Service": "ec2.amazonaws.com"
-       }
+       },
+       "Action": "sts:AssumeRole"
       }
      ]
     },
@@ -193,23 +193,6 @@
      }
     ],
     "Priority": 1
-   }
-  }
- },
- "Outputs": {
-  "ComputeEnvironmentArn": {
-   "Value": {
-    "Ref": "ComputeEnvironment"
-   }
-  },
-  "JobQueueArn": {
-   "Value": {
-    "Ref": "JobQueue"
-   }
-  },
-  "JobDefinitionArn": {
-   "Value": {
-    "Ref": "JobDefinition"
    }
   }
  }
