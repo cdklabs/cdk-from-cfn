@@ -7,11 +7,11 @@
      "Version": "2012-10-17",
      "Statement": [
       {
-       "Action": "sts:AssumeRole",
-       "Effect": "Allow",
        "Principal": {
         "Service": "batch.amazonaws.com"
-       }
+       },
+       "Effect": "Allow",
+       "Action": "sts:AssumeRole"
       }
      ]
     },
@@ -27,12 +27,12 @@
      "Version": "2008-10-17",
      "Statement": [
       {
-       "Action": "sts:AssumeRole",
        "Effect": "Allow",
-       "Sid": "",
+       "Action": "sts:AssumeRole",
        "Principal": {
         "Service": "ec2.amazonaws.com"
-       }
+       },
+       "Sid": ""
       }
      ]
     },

@@ -1,5 +1,5 @@
 diff --git a/./tests/end-to-end/batch/template.json b/tests/end-to-end/batch-java-working-dir/cdk.out/Stack.template.json
-index c503353..161f294 100644
+index c503353..6812c36 100644
 --- a/./tests/end-to-end/batch/template.json
 +++ b/tests/end-to-end/batch-java-working-dir/cdk.out/Stack.template.json
 @@ -1,62 +1,5 @@
@@ -65,20 +65,18 @@ index c503353..161f294 100644
    "BatchServiceRole": {
     "Type": "AWS::IAM::Role",
     "Properties": {
-@@ -64,11 +7,11 @@
+@@ -64,10 +7,10 @@
       "Version": "2012-10-17",
       "Statement": [
        {
-+       "Action": "sts:AssumeRole",
-        "Effect": "Allow",
+-              "Effect" : "Allow",
         "Principal": {
          "Service": "batch.amazonaws.com"
--              },
--              "Action" : "sts:AssumeRole"
-+       }
+        },
++       "Effect": "Allow",
+        "Action": "sts:AssumeRole"
        }
       ]
-     },
 @@ -77,12 +20,6 @@
      ]
     }
@@ -97,14 +95,13 @@ index c503353..161f294 100644
       "Statement": [
        {
 -              "Sid" : "",
-+       "Action": "sts:AssumeRole",
         "Effect": "Allow",
-+       "Sid": "",
++       "Action": "sts:AssumeRole",
         "Principal": {
          "Service": "ec2.amazonaws.com"
--              },
+        },
 -              "Action" : "sts:AssumeRole"
-+       }
++       "Sid": ""
        }
       ]
      },
@@ -252,8 +249,7 @@ index c503353..161f294 100644
 +    "DestinationCidrBlock": "0.0.0.0/0",
 +    "GatewayId": {
 +     "Ref": "InternetGateway"
-     },
--        "ServiceRole" : { "Ref" : "BatchServiceRole" }
++    },
 +    "RouteTableId": {
 +     "Ref": "RouteTable"
 +    }
@@ -264,7 +260,8 @@ index c503353..161f294 100644
 +   "Properties": {
 +    "RouteTableId": {
 +     "Ref": "RouteTable"
-+    },
+     },
+-        "ServiceRole" : { "Ref" : "BatchServiceRole" }
 +    "SubnetId": {
 +     "Ref": "Subnet"
 +    }
