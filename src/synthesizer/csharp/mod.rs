@@ -513,14 +513,7 @@ impl ResourceIr {
                         TypeReference::Primitive(_) => format!("{{ \"{name}\", "),
                         other => unimplemented!("{other:?}"),
                     });
-                    match val {
-                        ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::Double(_) => {
-                            // object_block.text("\"");
-                            val.emit_csharp(&object_block, schema);
-                            // object_block.text("\"");
-                        }
-                        _ => val.emit_csharp(&object_block, schema),
-                    }
+                    val.emit_csharp(&object_block, schema);
                     object_block.text(match structure {
                         TypeReference::Named(_) => ",",
                         TypeReference::Primitive(_) => "},",
