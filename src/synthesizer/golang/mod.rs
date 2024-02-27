@@ -835,7 +835,9 @@ impl GolangEmitter for ResourceIr {
                 when_false.emit_golang(context, &call, Some(","));
             }
             Self::ImportValue(import) => {
-                output.text(format!("cdk.Fn_ImportValue(jsii.String({import:?}))"))
+                output.text("cdk.Fn_ImportValue(");
+                import.emit_golang(context, output, None);
+                output.text(")");
             }
             Self::Join(sep, list) => {
                 let items = output.indent_with_options(IndentOptions {
