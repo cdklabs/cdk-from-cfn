@@ -260,7 +260,7 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     IntrinsicFunction::ImportValue(x) => {
                         let ir = self.translate(x)?;
                         Ok(ResourceIr::ImportValue(Box::new(ir)))
-                    },
+                    }
                     IntrinsicFunction::Select { index, list } => {
                         let index = match index {
                             ResourceValue::String(x) => match x.parse::<usize>() {
