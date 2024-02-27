@@ -588,7 +588,9 @@ impl ResourceIr {
                 output.text(" as string)");
             }
             ResourceIr::ImportValue(import) => {
-                output.text(format!("Fn.ImportValue(\"{import}\")"));
+                output.text("Fn.importValue(\"{{");
+                import.emit_csharp(output, schema);
+                output.text("}}\")");
             }
             ResourceIr::GetAZs(region) => {
                 output.text("Fn.GetAzs(");

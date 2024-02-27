@@ -598,9 +598,9 @@ fn emit_resource_ir(
             output.text(" : ");
             emit_resource_ir(context, output, if_false, None)
         }
-        ResourceIr::ImportValue(fn_or_name) => {
+        ResourceIr::ImportValue(import) => {
             output.text("cdk.Fn.importValue('{{");
-            emit_resource_ir(context, output, fn_or_name, None);
+            emit_resource_ir(context, output, import, None);
             output.text("}}')");
         }
         ResourceIr::Join(sep, list) => {

@@ -787,9 +787,9 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
             output.text(format!("\n{DOUBLE_INDENT}: "));
             emit_java(*if_false, output, class, schema);
         }
-        ResourceIr::ImportValue(fn_or_name) => {
+        ResourceIr::ImportValue(import) => {
             output.text("Fn.importValue(\"{{");
-            emit_java(*fn_or_name, output, None, schema);
+            emit_java(*import, output, None, schema);
             output.text("}}\")");
         },
         ResourceIr::Join(sep, list) => {
