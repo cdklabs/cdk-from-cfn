@@ -598,8 +598,10 @@ fn emit_resource_ir(
             output.text(" : ");
             emit_resource_ir(context, output, if_false, None)
         }
-        ResourceIr::ImportValue(name) => {
-            output.text(format!("cdk.Fn.importValue('{}')", name.escape_debug()))
+        ResourceIr::ImportValue(import) => {
+            output.text("cdk.Fn.importValue(");
+            emit_resource_ir(context, output, import, None);
+            output.text(")");
         }
         ResourceIr::Join(sep, list) => {
             let items = output.indent_with_options(IndentOptions {
