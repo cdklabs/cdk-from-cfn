@@ -79,7 +79,7 @@ test_case!(vpc, "VpcStack");
 test_case!(sam_nodejs_lambda, "SAMNodeJSLambda");
 // These stack should be identical to the ones above
 test_case!(sam_nodejs_lambda_arr_transform, "SAMNodeJSLambda", ALL);
-test_case!(batch, "BatchStack", &["golang"]);
+test_case!(batch, "BatchStack", &["golang", "java"]); //java fails cdk synth bc template produced has non-deterministic order
 test_case!(cloudwatch, "CloudwatchStack", &["golang"]);
 
 // Add new test cases here
