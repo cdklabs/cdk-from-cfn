@@ -44,7 +44,7 @@ pub enum ResourceIr {
     Sub(Vec<ResourceIr>),
     Map(String, Box<ResourceIr>, Box<ResourceIr>),
     Base64(Box<ResourceIr>),
-    ImportValue(String),
+    ImportValue(Box<ResourceIr>),
     GetAZs(Box<ResourceIr>),
     Select(usize, Box<ResourceIr>),
     Cidr(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
@@ -257,7 +257,10 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                             Ok(ResourceIr::Base64(Box::new(ir)))
                         }
                     },
-                    IntrinsicFunction::ImportValue(name) => Ok(ResourceIr::ImportValue(name)),
+                    IntrinsicFunction::ImportValue(x) => {
+                        let ir = self.translate(x)?;
+                        Ok(ResourceIr::ImportValue(Box::new(ir)))
+                    }
                     IntrinsicFunction::Select { index, list } => {
                         let index = match index {
                             ResourceValue::String(x) => match x.parse::<usize>() {
