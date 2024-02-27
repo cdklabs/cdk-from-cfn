@@ -634,7 +634,7 @@ fn emit_resource_ir(
             emit_resource_ir(context, output, if_false, None)
         }
         ResourceIr::ImportValue(import) => {
-            output.text("cdk.Fn.importValue(");
+            output.text("cdk.Fn.import_value(");
             emit_resource_ir(context, output, import, None);
             output.text(")");
         }
