@@ -1,0 +1,50 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "EnvironmentName": {
+      "Description": "Environment used for this deployment.",
+      "Type": "String",
+      "AllowedValues": [
+        "dev",
+        "stage",
+        "prod"
+      ]
+    }
+  },
+  "Resources": {
+    "MyApi5xxErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Example alarm",
+        "Namespace": "AWS/ApiGateway",
+        "Dimensions": [
+          {
+            "Name": "ApiName",
+            "Value": "MyApi"
+          }
+        ],
+        "MetricName": "5XXError",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Statistic": "Average",
+        "Threshold": 0,
+        "Period": 900,
+        "EvaluationPeriods": 1,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": [
+                "${Environment}AlarmsTopicArn",
+                {
+                  "Environment": {
+                    "Ref": "EnvironmentName"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

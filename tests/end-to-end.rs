@@ -80,6 +80,7 @@ test_case!(sam_nodejs_lambda, "SAMNodeJSLambda");
 // These stack should be identical to the ones above
 test_case!(sam_nodejs_lambda_arr_transform, "SAMNodeJSLambda", ALL);
 test_case!(batch, "BatchStack", &["golang"]);
+test_case!(cloudwatch, "CloudwatchStack", &["golang"]);
 
 // Add new test cases here
 
