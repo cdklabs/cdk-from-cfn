@@ -2,6 +2,7 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Parameters": {
     "EnvironmentName": {
+      "Default": "dev",
       "Description": "Environment used for this deployment.",
       "Type": "String",
       "AllowedValues": [

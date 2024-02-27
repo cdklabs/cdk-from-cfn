@@ -588,7 +588,7 @@ impl ResourceIr {
                 output.text(" as string)");
             }
             ResourceIr::ImportValue(import) => {
-                output.text("Fn.importValue(");
+                output.text("Fn.ImportValue(");
                 import.emit_csharp(output, schema);
                 output.text(")");
             }

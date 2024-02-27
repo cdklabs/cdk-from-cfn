@@ -1,0 +1,29 @@
+{
+ "Resources": {
+  "MyApi5xxErrorsAlarm": {
+   "Type": "AWS::CloudWatch::Alarm",
+   "Properties": {
+    "AlarmActions": [
+     {
+      "Fn::ImportValue": "devAlarmsTopicArn"
+     }
+    ],
+    "AlarmDescription": "Example alarm",
+    "ComparisonOperator": "GreaterThanThreshold",
+    "Dimensions": [
+     {
+      "Name": "ApiName",
+      "Value": "MyApi"
+     }
+    ],
+    "EvaluationPeriods": 1,
+    "MetricName": "5XXError",
+    "Namespace": "AWS/ApiGateway",
+    "Period": 900,
+    "Statistic": "Average",
+    "Threshold": 0,
+    "TreatMissingData": "notBreaching"
+   }
+  }
+ }
+}
