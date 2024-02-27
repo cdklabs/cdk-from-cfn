@@ -787,7 +787,11 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
             output.text(format!("\n{DOUBLE_INDENT}: "));
             emit_java(*if_false, output, class, schema);
         }
-        ResourceIr::ImportValue(text) => output.text(format!("Fn.importValue(\"{text}\")")),
+        ResourceIr::ImportValue(fn_or_name) => {
+            output.text("Fn.importValue(\"{{");
+            emit_java(*fn_or_name, output, None, schema);
+            output.text("}}\")");
+        },
         ResourceIr::Join(sep, list) => {
             let items = output.indent_with_options(IndentOptions {
                 indent: DOUBLE_INDENT,
