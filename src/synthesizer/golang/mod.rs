@@ -738,7 +738,7 @@ impl GolangEmitter for ResourceIr {
             }
             Self::Object(structure, properties) => {
                 let mut structure_is_simple_json = false;
-                let mut structure_is_string_map = false;
+                let mut structure_is_map = false;
                 let props = output.indent_with_options(IndentOptions {
                     indent: INDENT,
                     leading: Some(match structure {
@@ -761,7 +761,7 @@ impl GolangEmitter for ResourceIr {
                             format!("[]{}", item_type.as_golang(context.schema)).into()
                         }
                         TypeReference::Map(_) => {
-                            structure_is_string_map = true;
+                            structure_is_map = true;
                             "map[string]interface{} {".into()
                         }
                         other => unimplemented!("{other:?}"),
@@ -779,7 +779,7 @@ impl GolangEmitter for ResourceIr {
                             "\"{name}\": ",
                             name = golang_identifier(name, IdentifierKind::Exported)
                         ));
-                    } else if structure_is_string_map {
+                    } else if structure_is_map {
                         props.text(format!("\"{name}\": "));
                     } else {
                         props.text(format!(

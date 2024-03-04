@@ -25,14 +25,14 @@ namespace EcsStack
                     {
                         new Dictionary<string, object>
                         {
-                            { "Action", "sts:AssumeRole"},
-                            { "Effect", "Allow"},
+                            { "Action", "sts:AssumeRole" },
+                            { "Effect", "Allow" },
                             { "Principal", new Dictionary<string, object>
                             {
-                                { "Service", "ecs-tasks.amazonaws.com"},
-                            }},
+                                { "Service", "ecs-tasks.amazonaws.com" },
+                            } },
                         },
-                    }},
+                    } },
                 },
             });
             var ecsTaskExecutionRole = new CfnRole(this, "ECSTaskExecutionRole", new CfnRoleProps
@@ -44,14 +44,14 @@ namespace EcsStack
                     {
                         new Dictionary<string, object>
                         {
-                            { "Action", "sts:AssumeRole"},
-                            { "Effect", "Allow"},
+                            { "Action", "sts:AssumeRole" },
+                            { "Effect", "Allow" },
                             { "Principal", new Dictionary<string, object>
                             {
-                                { "Service", "ecs-tasks.amazonaws.com"},
-                            }},
+                                { "Service", "ecs-tasks.amazonaws.com" },
+                            } },
                         },
-                    }},
+                    } },
                 },
                 ManagedPolicyArns = new []
                 {
@@ -82,9 +82,9 @@ namespace EcsStack
                         {
                             Options = new Dictionary<string, string>
                             {
-                                { "awslogs-group", "/aws/ecs/test/main"},
-                                { "awslogs-region", "ap-northeast-1"},
-                                { "awslogs-stream-prefix", "ecs"},
+                                { "awslogs-group", "/aws/ecs/test/main" },
+                                { "awslogs-region", "ap-northeast-1" },
+                                { "awslogs-stream-prefix", "ecs" },
                             },
                             LogDriver = "awslogs",
                         },
