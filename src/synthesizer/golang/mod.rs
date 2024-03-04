@@ -759,6 +759,9 @@ impl GolangEmitter for ResourceIr {
                         TypeReference::List(item_type) => {
                             format!("[]{}", item_type.as_golang(context.schema)).into()
                         }
+                        TypeReference::Map(_) => {
+                            "map[string]string {".into()
+                        }
                         other => unimplemented!("{other:?}"),
                         // TypeReference::Map(item_type) => {
                         //     format!("map[string]{}", item_type.as_golang(context.schema)).into()

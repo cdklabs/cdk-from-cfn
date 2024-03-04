@@ -513,7 +513,9 @@ impl ResourceIr {
                 for (name, val) in properties {
                     object_block.text(match structure {
                         TypeReference::Named(_) => format!("{name} = "),
-                        TypeReference::Primitive(_) | TypeReference::Map(_) => format!("{{ \"{name}\", "),
+                        TypeReference::Primitive(_) | TypeReference::Map(_) => {
+                            format!("{{ \"{name}\", ")
+                        }
                         other => unimplemented!("{other:?}"),
                     });
                     val.emit_csharp(&object_block, schema);
