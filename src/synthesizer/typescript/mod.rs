@@ -546,7 +546,7 @@ fn emit_resource_ir(
             });
             for (name, value) in entries {
                 match structure {
-                    TypeReference::Primitive(_) => {
+                    TypeReference::Primitive(_) | TypeReference::Map(_) => {
                         if name.chars().all(|c| c.is_alphanumeric())
                             && name.chars().next().unwrap().is_alphabetic()
                         {

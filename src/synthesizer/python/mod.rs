@@ -591,7 +591,7 @@ fn emit_resource_ir(
             });
             for (name, value) in entries {
                 match structure {
-                    TypeReference::Primitive(_) => {
+                    TypeReference::Primitive(_) | TypeReference::Map(_) => {
                         obj.text(format!("'{name}': "));
                     }
                     _ => {
