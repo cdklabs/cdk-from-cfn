@@ -501,6 +501,9 @@ impl ResourceIr {
                             Primitive::Json => "new Dictionary<string, object>\n{".into(),
                             _ => unreachable!("cannot emit ResourceIr::Object with non-json simple structure ({:?})", cfn)
                         }
+                        TypeReference::Map(_) => {
+                            "new Dictionary<string, string>\n{".into()
+                        }
                         other => unimplemented!("{other:?}"),
                     }),
                     trailing: Some("}".into()),
@@ -510,13 +513,15 @@ impl ResourceIr {
                 for (name, val) in properties {
                     object_block.text(match structure {
                         TypeReference::Named(_) => format!("{name} = "),
-                        TypeReference::Primitive(_) => format!("{{ \"{name}\", "),
+                        TypeReference::Primitive(_) | TypeReference::Map(_) => {
+                            format!("{{ \"{name}\", ")
+                        }
                         other => unimplemented!("{other:?}"),
                     });
                     val.emit_csharp(&object_block, schema);
                     object_block.text(match structure {
                         TypeReference::Named(_) => ",",
-                        TypeReference::Primitive(_) => "},",
+                        TypeReference::Primitive(_) | TypeReference::Map(_) => "},",
                         other => unimplemented!("{other:?}"),
                     });
                     object_block.newline();

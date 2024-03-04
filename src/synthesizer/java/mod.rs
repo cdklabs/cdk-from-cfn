@@ -729,7 +729,7 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
                     }
                 }
             },
-            TypeReference::Primitive(_) => {
+            TypeReference::Primitive(_) | TypeReference::Map(_) => {
                 output.text("Map.of(");
                 let mut map = entries.iter().peekable();
                 while let Some((key, value)) = map.next() {
