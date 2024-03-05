@@ -402,7 +402,7 @@ impl ResourceInstruction {
                     )
                     .replace('\"', "");
                     return Err(TransmuteError::new(format!(
-                        "{name} is not a valid property type for resource type {resource_type}"
+                        "{name} is not a valid property for resource type {resource_type}"
                     )));
                 }
                 let translator = ResourceTranslator {
