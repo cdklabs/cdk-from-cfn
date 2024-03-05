@@ -393,6 +393,17 @@ impl ResourceInstruction {
             for (name, prop) in attributes.properties {
                 let property_type = resource_spec.and_then(|spec| spec.property(&name));
                 let property_type = property_type.map(|prop| prop.value_type);
+                if property_type.is_none() {
+                    let resource_type = format!(
+                        "{:#?}::{:#?}::{:#?}",
+                        resource_type.scope().to_uppercase(),
+                        resource_type.service(),
+                        resource_type.type_name(),
+                    ).replace("\"", "");
+                    return Err(TransmuteError::new(format!(
+                        "{name} is not a valid property type for resource type {resource_type}"
+                    )));
+                }
                 let translator = ResourceTranslator {
                     schema,
                     origins,
