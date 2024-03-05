@@ -757,7 +757,9 @@ fn test_parse_tree_resource_with_fn_and() {
 }
 
 #[test]
-#[should_panic(expected = "ReadEndpoint is not a valid property for resource RDSCluster of type AWS::RDS::DBCluster")]
+#[should_panic(
+    expected = "ReadEndpoint is not a valid property for resource RDSCluster of type AWS::RDS::DBCluster"
+)]
 fn test_invalid_resource_property() {
     let cfn_template = json!({
         "Resources": {
