@@ -6,7 +6,7 @@ use cdk_from_cfn::parser::parameters::{Parameter, ParameterType};
 use cdk_from_cfn::parser::resource::{DeletionPolicy, IntrinsicFunction};
 use cdk_from_cfn::parser::resource::{ResourceAttributes, ResourceValue};
 use cdk_from_cfn::primitives::WrapperF64;
-use cdk_from_cfn::{CloudformationParseTree, TransmuteError};
+use cdk_from_cfn::CloudformationParseTree;
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::vec;
