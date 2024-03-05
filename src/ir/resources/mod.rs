@@ -372,7 +372,7 @@ impl ResourceInstruction {
     ) -> Result<Vec<Self>, TransmuteError> {
         let mut instructions = Vec::with_capacity(parse_tree.len());
 
-        for (name, attributes) in parse_tree {
+        for (resource_name, attributes) in parse_tree {
             let resource_type = ResourceType::parse(&attributes.resource_type)?;
             let resource_spec = schema.resource_type(&attributes.resource_type);
 
@@ -390,8 +390,8 @@ impl ResourceInstruction {
 
             let mut properties =
                 IndexMap::with_capacity_and_hasher(attributes.properties.len(), Hasher::default());
-            for (name, prop) in attributes.properties {
-                let property_type = resource_spec.and_then(|spec| spec.property(&name));
+            for (prop_name, prop) in attributes.properties {
+                let property_type = resource_spec.and_then(|spec| spec.property(&prop_name));
                 let property_type = property_type.map(|prop| prop.value_type);
                 if property_type.is_none() {
                     let resource_type = format!(
@@ -402,7 +402,7 @@ impl ResourceInstruction {
                     )
                     .replace('\"', "");
                     return Err(TransmuteError::new(format!(
-                        "{name} is not a valid property for resource type {resource_type}"
+                        "{prop_name} is not a valid property for resource {resource_name} of type {resource_type}"
                     )));
                 }
                 let translator = ResourceTranslator {
@@ -410,11 +410,11 @@ impl ResourceInstruction {
                     origins,
                     value_type: property_type,
                 };
-                properties.insert(name, translator.translate(prop)?);
+                properties.insert(prop_name, translator.translate(prop)?);
             }
 
             let mut instruction = Self {
-                name,
+                name: resource_name,
                 condition: attributes.condition,
                 metadata,
                 update_policy,
