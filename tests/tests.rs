@@ -1,11 +1,14 @@
+use cdk_from_cfn::cdk::Schema;
+use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::parser::condition::{ConditionFunction, ConditionValue};
 use cdk_from_cfn::parser::lookup_table::{MappingInnerValue, MappingTable};
 use cdk_from_cfn::parser::parameters::{Parameter, ParameterType};
 use cdk_from_cfn::parser::resource::{DeletionPolicy, IntrinsicFunction};
 use cdk_from_cfn::parser::resource::{ResourceAttributes, ResourceValue};
 use cdk_from_cfn::primitives::WrapperF64;
-use cdk_from_cfn::CloudformationParseTree;
+use cdk_from_cfn::{CloudformationParseTree, TransmuteError};
 use indexmap::IndexMap;
+use std::borrow::Cow;
 use std::vec;
 
 mod json;
@@ -751,4 +754,29 @@ fn test_parse_tree_resource_with_fn_and() {
     };
 
     assert_template_equal!(cfn_template, cfn_tree)
+}
+
+#[test]
+#[should_panic(expected = "ReadEndpoint is not a valid property for resource RDSCluster of type AWS::RDS::DBCluster")]
+fn test_invalid_resource_property() {
+    let cfn_template = json!({
+        "Resources": {
+            "RDSCluster": {
+                "Type": "AWS::RDS::DBCluster",
+                "Properties": {
+                    "DBClusterIdentifier" : "aurora-postgresql-cluster",
+                    "Engine" : "aurora-postgresql",
+                    "EngineVersion" : "10.7",
+                    "DBClusterParameterGroupName" : "default.aurora-postgresql10",
+                    "EnableCloudwatchLogsExports" : ["postgresql"],
+                    "ReadEndpoint": {
+                        "Address": "http://127.0.0.1:8080"
+                    }
+                }
+            }
+        }
+    });
+    let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
+    let schema = Cow::Borrowed(Schema::builtin());
+    CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
 }
