@@ -694,39 +694,41 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
         }
         ResourceIr::Object(structure, entries) => match &structure {
             TypeReference::Named(property)
-            | TypeReference::List(ItemType::Static(TypeReference::Named(property))) => match property.as_ref() {
-                "CfnTag" => {
-                    let obj = output.indent_with_options(IndentOptions {
-                        indent: DOUBLE_INDENT,
-                        leading: Some("CfnTag.builder()".into()),
-                        trailing: Some(format!("{DOUBLE_INDENT}.build()").into()),
-                        trailing_newline: false,
-                    });
-                    for (key, value) in &entries {
-                        if key.eq_ignore_ascii_case("Key") {
-                            obj.text(".key(");
+            | TypeReference::List(ItemType::Static(TypeReference::Named(property))) => {
+                match property.as_ref() {
+                    "CfnTag" => {
+                        let obj = output.indent_with_options(IndentOptions {
+                            indent: DOUBLE_INDENT,
+                            leading: Some("CfnTag.builder()".into()),
+                            trailing: Some(format!("{DOUBLE_INDENT}.build()").into()),
+                            trailing_newline: false,
+                        });
+                        for (key, value) in &entries {
+                            if key.eq_ignore_ascii_case("Key") {
+                                obj.text(".key(");
+                                emit_java(value.clone(), &obj, class, schema);
+                                obj.text(")\n");
+                            }
+                            if key.eq_ignore_ascii_case("Value") {
+                                obj.text(".value(");
+                                emit_tag_value(value.clone(), &obj, class, schema);
+                                obj.text(")\n")
+                            }
+                        }
+                    }
+                    name => {
+                        let name = &schema.type_named(name).unwrap().name.java.name;
+                        let obj = output.indent_with_options(IndentOptions {
+                            indent: DOUBLE_INDENT,
+                            leading: Some(format!("{name}.builder()").into()),
+                            trailing: Some(format!("{DOUBLE_INDENT}.build()").into()),
+                            trailing_newline: false,
+                        });
+                        for (key, value) in &entries {
+                            obj.text(format!(".{}(", camel_case(key)));
                             emit_java(value.clone(), &obj, class, schema);
                             obj.text(")\n");
                         }
-                        if key.eq_ignore_ascii_case("Value") {
-                            obj.text(".value(");
-                            emit_tag_value(value.clone(), &obj, class, schema);
-                            obj.text(")\n")
-                        }
-                    }
-                }
-                name => {
-                    let name = &schema.type_named(name).unwrap().name.java.name;
-                    let obj = output.indent_with_options(IndentOptions {
-                        indent: DOUBLE_INDENT,
-                        leading: Some(format!("{name}.builder()").into()),
-                        trailing: Some(format!("{DOUBLE_INDENT}.build()").into()),
-                        trailing_newline: false,
-                    });
-                    for (key, value) in &entries {
-                        obj.text(format!(".{}(", camel_case(key)));
-                        emit_java(value.clone(), &obj, class, schema);
-                        obj.text(")\n");
                     }
                 }
             }
