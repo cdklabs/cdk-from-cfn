@@ -82,7 +82,7 @@ test_case!(sam_nodejs_lambda_arr_transform, "SAMNodeJSLambda", ALL);
 test_case!(batch, "BatchStack", &["golang", "java"]); //java fails cdk synth bc template produced has non-deterministic order
 test_case!(cloudwatch, "CloudwatchStack", &["golang"]);
 test_case!(ecs, "EcsStack", &["java", "golang"]);
-test_case!(ec2, "Ec2Stack", &["java"]);
+test_case!(ec2, "Ec2Stack", &["java", "golang"]);
 
 // Add new test cases here
 
