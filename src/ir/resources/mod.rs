@@ -117,11 +117,16 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                 Ok(ResourceIr::Array(item_type.unwrap_or_default(), array_ir))
             }
             ResourceValue::Object(o) => {
+                let mut is_singleton_list = false;
                 let property_bag: Box<dyn PropertyBag> = match &self.value_type {
                     Some(TypeReference::Named(name)) => {
                         Box::new(self.schema.type_named(name).cloned().unwrap())
                     }
                     Some(TypeReference::Map(item_type)) => Box::new(MapOf(item_type)),
+                    Some(TypeReference::List(item_type)) => {
+                        is_singleton_list = true;
+                        Box::new(MapOf(item_type))
+                    }
                     Some(TypeReference::Primitive(Primitive::Json)) => {
                         Box::new(MapOf(&TypeReference::Primitive(Primitive::Json)))
                     }
@@ -141,10 +146,19 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     new_hash.insert(s, property_ir);
                 }
 
-                Ok(ResourceIr::Object(
+                let resource_ir = ResourceIr::Object(
                     self.value_type.clone().unwrap_or_default(),
                     new_hash,
-                ))
+                );
+
+                if is_singleton_list {
+                    return Ok(ResourceIr::Array(
+                        self.value_type.clone().unwrap_or_default(),
+                        Vec::from([resource_ir])
+                    ));
+                }
+
+                Ok(resource_ir)
             }
             ResourceValue::IntrinsicFunction(intrinsic) => {
                 match *intrinsic {
