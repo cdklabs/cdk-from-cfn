@@ -1,0 +1,27 @@
+{
+ "Resources": {
+  "TestVPC": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16"
+   }
+  },
+  "SG1": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "SG2",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "10.0.0.0/16",
+      "FromPort": 10000,
+      "IpProtocol": "TCP",
+      "ToPort": 10000
+     }
+    ],
+    "VpcId": {
+     "Ref": "TestVPC"
+    }
+   }
+  }
+ }
+}

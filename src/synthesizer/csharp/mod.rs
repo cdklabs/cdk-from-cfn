@@ -490,7 +490,7 @@ impl ResourceIr {
                 let object_block = output.indent_with_options(IndentOptions {
                     indent: INDENT,
                     leading: Some(match structure {
-                        TypeReference::Named(name) => match name.as_ref() {
+                        TypeReference::Named(name) | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => match name.as_ref() {
                             "CfnTag" => "new CfnTag\n{".into(),
                             name => {
                                 let name = &schema.type_named(name).unwrap().name.csharp;
@@ -503,10 +503,6 @@ impl ResourceIr {
                         }
                         TypeReference::Map(_) => {
                             "new Dictionary<string, string>\n{".into()
-                        }
-                        TypeReference::List(ItemType::Static(TypeReference::Named(name))) => {
-                            let name = &schema.type_named(name).unwrap().name.csharp;
-                            format!("new {}\n{{", name.name).into()
                         }
                         other => unimplemented!("{other:?}"),
                     }),

@@ -1,5 +1,5 @@
 use super::Synthesizer;
-use crate::cdk::{Schema, TypeReference};
+use crate::cdk::{ItemType, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::importer::ImportInstruction;
@@ -692,8 +692,8 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
                 }
             }
         }
-        ResourceIr::Object(structure, entries) => match structure {
-            TypeReference::Named(property) => match property.as_ref() {
+        ResourceIr::Object(structure, entries) => match &structure {
+            TypeReference::Named(property) | TypeReference::List(ItemType::Static(TypeReference::Named(property))) => match property.as_ref() {
                 "CfnTag" => {
                     let obj = output.indent_with_options(IndentOptions {
                         indent: DOUBLE_INDENT,
