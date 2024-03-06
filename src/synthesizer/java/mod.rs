@@ -693,7 +693,8 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
             }
         }
         ResourceIr::Object(structure, entries) => match &structure {
-            TypeReference::Named(property) | TypeReference::List(ItemType::Static(TypeReference::Named(property))) => match property.as_ref() {
+            TypeReference::Named(property)
+            | TypeReference::List(ItemType::Static(TypeReference::Named(property))) => match property.as_ref() {
                 "CfnTag" => {
                     let obj = output.indent_with_options(IndentOptions {
                         indent: DOUBLE_INDENT,
@@ -728,7 +729,7 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
                         obj.text(")\n");
                     }
                 }
-            },
+            }
             TypeReference::Primitive(_) | TypeReference::Map(_) => {
                 output.text("Map.of(");
                 let mut map = entries.iter().peekable();
