@@ -146,15 +146,13 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     new_hash.insert(s, property_ir);
                 }
 
-                let resource_ir = ResourceIr::Object(
-                    self.value_type.clone().unwrap_or_default(),
-                    new_hash,
-                );
+                let resource_ir = 
+                    ResourceIr::Object(self.value_type.clone().unwrap_or_default(), new_hash);
 
                 if is_resource_ir_array {
                     return Ok(ResourceIr::Array(
                         self.value_type.clone().unwrap_or_default(),
-                        Vec::from([resource_ir])
+                        Vec::from([resource_ir]),
                     ));
                 }
 

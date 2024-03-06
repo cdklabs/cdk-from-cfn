@@ -524,7 +524,7 @@ impl ResourceIr {
                     });
                     val.emit_csharp(&object_block, schema);
                     object_block.text(match structure {
-                        TypeReference::Named(_)| TypeReference::List(_) => ",",
+                        TypeReference::Named(_) | TypeReference::List(_) => ",",
                         TypeReference::Primitive(_) | TypeReference::Map(_) => "},",
                         other => unimplemented!("{other:?}"),
                     });
