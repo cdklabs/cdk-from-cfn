@@ -1,4 +1,4 @@
-use crate::cdk::{Primitive, Schema, TypeReference};
+use crate::cdk::{ItemType, Primitive, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
@@ -504,6 +504,10 @@ impl ResourceIr {
                         TypeReference::Map(_) => {
                             "new Dictionary<string, string>\n{".into()
                         }
+                        TypeReference::List(ItemType::Static(TypeReference::Named(name))) => {
+                            let name = &schema.type_named(name).unwrap().name.csharp;
+                            format!("new {}\n{{", name.name).into()
+                        }
                         other => unimplemented!("{other:?}"),
                     }),
                     trailing: Some("}".into()),
@@ -512,7 +516,7 @@ impl ResourceIr {
 
                 for (name, val) in properties {
                     object_block.text(match structure {
-                        TypeReference::Named(_) => format!("{name} = "),
+                        TypeReference::Named(_) | TypeReference::List(_) => format!("{name} = "),
                         TypeReference::Primitive(_) | TypeReference::Map(_) => {
                             format!("{{ \"{name}\", ")
                         }
@@ -520,7 +524,7 @@ impl ResourceIr {
                     });
                     val.emit_csharp(&object_block, schema);
                     object_block.text(match structure {
-                        TypeReference::Named(_) => ",",
+                        TypeReference::Named(_)| TypeReference::List(_) => ",",
                         TypeReference::Primitive(_) | TypeReference::Map(_) => "},",
                         other => unimplemented!("{other:?}"),
                     });

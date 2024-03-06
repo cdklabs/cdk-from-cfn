@@ -117,14 +117,14 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                 Ok(ResourceIr::Array(item_type.unwrap_or_default(), array_ir))
             }
             ResourceValue::Object(o) => {
-                let mut is_singleton_list = false;
+                let mut is_resource_ir_array = false;
                 let property_bag: Box<dyn PropertyBag> = match &self.value_type {
                     Some(TypeReference::Named(name)) => {
                         Box::new(self.schema.type_named(name).cloned().unwrap())
                     }
                     Some(TypeReference::Map(item_type)) => Box::new(MapOf(item_type)),
                     Some(TypeReference::List(item_type)) => {
-                        is_singleton_list = true;
+                        is_resource_ir_array = true;
                         Box::new(MapOf(item_type))
                     }
                     Some(TypeReference::Primitive(Primitive::Json)) => {
@@ -151,7 +151,7 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     new_hash,
                 );
 
-                if is_singleton_list {
+                if is_resource_ir_array {
                     return Ok(ResourceIr::Array(
                         self.value_type.clone().unwrap_or_default(),
                         Vec::from([resource_ir])
