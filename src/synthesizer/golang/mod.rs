@@ -752,7 +752,7 @@ impl GolangEmitter for ResourceIr {
                                     format!("&{}{{", name.split('_').last().unwrap()).into()
                                 }
                             }
-                        },
+                        }
                         TypeReference::Primitive(cfn) => match cfn {
                             Primitive::Json => {
                                 structure_is_simple_json = true;
