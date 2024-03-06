@@ -742,12 +742,15 @@ impl GolangEmitter for ResourceIr {
                 let props = output.indent_with_options(IndentOptions {
                     indent: INDENT,
                     leading: Some(match structure {
-                        TypeReference::Named(name) | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => match name.as_ref() {
-                            "CfnTag" => "&cdk.CfnTag{".into(),
-                            name => {
-                                let name =
-                                    &context.schema.type_named(name).unwrap().name.golang.name;
-                                format!("&{}{{", name.split('_').last().unwrap()).into()
+                        TypeReference::Named(name)
+                        | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => {
+                            match name.as_ref() {
+                                "CfnTag" => "&cdk.CfnTag{".into(),
+                                name => {
+                                    let name =
+                                        &context.schema.type_named(name).unwrap().name.golang.name;
+                                    format!("&{}{{", name.split('_').last().unwrap()).into()
+                                }
                             }
                         },
                         TypeReference::Primitive(cfn) => match cfn {
