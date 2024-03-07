@@ -1,4 +1,4 @@
-use crate::cdk::{Primitive, Schema, TypeReference};
+use crate::cdk::{ItemType, Primitive, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
@@ -490,7 +490,7 @@ impl ResourceIr {
                 let object_block = output.indent_with_options(IndentOptions {
                     indent: INDENT,
                     leading: Some(match structure {
-                        TypeReference::Named(name) => match name.as_ref() {
+                        TypeReference::Named(name) | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => match name.as_ref() {
                             "CfnTag" => "new CfnTag\n{".into(),
                             name => {
                                 let name = &schema.type_named(name).unwrap().name.csharp;
@@ -512,7 +512,7 @@ impl ResourceIr {
 
                 for (name, val) in properties {
                     object_block.text(match structure {
-                        TypeReference::Named(_) => format!("{name} = "),
+                        TypeReference::Named(_) | TypeReference::List(_) => format!("{name} = "),
                         TypeReference::Primitive(_) | TypeReference::Map(_) => {
                             format!("{{ \"{name}\", ")
                         }
@@ -520,7 +520,7 @@ impl ResourceIr {
                     });
                     val.emit_csharp(&object_block, schema);
                     object_block.text(match structure {
-                        TypeReference::Named(_) => ",",
+                        TypeReference::Named(_) | TypeReference::List(_) => ",",
                         TypeReference::Primitive(_) | TypeReference::Map(_) => "},",
                         other => unimplemented!("{other:?}"),
                     });

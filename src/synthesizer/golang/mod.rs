@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
 
-use crate::cdk::{Primitive, Schema, TypeReference};
+use crate::cdk::{ItemType, Primitive, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
@@ -742,14 +742,17 @@ impl GolangEmitter for ResourceIr {
                 let props = output.indent_with_options(IndentOptions {
                     indent: INDENT,
                     leading: Some(match structure {
-                        TypeReference::Named(name) => match name.as_ref() {
-                            "CfnTag" => "&cdk.CfnTag{".into(),
-                            name => {
-                                let name =
-                                    &context.schema.type_named(name).unwrap().name.golang.name;
-                                format!("&{}{{", name.split('_').last().unwrap()).into()
+                        TypeReference::Named(name)
+                        | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => {
+                            match name.as_ref() {
+                                "CfnTag" => "&cdk.CfnTag{".into(),
+                                name => {
+                                    let name =
+                                        &context.schema.type_named(name).unwrap().name.golang.name;
+                                    format!("&{}{{", name.split('_').last().unwrap()).into()
+                                }
                             }
-                        },
+                        }
                         TypeReference::Primitive(cfn) => match cfn {
                             Primitive::Json => {
                                 structure_is_simple_json = true;
