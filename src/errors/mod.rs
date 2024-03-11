@@ -18,7 +18,7 @@ pub enum Error {
     ResourceInstructionError {
         message: String,
     },
-    #[error("Invalid resource type: {message}")]
+    #[error("{message}")]
     ResourceTypeError {
         message: String,
     },
