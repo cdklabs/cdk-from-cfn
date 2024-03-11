@@ -483,7 +483,7 @@ impl ResourceType {
                 };
                 if parts.next().is_some() {
                     return Err(Error::ResourceTypeError {
-                        message: format!("{from:?} (only two segments expected)"),
+                        message: format!("Invalid resource named {from:?} (only two segments expected)"),
                     });
                 }
                 Ok(Self::Custom(name.into()))
@@ -492,7 +492,7 @@ impl ResourceType {
                 let service = match parts.next() {
                     Some("") | None => {
                         return Err(Error::ResourceTypeError {
-                            message: format!("{from:?} (missing service name)"),
+                            message: format!("Invalid resource type {from:?} (missing service name)"),
                         });
                     }
                     Some(service) => service.into(),
@@ -500,14 +500,14 @@ impl ResourceType {
                 let type_name = match parts.next() {
                     Some("") | None => {
                         return Err(Error::ResourceTypeError {
-                            message: format!("{from:?} (missing resource type name)"),
+                            message: format!("Invalid resource type {from:?} (missing resource type name)"),
                         });
                     }
                     Some(type_name) => type_name.into(),
                 };
                 if parts.next().is_some() {
                     return Err(Error::ResourceTypeError {
-                        message: format!("{from:?} (only three segments expected)"),
+                        message: format!("Invalid resource type {from:?} (only three segments expected)"),
                     });
                 }
                 Ok(Self::Alexa { service, type_name })
@@ -516,7 +516,7 @@ impl ResourceType {
                 let service = match parts.next() {
                     Some("") | None => {
                         return Err(Error::ResourceTypeError {
-                            message: format!("{from:?} (missing service name)"),
+                            message: format!("Invalid resource type {from:?} (missing service name)"),
                         });
                     }
                     Some(service) => {
@@ -530,20 +530,20 @@ impl ResourceType {
                 let type_name = match parts.next() {
                     Some("") | None => {
                         return Err(Error::ResourceTypeError {
-                            message: format!("{from:?} (missing resource type name)"),
+                            message: format!("Invalid resource type{from:?} (missing resource type name)"),
                         });
                     }
                     Some(type_name) => type_name.into(),
                 };
                 if parts.next().is_some() {
                     return Err(Error::ResourceTypeError {
-                        message: format!("{from:?} (only three segments expected)"),
+                        message: format!("Invalid resource type {from:?} (only three segments expected)"),
                     });
                 }
                 Ok(Self::AWS { service, type_name })
             }
             other => Err(Error::ResourceTypeError {
-                message: format!("unknown resource type namespace {other} in {from:?}")
+                message: format!("Unknown resource type namespace {other} in {from:?}")
             }),
         }
     }
