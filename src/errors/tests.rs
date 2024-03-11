@@ -1,15 +1,5 @@
 use serde::de::Error;
 
-// #[test]
-// fn test_transmute_error() {
-//     let error = crate::Error::TransmuteError {
-//         details: "Test error message".to_string(),
-//     };
-
-//     assert_eq!(error.details, "Test error message");
-//     assert_eq!(error.to_string(), "TransmuteError: Test error message");
-// }
-
 #[test]
 fn test_import_instruction_error() {
     let error = crate::Error::ImportInstructionError {
