@@ -7,7 +7,7 @@ use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::MappingInstruction;
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::resources::ResourceInstruction;
-use crate::{CloudformationParseTree, TransmuteError};
+use crate::{CloudformationParseTree, Error};
 
 use self::reference::{Origin, PseudoParameter};
 
@@ -39,7 +39,7 @@ impl CloudformationProgramIr {
     pub fn from(
         parse_tree: CloudformationParseTree,
         schema: &Schema,
-    ) -> Result<CloudformationProgramIr, TransmuteError> {
+    ) -> Result<CloudformationProgramIr, Error> {
         let origins = ReferenceOrigins::new(&parse_tree);
 
         Ok(CloudformationProgramIr {

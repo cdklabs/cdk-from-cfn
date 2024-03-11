@@ -15,7 +15,7 @@ use crate::parser::resource::{
 };
 use crate::primitives::WrapperF64;
 use crate::Hasher;
-use crate::TransmuteError;
+use crate::Error;
 
 use super::ReferenceOrigins;
 
@@ -71,7 +71,7 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
     pub(super) fn translate(
         &self,
         resource_value: ResourceValue,
-    ) -> Result<ResourceIr, TransmuteError> {
+    ) -> Result<ResourceIr, Error> {
         match resource_value {
             ResourceValue::Null => Ok(ResourceIr::Null),
             ResourceValue::Bool(b) => Ok(ResourceIr::Bool(b)),
@@ -82,12 +82,12 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     return match simple_type {
                         Primitive::Boolean => {
                             Ok(ResourceIr::Bool(s.parse().map_err(|cause| {
-                                TransmuteError::new(format!("{cause}"))
+                                Error::ResourceTranslationError { message: format!("{cause}") }
                             })?))
                         }
                         Primitive::Number => {
                             Ok(ResourceIr::Number(s.parse().map_err(|cause| {
-                                TransmuteError::new(format!("{cause}"))
+                                Error::ResourceTranslationError { message: format!("{cause}") }
                             })?))
                         }
                         _ => Ok(ResourceIr::String(s)),
@@ -172,9 +172,9 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                                 }
                                 _ => {
                                     // these aren't possible, so panic
-                                    return Err(TransmuteError::new(
-                                        "Sub excess map must be an object",
-                                    ));
+                                    return Err(Error::ResourceTranslationError {
+                                        message: "Sub excess map must be an object".to_string(),
+                                    });
                                 }
                             }
                         }
