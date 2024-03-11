@@ -1,4 +1,3 @@
-use crate::TransmuteError;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take, take_until};
 use nom::combinator::{map, rest};
@@ -14,7 +13,7 @@ pub enum SubValue {
     Variable(String),
 }
 
-pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, TransmuteError> {
+pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, crate::Error> {
     let mut full_resolver = many1(inner_resolver);
 
     match full_resolver(str) {
@@ -27,9 +26,15 @@ pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, TransmuteError> {
         }
 
         Err(err) => match err {
-            Err::Incomplete(_) => Err(TransmuteError::new("Should never enter this state")),
-            Err::Error(e) => Err(TransmuteError::new(e.code.description())),
-            Err::Failure(e) => Err(TransmuteError::new(e.code.description())),
+            Err::Incomplete(_) => Err(crate::Error::SubParseError {
+                message: "Should never enter this state".to_string(),
+            }),
+            Err::Error(e) => Err(crate::Error::SubParseError {
+                message: format!("{}", e.code.description()),
+            }),
+            Err::Failure(e) => Err(crate::Error::SubParseError {
+                message: format!("{}", e.code.description()),
+            }),
         },
     }
 }

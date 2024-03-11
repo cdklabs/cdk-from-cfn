@@ -14,6 +14,19 @@ pub enum Error {
     SubParseError {
         message: String,
     },
+    #[error("{message}")]
+    ResourceInstructionError {
+        message: String,
+    },
+    #[error("Invalid resource type: {message}")]
+    ResourceTypeError {
+        message: String,
+    },
+    #[error(transparent)]
+    YamlParseError {
+        #[from]
+        err: serde_yaml::Error,
+    },
 }
 
 #[cfg(test)]
