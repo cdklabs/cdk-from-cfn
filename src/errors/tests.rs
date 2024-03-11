@@ -43,7 +43,14 @@ fn test_resource_type_error() {
 #[test]
 fn test_yaml_parse_error() {
     let yaml_error = serde_yaml::Error::custom("YAML parsing error");
-    let transmute_error: crate::Error = yaml_error.into();
+    let error: crate::Error = yaml_error.into();
+    assert_eq!(error.to_string(), "YAML parsing error");
+}
 
-    assert_eq!(transmute_error.to_string(), "YAML parsing error");
+#[test]
+fn test_unsupported_language_error() {
+    let error = crate::Error::UnsupportedLanguageError {
+        language: "php".to_string(),
+    };
+    assert_eq!(error.to_string(), "php is not a supported language");
 }

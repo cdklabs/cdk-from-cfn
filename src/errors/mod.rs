@@ -27,6 +27,15 @@ pub enum Error {
         #[from]
         err: serde_yaml::Error,
     },
+    #[error("{language} is not a supported language")]
+    UnsupportedLanguageError {
+        language: String,
+    },
+    #[error(transparent)]
+    IOError {
+        #[from]
+        err: std::io::Error,
+    }
 }
 
 #[cfg(test)]

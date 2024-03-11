@@ -2,6 +2,7 @@ use cdk_from_cfn::cdk::Schema;
 use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::synthesizer::*;
 use cdk_from_cfn::CloudformationParseTree;
+use cdk_from_cfn::Error;
 use clap::{Arg, ArgAction, Command};
 use std::borrow::Cow;
 use std::{fs, io};
@@ -16,7 +17,7 @@ use std::{fs, io};
 )))]
 compile_error!("At least one language target feature must be enabled!");
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), Error> {
     let targets = [
         #[cfg(feature = "typescript")]
         "typescript",
@@ -106,7 +107,11 @@ fn main() -> anyhow::Result<()> {
         "java" => Box::<Java>::default(),
         #[cfg(feature = "csharp")]
         "csharp" => Box::<CSharp>::default(),
-        unsupported => panic!("unsupported language: {}", unsupported),
+        unsupported => {
+            return Err(Error::UnsupportedLanguageError {
+                language: unsupported.to_string(),
+            });
+        },
     };
 
     let stack_name = matches
