@@ -9,6 +9,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
+use crate::Error;
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::io;
@@ -37,13 +38,13 @@ impl Synthesizer for Python {
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
         stack_name: &str,
-    ) -> io::Result<()> {
+    ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 
         let imports = code.section(true);
         imports.line("from aws_cdk import Stack");
         for import in &ir.imports {
-            imports.line(import.to_python());
+            imports.line(import.to_python()?);
         }
         imports.line("from constructs import Construct");
 
@@ -217,7 +218,7 @@ impl Synthesizer for Python {
             }
         }
 
-        code.write(output)
+        Ok(code.write(output)?)
     }
 }
 
@@ -246,7 +247,7 @@ fn emit_cfn_output(
 }
 
 impl ImportInstruction {
-    fn to_python(&self) -> String {
+    fn to_python(&self) -> Result<String, Error> {
         let import = match self.organization.as_str() {
             "AWS" => match &self.service {
                 Some(service) => {
@@ -263,9 +264,11 @@ impl ImportInstruction {
                 let s = self.service.as_ref().unwrap().to_lowercase();
                 format!("import alexa_{s} as ask from {s}").to_string()
             }
-            _ => unreachable!(),
+            org => return Err(Error::ImportInstructionError {
+                message: format!("Expected organization to be AWS or Alexa. Found {org}"),
+            }),
         };
-        import
+        Ok(import)
     }
 }
 

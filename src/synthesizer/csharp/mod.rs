@@ -9,6 +9,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::ResourceIr;
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
+use crate::Error;
 use std::borrow::Cow;
 use std::io;
 use voca_rs::case::{camel_case, pascal_case};
@@ -39,7 +40,7 @@ impl Synthesizer for CSharp<'_> {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
-    ) -> io::Result<()> {
+    ) -> Result<(), Error> {
         // Initialize the code buffer in which all of the code will be generated
         let code = CodeBuffer::default();
 
@@ -314,7 +315,7 @@ impl Synthesizer for CSharp<'_> {
             }
         }
 
-        code.write(into)
+        Ok(code.write(into)?)
     }
 }
 

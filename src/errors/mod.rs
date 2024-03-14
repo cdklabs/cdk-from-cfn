@@ -35,7 +35,11 @@ pub enum Error {
     IOError {
         #[from]
         err: std::io::Error,
-    }
+    },
+    #[error("{message}")]
+    TypeReferenceError {
+        message: String,
+    },
 }
 
 #[cfg(test)]

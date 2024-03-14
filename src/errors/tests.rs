@@ -54,3 +54,11 @@ fn test_unsupported_language_error() {
     };
     assert_eq!(error.to_string(), "php is not a supported language");
 }
+
+#[test]
+fn test_type_reference_error() {
+    let error = crate::Error::TypeReferenceError {
+        message: "Type reference error".to_string(),
+    };
+    assert_eq!(error.to_string(), "Type reference error");
+}

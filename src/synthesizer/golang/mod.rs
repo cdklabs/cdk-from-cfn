@@ -10,6 +10,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{find_references, ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
+use crate::Error;
 use std::borrow::Cow;
 use std::io;
 use std::rc::Rc;
@@ -42,7 +43,7 @@ impl Synthesizer for Golang<'_> {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
-    ) -> io::Result<()> {
+    ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 
         code.line("package main");
@@ -383,7 +384,7 @@ impl Synthesizer for Golang<'_> {
         env_block.line("//  Region:  jsii.String(os.Getenv(\"CDK_DEFAULT_REGION\")),");
         env_block.line("// }");
 
-        code.write(into)
+        Ok(code.write(into)?)
     }
 }
 
