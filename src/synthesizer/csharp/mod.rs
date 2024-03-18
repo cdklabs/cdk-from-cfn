@@ -1,4 +1,4 @@
-use crate::cdk::{Primitive, Schema, TypeReference};
+use crate::cdk::{ItemType, Primitive, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
@@ -490,7 +490,7 @@ impl ResourceIr {
                 let object_block = output.indent_with_options(IndentOptions {
                     indent: INDENT,
                     leading: Some(match structure {
-                        TypeReference::Named(name) => match name.as_ref() {
+                        TypeReference::Named(name) | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => match name.as_ref() {
                             "CfnTag" => "new CfnTag\n{".into(),
                             name => {
                                 let name = &schema.type_named(name).unwrap().name.csharp;
@@ -501,6 +501,9 @@ impl ResourceIr {
                             Primitive::Json => "new Dictionary<string, object>\n{".into(),
                             _ => unreachable!("cannot emit ResourceIr::Object with non-json simple structure ({:?})", cfn)
                         }
+                        TypeReference::Map(_) => {
+                            "new Dictionary<string, string>\n{".into()
+                        }
                         other => unimplemented!("{other:?}"),
                     }),
                     trailing: Some("}".into()),
@@ -509,21 +512,16 @@ impl ResourceIr {
 
                 for (name, val) in properties {
                     object_block.text(match structure {
-                        TypeReference::Named(_) => format!("{name} = "),
-                        TypeReference::Primitive(_) => format!("{{ \"{name}\", "),
+                        TypeReference::Named(_) | TypeReference::List(_) => format!("{name} = "),
+                        TypeReference::Primitive(_) | TypeReference::Map(_) => {
+                            format!("{{ \"{name}\", ")
+                        }
                         other => unimplemented!("{other:?}"),
                     });
-                    match val {
-                        ResourceIr::Bool(_) | ResourceIr::Number(_) | ResourceIr::Double(_) => {
-                            object_block.text("\"");
-                            val.emit_csharp(&object_block, schema);
-                            object_block.text("\"");
-                        }
-                        _ => val.emit_csharp(&object_block, schema),
-                    }
+                    val.emit_csharp(&object_block, schema);
                     object_block.text(match structure {
-                        TypeReference::Named(_) => ",",
-                        TypeReference::Primitive(_) => "},",
+                        TypeReference::Named(_) | TypeReference::List(_) => ",",
+                        TypeReference::Primitive(_) | TypeReference::Map(_) => "},",
                         other => unimplemented!("{other:?}"),
                     });
                     object_block.newline();
@@ -595,7 +593,9 @@ impl ResourceIr {
                 output.text(" as string)");
             }
             ResourceIr::ImportValue(import) => {
-                output.text(format!("Fn.ImportValue(\"{import}\")"));
+                output.text("Fn.ImportValue(");
+                import.emit_csharp(output, schema);
+                output.text(")");
             }
             ResourceIr::GetAZs(region) => {
                 output.text("Fn.GetAzs(");

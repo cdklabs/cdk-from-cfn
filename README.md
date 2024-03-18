@@ -9,7 +9,7 @@ cdk_from_cfn will take your JSON/YAML and output the equivalent typescript.
 
 ```console
 $ cargo build --release
-$ ./target/release/cdk_from_cfn [INPUT] [OUTPUT]
+$ ./target/release/cdk-from-cfn [INPUT] [OUTPUT]
 ```
 
 - `INPUT` is the input file path (STDIN by default).

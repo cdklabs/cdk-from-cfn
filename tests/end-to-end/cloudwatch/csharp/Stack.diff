@@ -1,0 +1,65 @@
+diff --git a/./tests/end-to-end/cloudwatch/template.json b/tests/end-to-end/cloudwatch-csharp-working-dir/cdk.out/Stack.template.json
+index 8d26c7b..aad44e9 100644
+--- a/./tests/end-to-end/cloudwatch/template.json
++++ b/tests/end-to-end/cloudwatch-csharp-working-dir/cdk.out/Stack.template.json
+@@ -1,50 +1,28 @@
+ {
+-  "AWSTemplateFormatVersion": "2010-09-09",
+-  "Parameters": {
+-    "EnvironmentName": {
+-      "Default": "dev",
+-      "Description": "Environment used for this deployment.",
+-      "Type": "String",
+-      "AllowedValues": [
+-        "dev",
+-        "stage",
+-        "prod"
+-      ]
+-    }
+-  },
+  "Resources": {
+   "MyApi5xxErrorsAlarm": {
+    "Type": "AWS::CloudWatch::Alarm",
+    "Properties": {
++    "AlarmActions": [
++     {
++      "Fn::ImportValue": "devAlarmsTopicArn"
++     }
++    ],
+     "AlarmDescription": "Example alarm",
+-        "Namespace": "AWS/ApiGateway",
++    "ComparisonOperator": "GreaterThanThreshold",
+     "Dimensions": [
+      {
+       "Name": "ApiName",
+       "Value": "MyApi"
+      }
+     ],
++    "EvaluationPeriods": 1,
+     "MetricName": "5XXError",
+-        "ComparisonOperator": "GreaterThanThreshold",
++    "Namespace": "AWS/ApiGateway",
++    "Period": 900,
+     "Statistic": "Average",
+     "Threshold": 0,
+-        "Period": 900,
+-        "EvaluationPeriods": 1,
+-        "TreatMissingData": "notBreaching",
+-        "AlarmActions": [
+-          {
+-            "Fn::ImportValue": {
+-              "Fn::Sub": [
+-                "${Environment}AlarmsTopicArn",
+-                {
+-                  "Environment": {
+-                    "Ref": "EnvironmentName"
+-                  }
+-                }
+-              ]
+-            }
+-          }
+-        ]
++    "TreatMissingData": "notBreaching"
+    }
+   }
+  }

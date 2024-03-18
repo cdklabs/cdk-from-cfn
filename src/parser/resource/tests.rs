@@ -168,14 +168,14 @@ fn intrinsic_import_value() {
     const SHARED_VALUE: &str = "SharedValue.ToImport";
     assert_eq!(
         ResourceValue::from_value(json!({ "Fn::ImportValue": SHARED_VALUE })).unwrap(),
-        IntrinsicFunction::ImportValue(SHARED_VALUE.into()).into(),
+        IntrinsicFunction::ImportValue(ResourceValue::String(SHARED_VALUE.into())).into(),
     );
     assert_eq!(
         ResourceValue::from_value(
             serde_yaml::from_str(&format!("!ImportValue {SHARED_VALUE}")).unwrap()
         )
         .unwrap(),
-        IntrinsicFunction::ImportValue(SHARED_VALUE.into()).into(),
+        IntrinsicFunction::ImportValue(ResourceValue::String(SHARED_VALUE.into())).into(),
     );
 }
 

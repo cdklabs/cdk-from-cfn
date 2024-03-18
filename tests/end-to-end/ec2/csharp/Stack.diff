@@ -1,0 +1,44 @@
+diff --git a/./tests/end-to-end/ec2/template.json b/tests/end-to-end/ec2-csharp-working-dir/cdk.out/Stack.template.json
+index a467a3e..da91487 100644
+--- a/./tests/end-to-end/ec2/template.json
++++ b/tests/end-to-end/ec2-csharp-working-dir/cdk.out/Stack.template.json
+@@ -1,25 +1,26 @@
+ {
+-  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
++  "TestVPC": {
++   "Type": "AWS::EC2::VPC",
++   "Properties": {
++    "CidrBlock": "10.0.0.0/16"
++   }
++  },
+   "SG1": {
+    "Type": "AWS::EC2::SecurityGroup",
+    "Properties": {
+     "GroupDescription": "SG2",
+-        "VpcId": {
+-          "Ref": "TestVPC"
+-        },
+-        "SecurityGroupEgress": {
+-          "IpProtocol": "TCP",
++    "SecurityGroupEgress": [
++     {
++      "CidrIp": "10.0.0.0/16",
+       "FromPort": 10000,
+-          "ToPort": 10000,
+-          "CidrIp": "10.0.0.0/16"
++      "IpProtocol": "TCP",
++      "ToPort": 10000
+      }
++    ],
++    "VpcId": {
++     "Ref": "TestVPC"
+     }
+-    },
+-    "TestVPC": {
+-      "Type": "AWS::EC2::VPC",
+-      "Properties": {
+-        "CidrBlock": "10.0.0.0/16"
+    }
+   }
+  }

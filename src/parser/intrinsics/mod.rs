@@ -25,7 +25,7 @@ pub enum IntrinsicFunction {
         value_if_true: ResourceValue,
         value_if_false: ResourceValue,
     },
-    ImportValue(String),
+    ImportValue(ResourceValue),
     Join {
         sep: String,
         list: ResourceValue,
