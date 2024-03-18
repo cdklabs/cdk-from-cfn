@@ -1,0 +1,49 @@
+{
+  "Type": "AWS::Serverless::Function",
+  "Properties": {
+      "Handler": "index.handler",
+      "Runtime": "python3.9",
+      "InlineCode": "def handler(event, context):\n  print(\"Hello, world!\")\n",
+      "ReservedConcurrentExecutions": 30,
+      "Layers": [
+          {
+              "Ref": "MyLayer"
+          }
+      ],
+      "Tracing": "Active",
+      "Timeout": 120,
+      "FileSystemConfigs": [
+          {
+              "Arn": {
+                  "Ref": "MyEfsFileSystem"
+              },
+              "LocalMountPath": "/mnt/EFS"
+          }
+      ],
+      "Policies": [
+          "AWSLambdaExecute",
+          {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "s3:GetObject",
+                          "s3:GetObjectACL"
+                      ],
+                      "Resource": "arn:aws:s3:::my-bucket/*"
+                  }
+              ]
+          }
+      ],
+      "Events": {
+          "ApiEvent": {
+              "Type": "Api",
+              "Properties": {
+                  "Path": "/path",
+                  "Method": "get"
+              }
+          }
+      }
+  }
+}
