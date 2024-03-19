@@ -318,11 +318,7 @@
       },
       "Properties": {
         "AssociatePublicIpAddress" : true,
-        "ImageId": {
-          "Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" }, {
-            "Fn::FindInMap": [ "AWSInstanceType2Arch", { "Ref": "InstanceType" }, "Arch" ]
-          } ]
-        },
+        "ImageId": "ami-0ff8a91507f77f86",
         "InstanceType": { "Ref": "InstanceType" },
         "SecurityGroups": [ { "Ref": "InstanceSecurityGroup" } ],
         "IamInstanceProfile" : { "Ref" : "CloudWatchPutMetricsInstanceProfile" },
