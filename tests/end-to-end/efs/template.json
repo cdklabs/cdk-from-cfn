@@ -64,10 +64,6 @@
       ],
       "ConstraintDescription" : "must be a valid EC2 instance type."
     },
-    "KeyName": {
-      "Type": "AWS::EC2::KeyPair::KeyName",
-      "Description": "Name of an existing EC2 key pair to enable SSH access to the EC2 instances"
-    },
     "AsgMaxSize": {
       "Type": "Number",
       "Description": "Maximum size and initial desired capacity of Auto Scaling Group",
@@ -429,7 +425,6 @@
           } ]
         },
         "InstanceType": { "Ref": "InstanceType" },
-        "KeyName": { "Ref": "KeyName" },
         "SecurityGroups": [ { "Ref": "InstanceSecurityGroup" } ],
         "IamInstanceProfile" : { "Ref" : "CloudWatchPutMetricsInstanceProfile" },
         "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
