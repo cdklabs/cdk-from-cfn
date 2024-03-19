@@ -1,49 +1,29 @@
 {
-  "Type": "AWS::Serverless::Function",
-  "Properties": {
-      "Handler": "index.handler",
-      "Runtime": "python3.9",
-      "InlineCode": "def handler(event, context):\n  print(\"Hello, world!\")\n",
-      "ReservedConcurrentExecutions": 30,
-      "Layers": [
-          {
-              "Ref": "MyLayer"
-          }
-      ],
-      "Tracing": "Active",
-      "Timeout": 120,
-      "FileSystemConfigs": [
-          {
-              "Arn": {
-                  "Ref": "MyEfsFileSystem"
-              },
-              "LocalMountPath": "/mnt/EFS"
-          }
-      ],
-      "Policies": [
-          "AWSLambdaExecute",
-          {
-              "Version": "2012-10-17",
-              "Statement": [
-                  {
-                      "Effect": "Allow",
-                      "Action": [
-                          "s3:GetObject",
-                          "s3:GetObjectACL"
-                      ],
-                      "Resource": "arn:aws:s3:::my-bucket/*"
-                  }
-              ]
-          }
-      ],
-      "Events": {
-          "ApiEvent": {
-              "Type": "Api",
-              "Properties": {
-                  "Path": "/path",
-                  "Method": "get"
-              }
-          }
-      }
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Resources": {
+    "ClientFunction": {
+        "Type": "AWS::Serverless::Function",
+        "Properties": {
+        "FunctionName": "pricing-client",
+        "Handler": "client_lambda.lambda_handler",
+        "MemorySize": 512,
+        "Timeout": 300,
+        "CodeUri": "./pricing-client/",
+        "PermissionsBoundary": {
+            "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/GithubActionsIamResourcePermissionsBoundary"
+        },
+        "Runtime": "python3.11",
+        "Events": {
+            "ApiEvent": {
+                "Type": "Api",
+                "Properties": {
+                    "Path": "/path",
+                    "Method": "get"
+                }
+            }
+        }
+        }
+    }
   }
 }

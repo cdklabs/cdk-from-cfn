@@ -127,7 +127,8 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                         is_resource_ir_array = true;
                         Box::new(MapOf(item_type))
                     }
-                    Some(TypeReference::Primitive(Primitive::Json)) => {
+                    Some(TypeReference::Primitive(Primitive::Json)) |
+                    Some(TypeReference::Union(TypeUnion::Static([TypeReference::Named(_), ..]))) => {
                         Box::new(MapOf(&TypeReference::Primitive(Primitive::Json)))
                     }
                     other => unimplemented!("{other:?}"),
