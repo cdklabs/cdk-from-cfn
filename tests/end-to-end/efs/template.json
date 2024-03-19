@@ -65,7 +65,7 @@
       "ConstraintDescription" : "must be a valid EC2 instance type."
     },
     "AsgMaxSize": {
-      "Type": "Number",
+      "Type": "String",
       "Description": "Maximum size and initial desired capacity of Auto Scaling Group",
       "Default": "2"
     },
