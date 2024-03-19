@@ -11,19 +11,19 @@
         "Timeout": 300,
         "CodeUri": "./pricing-client/",
         "PermissionsBoundary": {
-            "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/GithubActionsIamResourcePermissionsBoundary"
+          "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/GithubActionsIamResourcePermissionsBoundary"
         },
         "Runtime": "python3.11",
         "Events": {
-            "ApiEvent": {
-                "Type": "Api",
-                "Properties": {
-                    "Path": "/path",
-                    "Method": "get"
-                }
+          "ApiEvent": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/path",
+              "Method": "get"
             }
+          }
         }
-        }
+      }
     }
   }
 }
