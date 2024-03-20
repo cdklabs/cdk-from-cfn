@@ -1,0 +1,57 @@
+diff --git a/./tests/end-to-end/sam_serverless/template.json b/tests/end-to-end/sam_serverless-python-working-dir/cdk.out/Stack.template.json
+index ef393b7..612089e 100644
+--- a/./tests/end-to-end/sam_serverless/template.json
++++ b/tests/end-to-end/sam_serverless-python-working-dir/cdk.out/Stack.template.json
+@@ -1,28 +1,38 @@
+ {
+-  "AWSTemplateFormatVersion": "2010-09-09",
+-  "Transform": "AWS::Serverless-2016-10-31",
++ "Transform": [
++  "AWS::Serverless-2016-10-31"
++ ],
+  "Resources": {
+   "ClientFunction": {
+    "Type": "AWS::Serverless::Function",
+    "Properties": {
++    "CodeUri": "./pricing-client/",
++    "Events": {
++     "ApiEvent": {
++      "Properties": {
++       "Method": "get",
++       "Path": "/path"
++      },
++      "Type": "Api"
++     }
++    },
+     "FunctionName": "pricing-client",
+     "Handler": "client_lambda.lambda_handler",
+     "MemorySize": 512,
+-        "Timeout": 300,
+-        "CodeUri": "./pricing-client/",
+     "PermissionsBoundary": {
+-          "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/GithubActionsIamResourcePermissionsBoundary"
++     "Fn::Join": [
++      "",
++      [
++       "arn:aws:iam::",
++       {
++        "Ref": "AWS::AccountId"
++       },
++       ":policy/GithubActionsIamResourcePermissionsBoundary"
++      ]
++     ]
+     },
+     "Runtime": "python3.11",
+-        "Events": {
+-          "ApiEvent": {
+-            "Type": "Api",
+-            "Properties": {
+-              "Path": "/path",
+-              "Method": "get"
+-            }
+-          }
+-        }
++    "Timeout": 300
+    }
+   }
+  }

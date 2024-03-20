@@ -83,7 +83,7 @@ test_case!(batch, "BatchStack", &["golang", "java"]); //java fails cdk synth bc 
 test_case!(cloudwatch, "CloudwatchStack", &["golang"]);
 test_case!(ecs, "EcsStack", &["java", "golang"]);
 test_case!(ec2, "Ec2Stack", &["java", "golang"]);
-test_case!(sam_serverless, "SamServerlessStack");
+test_case!(sam_serverless, "SamServerlessStack", &["java", "csharp", "golang"]);
 
 // Add new test cases here
 
