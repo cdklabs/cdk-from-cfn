@@ -130,6 +130,9 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     Some(TypeReference::Primitive(Primitive::Json)) => {
                         Box::new(MapOf(&TypeReference::Primitive(Primitive::Json)))
                     }
+                    Some(TypeReference::Union(type_union)) => {
+                        Box::new(UnionOf(type_union))
+                    }
                     other => unimplemented!("{other:?}"),
                 };
 
@@ -355,6 +358,17 @@ impl PropertyBag for MapOf<'_> {
             name: voca_rs::case::camel_case(key).into(),
             required: false,
             value_type: self.0.clone(),
+        })
+    }
+}
+
+struct UnionOf<'a>(&'a TypeUnion);
+impl PropertyBag for UnionOf<'_> {
+    fn property(&self, key: &str) -> Option<Property> {
+        Some(Property {
+            name: voca_rs::case::camel_case(key).into(),
+            required: false,
+            value_type: TypeReference::Union(self.0.clone()),
         })
     }
 }
