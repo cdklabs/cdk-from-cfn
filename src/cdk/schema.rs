@@ -253,7 +253,7 @@ impl DataType {
 
 impl PropertyBag for DataType {
     fn property(&self, name: &str) -> Option<Property> {
-        self.properties.get(name).map(Clone::clone)
+        self.properties.get(name).cloned()
     }
 }
 
