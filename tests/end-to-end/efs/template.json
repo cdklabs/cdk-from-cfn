@@ -169,9 +169,6 @@
     }
   },
   "Resources": {
-    "FileSystemNoProps": {
-      "Type": "AWS::EFS::FileSystem"
-    },
     "CloudWatchPutMetricsRole" : {
       "Type"  : "AWS::IAM::Role",
       "Properties" : {
@@ -310,57 +307,6 @@
         "FileSystemId": { "Ref": "FileSystem" },
         "SubnetId": { "Ref": "Subnet" },
         "SecurityGroups": [ { "Ref": "MountTargetSecurityGroup" } ]        
-      }
-    },
-    "LaunchConfiguration": {
-      "Type": "AWS::AutoScaling::LaunchConfiguration",
-      "Metadata" : {
-      },
-      "Properties": {
-        "AssociatePublicIpAddress" : true,
-        "ImageId": "ami-0ff8a91507f77f86",
-        "InstanceType": { "Ref": "InstanceType" },
-        "SecurityGroups": [ { "Ref": "InstanceSecurityGroup" } ],
-        "IamInstanceProfile" : { "Ref" : "CloudWatchPutMetricsInstanceProfile" },
-        "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
-             "#!/bin/bash -xe\n",
-             "yum install -y aws-cfn-bootstrap\n",
-
-             "/opt/aws/bin/cfn-init -v ",
-             "         --stack ", { "Ref" : "AWS::StackName" },
-             "         --resource LaunchConfiguration ",
-             "         --configsets MountConfig ",
-             "         --region ", { "Ref" : "AWS::Region" }, "\n",
-
-             "crontab /home/ec2-user/crontab\n",
-
-             "/opt/aws/bin/cfn-signal -e $? ",
-             "         --stack ", { "Ref" : "AWS::StackName" },
-             "         --resource AutoScalingGroup ",
-             "         --region ", { "Ref" : "AWS::Region" }, "\n"
-        ]]}}
-      }
-    },
-    "AutoScalingGroup": {
-      "Type": "AWS::AutoScaling::AutoScalingGroup",
-      "DependsOn": ["MountTarget", "GatewayToInternet"],
-      "CreationPolicy" : {
-        "ResourceSignal" : {
-          "Timeout" : "PT15M",
-          "Count"   : { "Ref": "AsgMaxSize" }
-        }
-      },
-      "Properties": {
-        "VPCZoneIdentifier": [ { "Ref": "Subnet" } ],
-        "LaunchConfigurationName": { "Ref": "LaunchConfiguration" },
-        "MinSize": "1",
-        "MaxSize": { "Ref": "AsgMaxSize" },
-        "DesiredCapacity": { "Ref": "AsgMaxSize" },
-        "Tags": [ {
-          "Key": "Name",
-          "Value": "EFS FileSystem Mounted Instance",
-          "PropagateAtLaunch": "true"
-        } ]
       }
     }
   },

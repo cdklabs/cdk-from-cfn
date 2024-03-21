@@ -1,5 +1,4 @@
 import * as cdk from 'aws-cdk-lib';
-import * as autoscaling from 'aws-cdk-lib/aws-autoscaling';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as efs from 'aws-cdk-lib/aws-efs';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -325,9 +324,6 @@ export class EfsStack extends cdk.Stack {
       ],
     });
 
-    const fileSystemNoProps = new efs.CfnFileSystem(this, 'FileSystemNoProps', {
-    });
-
     const internetGateway = new ec2.CfnInternetGateway(this, 'InternetGateway', {
       tags: [
         {
@@ -440,38 +436,6 @@ export class EfsStack extends cdk.Stack {
       gatewayId: internetGateway.ref,
     });
 
-    const launchConfiguration = new autoscaling.CfnLaunchConfiguration(this, 'LaunchConfiguration', {
-      associatePublicIpAddress: true,
-      imageId: 'ami-0ff8a91507f77f86',
-      instanceType: props.instanceType!,
-      securityGroups: [
-        instanceSecurityGroup.ref,
-      ],
-      iamInstanceProfile: cloudWatchPutMetricsInstanceProfile.ref,
-      userData: cdk.Fn.base64([
-        '#!/bin/bash -xe\n',
-        'yum install -y aws-cfn-bootstrap\n',
-        '/opt/aws/bin/cfn-init -v ',
-        '         --stack ',
-        this.stackName,
-        '         --resource LaunchConfiguration ',
-        '         --configsets MountConfig ',
-        '         --region ',
-        this.region,
-        '\n',
-        'crontab /home/ec2-user/crontab\n',
-        '/opt/aws/bin/cfn-signal -e $? ',
-        '         --stack ',
-        this.stackName,
-        '         --resource AutoScalingGroup ',
-        '         --region ',
-        this.region,
-        '\n',
-      ].join('')),
-    });
-    launchConfiguration.cfnOptions.metadata = {
-    };
-
     const mountTarget = new efs.CfnMountTarget(this, 'MountTarget', {
       fileSystemId: fileSystem.ref,
       subnetId: subnet.ref,
@@ -484,25 +448,6 @@ export class EfsStack extends cdk.Stack {
       routeTableId: routeTable.ref,
       subnetId: subnet.ref,
     });
-
-    const autoScalingGroup = new autoscaling.CfnAutoScalingGroup(this, 'AutoScalingGroup', {
-      vpcZoneIdentifier: [
-        subnet.ref,
-      ],
-      launchConfigurationName: launchConfiguration.ref,
-      minSize: '1',
-      maxSize: props.asgMaxSize!,
-      desiredCapacity: props.asgMaxSize!,
-      tags: [
-        {
-          key: 'Name',
-          value: 'EFS FileSystem Mounted Instance',
-          propagateAtLaunch: true,
-        },
-      ],
-    });
-    autoScalingGroup.addDependency(mountTarget);
-    autoScalingGroup.addDependency(gatewayToInternet);
 
     // Outputs
     this.mountTargetId = mountTarget.ref;

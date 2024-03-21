@@ -1,7 +1,7 @@
-diff --git a/./tests/end-to-end/efs/template.json b/tests/end-to-end/efs-typescript-working-dir/cdk.out/Stack.template.json
+diff --git a/./tests/end-to-end/efs/template.json b/tests/end-to-end/efs-python-working-dir/cdk.out/Stack.template.json
 index f58debb..110ac76 100644
 --- a/./tests/end-to-end/efs/template.json
-+++ b/tests/end-to-end/efs-typescript-working-dir/cdk.out/Stack.template.json
++++ b/tests/end-to-end/efs-python-working-dir/cdk.out/Stack.template.json
 @@ -1,323 +1,234 @@
  {
 -  "AWSTemplateFormatVersion": "2010-09-09",

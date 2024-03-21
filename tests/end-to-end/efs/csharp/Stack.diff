@@ -1,8 +1,8 @@
-diff --git a/./tests/end-to-end/efs/template.json b/tests/end-to-end/efs-typescript-working-dir/cdk.out/Stack.template.json
-index f58debb..110ac76 100644
+diff --git a/./tests/end-to-end/efs/template.json b/tests/end-to-end/efs-csharp-working-dir/cdk.out/Stack.template.json
+index f58debb..4854b5a 100644
 --- a/./tests/end-to-end/efs/template.json
-+++ b/tests/end-to-end/efs-typescript-working-dir/cdk.out/Stack.template.json
-@@ -1,323 +1,234 @@
++++ b/tests/end-to-end/efs-csharp-working-dir/cdk.out/Stack.template.json
+@@ -1,323 +1,220 @@
  {
 -  "AWSTemplateFormatVersion": "2010-09-09",
 -  "Description": "This template creates an Amazon EFS file system and mount target and associates it with Amazon EC2 instances in an Auto Scaling group. **WARNING** This template creates Amazon EC2 instances and related resources. You will be billed for the AWS resources used if you create a stack from this template.",
@@ -450,34 +450,25 @@ index f58debb..110ac76 100644
 +    ],
 +    "SubnetId": {
 +     "Ref": "Subnet"
-+    }
-+   }
-+  },
+     }
+    }
+   },
+-  "Outputs" : {
+-    "MountTargetID" : {
+-      "Description" : "Mount target ID",
+-      "Value" :  { "Ref" : "MountTarget" }
 +  "SubnetRouteTableAssoc": {
 +   "Type": "AWS::EC2::SubnetRouteTableAssociation",
 +   "Properties": {
 +    "RouteTableId": {
 +     "Ref": "RouteTable"
-+    },
+     },
+-    "FileSystemID" : {
+-      "Description" : "File system ID",
+-      "Value" :  { "Ref" : "FileSystem" }
 +    "SubnetId": {
 +     "Ref": "Subnet"
 +    }
-    }
-   }
-  },
-  "Outputs": {
-   "MountTargetID": {
-    "Description": "Mount target ID",
--      "Value" :  { "Ref" : "MountTarget" }
-+   "Value": {
-+    "Ref": "MountTarget"
-+   }
-   },
-   "FileSystemID": {
-    "Description": "File system ID",
--      "Value" :  { "Ref" : "FileSystem" }
-+   "Value": {
-+    "Ref": "FileSystem"
 +   }
    }
   }
