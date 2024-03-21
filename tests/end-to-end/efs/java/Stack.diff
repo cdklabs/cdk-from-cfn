@@ -1,5 +1,5 @@
 diff --git a/./tests/end-to-end/efs/template.json b/tests/end-to-end/efs-java-working-dir/cdk.out/Stack.template.json
-index f58debb..4fb796b 100644
+index f58debb..89912fd 100644
 --- a/./tests/end-to-end/efs/template.json
 +++ b/tests/end-to-end/efs-java-working-dir/cdk.out/Stack.template.json
 @@ -1,171 +1,239 @@
@@ -412,21 +412,21 @@ index f58debb..4fb796b 100644
     "Properties": {
      "AssumeRolePolicyDocument": {
 -              "Statement" : [ {
--                  "Effect" : "Allow",
 +     "Statement": [
 +      {
++       "Action": [
++        "sts:AssumeRole"
++       ],
+        "Effect": "Allow",
         "Principal": {
 -                      "Service" : [ "ec2.amazonaws.com" ]
+-                  },
+-                  "Action" : [ "sts:AssumeRole" ]
+-              } ]
 +        "Service": [
 +         "ec2.amazonaws.com"
 +        ]
-        },
--                  "Action" : [ "sts:AssumeRole" ]
--              } ]
-+       "Effect": "Allow",
-+       "Action": [
-+        "sts:AssumeRole"
-+       ]
++       }
 +      }
 +     ]
      },
@@ -531,19 +531,19 @@ index f58debb..4fb796b 100644
 -        "RouteTableId" : {"Ref":"RouteTable"},
 -        "SubnetId" : {"Ref":"Subnet"}
 +    "PolicyDocument": {
++     "Version": "2012-10-17",
 +     "Statement": [
 +      {
 +       "Resource": [
 +        "*"
 +       ],
++       "Effect": "Allow",
++       "Sid": "CloudWatchPutMetricData",
 +       "Action": [
 +        "cloudwatch:PutMetricData"
-+       ],
-+       "Sid": "CloudWatchPutMetricData",
-+       "Effect": "Allow"
++       ]
        }
-+     ],
-+     "Version": "2012-10-17"
++     ]
      },
 -    "InternetGatewayRoute": {
 -        "Type":"AWS::EC2::Route",

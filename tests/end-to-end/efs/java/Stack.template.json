@@ -243,15 +243,15 @@
     "AssumeRolePolicyDocument": {
      "Statement": [
       {
+       "Action": [
+        "sts:AssumeRole"
+       ],
+       "Effect": "Allow",
        "Principal": {
         "Service": [
          "ec2.amazonaws.com"
         ]
-       },
-       "Effect": "Allow",
-       "Action": [
-        "sts:AssumeRole"
-       ]
+       }
       }
      ]
     },
@@ -316,19 +316,19 @@
    "Type": "AWS::IAM::Policy",
    "Properties": {
     "PolicyDocument": {
+     "Version": "2012-10-17",
      "Statement": [
       {
        "Resource": [
         "*"
        ],
+       "Effect": "Allow",
+       "Sid": "CloudWatchPutMetricData",
        "Action": [
         "cloudwatch:PutMetricData"
-       ],
-       "Sid": "CloudWatchPutMetricData",
-       "Effect": "Allow"
+       ]
       }
-     ],
-     "Version": "2012-10-17"
+     ]
     },
     "PolicyName": "CloudWatch_PutMetricData",
     "Roles": [
