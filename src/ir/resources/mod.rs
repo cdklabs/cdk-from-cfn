@@ -14,8 +14,8 @@ use crate::parser::resource::{
     DeletionPolicy, IntrinsicFunction, ResourceAttributes, ResourceValue,
 };
 use crate::primitives::WrapperF64;
-use crate::Hasher;
 use crate::Error;
+use crate::Hasher;
 
 use super::ReferenceOrigins;
 
@@ -68,10 +68,7 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
         }
     }
 
-    pub(super) fn translate(
-        &self,
-        resource_value: ResourceValue,
-    ) -> Result<ResourceIr, Error> {
+    pub(super) fn translate(&self, resource_value: ResourceValue) -> Result<ResourceIr, Error> {
         match resource_value {
             ResourceValue::Null => Ok(ResourceIr::Null),
             ResourceValue::Bool(b) => Ok(ResourceIr::Bool(b)),
@@ -80,14 +77,16 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
             ResourceValue::String(s) => {
                 if let Some(TypeReference::Primitive(simple_type)) = self.value_type {
                     return match simple_type {
-                        Primitive::Boolean => {
-                            Ok(ResourceIr::Bool(s.parse().map_err(|cause| {
-                                Error::ResourceTranslationError { message: format!("{cause}") }
-                            })?))
-                        }
+                        Primitive::Boolean => Ok(ResourceIr::Bool(s.parse().map_err(|cause| {
+                            Error::ResourceTranslationError {
+                                message: format!("{cause}"),
+                            }
+                        })?)),
                         Primitive::Number => {
                             Ok(ResourceIr::Number(s.parse().map_err(|cause| {
-                                Error::ResourceTranslationError { message: format!("{cause}") }
+                                Error::ResourceTranslationError {
+                                    message: format!("{cause}"),
+                                }
                             })?))
                         }
                         _ => Ok(ResourceIr::String(s)),
@@ -291,9 +290,11 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                                     })
                                 }
                             },
-                            _ => return Err(Error::ResourceTranslationError {
-                                message: "Index must be int for Select".to_string(),
-                            }),
+                            _ => {
+                                return Err(Error::ResourceTranslationError {
+                                    message: "Index must be int for Select".to_string(),
+                                })
+                            }
                         };
 
                         let obj = self.translate(list)?;
@@ -483,7 +484,9 @@ impl ResourceType {
                 };
                 if parts.next().is_some() {
                     return Err(Error::ResourceTypeError {
-                        message: format!("Invalid resource named {from:?} (only two segments expected)"),
+                        message: format!(
+                            "Invalid resource named {from:?} (only two segments expected)"
+                        ),
                     });
                 }
                 Ok(Self::Custom(name.into()))
@@ -500,14 +503,18 @@ impl ResourceType {
                 let type_name = match parts.next() {
                     Some("") | None => {
                         return Err(Error::ResourceTypeError {
-                            message: format!("Invalid resource type {from:?} (missing resource type name)"),
+                            message: format!(
+                                "Invalid resource type {from:?} (missing resource type name)"
+                            ),
                         });
                     }
                     Some(type_name) => type_name.into(),
                 };
                 if parts.next().is_some() {
                     return Err(Error::ResourceTypeError {
-                        message: format!("Invalid resource type {from:?} (only three segments expected)"),
+                        message: format!(
+                            "Invalid resource type {from:?} (only three segments expected)"
+                        ),
                     });
                 }
                 Ok(Self::Alexa { service, type_name })
@@ -516,7 +523,9 @@ impl ResourceType {
                 let service = match parts.next() {
                     Some("") | None => {
                         return Err(Error::ResourceTypeError {
-                            message: format!("Invalid resource type {from:?} (missing service name)"),
+                            message: format!(
+                                "Invalid resource type {from:?} (missing service name)"
+                            ),
                         });
                     }
                     Some(service) => {
@@ -530,20 +539,24 @@ impl ResourceType {
                 let type_name = match parts.next() {
                     Some("") | None => {
                         return Err(Error::ResourceTypeError {
-                            message: format!("Invalid resource type{from:?} (missing resource type name)"),
+                            message: format!(
+                                "Invalid resource type{from:?} (missing resource type name)"
+                            ),
                         });
                     }
                     Some(type_name) => type_name.into(),
                 };
                 if parts.next().is_some() {
                     return Err(Error::ResourceTypeError {
-                        message: format!("Invalid resource type {from:?} (only three segments expected)"),
+                        message: format!(
+                            "Invalid resource type {from:?} (only three segments expected)"
+                        ),
                     });
                 }
                 Ok(Self::AWS { service, type_name })
             }
             other => Err(Error::ResourceTypeError {
-                message: format!("Unknown resource type namespace {other} in {from:?}")
+                message: format!("Unknown resource type namespace {other} in {from:?}"),
             }),
         }
     }

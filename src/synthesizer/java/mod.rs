@@ -277,7 +277,11 @@ impl<'a> Java<'a> {
         }
     }
 
-    fn write_resources(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>, schema: &Schema) -> Result<(), Error> {
+    fn write_resources(
+        ir: &CloudformationProgramIr,
+        writer: &Rc<CodeBuffer>,
+        schema: &Schema,
+    ) -> Result<(), Error> {
         for resource in &ir.resources {
             let maybe_undefined = Self::write_resource(resource, writer, schema)?;
             writer.newline();
@@ -412,7 +416,11 @@ impl<'a> Java<'a> {
         }
     }
 
-    fn write_outputs(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>, schema: &Schema) -> Result<(), Error> {
+    fn write_outputs(
+        ir: &CloudformationProgramIr,
+        writer: &Rc<CodeBuffer>,
+        schema: &Schema,
+    ) -> Result<(), Error> {
         for output in &ir.outputs {
             let var_name = camel_case(&output.name);
             let output_writer = match &output.condition {
@@ -544,9 +552,11 @@ impl ImportInstruction {
                 parts.push("alexa".to_string());
                 parts.push(self.service.as_ref().unwrap().to_lowercase());
             }
-            org => return Err(Error::ImportInstructionError {
-                message: format!("Expected organization to be AWS or Alexa. Found {org}"),
-            }),
+            org => {
+                return Err(Error::ImportInstructionError {
+                    message: format!("Expected organization to be AWS or Alexa. Found {org}"),
+                })
+            }
         }
         Ok(format!("import {}.*;", parts.join(".")))
     }
@@ -656,7 +666,12 @@ fn get_condition(list: Vec<ConditionIr>, sep: &str) -> String {
         .join(sep)
 }
 
-fn emit_tag_value(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema: &Schema) -> Result<(), Error> {
+fn emit_tag_value(
+    this: ResourceIr,
+    output: &CodeBuffer,
+    class: Option<&str>,
+    schema: &Schema,
+) -> Result<(), Error> {
     match this {
         ResourceIr::Bool(bool) => Ok(output.text(format!("String.valueOf({bool})"))),
         ResourceIr::Double(number) => Ok(output.text(format!("String.valueOf({number})"))),
@@ -665,7 +680,12 @@ fn emit_tag_value(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, sc
     }
 }
 
-fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema: &Schema) -> Result<(), Error> {
+fn emit_java(
+    this: ResourceIr,
+    output: &CodeBuffer,
+    class: Option<&str>,
+    schema: &Schema,
+) -> Result<(), Error> {
     match this {
         // Literal values
         ResourceIr::Null => Ok(output.text("null")),
@@ -757,9 +777,13 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
                 }
                 Ok(())
             }
-            other => return Err(Error::TypeReferenceError {
-                message: format!("Type reference {other:#?} not implemented for ResourceIr::Object"),
-            }),
+            other => {
+                return Err(Error::TypeReferenceError {
+                    message: format!(
+                        "Type reference {other:#?} not implemented for ResourceIr::Object"
+                    ),
+                })
+            }
         },
 
         // Intrinsics

@@ -300,9 +300,13 @@ impl ImportInstruction {
                 "alexa-{}",
                 self.service.as_ref().unwrap().to_lowercase()
             )),
-            org => return Err(Error::ImportInstructionError {
-                message: format!("Expected organization to be AWS or Alexa. Found {org}"),
-            }),
+            org => {
+                return Err(Error::ImportInstructionError {
+                    message: format!(
+                        "Expected organization to be AWS or Alexa. Found {org}",
+                    )
+                })
+            }
         }
 
         Ok(format!(

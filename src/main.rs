@@ -111,7 +111,7 @@ fn main() -> Result<(), Error> {
             return Err(Error::UnsupportedLanguageError {
                 language: unsupported.to_string(),
             });
-        },
+        }
     };
 
     let stack_name = matches

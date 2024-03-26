@@ -530,7 +530,9 @@ impl ResourceIr {
                             format!("{{ \"{name}\", ")
                         }
                         other => return Err(Error::TypeReferenceError {
-                            message: format!("Type reference {other:#?} not implemented for ResourceIr::Object"),
+                            message: format!(
+                                "Type reference {other:#?} not implemented for ResourceIr::Object"
+                            ),
                         }),
                     });
                     val.emit_csharp(&object_block, schema)?;
@@ -538,7 +540,9 @@ impl ResourceIr {
                         TypeReference::Named(_) | TypeReference::List(_) => ",",
                         TypeReference::Primitive(_) | TypeReference::Map(_) => "},",
                         other => return Err(Error::TypeReferenceError {
-                            message: format!("Type reference {other:#?} not implemented for ResourceIr::Object"),
+                            message: format!(
+                                "Type reference {other:#?} not implemented for ResourceIr::Object"
+                            ),
                         }),
                     });
                     object_block.newline();

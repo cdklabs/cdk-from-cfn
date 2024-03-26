@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use indexmap::IndexMap;
 
 use crate::parser::resource::ResourceAttributes;
-use crate::{Hasher, Error};
+use crate::{Error, Hasher};
 
 // ImportInstruction look something like:
 // import * as $name from '$path[0]/$path[1]...';

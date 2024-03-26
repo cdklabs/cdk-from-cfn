@@ -1,5 +1,5 @@
-use crate::Error;
 use super::*;
+use crate::Error;
 
 #[test]
 fn substitute_arn() -> Result<(), Error> {
