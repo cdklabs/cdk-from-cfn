@@ -62,3 +62,11 @@ fn test_type_reference_error() {
     };
     assert_eq!(error.to_string(), "Type reference error");
 }
+
+#[test]
+fn test_primitive_error() {
+    let error = crate::Error::PrimitiveError {
+        message: "Primitive error".to_string(),
+    };
+    assert_eq!(error.to_string(), "Primitive error");
+}

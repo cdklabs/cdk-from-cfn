@@ -26,6 +26,8 @@ pub enum Error {
     },
     #[error("{message}")]
     TypeReferenceError { message: String },
+    #[error("{message}")]
+    PrimitiveError { message: String },
 }
 
 #[cfg(test)]

@@ -46,7 +46,7 @@ impl Synthesizer for CSharp<'_> {
 
         // Imports
         for import in &ir.imports {
-            code.line(import.to_csharp())
+            code.line(import.to_csharp()?)
         }
         code.line("using Constructs;");
         code.line("using System.Collections.Generic;");
@@ -320,7 +320,7 @@ impl Synthesizer for CSharp<'_> {
 }
 
 impl ImportInstruction {
-    fn to_csharp(&self) -> String {
+    fn to_csharp(&self) -> Result<String, Error> {
         let mut parts: Vec<String> = vec!["Amazon".to_string(), "CDK".to_string()];
         match self.organization.as_str() {
             "AWS" => {
@@ -336,11 +336,15 @@ impl ImportInstruction {
                 parts.push("Alexa".to_string());
                 parts.push(pascal_case(self.service.as_ref().unwrap()));
             }
-            _ => unreachable!(),
+            org => {
+                return Err(Error::ImportInstructionError {
+                    message: format!("Expected organization to be AWS or Alexa. Found {org}"),
+                })
+            }
         };
         let namespace = parts.join(".");
 
-        format!("using {namespace};")
+        Ok(format!("using {namespace};"))
     }
 }
 
@@ -510,7 +514,13 @@ impl ResourceIr {
                         }
                         TypeReference::Primitive(cfn) => match cfn {
                             Primitive::Json => "new Dictionary<string, object>\n{".into(),
-                            _ => unreachable!("cannot emit ResourceIr::Object with non-json simple structure ({:?})", cfn)
+                            _ => {
+                                return Err(Error::PrimitiveError {
+                                    message: format!(
+                                        "Cannot emit ResourceIr::Object with non-json simple structure ({cfn:?})",
+                                    )
+                                })
+                            }
                         }
                         TypeReference::Map(_) => {
                             "new Dictionary<string, string>\n{".into()
