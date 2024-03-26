@@ -495,7 +495,9 @@ impl ResourceType {
                 let service = match parts.next() {
                     Some("") | None => {
                         return Err(Error::ResourceTypeError {
-                            message: format!("Invalid resource type {from:?} (missing service name)"),
+                            message: format!(
+                                "Invalid resource type {from:?} (missing service name)"
+                            ),
                         });
                     }
                     Some(service) => service.into(),

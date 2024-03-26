@@ -266,9 +266,7 @@ impl ImportInstruction {
             }
             org => {
                 return Err(Error::ImportInstructionError {
-                    message: format!(
-                        "Expected organization to be AWS or Alexa. Found {org}",
-                    )
+                    message: format!("Expected organization to be AWS or Alexa. Found {org}"),
                 })
             }
         };

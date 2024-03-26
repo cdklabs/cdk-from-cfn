@@ -525,9 +525,13 @@ impl ResourceIr {
                         TypeReference::Map(_) => {
                             "new Dictionary<string, string>\n{".into()
                         }
-                        other => return Err(Error::TypeReferenceError {
-                            message: format!("Type reference {other:#?} not implemented for ResourceIr::Object"),
-                        }),
+                        other => {
+                            return Err(Error::TypeReferenceError {
+                                message: format!(
+                                    "Type reference {other:#?} not implemented for ResourceIr::Object"
+                                )
+                            })
+                        }
                     }),
                     trailing: Some("}".into()),
                     trailing_newline: false,

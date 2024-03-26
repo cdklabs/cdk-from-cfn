@@ -622,11 +622,21 @@ trait AsGolang {
 }
 
 trait GolangEmitter {
-    fn emit_golang(&self, context: &mut GoContext, output: &CodeBuffer, trailer: Option<&str>) -> Result<(), Error>;
+    fn emit_golang(
+        &self,
+        context: &mut GoContext,
+        output: &CodeBuffer,
+        trailer: Option<&str>,
+    ) -> Result<(), Error>;
 }
 
 impl GolangEmitter for ConditionIr {
-    fn emit_golang(&self, context: &mut GoContext, output: &CodeBuffer, trailer: Option<&str>) -> Result<(), Error> {
+    fn emit_golang(
+        &self,
+        context: &mut GoContext,
+        output: &CodeBuffer,
+        trailer: Option<&str>,
+    ) -> Result<(), Error> {
         match self {
             Self::Ref(reference) => reference.emit_golang(context, output, None)?,
             Self::Str(str) => output.text(format!("jsii.String({str:?})")),
