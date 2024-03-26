@@ -371,7 +371,6 @@ fn invalid_custom_resource_type() {
     let result = ResourceType::parse(bad_resource_type).unwrap_err();
     let expected = 
         format!("Invalid resource type \"{bad_resource_type}\" (only two segments expected)");
-    
     assert_eq!(expected, result.to_string());
 }
 
