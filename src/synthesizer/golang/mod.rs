@@ -981,7 +981,7 @@ impl GolangEmitter for Reference {
         &self,
         context: &mut GoContext,
         output: &CodeBuffer,
-        trailer: Option<&str>
+        trailer: Option<&str>,
     ) -> Result<(), Error> {
         match &self.origin {
             Origin::Condition => {
