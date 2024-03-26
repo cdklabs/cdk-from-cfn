@@ -481,7 +481,10 @@ impl Reference {
 impl ResourceIr {
     fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema) -> Result<(), Error> {
         match self {
-            ResourceIr::Null => Ok(output.text("null")),
+            ResourceIr::Null => {
+                output.text("null");
+                Ok(())
+            }
             ResourceIr::Bool(bool) => {
                 output.text(bool.to_string());
                 Ok(())
