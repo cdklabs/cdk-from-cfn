@@ -468,7 +468,7 @@ pub enum ResourceType {
 }
 
 impl ResourceType {
-    fn parse(from: &str) -> Result<Self, Error> {
+    pub(crate) fn parse(from: &str) -> Result<Self, Error> {
         let mut parts = from.split("::");
         let first = parts.next().unwrap();
 
@@ -485,7 +485,7 @@ impl ResourceType {
                 if parts.next().is_some() {
                     return Err(Error::ResourceTypeError {
                         message: format!(
-                            "Invalid resource named {from:?} (only two segments expected)"
+                            "Invalid resource type {from:?} (only two segments expected)"
                         ),
                     });
                 }
@@ -542,7 +542,7 @@ impl ResourceType {
                     Some("") | None => {
                         return Err(Error::ResourceTypeError {
                             message: format!(
-                                "Invalid resource type{from:?} (missing resource type name)"
+                                "Invalid resource type {from:?} (missing resource type name)"
                             ),
                         });
                     }
