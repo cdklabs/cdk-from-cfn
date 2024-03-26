@@ -369,7 +369,7 @@ fn intrinsic_ref() {
 fn invalid_custom_resource_type() {
     let bad_resource_type = "Custom::First::Second";
     let result = ResourceType::parse(bad_resource_type).unwrap_err();
-    let expected = 
+    let expected =
         format!("Invalid resource type \"{bad_resource_type}\" (only two segments expected)");
     assert_eq!(expected, result.to_string());
 }
@@ -386,7 +386,7 @@ fn alexa_resource_type_missing_service_name() {
 fn alexa_resource_type_missing_resource_type() {
     let bad_resource_type = "Alexa::ASK";
     let result = ResourceType::parse(bad_resource_type).unwrap_err();
-    let expected = 
+    let expected =
         format!("Invalid resource type \"{bad_resource_type}\" (missing resource type name)");
     assert_eq!(expected, result.to_string());
 }
@@ -395,7 +395,7 @@ fn alexa_resource_type_missing_resource_type() {
 fn invalid_alexa_resource_type() {
     let bad_resource_type = "Alexa::ASK::Skill::Invalid";
     let result = ResourceType::parse(bad_resource_type).unwrap_err();
-    let expected = 
+    let expected =
         format!("Invalid resource type \"{bad_resource_type}\" (only three segments expected)");
     assert_eq!(expected, result.to_string());
 }
@@ -412,7 +412,7 @@ fn aws_resource_type_missing_service_name() {
 fn aws_resource_type_missing_resource_type() {
     let bad_resource_type = "AWS::Dynamo::";
     let result = ResourceType::parse(bad_resource_type).unwrap_err();
-    let expected = 
+    let expected =
         format!("Invalid resource type \"{bad_resource_type}\" (missing resource type name)");
     assert_eq!(expected, result.to_string());
 }
@@ -421,7 +421,7 @@ fn aws_resource_type_missing_resource_type() {
 fn invalid_aws_resource_type() {
     let bad_resource_type = "AWS::Dynamo::GlobalTable::Invalid";
     let result = ResourceType::parse(bad_resource_type).unwrap_err();
-    let expected = 
+    let expected =
         format!("Invalid resource type \"{bad_resource_type}\" (only three segments expected)");
     assert_eq!(expected, result.to_string());
 }
