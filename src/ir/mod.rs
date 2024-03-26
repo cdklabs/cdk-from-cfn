@@ -20,6 +20,7 @@ pub mod reference;
 pub mod resources;
 pub mod sub;
 
+#[derive(Debug)]
 pub struct CloudformationProgramIr {
     pub description: Option<String>,
     pub transforms: Vec<String>,
