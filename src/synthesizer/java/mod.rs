@@ -688,8 +688,14 @@ fn emit_java(
 ) -> Result<(), Error> {
     match this {
         // Literal values
-        ResourceIr::Null => Ok(output.text("null")),
-        ResourceIr::Bool(bool) => Ok(output.text(bool.to_string())),
+        ResourceIr::Null => {
+            output.text("null");
+            Ok(())
+        },
+        ResourceIr::Bool(bool) => {
+            output.text(bool.to_string());
+            Ok(())
+        },
         ResourceIr::Double(number) => Ok(output.text(format!("{number}"))),
         ResourceIr::Number(number) => Ok(output.text(format!("{number}"))),
         ResourceIr::String(text) => {
@@ -778,7 +784,7 @@ fn emit_java(
                 Ok(())
             }
             other => {
-                return Err(Error::TypeReferenceError {
+                Err(Error::TypeReferenceError {
                     message: format!(
                         "Type reference {other:#?} not implemented for ResourceIr::Object"
                     ),
@@ -904,7 +910,10 @@ fn emit_java(
             }
             Ok(())
         }
-        ResourceIr::Ref(reference) => Ok(output.text(emit_reference(reference))),
+        ResourceIr::Ref(reference) => {
+            output.text(emit_reference(reference));
+            Ok(())
+        },
     }
 }
 

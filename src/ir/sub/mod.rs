@@ -30,10 +30,10 @@ pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, crate::Error> {
                 message: "Should never enter this state".to_string(),
             }),
             Err::Error(e) => Err(crate::Error::SubParseError {
-                message: format!("{}", e.code.description()),
+                message: e.code.description().to_string(),
             }),
             Err::Failure(e) => Err(crate::Error::SubParseError {
-                message: format!("{}", e.code.description()),
+                message: e.code.description().to_string(),
             }),
         },
     }
