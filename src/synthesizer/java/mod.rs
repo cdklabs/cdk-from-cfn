@@ -691,11 +691,11 @@ fn emit_java(
         ResourceIr::Null => {
             output.text("null");
             Ok(())
-        },
+        }
         ResourceIr::Bool(bool) => {
             output.text(bool.to_string());
             Ok(())
-        },
+        }
         ResourceIr::Double(number) => Ok(output.text(format!("{number}"))),
         ResourceIr::Number(number) => Ok(output.text(format!("{number}"))),
         ResourceIr::String(text) => {
@@ -783,13 +783,11 @@ fn emit_java(
                 }
                 Ok(())
             }
-            other => {
-                Err(Error::TypeReferenceError {
-                    message: format!(
-                        "Type reference {other:#?} not implemented for ResourceIr::Object"
-                    ),
-                })
-            }
+            other => Err(Error::TypeReferenceError {
+                message: format!(
+                    "Type reference {other:#?} not implemented for ResourceIr::Object"
+                ),
+            }),
         },
 
         // Intrinsics
@@ -913,7 +911,7 @@ fn emit_java(
         ResourceIr::Ref(reference) => {
             output.text(emit_reference(reference));
             Ok(())
-        },
+        }
     }
 }
 

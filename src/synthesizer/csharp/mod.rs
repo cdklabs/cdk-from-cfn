@@ -373,12 +373,12 @@ impl CsharpEmitter for ConditionIr {
             ConditionIr::Ref(reference) => {
                 reference.emit_csharp(output);
                 Ok(())
-            },
+            }
             ConditionIr::Str(str) => Ok(output.text(format!("\"{str}\""))),
             ConditionIr::Condition(condition) => {
                 output.text(camel_case(condition));
                 Ok(())
-            },
+            }
 
             ConditionIr::And(list) => {
                 for (index, condition) in list.iter().enumerate() {
@@ -485,15 +485,15 @@ impl ResourceIr {
             ResourceIr::Bool(bool) => {
                 output.text(bool.to_string());
                 Ok(())
-            },
+            }
             ResourceIr::Number(number) => {
                 output.text(number.to_string());
                 Ok(())
-            },
+            }
             ResourceIr::Double(double) => {
                 output.text(double.to_string());
                 Ok(())
-            },
+            }
             ResourceIr::String(str) => {
                 if str.lines().count() > 1 {
                     output.text(format!("@\"{str}\""));
@@ -627,7 +627,7 @@ impl ResourceIr {
             ResourceIr::Ref(reference) => {
                 reference.emit_csharp(output);
                 Ok(())
-            },
+            }
             ResourceIr::Sub(parts) => {
                 output.text("$\"");
                 for part in parts {
