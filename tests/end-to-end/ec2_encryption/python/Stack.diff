@@ -1,8 +1,8 @@
 diff --git a/./tests/end-to-end/ec2_encryption/template.json b/tests/end-to-end/ec2_encryption-python-working-dir/cdk.out/Stack.template.json
-index d1575e2..62288a7 100644
+index a8374ec..93fd0c8 100644
 --- a/./tests/end-to-end/ec2_encryption/template.json
 +++ b/tests/end-to-end/ec2_encryption-python-working-dir/cdk.out/Stack.template.json
-@@ -1,84 +1,10 @@
+@@ -1,83 +1,5 @@
  {
 -    "AWSTemplateFormatVersion": "2010-09-09",
 -    "Conditions": {
@@ -31,12 +31,32 @@ index d1575e2..62288a7 100644
 -                    "Condition": "HasDatabase"
 -                }
 -            ]
+-        },
+-        "UsePrivateSecurityGroup": {
+-            "Fn::Or": [
+-              {
+-                "Fn::Equals": [
+-                  {
+-                    "Ref": "SubnetType"
+-                  },
+-                  "Private1"
+-                ]
+-              },
+-              {
+-                "Fn::Equals": [
+-                  {
+-                    "Ref": "SubnetType"
+-                  },
+-                  "Private2"
+-                ]
+-            }
+-        ]
 -        }
 -    },
   "Resources": {
-   "MyApp": {
-    "Type": "AWS::EC2::Instance",
-    "Properties": {
+-        "MyApp": {
+-            "Type": "AWS::EC2::Instance",
+-            "Properties": {
 -                "ImageId": {
 -                    "Fn::If": [
 -                        "UseEncryption",
@@ -47,10 +67,30 @@ index d1575e2..62288a7 100644
 -                            "Ref": "UnencryptedAmi"
 -                        }
 -                    ]
--                }
+-                },
+-                "SecurityGroups": [
+-                    {
+-                      "Fn::If": [
+-                        "UsePrivateSecurityGroup",
+-                        {
+-                          "Ref": "PrivateSecurityGroup"
+-                        },
+-                        {
+-                          "Ref": "PublicSecurityGroup"
+-                        }
+-                      ]
+-                    }
+-                ]
 -            }
-+    "ImageId": "ami-0987654321fedcba0"
+-        },
+   "PrivateSecurityGroup": {
+    "Type": "AWS::EC2::SecurityGroup",
+    "Properties": {
+@@ -91,46 +13,17 @@
+     "GroupDescription": "Public security group",
+     "VpcId": "vpc-xxxxxxxx"
     }
+-        }
 -    },
 -    "Parameters": {
 -        "Environment": {
@@ -77,7 +117,7 @@ index d1575e2..62288a7 100644
 -                "false"
 -            ],
 -            "Default": "false"
--        },
+   },
 -        "EncryptedAmi": {
 -            "Type": "String",
 -            "Default": "ami-1234567890abcdef0"
@@ -85,6 +125,21 @@ index d1575e2..62288a7 100644
 -        "UnencryptedAmi": {
 -            "Type": "String",
 -            "Default": "ami-0987654321fedcba0"
+-        },
+-        "SubnetType": {
+-            "Type": "String",
+-            "Default": "Private1",
+-            "AllowedValues": ["Private1", "Private2"]
++  "MyApp": {
++   "Type": "AWS::EC2::Instance",
++   "Properties": {
++    "ImageId": "ami-0987654321fedcba0",
++    "SecurityGroups": [
++     {
++      "Ref": "PrivateSecurityGroup"
++     }
++    ]
++   }
    }
   }
  }

@@ -22,6 +22,10 @@ export interface Ec2EncryptionStackProps extends cdk.StackProps {
    * @default 'ami-0987654321fedcba0'
    */
   readonly unencryptedAmi?: string;
+  /**
+   * @default 'Private1'
+   */
+  readonly subnetType?: string;
 }
 
 export class Ec2EncryptionStack extends cdk.Stack {
@@ -36,16 +40,31 @@ export class Ec2EncryptionStack extends cdk.Stack {
       useEncryption: props.useEncryption ?? false,
       encryptedAmi: props.encryptedAmi ?? 'ami-1234567890abcdef0',
       unencryptedAmi: props.unencryptedAmi ?? 'ami-0987654321fedcba0',
+      subnetType: props.subnetType ?? 'Private1',
     };
 
     // Conditions
     const hasDatabase = props.databaseType! === 'mysql';
     const isProduction = props.environment! === 'prod';
+    const usePrivateSecurityGroup = (props.subnetType! === 'Private1' || props.subnetType! === 'Private2');
     const useEncryption = (isProduction && hasDatabase);
 
     // Resources
+    const privateSecurityGroup = new ec2.CfnSecurityGroup(this, 'PrivateSecurityGroup', {
+      groupDescription: 'Private security group',
+      vpcId: 'vpc-xxxxxxxx',
+    });
+
+    const publicSecurityGroup = new ec2.CfnSecurityGroup(this, 'PublicSecurityGroup', {
+      groupDescription: 'Public security group',
+      vpcId: 'vpc-xxxxxxxx',
+    });
+
     const myApp = new ec2.CfnInstance(this, 'MyApp', {
       imageId: useEncryption ? props.encryptedAmi! : props.unencryptedAmi!,
+      securityGroups: [
+        usePrivateSecurityGroup ? privateSecurityGroup.ref : publicSecurityGroup.ref,
+      ],
     });
   }
 }

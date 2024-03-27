@@ -14,6 +14,7 @@ type Ec2EncryptionStackProps struct {
 	UseEncryption interface{/* Boolean */}
 	EncryptedAmi *string
 	UnencryptedAmi *string
+	SubnetType *string
 }
 
 type Ec2EncryptionStack struct {
@@ -31,7 +32,27 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 
 	isProduction := props.Environment == jsii.String("prod")
 
+	usePrivateSecurityGroup := props.SubnetType == jsii.String("Private1") || props.SubnetType == jsii.String("Private2")
+
 	useEncryption := isProduction && hasDatabase
+
+	privateSecurityGroup := ec2.NewCfnSecurityGroup(
+		stack,
+		jsii.String("PrivateSecurityGroup"),
+		&ec2.CfnSecurityGroupProps{
+			GroupDescription: jsii.String("Private security group"),
+			VpcId: jsii.String("vpc-xxxxxxxx"),
+		},
+	)
+
+	publicSecurityGroup := ec2.NewCfnSecurityGroup(
+		stack,
+		jsii.String("PublicSecurityGroup"),
+		&ec2.CfnSecurityGroupProps{
+			GroupDescription: jsii.String("Public security group"),
+			VpcId: jsii.String("vpc-xxxxxxxx"),
+		},
+	)
 
 	ec2.NewCfnInstance(
 		stack,
@@ -42,6 +63,13 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 				props.EncryptedAmi,
 				props.UnencryptedAmi,
 			),
+			SecurityGroups: &[]*string{
+				ifCondition(
+					usePrivateSecurityGroup,
+					privateSecurityGroup.Ref(),
+					publicSecurityGroup.Ref(),
+				),
+			},
 		},
 	)
 

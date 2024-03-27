@@ -836,6 +836,25 @@ fn test_resource_translation_error() {
 }
 
 #[test]
+fn test_invalid_organization_for_typescript() {
+    let bad_org = "NotAWS";
+    let ir = CloudformationProgramIr {
+        imports: vec![ImportInstruction {
+            organization: "NotAWS".to_string(),
+            service: None,
+        }],
+        ..Default::default()
+    };
+    let synthesizer = Box::new(crate::synthesizer::Typescript {});
+    let mut output = Vec::new();
+    let result = ir
+        .synthesize(synthesizer.as_ref(), &mut output, "Stack")
+        .unwrap_err();
+    let expected = format!("Expected organization to be AWS or Alexa. Found {bad_org}");
+    assert_eq!(expected, result.to_string());
+}
+
+#[test]
 fn test_invalid_organization_for_csharp() {
     let bad_org = "NotAWS";
     let ir = CloudformationProgramIr {

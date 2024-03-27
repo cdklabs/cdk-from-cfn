@@ -1,9 +1,28 @@
 {
  "Resources": {
+  "PrivateSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Private security group",
+    "VpcId": "vpc-xxxxxxxx"
+   }
+  },
+  "PublicSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Public security group",
+    "VpcId": "vpc-xxxxxxxx"
+   }
+  },
   "MyApp": {
    "Type": "AWS::EC2::Instance",
    "Properties": {
-    "ImageId": "ami-0987654321fedcba0"
+    "ImageId": "ami-0987654321fedcba0",
+    "SecurityGroups": [
+     {
+      "Ref": "PrivateSecurityGroup"
+     }
+    ]
    }
   }
  }
