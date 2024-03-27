@@ -788,7 +788,7 @@ mod tests {
     use crate::{
         cdk::Schema,
         code::CodeBuffer,
-        ir::{conditions::ConditionIr, resources::ResourceIr}
+        ir::{conditions::ConditionIr, resources::ResourceIr},
     };
 
     use super::CsharpEmitter;
@@ -811,11 +811,14 @@ mod tests {
         let schema = Cow::Borrowed(Schema::builtin());
         let resource_ir = ResourceIr::Split(
             "-".into(),
-            Box::new(ResourceIr::Join(",".to_string(), vec![
-                ResourceIr::String("a".into()),
-                ResourceIr::String("b".into()),
-                ResourceIr::String("c".into()),
-            ])),
+            Box::new(ResourceIr::Join(
+                ",".to_string(),
+                vec![
+                    ResourceIr::String("a".into()),
+                    ResourceIr::String("b".into()),
+                    ResourceIr::String("c".into()),
+                ],
+            )),
         );
         let result = resource_ir.emit_csharp(&output, &schema);
         assert_eq!((), result.unwrap());
