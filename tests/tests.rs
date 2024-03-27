@@ -815,60 +815,90 @@ fn test_resource_translation_error() {
     let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
     let schema = Cow::Borrowed(Schema::builtin());
     let result = CloudformationProgramIr::from(cfn_tree, &schema).unwrap_err();
-    let expected = "Some(Union(Static([Named(\"AWS::Serverless::Function.S3Event\"), Named(\"AWS::Serverless::Function.SNSEvent\"), Named(\"AWS::Serverless::Function.SQSEvent\"), Named(\"AWS::Serverless::Function.KinesisEvent\"), Named(\"AWS::Serverless::Function.DynamoDBEvent\"), Named(\"AWS::Serverless::Function.ApiEvent\"), Named(\"AWS::Serverless::Function.ScheduleEvent\"), Named(\"AWS::Serverless::Function.CloudWatchEventEvent\"), Named(\"AWS::Serverless::Function.CloudWatchLogsEvent\"), Named(\"AWS::Serverless::Function.IoTRuleEvent\"), Named(\"AWS::Serverless::Function.AlexaSkillEvent\"), Named(\"AWS::Serverless::Function.EventBridgeRuleEvent\"), Named(\"AWS::Serverless::Function.HttpApiEvent\"), Named(\"AWS::Serverless::Function.CognitoEvent\")]))) is not implemented for ResourceValue::Object";
+    let expected = "Some(Union(Static([\
+        Named(\"AWS::Serverless::Function.S3Event\"), \
+        Named(\"AWS::Serverless::Function.SNSEvent\"), \
+        Named(\"AWS::Serverless::Function.SQSEvent\"), \
+        Named(\"AWS::Serverless::Function.KinesisEvent\"), \
+        Named(\"AWS::Serverless::Function.DynamoDBEvent\"), \
+        Named(\"AWS::Serverless::Function.ApiEvent\"), \
+        Named(\"AWS::Serverless::Function.ScheduleEvent\"), \
+        Named(\"AWS::Serverless::Function.CloudWatchEventEvent\"), \
+        Named(\"AWS::Serverless::Function.CloudWatchLogsEvent\"), \
+        Named(\"AWS::Serverless::Function.IoTRuleEvent\"), \
+        Named(\"AWS::Serverless::Function.AlexaSkillEvent\"), \
+        Named(\"AWS::Serverless::Function.EventBridgeRuleEvent\"), \
+        Named(\"AWS::Serverless::Function.HttpApiEvent\"), \
+        Named(\"AWS::Serverless::Function.CognitoEvent\")\
+        ]))) is not implemented for ResourceValue::Object";
     assert_eq!(expected, result.to_string());
 }
 
 #[test]
-fn test_java_synthesizer_with_sam_template() {
+fn test_condition_and_for_csharp() {
     let cfn_template = json!({
         "Resources": {
-            "ClientFunction": {
-                "Type": "AWS::Serverless::Function",
-                "Properties": {
-                "FunctionName": "pricing-client",
-                "Handler": "client_lambda.lambda_handler",
-                "MemorySize": 512,
-                "Timeout": 300,
-                "CodeUri": "./pricing-client/",
-                "PermissionsBoundary": {
-                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/GithubActionsIamResourcePermissionsBoundary"
-                },
-                "Runtime": "python3.11",
+            "MyBucket": {
+              "Type": "AWS::S3::Bucket",
+              "Properties": {
+                "BucketName": "my-example-bucket",
+                "Tags": [
+                  {
+                    "Key": "Environment",
+                    "Value": {
+                      "Fn::If": [
+                        "FnAndCondition",
+                        "Production",
+                        "Development"
+                      ]
+                    }
+                  }
+                ]
               }
             }
-          }
-    });
-    let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
-    let schema = Cow::Borrowed(Schema::builtin());
-    let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
-
-    let mut output = Vec::new();
-    let synthesizer = Box::<synthesizer::Java>::default();
-    ir.synthesize(synthesizer.as_ref(), &mut output, "TestStack")
-        .unwrap();
-}
-
-#[test]
-fn test_csharp_synthesizer_with_sam_template() {
-    let cfn_template = json!({
-        "Resources": {
-            "ClientFunction": {
-                "Type": "AWS::Serverless::Function",
-                "Properties": {
-                "FunctionName": "pricing-client",
-                "Handler": "client_lambda.lambda_handler",
-                "MemorySize": 512,
-                "Timeout": 300,
-                "CodeUri": "./pricing-client/",
-                "PermissionsBoundary": {
-                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/GithubActionsIamResourcePermissionsBoundary"
+          },
+          "Conditions": {
+            "IsProduction": {
+              "Fn::Equals": [
+                {
+                  "Ref": "EnvironmentType"
                 },
-                "Runtime": "python3.11",
-              }
+                "production"
+              ]
+            },
+            "FnAndCondition": {
+              "Fn::And": [
+                {
+                  "Condition": "IsProduction"
+                },
+                {
+                  "Condition": "IsEncryptionEnabled"
+                }
+              ]
             }
-          }
+        }         
     });
+
+    // let resources = IndexMap::from([(
+    //     "MyApp".into(),
+    //     ResourceAttributes {
+    //         condition: Option::None,
+    //         resource_type: "AWS::EC2::Instance".into(),
+    //         metadata: Option::None,
+    //         update_policy: Option::None,
+    //         deletion_policy: Option::None,
+    //         depends_on: vec![],
+    //         properties: map! {
+    //             "BucketName" => ResourceValue::String("my-example-bucket".into()),
+    //             "Tags" => ResourceValue::Array(vec![
+    //                 ResourceValue::Object(map!({
+
+    //                 }))
+    //             ])
+    //         },
+    //     },
+    // )]);
+
     let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
     let schema = Cow::Borrowed(Schema::builtin());
     let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
