@@ -4,6 +4,7 @@ use crate::ir::mappings::OutputType::{Complex, Consistent};
 use crate::parser::lookup_table::{MappingInnerValue, MappingTable};
 use crate::Hasher;
 
+#[derive(Debug)]
 pub struct MappingInstruction {
     pub name: String,
     pub map: IndexMap<String, IndexMap<String, MappingInnerValue, Hasher>, Hasher>,

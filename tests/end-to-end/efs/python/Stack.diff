@@ -1,0 +1,485 @@
+diff --git a/./tests/end-to-end/efs/template.json b/tests/end-to-end/efs-python-working-dir/cdk.out/Stack.template.json
+index f58debb..110ac76 100644
+--- a/./tests/end-to-end/efs/template.json
++++ b/tests/end-to-end/efs-python-working-dir/cdk.out/Stack.template.json
+@@ -1,323 +1,234 @@
+ {
+-  "AWSTemplateFormatVersion": "2010-09-09",
+-  "Description": "This template creates an Amazon EFS file system and mount target and associates it with Amazon EC2 instances in an Auto Scaling group. **WARNING** This template creates Amazon EC2 instances and related resources. You will be billed for the AWS resources used if you create a stack from this template.",
+-  "Parameters": {
+-    "InstanceType" : {
+-      "Description" : "WebServer EC2 instance type",
+-      "Type" : "String",
+-      "Default" : "t2.small",
+-      "AllowedValues" : [ 
+-        "t1.micro", 
+-        "t2.nano", 
+-        "t2.micro", 
+-        "t2.small", 
+-        "t2.medium", 
+-        "t2.large", 
+-        "m1.small", 
+-        "m1.medium", 
+-        "m1.large", 
+-        "m1.xlarge", 
+-        "m2.xlarge", 
+-        "m2.2xlarge", 
+-        "m2.4xlarge", 
+-        "m3.medium", 
+-        "m3.large", 
+-        "m3.xlarge", 
+-        "m3.2xlarge", 
+-        "m4.large", 
+-        "m4.xlarge", 
+-        "m4.2xlarge", 
+-        "m4.4xlarge", 
+-        "m4.10xlarge", 
+-        "c1.medium", 
+-        "c1.xlarge", 
+-        "c3.large", 
+-        "c3.xlarge", 
+-        "c3.2xlarge", 
+-        "c3.4xlarge", 
+-        "c3.8xlarge", 
+-        "c4.large", 
+-        "c4.xlarge", 
+-        "c4.2xlarge", 
+-        "c4.4xlarge", 
+-        "c4.8xlarge", 
+-        "g2.2xlarge", 
+-        "g2.8xlarge", 
+-        "r3.large", 
+-        "r3.xlarge", 
+-        "r3.2xlarge", 
+-        "r3.4xlarge", 
+-        "r3.8xlarge", 
+-        "i2.xlarge", 
+-        "i2.2xlarge", 
+-        "i2.4xlarge", 
+-        "i2.8xlarge", 
+-        "d2.xlarge", 
+-        "d2.2xlarge", 
+-        "d2.4xlarge", 
+-        "d2.8xlarge", 
+-        "hi1.4xlarge", 
+-        "hs1.8xlarge", 
+-        "cr1.8xlarge", 
+-        "cc2.8xlarge", 
+-        "cg1.4xlarge"
+-      ],
+-      "ConstraintDescription" : "must be a valid EC2 instance type."
+-    },
+-    "AsgMaxSize": {
+-      "Type": "String",
+-      "Description": "Maximum size and initial desired capacity of Auto Scaling Group",
+-      "Default": "2"
+-    },
+-    "SSHLocation" : {
+-      "Description" : "The IP address range that can be used to connect to the EC2 instances by using SSH",
+-      "Type": "String",
+-      "MinLength": "9",
+-      "MaxLength": "18",
+-      "Default": "0.0.0.0/0",
+-      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+-      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+-    },
+-    "VolumeName" : {
+-      "Description" : "The name to be used for the EFS volume",
+-      "Type": "String",
+-      "MinLength": "1",
+-      "Default": "myEFSvolume"
+-    },
+-    "MountPoint" : {
+-      "Description" : "The Linux mount point for the EFS volume",
+-      "Type": "String",
+-      "MinLength": "1",
+-      "Default": "myEFSvolume"
+-    }
+-  },
+-  "Mappings" : {
+-    "AWSInstanceType2Arch" : {
+-      "t1.micro"    : { "Arch" : "HVM64"  },
+-      "t2.nano"     : { "Arch" : "HVM64"  },
+-      "t2.micro"    : { "Arch" : "HVM64"  },
+-      "t2.small"    : { "Arch" : "HVM64"  },
+-      "t2.medium"   : { "Arch" : "HVM64"  },
+-      "t2.large"    : { "Arch" : "HVM64"  },
+-      "m1.small"    : { "Arch" : "HVM64"  },
+-      "m1.medium"   : { "Arch" : "HVM64"  },
+-      "m1.large"    : { "Arch" : "HVM64"  },
+-      "m1.xlarge"   : { "Arch" : "HVM64"  },
+-      "m2.xlarge"   : { "Arch" : "HVM64"  },
+-      "m2.2xlarge"  : { "Arch" : "HVM64"  },
+-      "m2.4xlarge"  : { "Arch" : "HVM64"  },
+-      "m3.medium"   : { "Arch" : "HVM64"  },
+-      "m3.large"    : { "Arch" : "HVM64"  },
+-      "m3.xlarge"   : { "Arch" : "HVM64"  },
+-      "m3.2xlarge"  : { "Arch" : "HVM64"  },
+-      "m4.large"    : { "Arch" : "HVM64"  },
+-      "m4.xlarge"   : { "Arch" : "HVM64"  },
+-      "m4.2xlarge"  : { "Arch" : "HVM64"  },
+-      "m4.4xlarge"  : { "Arch" : "HVM64"  },
+-      "m4.10xlarge" : { "Arch" : "HVM64"  },
+-      "c1.medium"   : { "Arch" : "HVM64"  },
+-      "c1.xlarge"   : { "Arch" : "HVM64"  },
+-      "c3.large"    : { "Arch" : "HVM64"  },
+-      "c3.xlarge"   : { "Arch" : "HVM64"  },
+-      "c3.2xlarge"  : { "Arch" : "HVM64"  },
+-      "c3.4xlarge"  : { "Arch" : "HVM64"  },
+-      "c3.8xlarge"  : { "Arch" : "HVM64"  },
+-      "c4.large"    : { "Arch" : "HVM64"  },
+-      "c4.xlarge"   : { "Arch" : "HVM64"  },
+-      "c4.2xlarge"  : { "Arch" : "HVM64"  },
+-      "c4.4xlarge"  : { "Arch" : "HVM64"  },
+-      "c4.8xlarge"  : { "Arch" : "HVM64"  },
+-      "g2.2xlarge"  : { "Arch" : "HVMG2"  },
+-      "g2.8xlarge"  : { "Arch" : "HVMG2"  },
+-      "r3.large"    : { "Arch" : "HVM64"  },
+-      "r3.xlarge"   : { "Arch" : "HVM64"  },
+-      "r3.2xlarge"  : { "Arch" : "HVM64"  },
+-      "r3.4xlarge"  : { "Arch" : "HVM64"  },
+-      "r3.8xlarge"  : { "Arch" : "HVM64"  },
+-      "i2.xlarge"   : { "Arch" : "HVM64"  },
+-      "i2.2xlarge"  : { "Arch" : "HVM64"  },
+-      "i2.4xlarge"  : { "Arch" : "HVM64"  },
+-      "i2.8xlarge"  : { "Arch" : "HVM64"  },
+-      "d2.xlarge"   : { "Arch" : "HVM64"  },
+-      "d2.2xlarge"  : { "Arch" : "HVM64"  },
+-      "d2.4xlarge"  : { "Arch" : "HVM64"  },
+-      "d2.8xlarge"  : { "Arch" : "HVM64"  },
+-      "hi1.4xlarge" : { "Arch" : "HVM64"  },
+-      "hs1.8xlarge" : { "Arch" : "HVM64"  },
+-      "cr1.8xlarge" : { "Arch" : "HVM64"  },
+-      "cc2.8xlarge" : { "Arch" : "HVM64"  }
+-    },
+-    "AWSRegionArch2AMI" : {
+-      "us-east-1"        : {"HVM64" : "ami-0ff8a91507f77f867", "HVMG2" : "ami-0a584ac55a7631c0c"},
+-      "us-west-2"        : {"HVM64" : "ami-a0cfeed8", "HVMG2" : "ami-0e09505bc235aa82d"},
+-      "us-west-1"        : {"HVM64" : "ami-0bdb828fd58c52235", "HVMG2" : "ami-066ee5fd4a9ef77f1"},
+-      "eu-west-1"        : {"HVM64" : "ami-047bb4163c506cd98", "HVMG2" : "ami-0a7c483d527806435"},
+-      "eu-west-2"        : {"HVM64" : "ami-f976839e", "HVMG2" : "NOT_SUPPORTED"},
+-      "eu-west-3"        : {"HVM64" : "ami-0ebc281c20e89ba4b", "HVMG2" : "NOT_SUPPORTED"},
+-      "eu-central-1"     : {"HVM64" : "ami-0233214e13e500f77", "HVMG2" : "ami-06223d46a6d0661c7"},
+-      "ap-northeast-1"   : {"HVM64" : "ami-06cd52961ce9f0d85", "HVMG2" : "ami-053cdd503598e4a9d"},
+-      "ap-northeast-2"   : {"HVM64" : "ami-0a10b2721688ce9d2", "HVMG2" : "NOT_SUPPORTED"},
+-      "ap-northeast-3"   : {"HVM64" : "ami-0d98120a9fb693f07", "HVMG2" : "NOT_SUPPORTED"},
+-      "ap-southeast-1"   : {"HVM64" : "ami-08569b978cc4dfa10", "HVMG2" : "ami-0be9df32ae9f92309"},
+-      "ap-southeast-2"   : {"HVM64" : "ami-09b42976632b27e9b", "HVMG2" : "ami-0a9ce9fecc3d1daf8"},
+-      "ap-south-1"       : {"HVM64" : "ami-0912f71e06545ad88", "HVMG2" : "ami-097b15e89dbdcfcf4"},
+-      "us-east-2"        : {"HVM64" : "ami-0b59bfac6be064b78", "HVMG2" : "NOT_SUPPORTED"},
+-      "ca-central-1"     : {"HVM64" : "ami-0b18956f", "HVMG2" : "NOT_SUPPORTED"},
+-      "sa-east-1"        : {"HVM64" : "ami-07b14488da8ea02a0", "HVMG2" : "NOT_SUPPORTED"},
+-      "cn-north-1"       : {"HVM64" : "ami-0a4eaf6c4454eda75", "HVMG2" : "NOT_SUPPORTED"},
+-      "cn-northwest-1"   : {"HVM64" : "ami-6b6a7d09", "HVMG2" : "NOT_SUPPORTED"}
+-    }
+-  },
+  "Resources": {
+   "CloudWatchPutMetricsRole": {
+    "Type": "AWS::IAM::Role",
+    "Properties": {
+     "AssumeRolePolicyDocument": {
+-              "Statement" : [ {
++     "Statement": [
++      {
+        "Effect": "Allow",
+        "Principal": {
+-                      "Service" : [ "ec2.amazonaws.com" ]
++        "Service": [
++         "ec2.amazonaws.com"
++        ]
+        },
+-                  "Action" : [ "sts:AssumeRole" ]
+-              } ]
++       "Action": [
++        "sts:AssumeRole"
++       ]
++      }
++     ]
+     },
+     "Path": "/"
+    }
+   },
+-    "CloudWatchPutMetricsRolePolicy" : {
+-        "Type" : "AWS::IAM::Policy",
++  "FileSystem": {
++   "Type": "AWS::EFS::FileSystem",
+    "Properties": {
+-            "PolicyName" : "CloudWatch_PutMetricData",
+-            "PolicyDocument" : {
+-              "Version": "2012-10-17",
+-              "Statement": [
++    "FileSystemTags": [
+      {
+-                  "Sid": "CloudWatchPutMetricData",
+-                  "Effect": "Allow",
+-                  "Action": ["cloudwatch:PutMetricData"],
+-                  "Resource": ["*"]
++      "Key": "Name",
++      "Value": "myEFSvolume"
+      }
+-              ]
+-            },
+-            "Roles" : [ { "Ref" : "CloudWatchPutMetricsRole" } ]
++    ],
++    "PerformanceMode": "generalPurpose"
+    }
+   },
+-    "CloudWatchPutMetricsInstanceProfile" : {
+-      "Type" : "AWS::IAM::InstanceProfile",
++  "InternetGateway": {
++   "Type": "AWS::EC2::InternetGateway",
+    "Properties": {
+-        "Path" : "/",
+-        "Roles" : [ { "Ref" : "CloudWatchPutMetricsRole" } ]
++    "Tags": [
++     {
++      "Key": "Application",
++      "Value": "Stack"
++     },
++     {
++      "Key": "Network",
++      "Value": "Public"
++     }
++    ]
+    }
+   },
+   "VPC": {
+    "Type": "AWS::EC2::VPC",
+    "Properties": {
+-        "EnableDnsSupport" : "true",
+-        "EnableDnsHostnames" : "true",
+     "CidrBlock": "10.0.0.0/16",
+-        "Tags": [ {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } ]
+-      }
+-    },
+-    "InternetGateway" : {
+-      "Type" : "AWS::EC2::InternetGateway",
+-      "Properties" : {
++    "EnableDnsHostnames": true,
++    "EnableDnsSupport": true,
+     "Tags": [
+-          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackName" } },
+-          { "Key" : "Network", "Value" : "Public" }
++     {
++      "Key": "Application",
++      "Value": {
++       "Ref": "AWS::StackId"
++      }
++     }
+     ]
+    }
+   },
+-    "GatewayToInternet" : {
+-      "Type" : "AWS::EC2::VPCGatewayAttachment",
++  "CloudWatchPutMetricsInstanceProfile": {
++   "Type": "AWS::IAM::InstanceProfile",
+    "Properties": {
+-        "VpcId" : { "Ref" : "VPC" },
+-        "InternetGatewayId" : { "Ref" : "InternetGateway" }
++    "Path": "/",
++    "Roles": [
++     {
++      "Ref": "CloudWatchPutMetricsRole"
+      }
+-    },
+-    "RouteTable":{
+-      "Type":"AWS::EC2::RouteTable",
+-      "Properties":{
+-        "VpcId": {"Ref":"VPC"}
++    ]
+    }
+   },
+-    "SubnetRouteTableAssoc": {
+-      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
++  "CloudWatchPutMetricsRolePolicy": {
++   "Type": "AWS::IAM::Policy",
+    "Properties": {
+-        "RouteTableId" : {"Ref":"RouteTable"},
+-        "SubnetId" : {"Ref":"Subnet"}
++    "PolicyDocument": {
++     "Version": "2012-10-17",
++     "Statement": [
++      {
++       "Sid": "CloudWatchPutMetricData",
++       "Effect": "Allow",
++       "Action": [
++        "cloudwatch:PutMetricData"
++       ],
++       "Resource": [
++        "*"
++       ]
+       }
++     ]
+     },
+-    "InternetGatewayRoute": {
+-        "Type":"AWS::EC2::Route",
+-        "Properties":{
+-            "DestinationCidrBlock":"0.0.0.0/0",
+-            "RouteTableId":{"Ref":"RouteTable"},
+-            "GatewayId":{"Ref":"InternetGateway"}
++    "PolicyName": "CloudWatch_PutMetricData",
++    "Roles": [
++     {
++      "Ref": "CloudWatchPutMetricsRole"
++     }
++    ]
+    }
+   },
+-    "Subnet": {
+-      "Type": "AWS::EC2::Subnet",
++  "GatewayToInternet": {
++   "Type": "AWS::EC2::VPCGatewayAttachment",
+    "Properties": {
+-        "VpcId": { "Ref": "VPC" },
+-        "CidrBlock": "10.0.0.0/24",
+-        "Tags": [ { "Key": "Application", "Value": { "Ref": "AWS::StackId" } } ]
++    "InternetGatewayId": {
++     "Ref": "InternetGateway"
++    },
++    "VpcId": {
++     "Ref": "VPC"
++    }
+    }
+   },
+   "InstanceSecurityGroup": {
+    "Type": "AWS::EC2::SecurityGroup",
+    "Properties": {
+-        "VpcId": { "Ref": "VPC" },
+     "GroupDescription": "Enable SSH access via port 22",
+     "SecurityGroupIngress": [
+-          { "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22, "CidrIp": { "Ref": "SSHLocation" } },
+-          { "IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "CidrIp": "0.0.0.0/0" }
+-         ]
++     {
++      "CidrIp": "0.0.0.0/0",
++      "FromPort": 22,
++      "IpProtocol": "tcp",
++      "ToPort": 22
++     },
++     {
++      "CidrIp": "0.0.0.0/0",
++      "FromPort": 80,
++      "IpProtocol": "tcp",
++      "ToPort": 80
++     }
++    ],
++    "VpcId": {
++     "Ref": "VPC"
++    }
+    }
+   },
+   "MountTargetSecurityGroup": {
+    "Type": "AWS::EC2::SecurityGroup",
+    "Properties": {
+-        "VpcId": { "Ref": "VPC" },
+     "GroupDescription": "Security group for mount target",
+     "SecurityGroupIngress": [
+      {
+-            "IpProtocol": "tcp",
++      "CidrIp": "0.0.0.0/0",
+       "FromPort": 2049,
+-            "ToPort": 2049,
+-            "CidrIp": "0.0.0.0/0"
++      "IpProtocol": "tcp",
++      "ToPort": 2049
++     }
++    ],
++    "VpcId": {
++     "Ref": "VPC"
+     }
+-        ]
+    }
+   },
+-    "FileSystem": {
+-      "Type": "AWS::EFS::FileSystem",
++  "RouteTable": {
++   "Type": "AWS::EC2::RouteTable",
+    "Properties": {
+-        "PerformanceMode": "generalPurpose",
+-        "FileSystemTags": [
++    "VpcId": {
++     "Ref": "VPC"
++    }
++   }
++  },
++  "Subnet": {
++   "Type": "AWS::EC2::Subnet",
++   "Properties": {
++    "CidrBlock": "10.0.0.0/24",
++    "Tags": [
+      {
+-            "Key": "Name",
+-            "Value": { "Ref" : "VolumeName" }
++      "Key": "Application",
++      "Value": {
++       "Ref": "AWS::StackId"
++      }
++     }
++    ],
++    "VpcId": {
++     "Ref": "VPC"
++    }
++   }
++  },
++  "InternetGatewayRoute": {
++   "Type": "AWS::EC2::Route",
++   "Properties": {
++    "DestinationCidrBlock": "0.0.0.0/0",
++    "GatewayId": {
++     "Ref": "InternetGateway"
++    },
++    "RouteTableId": {
++     "Ref": "RouteTable"
+     }
+-        ]
+    }
+   },
+   "MountTarget": {
+    "Type": "AWS::EFS::MountTarget",
+    "Properties": {
+-        "FileSystemId": { "Ref": "FileSystem" },
+-        "SubnetId": { "Ref": "Subnet" },
+-        "SecurityGroups": [ { "Ref": "MountTargetSecurityGroup" } ]        
++    "FileSystemId": {
++     "Ref": "FileSystem"
++    },
++    "SecurityGroups": [
++     {
++      "Ref": "MountTargetSecurityGroup"
++     }
++    ],
++    "SubnetId": {
++     "Ref": "Subnet"
++    }
++   }
++  },
++  "SubnetRouteTableAssoc": {
++   "Type": "AWS::EC2::SubnetRouteTableAssociation",
++   "Properties": {
++    "RouteTableId": {
++     "Ref": "RouteTable"
++    },
++    "SubnetId": {
++     "Ref": "Subnet"
++    }
+    }
+   }
+  },
+  "Outputs": {
+   "MountTargetID": {
+    "Description": "Mount target ID",
+-      "Value" :  { "Ref" : "MountTarget" }
++   "Value": {
++    "Ref": "MountTarget"
++   }
+   },
+   "FileSystemID": {
+    "Description": "File system ID",
+-      "Value" :  { "Ref" : "FileSystem" }
++   "Value": {
++    "Ref": "FileSystem"
++   }
+   }
+  }
+ }
+\ No newline at end of file

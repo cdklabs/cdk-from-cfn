@@ -1,0 +1,220 @@
+{
+ "Resources": {
+  "CloudWatchPutMetricsRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Effect": "Allow",
+       "Principal": {
+        "Service": [
+         "ec2.amazonaws.com"
+        ]
+       },
+       "Action": [
+        "sts:AssumeRole"
+       ]
+      }
+     ]
+    },
+    "Path": "/"
+   }
+  },
+  "FileSystem": {
+   "Type": "AWS::EFS::FileSystem",
+   "Properties": {
+    "FileSystemTags": [
+     {
+      "Key": "Name",
+      "Value": "myEFSvolume"
+     }
+    ],
+    "PerformanceMode": "generalPurpose"
+   }
+  },
+  "InternetGateway": {
+   "Type": "AWS::EC2::InternetGateway",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Application",
+      "Value": "Stack"
+     },
+     {
+      "Key": "Network",
+      "Value": "Public"
+     }
+    ]
+   }
+  },
+  "VPC": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "Tags": [
+     {
+      "Key": "Application",
+      "Value": {
+       "Ref": "AWS::StackId"
+      }
+     }
+    ]
+   }
+  },
+  "CloudWatchPutMetricsInstanceProfile": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Path": "/",
+    "Roles": [
+     {
+      "Ref": "CloudWatchPutMetricsRole"
+     }
+    ]
+   }
+  },
+  "CloudWatchPutMetricsRolePolicy": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Sid": "CloudWatchPutMetricData",
+       "Effect": "Allow",
+       "Action": [
+        "cloudwatch:PutMetricData"
+       ],
+       "Resource": [
+        "*"
+       ]
+      }
+     ]
+    },
+    "PolicyName": "CloudWatch_PutMetricData",
+    "Roles": [
+     {
+      "Ref": "CloudWatchPutMetricsRole"
+     }
+    ]
+   }
+  },
+  "GatewayToInternet": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "InternetGateway"
+    },
+    "VpcId": {
+     "Ref": "VPC"
+    }
+   }
+  },
+  "InstanceSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Enable SSH access via port 22",
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "FromPort": 22,
+      "IpProtocol": "tcp",
+      "ToPort": 22
+     },
+     {
+      "CidrIp": "0.0.0.0/0",
+      "FromPort": 80,
+      "IpProtocol": "tcp",
+      "ToPort": 80
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPC"
+    }
+   }
+  },
+  "MountTargetSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for mount target",
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "FromPort": 2049,
+      "IpProtocol": "tcp",
+      "ToPort": 2049
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPC"
+    }
+   }
+  },
+  "RouteTable": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "VpcId": {
+     "Ref": "VPC"
+    }
+   }
+  },
+  "Subnet": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/24",
+    "Tags": [
+     {
+      "Key": "Application",
+      "Value": {
+       "Ref": "AWS::StackId"
+      }
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPC"
+    }
+   }
+  },
+  "InternetGatewayRoute": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "InternetGateway"
+    },
+    "RouteTableId": {
+     "Ref": "RouteTable"
+    }
+   }
+  },
+  "MountTarget": {
+   "Type": "AWS::EFS::MountTarget",
+   "Properties": {
+    "FileSystemId": {
+     "Ref": "FileSystem"
+    },
+    "SecurityGroups": [
+     {
+      "Ref": "MountTargetSecurityGroup"
+     }
+    ],
+    "SubnetId": {
+     "Ref": "Subnet"
+    }
+   }
+  },
+  "SubnetRouteTableAssoc": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "RouteTable"
+    },
+    "SubnetId": {
+     "Ref": "Subnet"
+    }
+   }
+  }
+ }
+}

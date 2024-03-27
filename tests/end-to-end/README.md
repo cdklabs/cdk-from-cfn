@@ -169,6 +169,10 @@ all-encompassing.*
         You will see a message indicating that creation of the CloudFormation
         stack was successful. Iterate on your template until is successful.
 
+        *note*: you must specify the specific language you want to run if you have
+        `CREATE_CFN_STACK` set; the test command will create a stack for each
+        language in parallel, causing them to complain that the stack already exists.
+
         After getting past this part, the test will fail on later parts of the
         workflow. Follow the next steps to resolve.
 
