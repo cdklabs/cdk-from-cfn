@@ -785,7 +785,9 @@ impl OutputInstruction {
 mod tests {
     use std::borrow::Cow;
 
-    use crate::{cdk::Schema, code::CodeBuffer, ir::resources::ResourceIr};
+    use crate::{cdk::Schema, code::CodeBuffer, ir::{conditions::ConditionIr, resources::ResourceIr}};
+
+    use super::CsharpEmitter;
 
     #[test]
     fn test_fn_split() {
@@ -796,6 +798,19 @@ mod tests {
             Box::new(ResourceIr::String("My-EC2-Instance".into())),
         );
         let result = resource_ir.emit_csharp(&output, &schema);
+        assert_eq!((), result.unwrap());
+    }
+
+    #[test]
+    fn test_condition_ir_map() {
+        let output = CodeBuffer::default();
+        let schema = Cow::Borrowed(Schema::builtin());
+        let condition_ir = ConditionIr::Map(
+            "ConditionIrMap".into(),
+            Box::new(ConditionIr::Str("FirstLevelKey".into())),
+            Box::new(ConditionIr::Str("SecondLevelKey".into())),
+        );
+        let result = condition_ir.emit_csharp(&output, &schema);
         assert_eq!((), result.unwrap());
     }
 }
