@@ -6,7 +6,7 @@ use cdk_from_cfn::parser::parameters::{Parameter, ParameterType};
 use cdk_from_cfn::parser::resource::{DeletionPolicy, IntrinsicFunction};
 use cdk_from_cfn::parser::resource::{ResourceAttributes, ResourceValue};
 use cdk_from_cfn::primitives::WrapperF64;
-use cdk_from_cfn::CloudformationParseTree;
+use cdk_from_cfn::{synthesizer, CloudformationParseTree};
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::vec;
@@ -781,4 +781,62 @@ fn test_invalid_resource_property() {
     let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
     let schema = Cow::Borrowed(Schema::builtin());
     CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
+}
+
+#[test]
+fn test_java_synthesizer_with_sam_template() {
+    let cfn_template = json!({
+        "Resources": {
+            "ClientFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                "FunctionName": "pricing-client",
+                "Handler": "client_lambda.lambda_handler",
+                "MemorySize": 512,
+                "Timeout": 300,
+                "CodeUri": "./pricing-client/",
+                "PermissionsBoundary": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/GithubActionsIamResourcePermissionsBoundary"
+                },
+                "Runtime": "python3.11",
+              }
+            }
+          }
+    });
+    let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
+
+    let mut output = Vec::new();
+    let synthesizer = Box::<synthesizer::Java>::default();
+    ir.synthesize(synthesizer.as_ref(), &mut output, "TestStack").unwrap();
+}
+
+#[test]
+fn test_csharp_synthesizer_with_sam_template() {
+    let cfn_template = json!({
+        "Resources": {
+            "ClientFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                "FunctionName": "pricing-client",
+                "Handler": "client_lambda.lambda_handler",
+                "MemorySize": 512,
+                "Timeout": 300,
+                "CodeUri": "./pricing-client/",
+                "PermissionsBoundary": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/GithubActionsIamResourcePermissionsBoundary"
+                },
+                "Runtime": "python3.11",
+              }
+            }
+          }
+    });
+    let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
+
+    let mut output = Vec::new();
+    let synthesizer = Box::<synthesizer::Java>::default();
+    ir.synthesize(synthesizer.as_ref(), &mut output, "TestStack").unwrap();
 }

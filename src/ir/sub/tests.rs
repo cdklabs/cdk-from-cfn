@@ -27,6 +27,12 @@ fn error_on_missing_brackets() {
 }
 
 #[test]
+fn sub_parse_error() {
+    let error = sub_parse_tree("").unwrap_err();
+    assert_eq!("End of file", error.to_string());
+}
+
+#[test]
 fn empty_variable() -> Result<(), Error> {
     let v = sub_parse_tree("arn:${}")?;
     assert_eq!(
