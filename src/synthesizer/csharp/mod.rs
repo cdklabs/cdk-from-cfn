@@ -878,4 +878,17 @@ mod tests {
         let result = resource_ir.emit_csharp(&output, &schema);
         assert_eq!((), result.unwrap());
     }
+
+    #[test]
+    fn test_resource_ir_cidr() {
+        let output = CodeBuffer::default();
+        let schema = Cow::Borrowed(Schema::builtin());
+        let resource_ir = ResourceIr::Cidr(
+            Box::new(ResourceIr::String("0.0.0.0".into())),
+            Box::new(ResourceIr::String("16".into())),
+            Box::new(ResourceIr::String("255.255.255.0".into())),
+        );
+        let result = resource_ir.emit_csharp(&output, &schema);
+        assert_eq!((), result.unwrap());
+    }
 }
