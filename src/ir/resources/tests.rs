@@ -207,10 +207,7 @@ fn test_number_parse_error() {
     };
     let resource_value = ResourceValue::String("1.5".into());
     let result = translator.translate(resource_value).unwrap_err();
-    assert_eq!(
-        "invalid digit found in string",
-        result.to_string()
-    );
+    assert_eq!("invalid digit found in string", result.to_string());
 }
 
 #[test]
@@ -245,7 +242,10 @@ fn test_invalid_base_64() {
         ResourceValue::String("Base64".into()),
     )));
     let result = translator.translate(resource_value).unwrap_err();
-    assert_eq!("Invalid base64 \"Base64\" -- Invalid padding", result.to_string());
+    assert_eq!(
+        "Invalid base64 \"Base64\" -- Invalid padding",
+        result.to_string()
+    );
 }
 
 #[test]
