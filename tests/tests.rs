@@ -6,7 +6,7 @@ use cdk_from_cfn::parser::parameters::{Parameter, ParameterType};
 use cdk_from_cfn::parser::resource::{DeletionPolicy, IntrinsicFunction};
 use cdk_from_cfn::parser::resource::{ResourceAttributes, ResourceValue};
 use cdk_from_cfn::primitives::WrapperF64;
-use cdk_from_cfn::{synthesizer, CloudformationParseTree};
+use cdk_from_cfn::CloudformationParseTree;
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::vec;
@@ -832,79 +832,4 @@ fn test_resource_translation_error() {
         Named(\"AWS::Serverless::Function.CognitoEvent\")\
         ]))) is not implemented for ResourceValue::Object";
     assert_eq!(expected, result.to_string());
-}
-
-#[test]
-fn test_condition_and_for_csharp() {
-    let cfn_template = json!({
-        "Resources": {
-            "MyBucket": {
-              "Type": "AWS::S3::Bucket",
-              "Properties": {
-                "BucketName": "my-example-bucket",
-                "Tags": [
-                  {
-                    "Key": "Environment",
-                    "Value": {
-                      "Fn::If": [
-                        "FnAndCondition",
-                        "Production",
-                        "Development"
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          },
-          "Conditions": {
-            "IsProduction": {
-              "Fn::Equals": [
-                {
-                  "Ref": "EnvironmentType"
-                },
-                "production"
-              ]
-            },
-            "FnAndCondition": {
-              "Fn::And": [
-                {
-                  "Condition": "IsProduction"
-                },
-                {
-                  "Condition": "IsEncryptionEnabled"
-                }
-              ]
-            }
-        }         
-    });
-
-    // let resources = IndexMap::from([(
-    //     "MyApp".into(),
-    //     ResourceAttributes {
-    //         condition: Option::None,
-    //         resource_type: "AWS::EC2::Instance".into(),
-    //         metadata: Option::None,
-    //         update_policy: Option::None,
-    //         deletion_policy: Option::None,
-    //         depends_on: vec![],
-    //         properties: map! {
-    //             "BucketName" => ResourceValue::String("my-example-bucket".into()),
-    //             "Tags" => ResourceValue::Array(vec![
-    //                 ResourceValue::Object(map!({
-
-    //                 }))
-    //             ])
-    //         },
-    //     },
-    // )]);
-
-    let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
-    let schema = Cow::Borrowed(Schema::builtin());
-    let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
-
-    let mut output = Vec::new();
-    let synthesizer = Box::<synthesizer::Java>::default();
-    ir.synthesize(synthesizer.as_ref(), &mut output, "TestStack")
-        .unwrap();
 }

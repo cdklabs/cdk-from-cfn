@@ -400,8 +400,9 @@ impl CsharpEmitter for ConditionIr {
             }
 
             ConditionIr::Not(condition) => {
-                output.text("!");
+                output.text("!(");
                 condition.emit_csharp(output, _schema)?;
+                output.text(")");
                 Ok(())
             }
 
