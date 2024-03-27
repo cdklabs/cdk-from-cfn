@@ -57,8 +57,10 @@ class Ec2EncryptionStack extends Stack {
                 .build();
 
         CfnInstance myApp = CfnInstance.Builder.create(this, "MyApp")
-                .imageId(useEncryption ? encryptedAmi
-                        : unencryptedAmi)
+                .imageId(Fn.select(0, Fn.split(,, String.join(",",
+                        "ami-xxxxxxxx",
+                        "ami-yyyyyyyy",
+                        "ami-zzzzzzzz"))))
                 .securityGroups(Arrays.asList(
                         usePrivateSecurityGroup ? privateSecurityGroup.getRef()
                                 : publicSecurityGroup.getRef()))

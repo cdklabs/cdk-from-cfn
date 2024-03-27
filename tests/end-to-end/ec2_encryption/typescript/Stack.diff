@@ -1,8 +1,8 @@
 diff --git a/./tests/end-to-end/ec2_encryption/template.json b/tests/end-to-end/ec2_encryption-typescript-working-dir/cdk.out/Stack.template.json
-index a8374ec..93fd0c8 100644
+index 0d001f4..d9d01b3 100644
 --- a/./tests/end-to-end/ec2_encryption/template.json
 +++ b/tests/end-to-end/ec2_encryption-typescript-working-dir/cdk.out/Stack.template.json
-@@ -1,83 +1,5 @@
+@@ -1,92 +1,5 @@
  {
 -    "AWSTemplateFormatVersion": "2010-09-09",
 -    "Conditions": {
@@ -34,23 +34,23 @@ index a8374ec..93fd0c8 100644
 -        },
 -        "UsePrivateSecurityGroup": {
 -            "Fn::Or": [
--              {
--                "Fn::Equals": [
--                  {
--                    "Ref": "SubnetType"
--                  },
--                  "Private1"
--                ]
--              },
--              {
--                "Fn::Equals": [
--                  {
--                    "Ref": "SubnetType"
--                  },
--                  "Private2"
--                ]
--            }
--        ]
+-                {
+-                    "Fn::Equals": [
+-                        {
+-                            "Ref": "SubnetType"
+-                        },
+-                        "Private1"
+-                    ]
+-                },
+-                {
+-                    "Fn::Equals": [
+-                        {
+-                            "Ref": "SubnetType"
+-                        },
+-                        "Private2"
+-                    ]
+-                }
+-            ]
 -        }
 -    },
   "Resources": {
@@ -58,27 +58,36 @@ index a8374ec..93fd0c8 100644
 -            "Type": "AWS::EC2::Instance",
 -            "Properties": {
 -                "ImageId": {
--                    "Fn::If": [
--                        "UseEncryption",
+-                    "Fn::Select": [
+-                        "0",
 -                        {
--                            "Ref": "EncryptedAmi"
--                        },
--                        {
--                            "Ref": "UnencryptedAmi"
+-                            "Fn::Split": [
+-                                ",",
+-                                {
+-                                    "Fn::Join": [
+-                                        ",",
+-                                        [
+-                                            "ami-xxxxxxxx",
+-                                            "ami-yyyyyyyy",
+-                                            "ami-zzzzzzzz"
+-                                        ]
+-                                    ]
+-                                }
+-                            ]
 -                        }
 -                    ]
 -                },
 -                "SecurityGroups": [
 -                    {
--                      "Fn::If": [
--                        "UsePrivateSecurityGroup",
--                        {
--                          "Ref": "PrivateSecurityGroup"
--                        },
--                        {
--                          "Ref": "PublicSecurityGroup"
--                        }
--                      ]
+-                        "Fn::If": [
+-                            "UsePrivateSecurityGroup",
+-                            {
+-                                "Ref": "PrivateSecurityGroup"
+-                            },
+-                            {
+-                                "Ref": "PublicSecurityGroup"
+-                            }
+-                        ]
 -                    }
 -                ]
 -            }
@@ -86,7 +95,7 @@ index a8374ec..93fd0c8 100644
    "PrivateSecurityGroup": {
     "Type": "AWS::EC2::SecurityGroup",
     "Properties": {
-@@ -91,46 +13,17 @@
+@@ -100,49 +13,17 @@
      "GroupDescription": "Public security group",
      "VpcId": "vpc-xxxxxxxx"
     }
@@ -117,7 +126,7 @@ index a8374ec..93fd0c8 100644
 -                "false"
 -            ],
 -            "Default": "false"
-   },
+-        },
 -        "EncryptedAmi": {
 -            "Type": "String",
 -            "Default": "ami-1234567890abcdef0"
@@ -125,22 +134,24 @@ index a8374ec..93fd0c8 100644
 -        "UnencryptedAmi": {
 -            "Type": "String",
 -            "Default": "ami-0987654321fedcba0"
--        },
+   },
 -        "SubnetType": {
 -            "Type": "String",
 -            "Default": "Private1",
--            "AllowedValues": ["Private1", "Private2"]
+-            "AllowedValues": [
+-                "Private1",
+-                "Private2"
 +  "MyApp": {
 +   "Type": "AWS::EC2::Instance",
 +   "Properties": {
-+    "ImageId": "ami-0987654321fedcba0",
++    "ImageId": "ami-xxxxxxxx",
 +    "SecurityGroups": [
 +     {
 +      "Ref": "PrivateSecurityGroup"
 +     }
-+    ]
-+   }
+     ]
+    }
    }
   }
- }
++}
 \ No newline at end of file

@@ -58,11 +58,11 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 		stack,
 		jsii.String("MyApp"),
 		&ec2.CfnInstanceProps{
-			ImageId: ifCondition(
-				useEncryption,
-				props.EncryptedAmi,
-				props.UnencryptedAmi,
-			),
+			ImageId: cdk.Fn_Select(jsii.Number(0), cdk.Fn_Split(jsii.String(","), cdk.Fn_Join(jsii.String(","), &[]*string{
+				jsii.String("ami-xxxxxxxx"),
+				jsii.String("ami-yyyyyyyy"),
+				jsii.String("ami-zzzzzzzz"),
+			}))),
 			SecurityGroups: &[]*string{
 				ifCondition(
 					usePrivateSecurityGroup,

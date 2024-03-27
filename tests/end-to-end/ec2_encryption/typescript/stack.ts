@@ -61,7 +61,11 @@ export class Ec2EncryptionStack extends cdk.Stack {
     });
 
     const myApp = new ec2.CfnInstance(this, 'MyApp', {
-      imageId: useEncryption ? props.encryptedAmi! : props.unencryptedAmi!,
+      imageId: cdk.Fn.select(0, cdk.Fn.split(',', [
+        'ami-xxxxxxxx',
+        'ami-yyyyyyyy',
+        'ami-zzzzzzzz',
+      ].join(','))),
       securityGroups: [
         usePrivateSecurityGroup ? privateSecurityGroup.ref : publicSecurityGroup.ref,
       ],

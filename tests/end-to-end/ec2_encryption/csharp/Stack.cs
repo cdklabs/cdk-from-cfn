@@ -54,7 +54,12 @@ namespace Ec2EncryptionStack
             });
             var myApp = new CfnInstance(this, "MyApp", new CfnInstanceProps
             {
-                ImageId = useEncryption ? props.EncryptedAmi : props.UnencryptedAmi,
+                ImageId = Fn.Select(0, Fn.Split(",", string.Join(",", new []
+                {
+                    "ami-xxxxxxxx",
+                    "ami-yyyyyyyy",
+                    "ami-zzzzzzzz",
+                }))),
                 SecurityGroups = new []
                 {
                     usePrivateSecurityGroup ? privateSecurityGroup.Ref : publicSecurityGroup.Ref,

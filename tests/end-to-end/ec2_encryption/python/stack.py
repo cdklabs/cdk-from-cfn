@@ -35,7 +35,11 @@ class Ec2EncryptionStack(Stack):
         )
 
     myApp = ec2.CfnInstance(self, 'MyApp',
-          image_id = props['encryptedAmi'] if use_encryption else props['unencryptedAmi'],
+          image_id = cdk.Fn.select(0, cdk.Fn.split(',', ','.join([
+            'ami-xxxxxxxx',
+            'ami-yyyyyyyy',
+            'ami-zzzzzzzz',
+          ]))),
           security_groups = [
             privateSecurityGroup.ref if use_private_security_group else publicSecurityGroup.ref,
           ],

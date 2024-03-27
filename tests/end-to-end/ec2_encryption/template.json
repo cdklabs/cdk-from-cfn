@@ -29,23 +29,23 @@
         },
         "UsePrivateSecurityGroup": {
             "Fn::Or": [
-              {
-                "Fn::Equals": [
-                  {
-                    "Ref": "SubnetType"
-                  },
-                  "Private1"
-                ]
-              },
-              {
-                "Fn::Equals": [
-                  {
-                    "Ref": "SubnetType"
-                  },
-                  "Private2"
-                ]
-            }
-        ]
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "SubnetType"
+                        },
+                        "Private1"
+                    ]
+                },
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "SubnetType"
+                        },
+                        "Private2"
+                    ]
+                }
+            ]
         }
     },
     "Resources": {
@@ -53,27 +53,36 @@
             "Type": "AWS::EC2::Instance",
             "Properties": {
                 "ImageId": {
-                    "Fn::If": [
-                        "UseEncryption",
+                    "Fn::Select": [
+                        "0",
                         {
-                            "Ref": "EncryptedAmi"
-                        },
-                        {
-                            "Ref": "UnencryptedAmi"
+                            "Fn::Split": [
+                                ",",
+                                {
+                                    "Fn::Join": [
+                                        ",",
+                                        [
+                                            "ami-xxxxxxxx",
+                                            "ami-yyyyyyyy",
+                                            "ami-zzzzzzzz"
+                                        ]
+                                    ]
+                                }
+                            ]
                         }
                     ]
                 },
                 "SecurityGroups": [
                     {
-                      "Fn::If": [
-                        "UsePrivateSecurityGroup",
-                        {
-                          "Ref": "PrivateSecurityGroup"
-                        },
-                        {
-                          "Ref": "PublicSecurityGroup"
-                        }
-                      ]
+                        "Fn::If": [
+                            "UsePrivateSecurityGroup",
+                            {
+                                "Ref": "PrivateSecurityGroup"
+                            },
+                            {
+                                "Ref": "PublicSecurityGroup"
+                            }
+                        ]
                     }
                 ]
             }
@@ -81,15 +90,15 @@
         "PrivateSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
-              "GroupDescription": "Private security group",
-              "VpcId": "vpc-xxxxxxxx"
+                "GroupDescription": "Private security group",
+                "VpcId": "vpc-xxxxxxxx"
             }
-          },
-          "PublicSecurityGroup": {
+        },
+        "PublicSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
-              "GroupDescription": "Public security group",
-              "VpcId": "vpc-xxxxxxxx"
+                "GroupDescription": "Public security group",
+                "VpcId": "vpc-xxxxxxxx"
             }
         }
     },
@@ -130,7 +139,10 @@
         "SubnetType": {
             "Type": "String",
             "Default": "Private1",
-            "AllowedValues": ["Private1", "Private2"]
+            "AllowedValues": [
+                "Private1",
+                "Private2"
+            ]
         }
     }
 }
