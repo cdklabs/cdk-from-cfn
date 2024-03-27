@@ -2,7 +2,7 @@ use crate::{parser::parameters::Parameter, Hasher};
 use indexmap::IndexMap;
 use voca_rs::case::camel_case;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Constructor {
     pub inputs: Vec<ConstructorParameter>,
 }
@@ -43,7 +43,7 @@ impl Constructor {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConstructorParameter {
     pub name: String,
     pub description: Option<String>,

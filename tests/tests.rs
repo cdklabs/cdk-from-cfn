@@ -1,4 +1,5 @@
 use cdk_from_cfn::cdk::Schema;
+use cdk_from_cfn::ir::importer::ImportInstruction;
 use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::parser::condition::{ConditionFunction, ConditionValue};
 use cdk_from_cfn::parser::lookup_table::{MappingInnerValue, MappingTable};
@@ -6,7 +7,7 @@ use cdk_from_cfn::parser::parameters::{Parameter, ParameterType};
 use cdk_from_cfn::parser::resource::{DeletionPolicy, IntrinsicFunction};
 use cdk_from_cfn::parser::resource::{ResourceAttributes, ResourceValue};
 use cdk_from_cfn::primitives::WrapperF64;
-use cdk_from_cfn::CloudformationParseTree;
+use cdk_from_cfn::{synthesizer, CloudformationParseTree};
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::vec;
@@ -831,5 +832,22 @@ fn test_resource_translation_error() {
         Named(\"AWS::Serverless::Function.HttpApiEvent\"), \
         Named(\"AWS::Serverless::Function.CognitoEvent\")\
         ]))) is not implemented for ResourceValue::Object";
+    assert_eq!(expected, result.to_string());
+}
+
+#[test]
+fn test_invalid_organization_for_csharp() {
+    let bad_org = "NotAWS";
+    let ir = CloudformationProgramIr {
+        imports: vec![ImportInstruction {
+            organization: "NotAWS".to_string(),
+            service: None,
+        }],
+        ..Default::default()
+    };
+    let synthesizer = Box::<crate::synthesizer::CSharp>::default();
+    let mut output = Vec::new();
+    let result = ir.synthesize(synthesizer.as_ref(), &mut output, "Stack").unwrap_err();
+    let expected = format!("Expected organization to be AWS or Alexa. Found {bad_org}");
     assert_eq!(expected, result.to_string());
 }
