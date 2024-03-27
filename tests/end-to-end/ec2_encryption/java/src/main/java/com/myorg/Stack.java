@@ -67,6 +67,11 @@ class Ec2EncryptionStack extends Stack {
 
         CfnInstance myApp = CfnInstance.Builder.create(this, "MyApp")
                 .imageId(regionToAmi.findInMap("us-east-1", "AMI"))
+                .tags(Arrays.asList(
+                        CfnTag.builder()
+                                .key("Name")
+                                .value(Fn.select(1, My-EC2-Instance.split("-")))
+                                .build()))
                 .securityGroups(Arrays.asList(
                         usePrivateSecurityGroup ? privateSecurityGroup.getRef()
                                 : publicSecurityGroup.getRef()))

@@ -22,6 +22,12 @@
      {
       "Ref": "PrivateSecurityGroup"
      }
+    ],
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "EC2"
+     }
     ]
    }
   }

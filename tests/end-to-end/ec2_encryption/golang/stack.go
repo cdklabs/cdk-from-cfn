@@ -71,6 +71,12 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 		jsii.String("MyApp"),
 		&ec2.CfnInstanceProps{
 			ImageId: regionToAmi[jsii.String("us-east-1")][jsii.String("AMI")],
+			Tags: &[]*cdk.CfnTag{
+				&cdk.CfnTag{
+					Key: jsii.String("Name"),
+					Value: cdk.Fn_Select(jsii.Number(1), cdk.Fn_Split(jsii.String("-"), jsii.String("My-EC2-Instance"))),
+				},
+			},
 			SecurityGroups: &[]*string{
 				ifCondition(
 					usePrivateSecurityGroup,

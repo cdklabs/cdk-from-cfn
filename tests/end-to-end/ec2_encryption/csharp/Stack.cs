@@ -65,6 +65,14 @@ namespace Ec2EncryptionStack
             var myApp = new CfnInstance(this, "MyApp", new CfnInstanceProps
             {
                 ImageId = regionToAmi["us-east-1"]["AMI"],
+                Tags = new []
+                {
+                    new CfnTag
+                    {
+                        Key = "Name",
+                        Value = Fn.Select(1, "My-EC2-Instance".Split('-')),
+                    },
+                },
                 SecurityGroups = new []
                 {
                     usePrivateSecurityGroup ? privateSecurityGroup.Ref : publicSecurityGroup.Ref,

@@ -64,6 +64,14 @@
                         "AMI"
                     ]
                 },
+                "Tags": [
+                    {
+                      "Key": "Name",
+                      "Value": {
+                        "Fn::Select": [1, { "Fn::Split": ["-", "My-EC2-Instance"] }]
+                      }
+                    }
+                ],
                 "SecurityGroups": [
                     {
                         "Fn::If": [

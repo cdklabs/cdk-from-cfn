@@ -617,12 +617,12 @@ impl ResourceIr {
             }
             ResourceIr::Split(sep, str) => match str.as_ref() {
                 ResourceIr::String(str) => {
-                    output.text(format!("'{str}'", str = str.escape_debug()));
+                    output.text(format!("\"{str}\"", str = str.escape_debug()));
                     output.text(format!(".Split('{sep}')", sep = sep.escape_debug()));
                     Ok(())
                 }
                 other => {
-                    output.text(format!("Fn.Split(\"{sep}\", "));
+                    output.text(format!("Fn.Split('{sep}', "));
                     other.emit_csharp(output, schema)?;
                     output.text(")");
                     Ok(())

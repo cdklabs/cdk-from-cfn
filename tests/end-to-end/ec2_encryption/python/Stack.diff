@@ -1,8 +1,8 @@
 diff --git a/./tests/end-to-end/ec2_encryption/template.json b/tests/end-to-end/ec2_encryption-python-working-dir/cdk.out/Stack.template.json
-index 66a3d3e..77fc3f9 100644
+index f1f3918..299a126 100644
 --- a/./tests/end-to-end/ec2_encryption/template.json
 +++ b/tests/end-to-end/ec2_encryption-python-working-dir/cdk.out/Stack.template.json
-@@ -1,84 +1,5 @@
+@@ -1,92 +1,5 @@
  {
 -    "AWSTemplateFormatVersion": "2010-09-09",
 -    "Conditions": {
@@ -69,6 +69,14 @@ index 66a3d3e..77fc3f9 100644
 -                        "AMI"
 -                    ]
 -                },
+-                "Tags": [
+-                    {
+-                      "Key": "Name",
+-                      "Value": {
+-                        "Fn::Select": [1, { "Fn::Split": ["-", "My-EC2-Instance"] }]
+-                      }
+-                    }
+-                ],
 -                "SecurityGroups": [
 -                    {
 -                        "Fn::If": [
@@ -87,7 +95,7 @@ index 66a3d3e..77fc3f9 100644
    "PrivateSecurityGroup": {
     "Type": "AWS::EC2::SecurityGroup",
     "Properties": {
-@@ -92,66 +13,16 @@
+@@ -100,66 +13,22 @@
      "GroupDescription": "Public security group",
      "VpcId": "vpc-xxxxxxxx"
     }
@@ -102,7 +110,7 @@ index 66a3d3e..77fc3f9 100644
 -                "prod"
 -            ],
 -            "Default": "dev"
-   },
+-        },
 -        "DatabaseType": {
 -            "Type": "String",
 -            "AllowedValues": [
@@ -110,13 +118,21 @@ index 66a3d3e..77fc3f9 100644
 -                "postgresql"
 -            ],
 -            "Default": "postgresql"
--        },
+   },
 -        "UseEncryption": {
 -            "Type": "String",
 -            "AllowedValues": [
 -                "true",
 -                "false"
--            ],
++  "MyApp": {
++   "Type": "AWS::EC2::Instance",
++   "Properties": {
++    "ImageId": "ami-12345678",
++    "SecurityGroups": [
++     {
++      "Ref": "PrivateSecurityGroup"
++     }
+     ],
 -            "Default": "false"
 -        },
 -        "EncryptedAmi": {
@@ -142,13 +158,10 @@ index 66a3d3e..77fc3f9 100644
 -                "true",
 -                "false"
 -            ]
-+  "MyApp": {
-+   "Type": "AWS::EC2::Instance",
-+   "Properties": {
-+    "ImageId": "ami-12345678",
-+    "SecurityGroups": [
++    "Tags": [
 +     {
-+      "Ref": "PrivateSecurityGroup"
++      "Key": "Name",
++      "Value": "EC2"
       }
 -    },
 -    "Mappings": {

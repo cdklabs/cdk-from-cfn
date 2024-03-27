@@ -48,6 +48,12 @@ class Ec2EncryptionStack(Stack):
 
     myApp = ec2.CfnInstance(self, 'MyApp',
           image_id = regionToAmi['us-east-1']['AMI'],
+          tags = [
+            {
+              'key': 'Name',
+              'value': cdk.Fn.select(1, 'My-EC2-Instance'.split('-')),
+            },
+          ],
           security_groups = [
             privateSecurityGroup.ref if use_private_security_group else publicSecurityGroup.ref,
           ],

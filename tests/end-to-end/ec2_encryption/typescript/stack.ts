@@ -78,6 +78,12 @@ export class Ec2EncryptionStack extends cdk.Stack {
 
     const myApp = new ec2.CfnInstance(this, 'MyApp', {
       imageId: regionToAmi['us-east-1']['AMI'],
+      tags: [
+        {
+          key: 'Name',
+          value: cdk.Fn.select(1, 'My-EC2-Instance'.split('-')),
+        },
+      ],
       securityGroups: [
         usePrivateSecurityGroup ? privateSecurityGroup.ref : publicSecurityGroup.ref,
       ],
