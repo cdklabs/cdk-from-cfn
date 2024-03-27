@@ -800,18 +800,17 @@ fn test_resource_translation_error() {
                 },
                 "Runtime": "python3.11",
                 "Events": {
-                  "ApiEvent": {
-                    "Type": "Api",
-                    "Properties": {
-                      "Path": "/path",
-                      "Method": "get"
+                    "ApiEvent": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/path",
+                            "Method": "get"
+                        }
                     }
-                  }
                 }
-              }
             }
-          }
-    });
+        }
+    }});
 
     let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
     let schema = Cow::Borrowed(Schema::builtin());
@@ -842,12 +841,12 @@ fn test_java_synthesizer_with_sam_template() {
     });
     let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
     let schema = Cow::Borrowed(Schema::builtin());
-    let ir = CloudformationProgramIr::from(cfn_tree, &schema)
-        .unwrap();
+    let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
 
     let mut output = Vec::new();
     let synthesizer = Box::<synthesizer::Java>::default();
-    ir.synthesize(synthesizer.as_ref(), &mut output, "TestStack").unwrap();
+    ir.synthesize(synthesizer.as_ref(), &mut output, "TestStack")
+        .unwrap();
 }
 
 #[test]
@@ -872,10 +871,10 @@ fn test_csharp_synthesizer_with_sam_template() {
     });
     let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
     let schema = Cow::Borrowed(Schema::builtin());
-    let ir = CloudformationProgramIr::from(cfn_tree, &schema)
-        .unwrap();
+    let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
 
     let mut output = Vec::new();
     let synthesizer = Box::<synthesizer::Java>::default();
-    ir.synthesize(synthesizer.as_ref(), &mut output, "TestStack").unwrap();
+    ir.synthesize(synthesizer.as_ref(), &mut output, "TestStack")
+        .unwrap();
 }
