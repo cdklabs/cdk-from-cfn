@@ -189,7 +189,10 @@ fn test_boolean_parse_error() {
     };
     let resource_value = ResourceValue::String("fals".into());
     let result = translator.translate(resource_value).unwrap_err();
-    assert_eq!("provided string was not `true` or `false`", result.to_string());
+    assert_eq!(
+        "provided string was not `true` or `false`",
+        result.to_string()
+    );
 }
 
 #[test]
@@ -204,7 +207,10 @@ fn test_number_parse_error() {
     };
     let resource_value = ResourceValue::String("1.5".into());
     let result = translator.translate(resource_value).unwrap_err();
-    assert_eq!("invalid digit found in string", result.to_string());
+    assert_eq!(
+        "invalid digit found in string",
+        result.to_string()
+    );
 }
 
 #[test]
@@ -254,7 +260,7 @@ fn test_invalid_select_index() {
     };
     let resource_value = ResourceValue::IntrinsicFunction(Box::new(IntrinsicFunction::Select {
         index: ResourceValue::String("two".into()),
-        list: ResourceValue::Array(Vec::new())
+        list: ResourceValue::Array(Vec::new()),
     }));
     let result = translator.translate(resource_value).unwrap_err();
     assert_eq!("Index must be int for Select", result.to_string());
@@ -272,7 +278,7 @@ fn test_select_index_int_error() {
     };
     let resource_value = ResourceValue::IntrinsicFunction(Box::new(IntrinsicFunction::Select {
         index: ResourceValue::Bool(false),
-        list: ResourceValue::Array(Vec::new())
+        list: ResourceValue::Array(Vec::new()),
     }));
     let result = translator.translate(resource_value).unwrap_err();
     assert_eq!("Index must be int for Select", result.to_string());
