@@ -15,6 +15,7 @@ type Ec2EncryptionStackProps struct {
 	EncryptedAmi *string
 	UnencryptedAmi *string
 	SubnetType *string
+	EnableMonitoringParameter interface{/* Boolean */}
 }
 
 type Ec2EncryptionStack struct {
@@ -42,6 +43,8 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 	isProduction := props.Environment == jsii.String("prod")
 
 	usePrivateSecurityGroup := props.SubnetType == jsii.String("Private1") || props.SubnetType == jsii.String("Private2")
+
+	keyPairProd := !isProduction
 
 	useEncryption := isProduction && hasDatabase
 

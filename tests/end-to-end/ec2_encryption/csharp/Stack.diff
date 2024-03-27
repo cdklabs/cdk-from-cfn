@@ -1,8 +1,8 @@
 diff --git a/./tests/end-to-end/ec2_encryption/template.json b/tests/end-to-end/ec2_encryption-csharp-working-dir/cdk.out/Stack.template.json
-index 72489bf..77fc3f9 100644
+index 66a3d3e..77fc3f9 100644
 --- a/./tests/end-to-end/ec2_encryption/template.json
 +++ b/tests/end-to-end/ec2_encryption-csharp-working-dir/cdk.out/Stack.template.json
-@@ -1,73 +1,5 @@
+@@ -1,84 +1,5 @@
  {
 -    "AWSTemplateFormatVersion": "2010-09-09",
 -    "Conditions": {
@@ -51,13 +51,24 @@ index 72489bf..77fc3f9 100644
 -                    ]
 -                }
 -            ]
+-        },
+-        "KeyPairProd": {
+-            "Fn::Not": {
+-                "Condition": "IsProduction"
+-            }
 -        }
 -    },
   "Resources": {
 -        "MyApp": {
 -            "Type": "AWS::EC2::Instance",
 -            "Properties": {
--                "ImageId": { "Fn::FindInMap": ["RegionToAMI", "us-east-1", "AMI"] },
+-                "ImageId": {
+-                    "Fn::FindInMap": [
+-                        "RegionToAMI",
+-                        "us-east-1",
+-                        "AMI"
+-                    ]
+-                },
 -                "SecurityGroups": [
 -                    {
 -                        "Fn::If": [
@@ -76,7 +87,7 @@ index 72489bf..77fc3f9 100644
    "PrivateSecurityGroup": {
     "Type": "AWS::EC2::SecurityGroup",
     "Properties": {
-@@ -81,58 +13,16 @@
+@@ -92,66 +13,16 @@
      "GroupDescription": "Public security group",
      "VpcId": "vpc-xxxxxxxx"
     }
@@ -123,6 +134,14 @@ index 72489bf..77fc3f9 100644
 -                "Private1",
 -                "Private2"
 -            ]
+-        },
+-        "EnableMonitoringParameter": {
+-            "Type": "String",
+-            "Default": "false",
+-            "AllowedValues": [
+-                "true",
+-                "false"
+-            ]
 +  "MyApp": {
 +   "Type": "AWS::EC2::Instance",
 +   "Properties": {
@@ -134,11 +153,11 @@ index 72489bf..77fc3f9 100644
 -    },
 -    "Mappings": {
 -        "RegionToAMI": {
--          "us-east-1": {
--            "AMI": "ami-12345678"
--          },
--          "us-west-2": {
--            "AMI": "ami-87654321"
+-            "us-east-1": {
+-                "AMI": "ami-12345678"
+-            },
+-            "us-west-2": {
+-                "AMI": "ami-87654321"
 +    ]
     }
    }

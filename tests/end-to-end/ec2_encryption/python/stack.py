@@ -15,6 +15,7 @@ class Ec2EncryptionStack(Stack):
       'encryptedAmi': kwargs.get('encryptedAmi', 'ami-1234567890abcdef0'),
       'unencryptedAmi': kwargs.get('unencryptedAmi', 'ami-0987654321fedcba0'),
       'subnetType': kwargs.get('subnetType', 'Private1'),
+      'enableMonitoringParameter': kwargs.get('enableMonitoringParameter', False),
     }
 
     # Mappings
@@ -31,6 +32,7 @@ class Ec2EncryptionStack(Stack):
     has_database = props['databaseType'] == 'mysql'
     is_production = props['environment'] == 'prod'
     use_private_security_group = (props['subnetType'] == 'Private1' or props['subnetType'] == 'Private2')
+    key_pair_prod = not is_production
     use_encryption = (is_production and has_database)
 
     # Resources

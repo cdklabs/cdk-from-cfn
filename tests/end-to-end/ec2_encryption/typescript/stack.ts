@@ -26,6 +26,10 @@ export interface Ec2EncryptionStackProps extends cdk.StackProps {
    * @default 'Private1'
    */
   readonly subnetType?: string;
+  /**
+   * @default 'false'
+   */
+  readonly enableMonitoringParameter?: boolean;
 }
 
 export class Ec2EncryptionStack extends cdk.Stack {
@@ -41,6 +45,7 @@ export class Ec2EncryptionStack extends cdk.Stack {
       encryptedAmi: props.encryptedAmi ?? 'ami-1234567890abcdef0',
       unencryptedAmi: props.unencryptedAmi ?? 'ami-0987654321fedcba0',
       subnetType: props.subnetType ?? 'Private1',
+      enableMonitoringParameter: props.enableMonitoringParameter ?? false,
     };
 
     // Mappings
@@ -57,6 +62,7 @@ export class Ec2EncryptionStack extends cdk.Stack {
     const hasDatabase = props.databaseType! === 'mysql';
     const isProduction = props.environment! === 'prod';
     const usePrivateSecurityGroup = (props.subnetType! === 'Private1' || props.subnetType! === 'Private2');
+    const keyPairProd = !isProduction;
     const useEncryption = (isProduction && hasDatabase);
 
     // Resources

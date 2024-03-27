@@ -17,7 +17,7 @@ class Ec2EncryptionStack extends Stack {
     }
 
     public Ec2EncryptionStack(final Construct scope, final String id, final StackProps props) {
-        this(scope, id, props, null, null, null, null, null, null);
+        this(scope, id, props, null, null, null, null, null, null, null);
     }
 
     public Ec2EncryptionStack(final Construct scope, final String id, final StackProps props,
@@ -26,7 +26,8 @@ class Ec2EncryptionStack extends Stack {
             Boolean useEncryption,
             String encryptedAmi,
             String unencryptedAmi,
-            String subnetType) {
+            String subnetType,
+            Boolean enableMonitoringParameter) {
         super(scope, id, props);
 
         environment = Optional.ofNullable(environment).isPresent() ? environment
@@ -41,6 +42,8 @@ class Ec2EncryptionStack extends Stack {
                 : "ami-0987654321fedcba0";
         subnetType = Optional.ofNullable(subnetType).isPresent() ? subnetType
                 : "Private1";
+        enableMonitoringParameter = Optional.ofNullable(enableMonitoringParameter).isPresent() ? enableMonitoringParameter
+                : false;
         // Mappings
         final CfnMapping regionToAmi = new CfnMapping(this, "regionToAmi");
         regionToAmi.setValue("us-east-1", "AMI", "ami-12345678");
@@ -49,6 +52,7 @@ class Ec2EncryptionStack extends Stack {
         Boolean hasDatabase = databaseType.equals("mysql");
         Boolean isProduction = environment.equals("prod");
         Boolean usePrivateSecurityGroup = (subnetType.equals("Private1") || subnetType.equals("Private2"));
+        Boolean keyPairProd = !IsProduction;
         Boolean useEncryption = (IsProduction && HasDatabase);
 
         CfnSecurityGroup privateSecurityGroup = CfnSecurityGroup.Builder.create(this, "PrivateSecurityGroup")

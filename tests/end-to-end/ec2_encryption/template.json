@@ -46,13 +46,24 @@
                     ]
                 }
             ]
+        },
+        "KeyPairProd": {
+            "Fn::Not": {
+                "Condition": "IsProduction"
+            }
         }
     },
     "Resources": {
         "MyApp": {
             "Type": "AWS::EC2::Instance",
             "Properties": {
-                "ImageId": { "Fn::FindInMap": ["RegionToAMI", "us-east-1", "AMI"] },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "RegionToAMI",
+                        "us-east-1",
+                        "AMI"
+                    ]
+                },
                 "SecurityGroups": [
                     {
                         "Fn::If": [
@@ -124,16 +135,24 @@
                 "Private1",
                 "Private2"
             ]
+        },
+        "EnableMonitoringParameter": {
+            "Type": "String",
+            "Default": "false",
+            "AllowedValues": [
+                "true",
+                "false"
+            ]
         }
     },
     "Mappings": {
         "RegionToAMI": {
-          "us-east-1": {
-            "AMI": "ami-12345678"
-          },
-          "us-west-2": {
-            "AMI": "ami-87654321"
-          }
+            "us-east-1": {
+                "AMI": "ami-12345678"
+            },
+            "us-west-2": {
+                "AMI": "ami-87654321"
+            }
         }
-      }
+    }
 }

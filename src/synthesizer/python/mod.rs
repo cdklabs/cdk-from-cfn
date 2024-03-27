@@ -378,9 +378,9 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         }
         ConditionIr::Not(x) => {
             if x.is_simple() {
-                format!("not {}", synthesize_condition_recursive(x.as_ref()))
+                format!("not {}", snake_case(&synthesize_condition_recursive(x.as_ref())))
             } else {
-                format!("not ({})", synthesize_condition_recursive(x.as_ref()))
+                format!("not ({})", snake_case(&synthesize_condition_recursive(x.as_ref())))
             }
         }
         ConditionIr::Or(x) => {

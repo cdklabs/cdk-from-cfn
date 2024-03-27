@@ -19,6 +19,8 @@ namespace Ec2EncryptionStack
 
         public string SubnetType { get; set; }
 
+        public bool? EnableMonitoringParameter { get; set; }
+
     }
 
     public class Ec2EncryptionStack : Stack
@@ -33,6 +35,7 @@ namespace Ec2EncryptionStack
             props.EncryptedAmi ??= "ami-1234567890abcdef0";
             props.UnencryptedAmi ??= "ami-0987654321fedcba0";
             props.SubnetType ??= "Private1";
+            props.EnableMonitoringParameter ??= false;
 
             // Mappings
             var regionToAmi = new Dictionary<string, Dictionary<string,string>> 
@@ -45,6 +48,7 @@ namespace Ec2EncryptionStack
             bool hasDatabase = props.DatabaseType == "mysql";
             bool isProduction = props.Environment == "prod";
             bool usePrivateSecurityGroup = props.SubnetType == "Private1" || props.SubnetType == "Private2";
+            bool keyPairProd = !(isProduction);
             bool useEncryption = isProduction && hasDatabase;
 
             // Resources
