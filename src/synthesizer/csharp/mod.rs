@@ -788,7 +788,7 @@ mod tests {
     use crate::{
         cdk::Schema,
         code::CodeBuffer,
-        ir::{conditions::ConditionIr, resources::ResourceIr},
+        ir::{conditions::ConditionIr, importer::ImportInstruction, resources::ResourceIr}, primitives::WrapperF64,
     };
 
     use super::CsharpEmitter;
@@ -834,6 +834,49 @@ mod tests {
             Box::new(ConditionIr::Str("SecondLevelKey".into())),
         );
         let result = condition_ir.emit_csharp(&output, &schema);
+        assert_eq!((), result.unwrap());
+    }
+
+    #[test]
+    fn test_condition_ir_split() {
+        let output = CodeBuffer::default();
+        let schema = Cow::Borrowed(Schema::builtin());
+        let condition_ir = ConditionIr::Split(
+            "-".into(),
+            Box::new(ConditionIr::Str("string-to-split".into())),
+        );
+        let result = condition_ir.emit_csharp(&output, &schema);
+        assert_eq!((), result.unwrap());
+    }
+
+    #[test]
+    fn test_alexa_org() {
+        let import_instruction = ImportInstruction {
+            organization: "Alexa".into(),
+            service: Some("Ask".into()),
+        };
+        let result = import_instruction.to_csharp();
+        assert_eq!("using Amazon.CDK.Alexa.Ask;", result.unwrap());
+    }
+
+    #[test]
+    fn test_resource_ir_double() {
+        let output = CodeBuffer::default();
+        let schema = Cow::Borrowed(Schema::builtin());
+        let resource_ir = ResourceIr::Double(WrapperF64::new(2.0));
+        let result = resource_ir.emit_csharp(&output, &schema);
+        assert_eq!((), result.unwrap());
+    }
+
+    #[test]
+    fn test_resource_ir_select() {
+        let output = CodeBuffer::default();
+        let schema = Cow::Borrowed(Schema::builtin());
+        let resource_ir = ResourceIr::Select(
+            1,
+            Box::new(ResourceIr::String("Not an array".into())),
+        );
+        let result = resource_ir.emit_csharp(&output, &schema);
         assert_eq!((), result.unwrap());
     }
 }
