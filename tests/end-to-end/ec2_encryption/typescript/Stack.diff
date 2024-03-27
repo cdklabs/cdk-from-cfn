@@ -1,8 +1,8 @@
 diff --git a/./tests/end-to-end/ec2_encryption/template.json b/tests/end-to-end/ec2_encryption-typescript-working-dir/cdk.out/Stack.template.json
-index 0d001f4..d9d01b3 100644
+index 72489bf..77fc3f9 100644
 --- a/./tests/end-to-end/ec2_encryption/template.json
 +++ b/tests/end-to-end/ec2_encryption-typescript-working-dir/cdk.out/Stack.template.json
-@@ -1,92 +1,5 @@
+@@ -1,73 +1,5 @@
  {
 -    "AWSTemplateFormatVersion": "2010-09-09",
 -    "Conditions": {
@@ -57,26 +57,7 @@ index 0d001f4..d9d01b3 100644
 -        "MyApp": {
 -            "Type": "AWS::EC2::Instance",
 -            "Properties": {
--                "ImageId": {
--                    "Fn::Select": [
--                        "0",
--                        {
--                            "Fn::Split": [
--                                ",",
--                                {
--                                    "Fn::Join": [
--                                        ",",
--                                        [
--                                            "ami-xxxxxxxx",
--                                            "ami-yyyyyyyy",
--                                            "ami-zzzzzzzz"
--                                        ]
--                                    ]
--                                }
--                            ]
--                        }
--                    ]
--                },
+-                "ImageId": { "Fn::FindInMap": ["RegionToAMI", "us-east-1", "AMI"] },
 -                "SecurityGroups": [
 -                    {
 -                        "Fn::If": [
@@ -95,7 +76,7 @@ index 0d001f4..d9d01b3 100644
    "PrivateSecurityGroup": {
     "Type": "AWS::EC2::SecurityGroup",
     "Properties": {
-@@ -100,49 +13,17 @@
+@@ -81,58 +13,16 @@
      "GroupDescription": "Public security group",
      "VpcId": "vpc-xxxxxxxx"
     }
@@ -110,7 +91,7 @@ index 0d001f4..d9d01b3 100644
 -                "prod"
 -            ],
 -            "Default": "dev"
--        },
+   },
 -        "DatabaseType": {
 -            "Type": "String",
 -            "AllowedValues": [
@@ -134,24 +115,31 @@ index 0d001f4..d9d01b3 100644
 -        "UnencryptedAmi": {
 -            "Type": "String",
 -            "Default": "ami-0987654321fedcba0"
-   },
+-        },
 -        "SubnetType": {
 -            "Type": "String",
 -            "Default": "Private1",
 -            "AllowedValues": [
 -                "Private1",
 -                "Private2"
+-            ]
 +  "MyApp": {
 +   "Type": "AWS::EC2::Instance",
 +   "Properties": {
-+    "ImageId": "ami-xxxxxxxx",
++    "ImageId": "ami-12345678",
 +    "SecurityGroups": [
 +     {
 +      "Ref": "PrivateSecurityGroup"
-+     }
-     ]
+      }
+-    },
+-    "Mappings": {
+-        "RegionToAMI": {
+-          "us-east-1": {
+-            "AMI": "ami-12345678"
+-          },
+-          "us-west-2": {
+-            "AMI": "ami-87654321"
++    ]
     }
    }
   }
-+}
-\ No newline at end of file

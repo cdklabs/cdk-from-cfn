@@ -41,6 +41,11 @@ class Ec2EncryptionStack extends Stack {
                 : "ami-0987654321fedcba0";
         subnetType = Optional.ofNullable(subnetType).isPresent() ? subnetType
                 : "Private1";
+        // Mappings
+        final CfnMapping regionToAmi = new CfnMapping(this, "regionToAmi");
+        regionToAmi.setValue("us-east-1", "AMI", "ami-12345678");
+        regionToAmi.setValue("us-west-2", "AMI", "ami-87654321");
+
         Boolean hasDatabase = databaseType.equals("mysql");
         Boolean isProduction = environment.equals("prod");
         Boolean usePrivateSecurityGroup = (subnetType.equals("Private1") || subnetType.equals("Private2"));
@@ -57,10 +62,7 @@ class Ec2EncryptionStack extends Stack {
                 .build();
 
         CfnInstance myApp = CfnInstance.Builder.create(this, "MyApp")
-                .imageId(Fn.select(0, Fn.split(,, String.join(",",
-                        "ami-xxxxxxxx",
-                        "ami-yyyyyyyy",
-                        "ami-zzzzzzzz"))))
+                .imageId(regionToAmi.findInMap("us-east-1", "AMI"))
                 .securityGroups(Arrays.asList(
                         usePrivateSecurityGroup ? privateSecurityGroup.getRef()
                                 : publicSecurityGroup.getRef()))

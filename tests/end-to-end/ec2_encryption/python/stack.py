@@ -17,6 +17,16 @@ class Ec2EncryptionStack(Stack):
       'subnetType': kwargs.get('subnetType', 'Private1'),
     }
 
+    # Mappings
+    regionToAmi = {
+      'us-east-1': {
+        'AMI': 'ami-12345678',
+      },
+      'us-west-2': {
+        'AMI': 'ami-87654321',
+      },
+    }
+
     # Conditions
     has_database = props['databaseType'] == 'mysql'
     is_production = props['environment'] == 'prod'
@@ -35,11 +45,7 @@ class Ec2EncryptionStack(Stack):
         )
 
     myApp = ec2.CfnInstance(self, 'MyApp',
-          image_id = cdk.Fn.select(0, cdk.Fn.split(',', ','.join([
-            'ami-xxxxxxxx',
-            'ami-yyyyyyyy',
-            'ami-zzzzzzzz',
-          ]))),
+          image_id = regionToAmi['us-east-1']['AMI'],
           security_groups = [
             privateSecurityGroup.ref if use_private_security_group else publicSecurityGroup.ref,
           ],

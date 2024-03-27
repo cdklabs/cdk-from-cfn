@@ -22,6 +22,15 @@ type Ec2EncryptionStack struct {
 }
 
 func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2EncryptionStackProps) *Ec2EncryptionStack {
+	regionToAmi := map[*string]map[*string]*string{
+		jsii.String("us-east-1"): map[*string]*string{
+			jsii.String("AMI"): jsii.String("ami-12345678"),
+		},
+		jsii.String("us-west-2"): map[*string]*string{
+			jsii.String("AMI"): jsii.String("ami-87654321"),
+		},
+	}
+
 	var sprops cdk.StackProps
 	if props != nil {
 		sprops = props.StackProps
@@ -58,11 +67,7 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 		stack,
 		jsii.String("MyApp"),
 		&ec2.CfnInstanceProps{
-			ImageId: cdk.Fn_Select(jsii.Number(0), cdk.Fn_Split(jsii.String(","), cdk.Fn_Join(jsii.String(","), &[]*string{
-				jsii.String("ami-xxxxxxxx"),
-				jsii.String("ami-yyyyyyyy"),
-				jsii.String("ami-zzzzzzzz"),
-			}))),
+			ImageId: regionToAmi[jsii.String("us-east-1")][jsii.String("AMI")],
 			SecurityGroups: &[]*string{
 				ifCondition(
 					usePrivateSecurityGroup,

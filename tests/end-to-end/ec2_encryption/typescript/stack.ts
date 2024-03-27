@@ -43,6 +43,16 @@ export class Ec2EncryptionStack extends cdk.Stack {
       subnetType: props.subnetType ?? 'Private1',
     };
 
+    // Mappings
+    const regionToAmi: Record<string, Record<string, string>> = {
+      'us-east-1': {
+        'AMI': 'ami-12345678',
+      },
+      'us-west-2': {
+        'AMI': 'ami-87654321',
+      },
+    };
+
     // Conditions
     const hasDatabase = props.databaseType! === 'mysql';
     const isProduction = props.environment! === 'prod';
@@ -61,11 +71,7 @@ export class Ec2EncryptionStack extends cdk.Stack {
     });
 
     const myApp = new ec2.CfnInstance(this, 'MyApp', {
-      imageId: cdk.Fn.select(0, cdk.Fn.split(',', [
-        'ami-xxxxxxxx',
-        'ami-yyyyyyyy',
-        'ami-zzzzzzzz',
-      ].join(','))),
+      imageId: regionToAmi['us-east-1']['AMI'],
       securityGroups: [
         usePrivateSecurityGroup ? privateSecurityGroup.ref : publicSecurityGroup.ref,
       ],

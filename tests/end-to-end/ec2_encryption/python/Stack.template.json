@@ -17,7 +17,7 @@
   "MyApp": {
    "Type": "AWS::EC2::Instance",
    "Properties": {
-    "ImageId": "ami-xxxxxxxx",
+    "ImageId": "ami-12345678",
     "SecurityGroups": [
      {
       "Ref": "PrivateSecurityGroup"

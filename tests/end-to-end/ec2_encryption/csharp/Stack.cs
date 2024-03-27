@@ -34,6 +34,12 @@ namespace Ec2EncryptionStack
             props.UnencryptedAmi ??= "ami-0987654321fedcba0";
             props.SubnetType ??= "Private1";
 
+            // Mappings
+            var regionToAmi = new Dictionary<string, Dictionary<string,string>> 
+            {
+                ["us-east-1"] = new Dictionary<string, string> {["AMI"] = "ami-12345678", },
+                ["us-west-2"] = new Dictionary<string, string> {["AMI"] = "ami-87654321", },
+            };
 
             // Conditions
             bool hasDatabase = props.DatabaseType == "mysql";
@@ -54,12 +60,7 @@ namespace Ec2EncryptionStack
             });
             var myApp = new CfnInstance(this, "MyApp", new CfnInstanceProps
             {
-                ImageId = Fn.Select(0, Fn.Split(",", string.Join(",", new []
-                {
-                    "ami-xxxxxxxx",
-                    "ami-yyyyyyyy",
-                    "ami-zzzzzzzz",
-                }))),
+                ImageId = regionToAmi["us-east-1"]["AMI"],
                 SecurityGroups = new []
                 {
                     usePrivateSecurityGroup ? privateSecurityGroup.Ref : publicSecurityGroup.Ref,
