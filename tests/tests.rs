@@ -936,33 +936,31 @@ fn test_invalid_organization_for_golang() {
 fn test_invalid_resource_object_structure() {
     let resource_ir = ResourceIr::Object(
         TypeReference::Union(cdk_from_cfn::cdk::TypeUnion::Static(&[])),
-        IndexMap::default()
+        IndexMap::default(),
     );
-    let properties = IndexMap::from([
-        ("BadProperty".into(), resource_ir)
-    ]);
+    let properties = IndexMap::from([("BadProperty".into(), resource_ir)]);
     let ir = CloudformationProgramIr {
-        resources: vec![
-            ResourceInstruction {
-                name: "InvalidResource".to_string(),
-                condition: Option::None,
-                metadata: Option::None,
-                update_policy: Option::None,
-                deletion_policy: Option::None,
-                dependencies: vec![],
-                resource_type: ResourceType::AWS {
-                    service: "Dynamo".to_string(),
-                    type_name: "GlobalTable".to_string(),
-                },
-                properties,
-                references: BTreeSet::new(),
-            }
-        ],
+        resources: vec![ResourceInstruction {
+            name: "InvalidResource".to_string(),
+            condition: Option::None,
+            metadata: Option::None,
+            update_policy: Option::None,
+            deletion_policy: Option::None,
+            dependencies: vec![],
+            resource_type: ResourceType::AWS {
+                service: "Dynamo".to_string(),
+                type_name: "GlobalTable".to_string(),
+            },
+            properties,
+            references: BTreeSet::new(),
+        }],
         ..Default::default()
     };
     let synthesizer = Box::<crate::synthesizer::CSharp>::default();
     let mut output = Vec::new();
-    let result = ir.synthesize(synthesizer.as_ref(), &mut output, "Stack").unwrap_err();
+    let result = ir
+        .synthesize(synthesizer.as_ref(), &mut output, "Stack")
+        .unwrap_err();
     let expected = "Type reference Union(\n    Static(\n        [],\n    ),\n) not implemented for ResourceIr::Object";
     assert_eq!(expected, result.to_string());
 }
