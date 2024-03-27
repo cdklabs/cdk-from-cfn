@@ -11,7 +11,7 @@ sealed class Program
                 GenerateBootstrapVersionRule = false,
             }),
         });
-        new StackSetStack.StackSetStack(app, "Stack");
+        new Ec2EncryptionStack.Ec2EncryptionStack(app, "Stack");
         app.Synth();
     }
 }

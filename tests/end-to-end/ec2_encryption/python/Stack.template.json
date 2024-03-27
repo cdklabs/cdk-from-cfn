@@ -1,0 +1,10 @@
+{
+ "Resources": {
+  "MyApp": {
+   "Type": "AWS::EC2::Instance",
+   "Properties": {
+    "ImageId": "ami-0987654321fedcba0"
+   }
+  }
+ }
+}

@@ -1,0 +1,91 @@
+diff --git a/./tests/end-to-end/ec2_encryption/template.json b/tests/end-to-end/ec2_encryption-typescript-working-dir/cdk.out/Stack.template.json
+index d1575e2..62288a7 100644
+--- a/./tests/end-to-end/ec2_encryption/template.json
++++ b/tests/end-to-end/ec2_encryption-typescript-working-dir/cdk.out/Stack.template.json
+@@ -1,84 +1,10 @@
+ {
+-    "AWSTemplateFormatVersion": "2010-09-09",
+-    "Conditions": {
+-        "IsProduction": {
+-            "Fn::Equals": [
+-                {
+-                    "Ref": "Environment"
+-                },
+-                "prod"
+-            ]
+-        },
+-        "HasDatabase": {
+-            "Fn::Equals": [
+-                {
+-                    "Ref": "DatabaseType"
+-                },
+-                "mysql"
+-            ]
+-        },
+-        "UseEncryption": {
+-            "Fn::And": [
+-                {
+-                    "Condition": "IsProduction"
+-                },
+-                {
+-                    "Condition": "HasDatabase"
+-                }
+-            ]
+-        }
+-    },
+  "Resources": {
+   "MyApp": {
+    "Type": "AWS::EC2::Instance",
+    "Properties": {
+-                "ImageId": {
+-                    "Fn::If": [
+-                        "UseEncryption",
+-                        {
+-                            "Ref": "EncryptedAmi"
+-                        },
+-                        {
+-                            "Ref": "UnencryptedAmi"
+-                        }
+-                    ]
+-                }
+-            }
++    "ImageId": "ami-0987654321fedcba0"
+    }
+-    },
+-    "Parameters": {
+-        "Environment": {
+-            "Type": "String",
+-            "AllowedValues": [
+-                "dev",
+-                "test",
+-                "prod"
+-            ],
+-            "Default": "dev"
+-        },
+-        "DatabaseType": {
+-            "Type": "String",
+-            "AllowedValues": [
+-                "mysql",
+-                "postgresql"
+-            ],
+-            "Default": "postgresql"
+-        },
+-        "UseEncryption": {
+-            "Type": "String",
+-            "AllowedValues": [
+-                "true",
+-                "false"
+-            ],
+-            "Default": "false"
+-        },
+-        "EncryptedAmi": {
+-            "Type": "String",
+-            "Default": "ami-1234567890abcdef0"
+-        },
+-        "UnencryptedAmi": {
+-            "Type": "String",
+-            "Default": "ami-0987654321fedcba0"
+   }
+  }
+ }
+\ No newline at end of file

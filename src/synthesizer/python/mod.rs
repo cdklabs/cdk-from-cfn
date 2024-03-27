@@ -360,7 +360,10 @@ fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, M
 fn synthesize_condition_recursive(val: &ConditionIr) -> String {
     match val {
         ConditionIr::And(x) => {
-            let a: Vec<String> = x.iter().map(synthesize_condition_recursive).collect();
+            let a: Vec<String> = x.iter()
+                .map(synthesize_condition_recursive)
+                .map(|condition| snake_case(&condition))
+                .collect();
 
             let inner = a.join(" and ");
             format!("({inner})")
