@@ -267,6 +267,24 @@ fn test_invalid_select_index() {
 }
 
 #[test]
+fn test_invalid_select_index_range_error() {
+    let origins = ReferenceOrigins {
+        origins: HashMap::default(),
+    };
+    let translator = ResourceTranslator {
+        schema: &Schema::builtin(),
+        origins: &origins,
+        value_type: Some(TypeReference::Primitive(Primitive::Number)),
+    };
+    let resource_value = ResourceValue::IntrinsicFunction(Box::new(IntrinsicFunction::Select {
+        index: ResourceValue::Number(-1),
+        list: ResourceValue::Array(Vec::new()),
+    }));
+    let result = translator.translate(resource_value).unwrap_err();
+    assert_eq!("Index is out of range for Select", result.to_string());
+}
+
+#[test]
 fn test_select_index_int_error() {
     let origins = ReferenceOrigins {
         origins: HashMap::default(),

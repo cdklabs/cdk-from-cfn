@@ -290,9 +290,9 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                             },
                             ResourceValue::Number(x) => match x.try_into() {
                                 Ok(x) => x,
-                                Err(cause) => {
+                                Err(_) => {
                                     return Err(Error::ResourceTranslationError {
-                                        message: format!("Index is too large for Select: {cause}"),
+                                        message: "Index is out of range for Select".to_string(),
                                     })
                                 }
                             },
