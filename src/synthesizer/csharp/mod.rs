@@ -617,11 +617,13 @@ impl ResourceIr {
             }
             ResourceIr::Split(sep, str) => match str.as_ref() {
                 ResourceIr::String(str) => {
+                    println!("This one!");
                     output.text(format!("\"{str}\"", str = str.escape_debug()));
                     output.text(format!(".Split('{sep}')", sep = sep.escape_debug()));
                     Ok(())
                 }
                 other => {
+                    println!("This One!");
                     output.text(format!("Fn.Split('{sep}', "));
                     other.emit_csharp(output, schema)?;
                     output.text(")");
@@ -780,5 +782,22 @@ impl OutputInstruction {
         Ok(())
     }
 }
+
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use std::borrow::Cow;
+
+    use crate::{cdk::Schema, code::CodeBuffer, ir::resources::ResourceIr};
+    
+    #[test]
+    fn test_fn_split() {
+        let output = CodeBuffer::default();
+        let schema = Cow::Borrowed(Schema::builtin());
+        let resource_ir = ResourceIr::Split(
+            "-".into(),
+            Box::new(ResourceIr::String("My-EC2-Instance".into())),
+        );
+        let result = resource_ir.emit_csharp(&output, &schema);
+        assert_eq!((), result.unwrap());
+    }
+}
