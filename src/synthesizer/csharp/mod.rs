@@ -788,7 +788,8 @@ mod tests {
     use crate::{
         cdk::Schema,
         code::CodeBuffer,
-        ir::{conditions::ConditionIr, importer::ImportInstruction, resources::ResourceIr}, primitives::WrapperF64,
+        ir::{conditions::ConditionIr, importer::ImportInstruction, resources::ResourceIr},
+        primitives::WrapperF64,
     };
 
     use super::CsharpEmitter;
@@ -872,10 +873,8 @@ mod tests {
     fn test_resource_ir_select() {
         let output = CodeBuffer::default();
         let schema = Cow::Borrowed(Schema::builtin());
-        let resource_ir = ResourceIr::Select(
-            1,
-            Box::new(ResourceIr::String("Not an array".into())),
-        );
+        let resource_ir =
+            ResourceIr::Select(1, Box::new(ResourceIr::String("Not an array".into())));
         let result = resource_ir.emit_csharp(&output, &schema);
         assert_eq!((), result.unwrap());
     }
