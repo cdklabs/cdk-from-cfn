@@ -617,13 +617,11 @@ impl ResourceIr {
             }
             ResourceIr::Split(sep, str) => match str.as_ref() {
                 ResourceIr::String(str) => {
-                    println!("This one!");
                     output.text(format!("\"{str}\"", str = str.escape_debug()));
                     output.text(format!(".Split('{sep}')", sep = sep.escape_debug()));
                     Ok(())
                 }
                 other => {
-                    println!("This One!");
                     output.text(format!("Fn.Split('{sep}', "));
                     other.emit_csharp(output, schema)?;
                     output.text(")");
@@ -788,7 +786,7 @@ mod tests {
     use std::borrow::Cow;
 
     use crate::{cdk::Schema, code::CodeBuffer, ir::resources::ResourceIr};
-    
+
     #[test]
     fn test_fn_split() {
         let output = CodeBuffer::default();
