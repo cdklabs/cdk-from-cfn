@@ -129,7 +129,9 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     Some(TypeReference::Primitive(Primitive::Json)) => {
                         Box::new(MapOf(&TypeReference::Primitive(Primitive::Json)))
                     }
-                    other => unimplemented!("{other:?}"),
+                    other => return Err(Error::ResourceTranslationError {
+                        message: format!("{other:?} is not implemented for ResourceValue::Object")
+                    }),
                 };
 
                 let mut new_hash = IndexMap::with_capacity_and_hasher(o.len(), Hasher::default());

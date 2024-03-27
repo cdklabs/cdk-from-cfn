@@ -784,6 +784,43 @@ fn test_invalid_resource_property() {
 }
 
 #[test]
+fn test_resource_translation_error() {
+    let cfn_template = json!({
+        "Resources": {
+            "ClientFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                "FunctionName": "pricing-client",
+                "Handler": "client_lambda.lambda_handler",
+                "MemorySize": 512,
+                "Timeout": 300,
+                "CodeUri": "./pricing-client/",
+                "PermissionsBoundary": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/GithubActionsIamResourcePermissionsBoundary"
+                },
+                "Runtime": "python3.11",
+                "Events": {
+                  "ApiEvent": {
+                    "Type": "Api",
+                    "Properties": {
+                      "Path": "/path",
+                      "Method": "get"
+                    }
+                  }
+                }
+              }
+            }
+          }
+    });
+
+    let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let result = CloudformationProgramIr::from(cfn_tree, &schema).unwrap_err();
+    let expected = "Some(Union(Static([Named(\"AWS::Serverless::Function.S3Event\"), Named(\"AWS::Serverless::Function.SNSEvent\"), Named(\"AWS::Serverless::Function.SQSEvent\"), Named(\"AWS::Serverless::Function.KinesisEvent\"), Named(\"AWS::Serverless::Function.DynamoDBEvent\"), Named(\"AWS::Serverless::Function.ApiEvent\"), Named(\"AWS::Serverless::Function.ScheduleEvent\"), Named(\"AWS::Serverless::Function.CloudWatchEventEvent\"), Named(\"AWS::Serverless::Function.CloudWatchLogsEvent\"), Named(\"AWS::Serverless::Function.IoTRuleEvent\"), Named(\"AWS::Serverless::Function.AlexaSkillEvent\"), Named(\"AWS::Serverless::Function.EventBridgeRuleEvent\"), Named(\"AWS::Serverless::Function.HttpApiEvent\"), Named(\"AWS::Serverless::Function.CognitoEvent\")]))) is not implemented for ResourceValue::Object";
+    assert_eq!(expected, result.to_string());
+}
+
+#[test]
 fn test_java_synthesizer_with_sam_template() {
     let cfn_template = json!({
         "Resources": {
@@ -805,7 +842,8 @@ fn test_java_synthesizer_with_sam_template() {
     });
     let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
     let schema = Cow::Borrowed(Schema::builtin());
-    let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
+    let ir = CloudformationProgramIr::from(cfn_tree, &schema)
+        .unwrap();
 
     let mut output = Vec::new();
     let synthesizer = Box::<synthesizer::Java>::default();
@@ -834,7 +872,8 @@ fn test_csharp_synthesizer_with_sam_template() {
     });
     let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
     let schema = Cow::Borrowed(Schema::builtin());
-    let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
+    let ir = CloudformationProgramIr::from(cfn_tree, &schema)
+        .unwrap();
 
     let mut output = Vec::new();
     let synthesizer = Box::<synthesizer::Java>::default();
