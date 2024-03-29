@@ -731,3 +731,6 @@ pub fn capitalize(s: &str) -> String {
         Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
     }
 }
+
+#[cfg(test)]
+mod tests;

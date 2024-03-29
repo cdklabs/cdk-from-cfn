@@ -950,4 +950,4 @@ pub struct JavaConstructorParameter {
 pub struct JavaResourceInstruction {}
 
 #[cfg(test)]
-mod tests {}
+mod tests;

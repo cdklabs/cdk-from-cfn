@@ -1044,3 +1044,6 @@ fn golang_identifier(text: &str, kind: IdentifierKind) -> String {
         IdentifierKind::Unexported => camel_case(&text_string),
     }
 }
+
+#[cfg(test)]
+mod tests;
