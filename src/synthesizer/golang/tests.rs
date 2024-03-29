@@ -1,4 +1,13 @@
+use super::*;
+
+use std::borrow::Cow;
+
+use crate::cdk::Schema;
+use crate::code::CodeBuffer;
+use crate::ir::conditions::ConditionIr;
 use crate::ir::importer::ImportInstruction;
+
+use super::GolangEmitter;
 
 #[test]
 fn test_invalid_organization() {
@@ -10,4 +19,34 @@ fn test_invalid_organization() {
     let result = import_instruction.to_golang().unwrap_err();
     let expected = format!("Expected organization to be AWS or Alexa. Found {bad_org}");
     assert_eq!(expected, result.to_string());
+}
+
+#[test]
+fn test_alexa_organization() {
+    let import_instruction = ImportInstruction {
+        organization: "Alexa".to_string(),
+        service: Some("service".to_string()),
+    };
+    let result = import_instruction.to_golang();
+    assert_eq!("service \"github.com/aws/aws-cdk-go/awscdk/v2/alexaservice\"", result.unwrap());
+}
+
+#[test]
+fn test_condition_ir_map() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let condition_ir = ConditionIr::Map(
+        "ConditionIrMap".to_string(),
+        Box::new(ConditionIr::Str("key".to_string())),
+        Box::new(ConditionIr::Str("value".to_string())),
+    );
+    let context = &mut GoContext::new(
+        &schema,
+        output.section(false),
+        output.section(false),
+        output.section(false),
+        output.section(false),
+    );
+    let result = condition_ir.emit_golang(context, &output, Option::None);
+    assert_eq!((), result.unwrap());
 }
