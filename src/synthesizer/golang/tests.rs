@@ -4,8 +4,8 @@ use crate::ir::importer::ImportInstruction;
 fn test_invalid_organization() {
     let bad_org = "NotAws";
     let import_instruction = ImportInstruction {
-      organization: bad_org.to_string(),
-      service: Option::None,
+        organization: bad_org.to_string(),
+        service: Option::None,
     };
     let result = import_instruction.to_golang().unwrap_err();
     let expected = format!("Expected organization to be AWS or Alexa. Found {bad_org}");
