@@ -24,10 +24,10 @@ fn test_invalid_organization() {
 fn test_alexa_organization() {
     let import_instruction = ImportInstruction {
         organization: "Alexa".to_string(),
-        service: Option::None,
+        service: Some("service".to_string()),
     };
     let result = import_instruction.to_java_import();
-    assert_eq!("import Alexa.*;", result.unwrap());
+    assert_eq!("import software.amazon.awscdk.alexa.service.*;", result.unwrap());
 }
 
 #[test]
