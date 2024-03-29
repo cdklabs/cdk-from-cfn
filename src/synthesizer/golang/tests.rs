@@ -47,6 +47,6 @@ fn test_condition_ir_map() {
         output.section(false),
         output.section(false),
     );
-    let result = condition_ir.emit_golang(context, &output, Option::None);
+    let result = condition_ir.emit_golang(context, &output, Some("}"));
     assert_eq!((), result.unwrap());
 }
