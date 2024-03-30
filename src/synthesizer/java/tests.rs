@@ -1,8 +1,10 @@
+use indexmap::IndexMap;
+
 use super::*;
 
 use std::borrow::Cow;
 
-use crate::cdk::Schema;
+use crate::cdk::{Schema, TypeUnion};
 use crate::code::CodeBuffer;
 use crate::ir::importer::ImportInstruction;
 use crate::ir::resources::ResourceIr;
@@ -85,4 +87,19 @@ fn test_tag_value_resource_ir_number() {
     let resource_ir = ResourceIr::Number(10);
     let result = emit_tag_value(resource_ir, &output, Option::None, &schema);
     assert_eq!((), result.unwrap());
+}
+
+#[test]
+fn test_resource_ir_object_type_reference_error() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Object(
+        TypeReference::Union(TypeUnion::Static(&[])),
+        IndexMap::new(),
+    );
+    let result = emit_tag_value(resource_ir, &output, Option::None, &schema).unwrap_err();
+    assert_eq!(
+        "Type reference Union(\n    Static(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
+        result.to_string(),
+    );
 }
