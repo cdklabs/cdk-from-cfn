@@ -588,7 +588,7 @@ impl ResourceIr {
                     Ok(())
                 }
                 other => {
-                    return Err(Error::TypeReferenceError {
+                    Err(Error::TypeReferenceError {
                         message: format!(
                             "Type reference {other:#?} not implemented for ResourceIr::Object"
                         ),
