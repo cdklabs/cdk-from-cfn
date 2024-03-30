@@ -26,9 +26,7 @@ fn test_alexa_org() {
 
 #[test]
 fn test_condition_ir_not_simple() {
-    let condition_ir = ConditionIr::Not(
-        Box::new(ConditionIr::Condition("condition".into())),
-    );
+    let condition_ir = ConditionIr::Not(Box::new(ConditionIr::Condition("condition".into())));
     let result = synthesize_condition_recursive(&condition_ir);
     assert_eq!("not (condition)", result);
 }
