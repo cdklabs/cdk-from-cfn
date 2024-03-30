@@ -59,3 +59,30 @@ fn test_resource_ir_double() {
     let result = emit_java(resource_ir, &output, Option::None, &schema);
     assert_eq!((), result.unwrap());
 }
+
+#[test]
+fn test_tag_value_resource_ir_bool() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Bool(true);
+    let result = emit_tag_value(resource_ir, &output, Option::None, &schema);
+    assert_eq!((), result.unwrap());
+}
+
+#[test]
+fn test_tag_value_resource_ir_double() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Double(WrapperF64::new(2.0));
+    let result = emit_tag_value(resource_ir, &output, Option::None, &schema);
+    assert_eq!((), result.unwrap());
+}
+
+#[test]
+fn test_tag_value_resource_ir_number() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Number(10);
+    let result = emit_tag_value(resource_ir, &output, Option::None, &schema);
+    assert_eq!((), result.unwrap());
+}
