@@ -102,10 +102,9 @@ fn test_resource_ir_object_list_structure() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Object(
-        TypeReference::List(
-            ItemType::Static(&TypeReference::Primitive(
-                Primitive::Number
-            ))),
+        TypeReference::List(ItemType::Static(&TypeReference::Primitive(
+            Primitive::Number,
+        ))),
         IndexMap::new(),
     );
     let context = &mut GoContext::new(

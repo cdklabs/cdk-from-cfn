@@ -15,9 +15,7 @@ fn test_invalid_resource_type_name() {
         deletion_policy: Option::None,
         properties: IndexMap::new(),
     };
-    let parse_tree = IndexMap::from([
-        ("Resource".to_string(), resource_attributes),
-    ]);
+    let parse_tree = IndexMap::from([("Resource".to_string(), resource_attributes)]);
     let import_instruction = ImportInstruction::from(&parse_tree).unwrap_err();
     assert_eq!(
         "Invalid resource type name: AWS:Invalid:Resource:Type",
