@@ -587,13 +587,11 @@ impl ResourceIr {
                     }
                     Ok(())
                 }
-                other => {
-                    Err(Error::TypeReferenceError {
-                        message: format!(
-                            "Type reference {other:#?} not implemented for ResourceIr::Object"
-                        ),
-                    })
-                }
+                other => Err(Error::TypeReferenceError {
+                    message: format!(
+                        "Type reference {other:#?} not implemented for ResourceIr::Object"
+                    ),
+                }),
             },
             ResourceIr::If(cond, when_true, when_false) => {
                 output.text(format!("{} ? ", camel_case(cond)));
