@@ -29,7 +29,10 @@ fn error_on_missing_brackets() {
 #[test]
 fn sub_parse_error() {
     let error = sub_parse_tree("").unwrap_err();
-    assert_eq!("Parsing Error: Error { input: \"\", code: Eof }", error.to_string());
+    assert_eq!(
+        "Parsing Error: Error { input: \"\", code: Eof }",
+        error.to_string(),
+    );
 }
 
 #[test]
