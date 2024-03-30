@@ -158,6 +158,7 @@ fn test_resource_ir_cidr_string_mask() {
     assert_eq!((), result.unwrap());
 }
 
+#[test]
 fn test_reference_with_trailer() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
