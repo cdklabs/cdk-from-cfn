@@ -117,3 +117,23 @@ fn test_resource_ir_object_list_structure() {
     let result = resource_ir.emit_golang(context, &output, Option::None);
     assert_eq!((), result.unwrap());
 }
+
+#[test]
+fn test_resource_ir_cidr_null_mask() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Cidr(
+        Box::new(ResourceIr::String("0.0.0.0".into())),
+        Box::new(ResourceIr::String("16".into())),
+        Box::new(ResourceIr::Null),
+    );
+    let context = &mut GoContext::new(
+        &schema,
+        output.section(false),
+        output.section(false),
+        output.section(false),
+        output.section(false),
+    );
+    let result = resource_ir.emit_golang(context, &output, Option::None);
+    assert_eq!((), result.unwrap());
+}

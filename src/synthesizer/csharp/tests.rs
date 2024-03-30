@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use crate::{
     cdk::{ItemType, Primitive, Schema, TypeReference, TypeUnion},
     code::CodeBuffer,
-    ir::{conditions::ConditionIr, importer::ImportInstruction, resources::ResourceIr},
+    ir::{conditions::ConditionIr, importer::ImportInstruction, outputs::OutputInstruction, resources::ResourceIr},
     primitives::WrapperF64,
 };
 
@@ -160,5 +160,33 @@ fn test_resource_ir_select_idx_greater_than_list_len() {
         )),
     );
     let result = resource_ir.emit_csharp(&output, &schema);
+    assert_eq!((), result.unwrap());
+}
+
+#[test]
+fn test_resource_ir_cidr_null_mask() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Cidr(
+        Box::new(ResourceIr::String("0.0.0.0".into())),
+        Box::new(ResourceIr::String("16".into())),
+        Box::new(ResourceIr::Null),
+    );
+    let result = resource_ir.emit_csharp(&output, &schema);
+    assert_eq!((), result.unwrap());
+}
+
+#[test]
+fn test_output_instruction() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let output_instruction = OutputInstruction {
+        name: "instruction".to_string(),
+        export: Some(ResourceIr::Number(2)),
+        value: ResourceIr::Number(2),
+        condition: Option::None,
+        description: Option::None,
+    };
+    let result = output_instruction.emit_csharp(&output, &schema);
     assert_eq!((), result.unwrap());
 }
