@@ -520,74 +520,79 @@ impl ResourceIr {
                 }
                 Ok(())
             }
-            ResourceIr::Object(structure, properties) => {
-                let object_block = output.indent_with_options(IndentOptions {
-                    indent: INDENT,
-                    leading: Some(match structure {
-                        TypeReference::Named(name) | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => match name.as_ref() {
-                            "CfnTag" => "new CfnTag\n{".into(),
-                            name => {
-                                let name = &schema.type_named(name).unwrap().name.csharp;
-                                format!("new {}\n{{", name.name).into()
-                            }
+            ResourceIr::Object(structure, properties) => match &structure {
+                TypeReference::Named(name)
+                | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => match name.as_ref() {
+                    "CfnTag" => {
+                        let object_block = output.indent_with_options(IndentOptions {
+                            indent: INDENT,
+                            leading: Some("new CfnTag\n{".into()),
+                            trailing: Some("}".into()),
+                            trailing_newline: false,
+                        });
+                        for (name, val) in properties {
+                            object_block.text(format!("{name} = "));
+                            val.emit_csharp(&object_block, schema)?;
+                            object_block.text(",");
+                            object_block.newline();
                         }
-                        TypeReference::Primitive(cfn) => match cfn {
-                            Primitive::Json => "new Dictionary<string, object>\n{".into(),
-                            _ => {
-                                return Err(Error::PrimitiveError {
-                                    message: format!(
-                                        "Cannot emit ResourceIr::Object with non-json simple structure ({cfn:?})",
-                                    )
-                                })
-                            }
+                        Ok(())
+                    }
+                    name => {
+                        let name = &schema.type_named(name).unwrap().name.csharp;
+                        let object_block = output.indent_with_options(IndentOptions {
+                            indent: INDENT,
+                            leading: Some(format!("new {}\n{{", name.name).into()),
+                            trailing: Some("}".into()),
+                            trailing_newline: false,
+                        });
+                        for (name, val) in properties {
+                            object_block.text(format!("{name} = "));
+                            val.emit_csharp(&object_block, schema)?;
+                            object_block.text(",");
+                            object_block.newline();
                         }
-                        TypeReference::Map(_) => {
-                            "new Dictionary<string, string>\n{".into()
-                        }
-                        other => {
-                            return Err(Error::TypeReferenceError {
-                                message: format!(
-                                    "Type reference {other:#?} not implemented for ResourceIr::Object"
-                                )
-                            })
-                        }
-                    }),
-                    trailing: Some("}".into()),
-                    trailing_newline: false,
-                });
-
-                for (name, val) in properties {
-                    object_block.text(match structure {
-                        TypeReference::Named(_) | TypeReference::List(_) => format!("{name} = "),
-                        TypeReference::Primitive(_) | TypeReference::Map(_) => {
-                            format!("{{ \"{name}\", ")
-                        }
-                        other => {
-                            return Err(Error::TypeReferenceError {
-                                message: format!(
-                                "Type reference {other:#?} not implemented for ResourceIr::Object"
-                            ),
-                            })
-                        }
-                    });
-                    val.emit_csharp(&object_block, schema)?;
-                    object_block.text(match structure {
-                        TypeReference::Named(_) | TypeReference::List(_) => ",",
-                        TypeReference::Primitive(_) | TypeReference::Map(_) => "},",
-                        other => {
-                            return Err(Error::TypeReferenceError {
-                                message: format!(
-                                "Type reference {other:#?} not implemented for ResourceIr::Object"
-                            ),
-                            })
-                        }
-                    });
-                    object_block.newline();
+                        Ok(())
+                    }
                 }
-
-                Ok(())
+                TypeReference::Primitive(Primitive::Json) => {
+                    let object_block = output.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some("new Dictionary<string, object>\n{".into()),
+                        trailing: Some("}".into()),
+                        trailing_newline: false,
+                    });
+                    for (name, val) in properties {
+                        object_block.text(format!("{{ \"{name}\", "));
+                        val.emit_csharp(&object_block, schema)?;
+                        object_block.text("},");
+                        object_block.newline();
+                    }
+                    Ok(())
+                }
+                TypeReference::Map(_) => {
+                    let object_block = output.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some("new Dictionary<string, string>\n{".into()),
+                        trailing: Some("}".into()),
+                        trailing_newline: false,
+                    });
+                    for (name, val) in properties {
+                        object_block.text(format!("{{ \"{name}\", "));
+                        val.emit_csharp(&object_block, schema)?;
+                        object_block.text("},");
+                        object_block.newline();
+                    }
+                    Ok(())
+                }
+                other => {
+                    return Err(Error::TypeReferenceError {
+                        message: format!(
+                            "Type reference {other:#?} not implemented for ResourceIr::Object"
+                        )
+                    })
+                }
             }
-
             ResourceIr::If(cond, when_true, when_false) => {
                 output.text(format!("{} ? ", camel_case(cond)));
                 when_true.emit_csharp(output, schema)?;
