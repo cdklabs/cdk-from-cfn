@@ -6,6 +6,7 @@ use cdk_from_cfn::parser::parameters::{Parameter, ParameterType};
 use cdk_from_cfn::parser::resource::{DeletionPolicy, IntrinsicFunction};
 use cdk_from_cfn::parser::resource::{ResourceAttributes, ResourceValue};
 use cdk_from_cfn::primitives::WrapperF64;
+use cdk_from_cfn::synthesizer::Java;
 use cdk_from_cfn::CloudformationParseTree;
 use indexmap::IndexMap;
 use std::borrow::Cow;
@@ -832,4 +833,37 @@ fn test_resource_translation_error() {
         Named(\"AWS::Serverless::Function.CognitoEvent\")\
         ]))) is not implemented for ResourceValue::Object";
     assert_eq!(expected, result.to_string());
+}
+
+#[test]
+fn test_update_policy() {
+    let cfn_template = json!({
+        "Resources": {
+            "MyEC2Instance": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId": "ami-12345678",
+                    "InstanceType": "t2.micro"
+                },
+                "UpdatePolicy": {
+                    "AutoScalingReplacingUpdate": {
+                        "WillReplace": "true"
+                    },
+                    "AutoScalingRollingUpdate": {
+                        "MinInstanceInService": "1",
+                        "MaxBatchSize": "1",
+                        "PauseTime": "PT5M",
+                        "WaitOnResourceSignals": "true"
+                    }
+                },
+            }
+        }
+    });
+    let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
+    let synthesizer = Box::<Java>::default();
+    let mut output = Vec::new();
+    let result = ir.synthesize(synthesizer.as_ref(), &mut output, "Stack");
+    assert_eq!((), result.unwrap());
 }

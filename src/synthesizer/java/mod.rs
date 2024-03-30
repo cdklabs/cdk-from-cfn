@@ -357,6 +357,7 @@ impl<'a> Java<'a> {
         }
 
         if let Some(update_policy) = &resource.update_policy {
+            println!("UPDATEPOLICY!!!");
             writer.text(format!("{res_name}.getCfnOptions().setUpdatePolicy("));
             emit_java(update_policy.clone(), writer, None, schema)?;
             writer.text(format!("){trailer}"));
