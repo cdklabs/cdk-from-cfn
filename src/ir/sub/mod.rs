@@ -26,7 +26,7 @@ pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, crate::Error> {
         }
 
         Err(err) => Err(crate::Error::SubParseError {
-            message: format!("{}", err.to_string()),
+            message: err.to_string(),
         }),
     }
 }
