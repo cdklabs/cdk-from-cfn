@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use indexmap::IndexMap;
 
 use crate::{
-    cdk::{Primitive, Schema, TypeReference, TypeUnion},
+    cdk::{ItemType, Primitive, Schema, TypeReference, TypeUnion},
     code::CodeBuffer,
     ir::{conditions::ConditionIr, importer::ImportInstruction, resources::ResourceIr},
     primitives::WrapperF64,
@@ -144,4 +144,20 @@ fn test_invalid_organization() {
     let result = import_instruction.to_csharp().unwrap_err();
     let expected = format!("Expected organization to be AWS or Alexa. Found {bad_org}");
     assert_eq!(expected, result.to_string());
+}
+
+#[test]
+fn test_resource_ir_select_idx_greater_than_list_len() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let named_type = TypeReference::Named("AWS::Service::Resource".into());
+    let resource_ir = ResourceIr::Select(
+        1,
+        Box::new(ResourceIr::Array(
+            TypeReference::List(ItemType::Boxed(Box::new(named_type))),
+            vec![],
+        )),
+    );
+    let result = resource_ir.emit_csharp(&output, &schema);
+    assert_eq!((), result.unwrap());
 }
