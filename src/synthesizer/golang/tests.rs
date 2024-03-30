@@ -6,6 +6,7 @@ use crate::cdk::Schema;
 use crate::code::CodeBuffer;
 use crate::ir::conditions::ConditionIr;
 use crate::ir::importer::ImportInstruction;
+use crate::primitives::WrapperF64;
 
 use super::GolangEmitter;
 
@@ -47,6 +48,22 @@ fn test_condition_ir_map() {
         output.section(false),
         output.section(false),
     );
-    let result = condition_ir.emit_golang(context, &output, Some("}"));
+    let result = condition_ir.emit_golang(context, &output, Some(","));
+    assert_eq!((), result.unwrap());
+}
+
+#[test]
+fn test_resource_ir_double() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Double(WrapperF64::new(2.0));
+    let context = &mut GoContext::new(
+        &schema,
+        output.section(false),
+        output.section(false),
+        output.section(false),
+        output.section(false),
+    );
+    let result = resource_ir.emit_golang(context, &output, Some(","));
     assert_eq!((), result.unwrap());
 }
