@@ -5,7 +5,10 @@ use indexmap::IndexMap;
 use crate::{
     cdk::{ItemType, Primitive, Schema, TypeReference, TypeUnion},
     code::CodeBuffer,
-    ir::{conditions::ConditionIr, importer::ImportInstruction, outputs::OutputInstruction, resources::ResourceIr},
+    ir::{
+        conditions::ConditionIr, importer::ImportInstruction, outputs::OutputInstruction,
+        resources::ResourceIr
+    },
     primitives::WrapperF64,
 };
 
