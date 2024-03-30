@@ -157,3 +157,21 @@ fn test_resource_ir_cidr_string_mask() {
     let result = resource_ir.emit_golang(context, &output, Option::None);
     assert_eq!((), result.unwrap());
 }
+
+fn test_reference_with_trailer() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let context = &mut GoContext::new(
+        &schema,
+        output.section(false),
+        output.section(false),
+        output.section(false),
+        output.section(false),
+    );
+    let reference = Reference {
+        origin: Origin::Condition {},
+        name: "origin".into(),
+    };
+    let result = reference.emit_golang(context, &output, Some(","));
+    assert_eq!((), result.unwrap());
+}
