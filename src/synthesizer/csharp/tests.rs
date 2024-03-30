@@ -130,7 +130,8 @@ fn test_invalid_resource_object_primitive() {
         IndexMap::default(),
     );
     let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
-    let expected = "Type reference Primitive(\n    String,\n) not implemented for ResourceIr::Object";
+    let expected =
+        "Type reference Primitive(\n    String,\n) not implemented for ResourceIr::Object";
     assert_eq!(expected, result.to_string());
 }
 

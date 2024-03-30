@@ -522,37 +522,39 @@ impl ResourceIr {
             }
             ResourceIr::Object(structure, properties) => match &structure {
                 TypeReference::Named(name)
-                | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => match name.as_ref() {
-                    "CfnTag" => {
-                        let object_block = output.indent_with_options(IndentOptions {
-                            indent: INDENT,
-                            leading: Some("new CfnTag\n{".into()),
-                            trailing: Some("}".into()),
-                            trailing_newline: false,
-                        });
-                        for (name, val) in properties {
-                            object_block.text(format!("{name} = "));
-                            val.emit_csharp(&object_block, schema)?;
-                            object_block.text(",");
-                            object_block.newline();
+                | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => {
+                    match name.as_ref() {
+                        "CfnTag" => {
+                            let object_block = output.indent_with_options(IndentOptions {
+                                indent: INDENT,
+                                leading: Some("new CfnTag\n{".into()),
+                                trailing: Some("}".into()),
+                                trailing_newline: false,
+                            });
+                            for (name, val) in properties {
+                                object_block.text(format!("{name} = "));
+                                val.emit_csharp(&object_block, schema)?;
+                                object_block.text(",");
+                                object_block.newline();
+                            }
+                            Ok(())
                         }
-                        Ok(())
-                    }
-                    name => {
-                        let name = &schema.type_named(name).unwrap().name.csharp;
-                        let object_block = output.indent_with_options(IndentOptions {
-                            indent: INDENT,
-                            leading: Some(format!("new {}\n{{", name.name).into()),
-                            trailing: Some("}".into()),
-                            trailing_newline: false,
-                        });
-                        for (name, val) in properties {
-                            object_block.text(format!("{name} = "));
-                            val.emit_csharp(&object_block, schema)?;
-                            object_block.text(",");
-                            object_block.newline();
+                        name => {
+                            let name = &schema.type_named(name).unwrap().name.csharp;
+                            let object_block = output.indent_with_options(IndentOptions {
+                                indent: INDENT,
+                                leading: Some(format!("new {}\n{{", name.name).into()),
+                                trailing: Some("}".into()),
+                                trailing_newline: false,
+                            });
+                            for (name, val) in properties {
+                                object_block.text(format!("{name} = "));
+                                val.emit_csharp(&object_block, schema)?;
+                                object_block.text(",");
+                                object_block.newline();
+                            }
+                            Ok(())
                         }
-                        Ok(())
                     }
                 }
                 TypeReference::Primitive(Primitive::Json) => {
@@ -589,10 +591,10 @@ impl ResourceIr {
                     return Err(Error::TypeReferenceError {
                         message: format!(
                             "Type reference {other:#?} not implemented for ResourceIr::Object"
-                        )
+                        ),
                     })
                 }
-            }
+            },
             ResourceIr::If(cond, when_true, when_false) => {
                 output.text(format!("{} ? ", camel_case(cond)));
                 when_true.emit_csharp(output, schema)?;
