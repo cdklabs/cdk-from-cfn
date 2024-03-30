@@ -29,7 +29,10 @@ fn test_alexa_organization() {
         service: Some("service".to_string()),
     };
     let result = import_instruction.to_golang();
-    assert_eq!("service \"github.com/aws/aws-cdk-go/awscdk/v2/alexaservice\"", result.unwrap());
+    assert_eq!(
+        "service \"github.com/aws/aws-cdk-go/awscdk/v2/alexaservice\"",
+        result.unwrap()
+    );
 }
 
 #[test]
