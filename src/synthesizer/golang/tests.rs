@@ -77,7 +77,10 @@ fn test_resource_ir_double() {
 fn test_resource_ir_object_primitive_error() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
-    let resource_ir = ResourceIr::Object(TypeReference::Primitive(Primitive::Boolean), IndexMap::new());
+    let resource_ir = ResourceIr::Object(
+        TypeReference::Primitive(Primitive::Boolean),
+        IndexMap::new(),
+    );
     let context = &mut GoContext::new(
         &schema,
         output.section(false),
@@ -85,7 +88,9 @@ fn test_resource_ir_object_primitive_error() {
         output.section(false),
         output.section(false),
     );
-    let result = resource_ir.emit_golang(context, &output, Option::None).unwrap_err();
+    let result = resource_ir
+        .emit_golang(context, &output, Option::None)
+        .unwrap_err();
     assert_eq!(
         "Cannot emit ResourceIr::Object with non-json simple structure (Boolean)",
         result.to_string(),
@@ -96,8 +101,11 @@ fn test_resource_ir_object_primitive_error() {
 fn test_resource_ir_object_list_structure() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
-    let resource_ir = ResourceIr::Object(TypeReference::List(
-        ItemType::Static(&TypeReference::Primitive(Primitive::Number))),
+    let resource_ir = ResourceIr::Object(
+        TypeReference::List(
+            ItemType::Static(&TypeReference::Primitive(
+                Primitive::Number
+            ))),
         IndexMap::new(),
     );
     let context = &mut GoContext::new(

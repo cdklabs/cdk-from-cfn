@@ -19,5 +19,8 @@ fn test_invalid_resource_type_name() {
         ("Resource".to_string(), resource_attributes),
     ]);
     let import_instruction = ImportInstruction::from(&parse_tree).unwrap_err();
-    assert_eq!("Invalid resource type name: AWS:Invalid:Resource:Type", import_instruction.to_string());
+    assert_eq!(
+        "Invalid resource type name: AWS:Invalid:Resource:Type",
+        import_instruction.to_string()
+    );
 }
