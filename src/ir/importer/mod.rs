@@ -70,3 +70,6 @@ struct TypeName {
     organization: String,
     service: Option<String>,
 }
+
+#[cfg(test)]
+mod tests;
