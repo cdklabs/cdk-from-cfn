@@ -25,14 +25,9 @@ pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, crate::Error> {
             Ok(subs)
         }
 
-        Err(err) => match err {
-            Err::Incomplete(_) => Err(crate::Error::SubParseError {
-                message: "Should never enter this state".to_string(),
-            }),
-            Err::Error(e) | Err::Failure(e) => Err(crate::Error::SubParseError {
-                message: e.code.description().to_string(),
-            }),
-        },
+        Err(err) => Err(crate::Error::SubParseError {
+            message: format!("{}", err.to_string()),
+        }),
     }
 }
 
