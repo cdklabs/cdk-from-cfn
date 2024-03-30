@@ -124,10 +124,7 @@ fn test_resource_ir_select_idx_greater_than_list_len() {
 fn test_resource_ir_split_non_string() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
-    let resource_ir = ResourceIr::Split(
-        "-".to_string(),
-        Box::new(ResourceIr::Null),
-    );
+    let resource_ir = ResourceIr::Split("-".to_string(), Box::new(ResourceIr::Null));
     let result = emit_java(resource_ir, &output, Option::None, &schema);
     assert_eq!((), result.unwrap());
 }
