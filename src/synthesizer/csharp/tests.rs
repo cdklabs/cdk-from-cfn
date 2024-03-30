@@ -7,7 +7,7 @@ use crate::{
     code::CodeBuffer,
     ir::{
         conditions::ConditionIr, importer::ImportInstruction, outputs::OutputInstruction,
-        resources::ResourceIr
+        resources::ResourceIr,
     },
     primitives::WrapperF64,
 };
