@@ -474,7 +474,7 @@ pub enum ResourceType {
 }
 
 impl ResourceType {
-    pub(crate) fn parse(from: &str) -> Result<Self, Error> {
+    fn parse(from: &str) -> Result<Self, Error> {
         let mut parts = from.split("::");
         let first = parts.next().unwrap();
 
