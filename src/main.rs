@@ -3,9 +3,23 @@ use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::synthesizer::*;
 use cdk_from_cfn::CloudformationParseTree;
 use cdk_from_cfn::Error;
+use clap::ArgMatches;
 use clap::{Arg, ArgAction, Command};
 use std::borrow::Cow;
 use std::{fs, io};
+
+const TARGETS: [&str; 5] = [
+    #[cfg(feature = "typescript")]
+    "typescript",
+    #[cfg(feature = "golang")]
+    "go",
+    #[cfg(feature = "python")]
+    "python",
+    #[cfg(feature = "java")]
+    "java",
+    #[cfg(feature = "csharp")]
+    "csharp",
+];
 
 // Ensure at least one target language is enabled...
 #[cfg(not(any(
@@ -17,21 +31,8 @@ use std::{fs, io};
 )))]
 compile_error!("At least one language target feature must be enabled!");
 
-fn main() -> Result<(), Error> {
-    let targets = [
-        #[cfg(feature = "typescript")]
-        "typescript",
-        #[cfg(feature = "golang")]
-        "go",
-        #[cfg(feature = "python")]
-        "python",
-        #[cfg(feature = "java")]
-        "java",
-        #[cfg(feature = "csharp")]
-        "csharp",
-    ];
-
-    let matches = Command::new(env!("CARGO_BIN_NAME"))
+fn parse_args() -> ArgMatches {
+    Command::new(env!("CARGO_BIN_NAME"))
         .about(clap::crate_description!())
         .version(clap::crate_version!())
         .arg(
@@ -55,8 +56,8 @@ fn main() -> Result<(), Error> {
                 .short('l')
                 .help("Sets the output language to use")
                 .required(false)
-                .default_value(targets[0])
-                .value_parser(targets)
+                .default_value(TARGETS[0])
+                .value_parser(TARGETS)
                 .action(ArgAction::Set),
         )
         .arg(
@@ -67,8 +68,10 @@ fn main() -> Result<(), Error> {
                 .short('s')
                 .action(ArgAction::Set),
         )
-        .get_matches();
+        .get_matches()
+}
 
+fn build_ir(matches: &ArgMatches) -> Result<CloudformationProgramIr, Error> {
     let cfn_tree: CloudformationParseTree = {
         let reader: Box<dyn std::io::Read> =
             match matches.get_one::<String>("INPUT").map(String::as_str) {
@@ -78,24 +81,15 @@ fn main() -> Result<(), Error> {
 
         serde_yaml::from_reader(reader)?
     };
-
     let schema = Cow::Borrowed(Schema::builtin());
+    CloudformationProgramIr::from(cfn_tree, &schema)
+}
 
-    let ir = CloudformationProgramIr::from(cfn_tree, &schema)?;
-
-    let mut output: Box<dyn io::Write> = match matches
-        .get_one::<String>("OUTPUT")
-        .map(String::as_str)
-        .unwrap_or("-")
-    {
-        "-" => Box::new(io::stdout()),
-        output_file => Box::new(fs::File::create(output_file)?),
-    };
-
+fn get_synthesizer(matches: &ArgMatches) -> Result<Box<dyn Synthesizer>, Error> {
     let synthesizer: Box<dyn Synthesizer> = match matches
         .get_one::<String>("language")
         .map(String::as_str)
-        .unwrap_or(targets[0])
+        .unwrap_or(TARGETS[0])
     {
         #[cfg(feature = "typescript")]
         "typescript" => Box::new(Typescript {}),
@@ -113,13 +107,25 @@ fn main() -> Result<(), Error> {
             });
         }
     };
+    Ok(synthesizer)
+}
 
+fn main() -> Result<(), Error> {
+    let matches = parse_args();
+    let ir = build_ir(&matches)?;
+    let mut output: Box<dyn io::Write> = match matches
+        .get_one::<String>("OUTPUT")
+        .map(String::as_str)
+        .unwrap_or("-")
+    {
+        "-" => Box::new(io::stdout()),
+        output_file => Box::new(fs::File::create(output_file)?),
+    };
+    let synthesizer = get_synthesizer(&matches)?;
     let stack_name = matches
         .get_one::<String>("stack-name")
         .map(String::as_str)
         .unwrap_or("NoctStack");
-
     ir.synthesize(synthesizer.as_ref(), &mut output, stack_name)?;
-
     Ok(())
 }
