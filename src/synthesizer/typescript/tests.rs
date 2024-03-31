@@ -22,3 +22,16 @@ fn test_invalid_organization() {
     let expected = format!("Expected organization to be AWS or Alexa. Found {bad_org}");
     assert_eq!(expected, result.to_string());
 }
+
+#[test]
+fn test_alexa_organization() {
+    let import_instruction = ImportInstruction {
+        organization: "Alexa".to_string(),
+        service: Some("ASK".to_string()),
+    };
+    let result = import_instruction.to_typescript();
+    assert_eq!(
+        "import * as ask from 'aws-cdk-lib/alexa-ask';",
+        result.unwrap()
+    );
+}
