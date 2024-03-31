@@ -176,3 +176,43 @@ fn test_reference_with_trailer() {
     let result = reference.emit_golang(context, &output, Some(","));
     assert_eq!((), result.unwrap());
 }
+
+#[test]
+fn test_boolean_primitive() {
+    let schema = Cow::Borrowed(Schema::builtin());
+    let primitive = Primitive::Boolean;
+    let result = primitive.as_golang(&schema);
+    assert_eq!(Cow::from("*bool"), result);
+}
+
+#[test]
+fn test_string_primitive() {
+    let schema = Cow::Borrowed(Schema::builtin());
+    let primitive = Primitive::String;
+    let result = primitive.as_golang(&schema);
+    assert_eq!(Cow::from("*string"), result);
+}
+
+#[test]
+fn test_timestamp_primitive() {
+    let schema = Cow::Borrowed(Schema::builtin());
+    let primitive = Primitive::Timestamp;
+    let result = primitive.as_golang(&schema);
+    assert_eq!(Cow::from("*time.Time"), result);
+}
+
+#[test]
+fn test_json_primitive() {
+    let schema = Cow::Borrowed(Schema::builtin());
+    let primitive = Primitive::Json;
+    let result = primitive.as_golang(&schema);
+    assert_eq!(Cow::from("interface{}{"), result);
+}
+
+#[test]
+fn test_unknown_primitive() {
+    let schema = Cow::Borrowed(Schema::builtin());
+    let primitive = Primitive::Boolean;
+    let result = primitive.as_golang(&schema);
+    assert_eq!(Cow::from("cdk.IResolvable"), result);
+}
