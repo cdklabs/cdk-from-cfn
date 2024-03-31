@@ -107,11 +107,7 @@ fn main() -> Result<(), Error> {
         "java" => Box::<Java>::default(),
         #[cfg(feature = "csharp")]
         "csharp" => Box::<CSharp>::default(),
-        unsupported => {
-            return Err(Error::UnsupportedLanguageError {
-                language: unsupported.to_string(),
-            });
-        }
+        unsupported => panic!("unsupported language: {}", unsupported),
     };
 
     let stack_name = matches
