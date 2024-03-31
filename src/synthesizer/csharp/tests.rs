@@ -259,9 +259,9 @@ fn test_resource_ir_object_map_structure_error() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Object(
-        TypeReference::Map(ItemType::Boxed(
-            Box::new(TypeReference::Primitive(Primitive::Json)),
-        )),
+        TypeReference::Map(ItemType::Boxed(Box::new(TypeReference::Primitive(
+            Primitive::Json,
+        )))),
         IndexMap::from([(
             "map".into(),
             ResourceIr::Object(
