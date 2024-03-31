@@ -326,3 +326,145 @@ fn test_resource_ir_if_when_false_error() {
         result.to_string(),
     );
 }
+
+#[test]
+fn test_resource_ir_join_error() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Join(
+        "-".into(),
+        vec![ResourceIr::Object(
+            TypeReference::Union(TypeUnion::Vec(Vec::new())),
+            IndexMap::new(),
+        )],
+    );
+    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    assert_eq!(
+        "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
+        result.to_string(),
+    );
+}
+
+#[test]
+fn test_resource_ir_split_error() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Split(
+        "-".into(),
+        Box::new(ResourceIr::Object(
+            TypeReference::Union(TypeUnion::Vec(Vec::new())),
+            IndexMap::new(),
+        )),
+    );
+    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    assert_eq!(
+        "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
+        result.to_string(),
+    );
+}
+
+#[test]
+fn test_resource_ir_sub_error() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Sub(vec![
+        ResourceIr::Object(
+            TypeReference::Union(TypeUnion::Vec(Vec::new())),
+            IndexMap::new(),
+        ),
+    ]);
+    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    assert_eq!(
+        "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
+        result.to_string(),
+    );
+}
+
+#[test]
+fn test_resource_ir_map_top_level_error() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Map(
+        "map".into(),
+        Box::new(ResourceIr::Object(
+            TypeReference::Union(TypeUnion::Vec(Vec::new())),
+            IndexMap::new(),
+        )),
+        Box::new(ResourceIr::Null),
+    );
+    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    assert_eq!(
+        "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
+        result.to_string(),
+    );
+}
+
+#[test]
+fn test_resource_ir_map_second_level_error() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Map(
+        "map".into(),
+        Box::new(ResourceIr::Null),
+        Box::new(ResourceIr::Object(
+            TypeReference::Union(TypeUnion::Vec(Vec::new())),
+            IndexMap::new(),
+        )),
+    );
+    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    assert_eq!(
+        "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
+        result.to_string(),
+    );
+}
+
+#[test]
+fn test_resource_ir_base64_error() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Base64(
+        Box::new(ResourceIr::Object(
+            TypeReference::Union(TypeUnion::Vec(Vec::new())),
+            IndexMap::new(),
+        )),
+    );
+    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    assert_eq!(
+        "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
+        result.to_string(),
+    );
+}
+
+#[test]
+fn test_resource_ir_import_value_error() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::ImportValue(
+        Box::new(ResourceIr::Object(
+            TypeReference::Union(TypeUnion::Vec(Vec::new())),
+            IndexMap::new(),
+        )),
+    );
+    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    assert_eq!(
+        "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
+        result.to_string(),
+    );
+}
+
+#[test]
+fn test_resource_ir_get_azs_error() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::GetAZs(
+        Box::new(ResourceIr::Object(
+            TypeReference::Union(TypeUnion::Vec(Vec::new())),
+            IndexMap::new(),
+        )),
+    );
+    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    assert_eq!(
+        "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
+        result.to_string(),
+    );
+}
