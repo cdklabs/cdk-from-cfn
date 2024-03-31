@@ -55,7 +55,7 @@ fn test_condition_ir_map() {
         Box::new(ConditionIr::Str("SecondLevelKey".into())),
     );
     let result = condition_ir.emit_csharp(&output, &schema);
-    assert_eq!((), result.unwrap());
+    assert_eq!((), result);
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn test_condition_ir_split() {
         Box::new(ConditionIr::Str("string-to-split".into())),
     );
     let result = condition_ir.emit_csharp(&output, &schema);
-    assert_eq!((), result.unwrap());
+    assert_eq!((), result);
 }
 
 #[test]

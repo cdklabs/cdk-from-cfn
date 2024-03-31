@@ -278,7 +278,7 @@ impl Synthesizer for CSharp<'_> {
         }
         for condition in &ir.conditions {
             ctor.text(format!("bool {} = ", camel_case(&condition.name)));
-            condition.value.emit_csharp(&ctor, self.schema)?;
+            condition.value.emit_csharp(&ctor, self.schema);
             ctor.text(";");
             ctor.newline();
         }
@@ -367,79 +367,64 @@ trait CsharpEmitter {
     fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema) -> Result<(), Error>;
 }
 
-impl CsharpEmitter for ConditionIr {
-    fn emit_csharp(&self, output: &CodeBuffer, _schema: &Schema) -> Result<(), Error> {
+impl ConditionIr {
+    fn emit_csharp(&self, output: &CodeBuffer, _schema: &Schema) {
         match self {
-            ConditionIr::Ref(reference) => {
-                reference.emit_csharp(output);
-                Ok(())
-            }
-            ConditionIr::Str(str) => Ok(output.text(format!("\"{str}\""))),
-            ConditionIr::Condition(condition) => {
-                output.text(camel_case(condition));
-                Ok(())
-            }
+            ConditionIr::Ref(reference) => reference.emit_csharp(output),
+            ConditionIr::Str(str) => output.text(format!("\"{str}\"")),
+            ConditionIr::Condition(condition) => output.text(camel_case(condition)),
 
             ConditionIr::And(list) => {
                 for (index, condition) in list.iter().enumerate() {
                     if index > 0 {
                         output.text(" && ");
                     }
-                    condition.emit_csharp(output, _schema)?;
+                    condition.emit_csharp(output, _schema);
                 }
-                Ok(())
             }
             ConditionIr::Or(list) => {
                 for (index, condition) in list.iter().enumerate() {
                     if index > 0 {
                         output.text(" || ");
                     }
-                    condition.emit_csharp(output, _schema)?;
+                    condition.emit_csharp(output, _schema);
                 }
-                Ok(())
             }
 
             ConditionIr::Not(condition) => {
-                output.text("!(");
-                condition.emit_csharp(output, _schema)?;
-                output.text(")");
-                Ok(())
+                output.text("!");
+                condition.emit_csharp(output, _schema);
             }
 
             ConditionIr::Equals(left, right) => {
-                left.emit_csharp(output, _schema)?;
+                left.emit_csharp(output, _schema);
                 output.text(" == ");
-                right.emit_csharp(output, _schema)?;
-                Ok(())
+                right.emit_csharp(output, _schema);
             }
 
             ConditionIr::Map(map, top_level_key, second_level_key) => {
                 output.text(camel_case(map));
                 output.text("[");
-                top_level_key.emit_csharp(output, _schema)?;
+                top_level_key.emit_csharp(output, _schema);
                 output.text("][");
-                second_level_key.emit_csharp(output, _schema)?;
+                second_level_key.emit_csharp(output, _schema);
                 output.text("]");
-                Ok(())
             }
             ConditionIr::Split(sep, str) => match str.as_ref() {
                 ConditionIr::Str(str) => {
                     output.text(format!("'{str}'", str = str.escape_debug()));
-                    output.text(format!(".Split('{sep}')", sep = sep.escape_debug()));
-                    Ok(())
+                    output.text(format!(".Split('{sep}')", sep = sep.escape_debug()))
                 }
                 other => {
                     output.text(format!("Fn.Split(\"{sep}\", "));
-                    other.emit_csharp(output, _schema)?;
-                    output.text(")");
-                    Ok(())
+                    other.emit_csharp(output, _schema);
+                    output.text(")")
                 }
             },
             ConditionIr::Select(index, str) => {
                 output.text(format!("Fn.Select({index}, "));
-                str.emit_csharp(output, _schema)?;
+                str.emit_csharp(output, _schema);
                 output.text(")");
-                Ok(())
             }
         }
     }
