@@ -141,3 +141,16 @@ fn test_resource_ir_cidr_null_mask() {
     let result = emit_java(resource_ir, &output, Option::None, &schema);
     assert_eq!((), result.unwrap());
 }
+
+#[test]
+fn test_resource_ir_cidr_string_mask() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Cidr(
+        Box::new(ResourceIr::String("0.0.0.0".into())),
+        Box::new(ResourceIr::String("16".into())),
+        Box::new(ResourceIr::String("255.255.255.0".into())),
+    );
+    let result = emit_java(resource_ir, &output, Option::None, &schema);
+    assert_eq!((), result.unwrap());
+}
