@@ -48,7 +48,7 @@ namespace Ec2EncryptionStack
             bool hasDatabase = props.DatabaseType == "mysql";
             bool isProduction = props.Environment == "prod";
             bool usePrivateSecurityGroup = props.SubnetType == "Private1" || props.SubnetType == "Private2";
-            bool keyPairProd = !(isProduction);
+            bool keyPairProd = !isProduction;
             bool useEncryption = isProduction && hasDatabase;
 
             // Resources
