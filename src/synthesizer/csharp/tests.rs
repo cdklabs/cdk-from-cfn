@@ -217,7 +217,7 @@ fn test_resource_ir_object_error() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Object(
-        TypeReference::Primitive(Primitive::Json),
+        TypeReference::Named("NotCfnTag".into()),
         IndexMap::from([(
             "map".into(),
             ResourceIr::Object(
