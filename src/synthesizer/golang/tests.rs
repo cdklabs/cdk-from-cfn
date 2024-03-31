@@ -212,7 +212,7 @@ fn test_json_primitive() {
 #[test]
 fn test_unknown_primitive() {
     let schema = Cow::Borrowed(Schema::builtin());
-    let primitive = Primitive::Boolean;
+    let primitive = Primitive::Unknown;
     let result = primitive.as_golang(&schema);
     assert_eq!(Cow::from("cdk.IResolvable"), result);
 }
