@@ -1,9 +1,9 @@
-# cdk_from_cfn
+# cdk-from-cfn
 
 In a world where people want to use the full extent of the cdk, there **was** no product that would transform all your
 JSON/YAML into beautiful typescript...until now.
 
-cdk_from_cfn will take your JSON/YAML and output the equivalent typescript.
+`cdk-from-cfn` will take your JSON/YAML and output the equivalent typescript.
 
 ## User Guide
 
