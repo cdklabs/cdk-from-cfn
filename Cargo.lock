@@ -550,7 +550,7 @@ dependencies = [
 
 [[package]]
 name = "cdk-from-cfn"
-version = "0.155.0"
+version = "0.156.0"
 dependencies = [
  "anyhow",
  "aws-config",
