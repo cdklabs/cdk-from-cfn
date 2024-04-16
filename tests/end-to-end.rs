@@ -84,7 +84,7 @@ test_case!(cloudwatch, "CloudwatchStack", &["golang"]);
 test_case!(ecs, "EcsStack", &["java", "golang"]);
 test_case!(ec2, "Ec2Stack", &["java", "golang"]);
 test_case!(efs, "EfsStack", &["java", "golang"]);
-test_case!(apigatewayv2, "ApiGatewayV2Stack", &["csharp", "golang", "python"]);
+test_case!(apigatewayv2, "ApiGatewayV2Stack", &["golang"]);
 
 // Add new test cases here
 
