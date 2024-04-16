@@ -1,15 +1,15 @@
-# cdk_from_cfn
+# cdk-from-cfn
 
 In a world where people want to use the full extent of the cdk, there **was** no product that would transform all your
 JSON/YAML into beautiful typescript...until now.
 
-cdk_from_cfn will take your JSON/YAML and output the equivalent typescript.
+`cdk-from-cfn` will take your JSON/YAML and output the equivalent typescript.
 
 ## User Guide
 
 ```console
 $ cargo build --release
-$ ./target/release/cdk_from_cfn [INPUT] [OUTPUT]
+$ ./target/release/cdk-from-cfn [INPUT] [OUTPUT]
 ```
 
 - `INPUT` is the input file path (STDIN by default).

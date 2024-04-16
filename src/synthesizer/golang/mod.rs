@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
 
-use crate::cdk::{Primitive, Schema, TypeReference};
+use crate::cdk::{ItemType, Primitive, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::constructor::ConstructorParameter;
@@ -738,17 +738,21 @@ impl GolangEmitter for ResourceIr {
             }
             Self::Object(structure, properties) => {
                 let mut structure_is_simple_json = false;
+                let mut structure_is_map = false;
                 let props = output.indent_with_options(IndentOptions {
                     indent: INDENT,
                     leading: Some(match structure {
-                        TypeReference::Named(name) => match name.as_ref() {
-                            "CfnTag" => "&cdk.CfnTag{".into(),
-                            name => {
-                                let name =
-                                    &context.schema.type_named(name).unwrap().name.golang.name;
-                                format!("&{}{{", name.split('_').last().unwrap()).into()
+                        TypeReference::Named(name)
+                        | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => {
+                            match name.as_ref() {
+                                "CfnTag" => "&cdk.CfnTag{".into(),
+                                name => {
+                                    let name =
+                                        &context.schema.type_named(name).unwrap().name.golang.name;
+                                    format!("&{}{{", name.split('_').last().unwrap()).into()
+                                }
                             }
-                        },
+                        }
                         TypeReference::Primitive(cfn) => match cfn {
                             Primitive::Json => {
                                 structure_is_simple_json = true;
@@ -758,6 +762,10 @@ impl GolangEmitter for ResourceIr {
                         },
                         TypeReference::List(item_type) => {
                             format!("[]{}", item_type.as_golang(context.schema)).into()
+                        }
+                        TypeReference::Map(_) => {
+                            structure_is_map = true;
+                            "map[string]interface{} {".into()
                         }
                         other => unimplemented!("{other:?}"),
                         // TypeReference::Map(item_type) => {
@@ -774,6 +782,8 @@ impl GolangEmitter for ResourceIr {
                             "\"{name}\": ",
                             name = golang_identifier(name, IdentifierKind::Exported)
                         ));
+                    } else if structure_is_map {
+                        props.text(format!("\"{name}\": "));
                     } else {
                         props.text(format!(
                             "{name}: ",
@@ -835,7 +845,9 @@ impl GolangEmitter for ResourceIr {
                 when_false.emit_golang(context, &call, Some(","));
             }
             Self::ImportValue(import) => {
-                output.text(format!("cdk.Fn_ImportValue(jsii.String({import:?}))"))
+                output.text("cdk.Fn_ImportValue(");
+                import.emit_golang(context, output, None);
+                output.text(")");
             }
             Self::Join(sep, list) => {
                 let items = output.indent_with_options(IndentOptions {

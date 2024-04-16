@@ -44,7 +44,7 @@ pub enum ResourceIr {
     Sub(Vec<ResourceIr>),
     Map(String, Box<ResourceIr>, Box<ResourceIr>),
     Base64(Box<ResourceIr>),
-    ImportValue(String),
+    ImportValue(Box<ResourceIr>),
     GetAZs(Box<ResourceIr>),
     Select(usize, Box<ResourceIr>),
     Cidr(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
@@ -117,11 +117,16 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                 Ok(ResourceIr::Array(item_type.unwrap_or_default(), array_ir))
             }
             ResourceValue::Object(o) => {
+                let mut is_resource_ir_array = false;
                 let property_bag: Box<dyn PropertyBag> = match &self.value_type {
                     Some(TypeReference::Named(name)) => {
                         Box::new(self.schema.type_named(name).cloned().unwrap())
                     }
                     Some(TypeReference::Map(item_type)) => Box::new(MapOf(item_type)),
+                    Some(TypeReference::List(item_type)) => {
+                        is_resource_ir_array = true;
+                        Box::new(MapOf(item_type))
+                    }
                     Some(TypeReference::Primitive(Primitive::Json)) => {
                         Box::new(MapOf(&TypeReference::Primitive(Primitive::Json)))
                     }
@@ -141,10 +146,17 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     new_hash.insert(s, property_ir);
                 }
 
-                Ok(ResourceIr::Object(
-                    self.value_type.clone().unwrap_or_default(),
-                    new_hash,
-                ))
+                let resource_ir =
+                    ResourceIr::Object(self.value_type.clone().unwrap_or_default(), new_hash);
+
+                if is_resource_ir_array {
+                    return Ok(ResourceIr::Array(
+                        self.value_type.clone().unwrap_or_default(),
+                        Vec::from([resource_ir]),
+                    ));
+                }
+
+                Ok(resource_ir)
             }
             ResourceValue::IntrinsicFunction(intrinsic) => {
                 match *intrinsic {
@@ -257,7 +269,10 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                             Ok(ResourceIr::Base64(Box::new(ir)))
                         }
                     },
-                    IntrinsicFunction::ImportValue(name) => Ok(ResourceIr::ImportValue(name)),
+                    IntrinsicFunction::ImportValue(x) => {
+                        let ir = self.translate(x)?;
+                        Ok(ResourceIr::ImportValue(Box::new(ir)))
+                    }
                     IntrinsicFunction::Select { index, list } => {
                         let index = match index {
                             ResourceValue::String(x) => match x.parse::<usize>() {
@@ -369,7 +384,7 @@ impl ResourceInstruction {
     ) -> Result<Vec<Self>, TransmuteError> {
         let mut instructions = Vec::with_capacity(parse_tree.len());
 
-        for (name, attributes) in parse_tree {
+        for (resource_name, attributes) in parse_tree {
             let resource_type = ResourceType::parse(&attributes.resource_type)?;
             let resource_spec = schema.resource_type(&attributes.resource_type);
 
@@ -387,19 +402,31 @@ impl ResourceInstruction {
 
             let mut properties =
                 IndexMap::with_capacity_and_hasher(attributes.properties.len(), Hasher::default());
-            for (name, prop) in attributes.properties {
-                let property_type = resource_spec.and_then(|spec| spec.property(&name));
+            for (prop_name, prop) in attributes.properties {
+                let property_type = resource_spec.and_then(|spec| spec.property(&prop_name));
                 let property_type = property_type.map(|prop| prop.value_type);
+                if property_type.is_none() {
+                    let resource_type = format!(
+                        "{:#?}::{:#?}::{:#?}",
+                        resource_type.scope().to_uppercase(),
+                        resource_type.service(),
+                        resource_type.type_name(),
+                    )
+                    .replace('\"', "");
+                    return Err(TransmuteError::new(format!(
+                        "{prop_name} is not a valid property for resource {resource_name} of type {resource_type}"
+                    )));
+                }
                 let translator = ResourceTranslator {
                     schema,
                     origins,
                     value_type: property_type,
                 };
-                properties.insert(name, translator.translate(prop)?);
+                properties.insert(prop_name, translator.translate(prop)?);
             }
 
             let mut instruction = Self {
-                name,
+                name: resource_name,
                 condition: attributes.condition,
                 metadata,
                 update_policy,

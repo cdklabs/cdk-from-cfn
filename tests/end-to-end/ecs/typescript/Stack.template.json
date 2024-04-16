@@ -1,0 +1,81 @@
+{
+ "Resources": {
+  "BackendECSTaskRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ]
+    },
+    "Path": "/"
+   }
+  },
+  "ECSTaskExecutionRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ]
+    },
+    "ManagedPolicyArns": [
+     "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+     "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
+     "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
+    ],
+    "Path": "/"
+   }
+  },
+  "BackendServiceECSTaskDefinition": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Image": "nginx",
+      "LogConfiguration": {
+       "LogDriver": "awslogs",
+       "Options": {
+        "awslogs-group": "/aws/ecs/test/main",
+        "awslogs-region": "ap-northeast-1",
+        "awslogs-stream-prefix": "ecs"
+       }
+      },
+      "Name": "main"
+     }
+    ],
+    "Cpu": "256",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "ECSTaskExecutionRole",
+      "Arn"
+     ]
+    },
+    "Family": "test",
+    "Memory": "1024",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "BackendECSTaskRole",
+      "Arn"
+     ]
+    }
+   }
+  }
+ }
+}
