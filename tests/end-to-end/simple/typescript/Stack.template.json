@@ -33,7 +33,8 @@
     },
     "SqsManagedSseEnabled": false,
     "VisibilityTimeout": 120
-   }
+   },
+   "DeletionPolicy": "RetainExceptOnCreate"
   }
  },
  "Outputs": {

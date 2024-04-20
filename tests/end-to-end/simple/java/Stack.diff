@@ -1,5 +1,5 @@
 diff --git a/./tests/end-to-end/simple/template.json b/tests/end-to-end/simple-java-working-dir/cdk.out/Stack.template.json
-index 2505455..f94aeab 100644
+index 8525bcd..d7c86ad 100644
 --- a/./tests/end-to-end/simple/template.json
 +++ b/tests/end-to-end/simple-java-working-dir/cdk.out/Stack.template.json
 @@ -1,7 +1,12 @@
@@ -57,7 +57,7 @@ index 2505455..f94aeab 100644
     "Values": {
      "Boolean": true,
      "Float": 3.14,
-@@ -51,121 +58,27 @@
+@@ -51,122 +58,27 @@
     }
    }
   },
@@ -156,6 +156,7 @@ index 2505455..f94aeab 100644
 -  },
    "Queue": {
     "Type": "AWS::SQS::Queue",
+-   "DeletionPolicy": "RetainExceptOnCreate",
     "Properties": {
      "DelaySeconds": 42,
 -    "SqsManagedSseEnabled": false,
@@ -183,13 +184,15 @@ index 2505455..f94aeab 100644
         {
          "Fn::Select": [
           1,
-@@ -179,33 +92,12 @@
+@@ -180,33 +92,14 @@
        ]
       ]
      },
 -    "RedrivePolicy": {
 -     "Ref": "AWS::NoValue"
--    },
++    "SqsManagedSseEnabled": false,
++    "VisibilityTimeout": 120
+    },
 -    "VisibilityTimeout": {
 -     "Fn::Select": [
 -      "1",
@@ -200,9 +203,9 @@ index 2505455..f94aeab 100644
 -      ]
 -     ]
 -    }
-+    "SqsManagedSseEnabled": false,
-+    "VisibilityTimeout": 120
-    }
+-   }
++   "UpdateReplacePolicy": "Retain",
++   "DeletionPolicy": "RetainExceptOnCreate"
    }
   },
   "Outputs": {
@@ -219,7 +222,7 @@ index 2505455..f94aeab 100644
    "QueueArn": {
     "Description": "The ARN of the SQS Queue",
     "Value": {
-@@ -214,13 +106,7 @@
+@@ -215,13 +108,7 @@
    },
    "IsLarge": {
     "Description": "Whether this is a large region or not",

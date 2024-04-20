@@ -106,6 +106,7 @@ export class SimpleStack extends cdk.Stack {
       redrivePolicy: undefined,
       visibilityTimeout: 120,
     });
+    queue.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.RETAIN_EXCEPT_ON_CREATE;
 
     const bucket = isUsEast1
       ? new s3.CfnBucket(this, 'Bucket', {

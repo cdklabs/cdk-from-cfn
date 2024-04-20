@@ -328,14 +328,24 @@ impl<'a> Java<'a> {
             extra_line = true;
         }
 
-        // Madness. Why is Java DESTROY instead of DELETE?
-
+        // Java high level stack resources uses `RemovalPolicy`, which is a higher level
+        // enum compared to CfnDeletionPolicy, like other languages. Below is the captured
+        // differences between RemovalPolicy and CfnDeletionPolicy. To see the difference:
+        //
+        // DeletionPolicy: https://docs.aws.amazon.com/cdk/api/v2/java/software/amazon/awscdk/CfnDeletionPolicy.html
+        // RemovalPolicy: https://docs.aws.amazon.com/cdk/api/v2/java/software/amazon/awscdk/RemovalPolicy.html
         if let Some(deletion_policy) = &resource.deletion_policy {
-            // Madness
             match deletion_policy {
                 DeletionPolicy::Delete => {
                     writer.text(format!(
                         "{res_name}.applyRemovalPolicy(RemovalPolicy.DESTROY){}",
+                        trailer
+                    ));
+                    extra_line = true;
+                }
+                DeletionPolicy::RetainExceptOnCreate => {
+                    writer.text(format!(
+                        "{res_name}.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE){}",
                         trailer
                     ));
                     extra_line = true;
