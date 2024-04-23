@@ -21,8 +21,9 @@ This document describes how to set up a development environment and submit your 
 - [GitHub CLI](https://cli.github.com/)
 
 ```console
-gh repo fork cdklabs/cdk_from_cfn
-cd cdk_from_cfn
+// Using github cli
+gh repo fork cdklabs/cdk-from-cfn
+cd cdk-from-cfn
 cargo build
 ```
 
@@ -38,9 +39,13 @@ cargo test
 
 ### Making changes
 
+Following guidance is for making changes in your fork and pushing changes to your fork's remote:
+
 ```console
 git status
-git add CONTRIBUTING.md
-git commit -m "chore: Adding a contributing guide"
+git add <file-name or .>
+git commit -m "<commit message following https://www.conventionalcommits.org/en/v1.0.0/#summary>"
 git push
 ```
+
+Once you have done the above, you can then [create a PR from your fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork).

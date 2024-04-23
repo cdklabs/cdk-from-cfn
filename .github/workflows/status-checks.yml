@@ -70,7 +70,7 @@ jobs:
       - name: Submit Coverage to CodeCov
         uses: codecov/codecov-action@v3
         with:
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
           files: target/codecov.json
           name: codecov.json

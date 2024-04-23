@@ -180,9 +180,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-cloudformation"
-version = "1.21.1"
+version = "1.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c06de789471895529897a2ae0feb30f28618e871641cc2153cf275050023026"
+checksum = "cf47bcf1832c192610ecb0df6af9df5899333651cabed37060786066b7ad019e"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
@@ -550,7 +550,7 @@ dependencies = [
 
 [[package]]
 name = "cdk-from-cfn"
-version = "0.152.0"
+version = "0.155.0"
 dependencies = [
  "anyhow",
  "aws-config",
@@ -1914,9 +1914,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.36.0"
+version = "1.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61285f6515fa018fb2d1e46eb21223fff441ee8db5d0f1435e8ab4f5cdb80931"
+checksum = "1adbebffeca75fcfd058afa480fb6c0b81e165a0323f9c9d39c9697e37c46787"
 dependencies = [
  "backtrace",
  "bytes",
