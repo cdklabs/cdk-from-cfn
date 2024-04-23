@@ -17,6 +17,7 @@ use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::util::Hasher;
+use crate::Error;
 
 use super::Synthesizer;
 
@@ -30,12 +31,12 @@ impl Synthesizer for Typescript {
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
         stack_name: &str,
-    ) -> io::Result<()> {
+    ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 
         let imports = code.section(true);
         for import in &ir.imports {
-            imports.line(import.to_typescript())
+            imports.line(import.to_typescript()?)
         }
 
         let context = &mut TypescriptContext::with_imports(imports);
@@ -283,12 +284,12 @@ impl Synthesizer for Typescript {
             }
         }
 
-        code.write(output)
+        Ok(code.write(output)?)
     }
 }
 
 impl ImportInstruction {
-    fn to_typescript(&self) -> String {
+    fn to_typescript(&self) -> Result<String, Error> {
         let mut parts: Vec<String> = vec!["aws-cdk-lib".to_string()];
         match self.organization.as_str() {
             "AWS" => match &self.service {
@@ -299,17 +300,21 @@ impl ImportInstruction {
                 "alexa-{}",
                 self.service.as_ref().unwrap().to_lowercase()
             )),
-            _ => unreachable!(),
+            org => {
+                return Err(Error::ImportInstructionError {
+                    message: format!("Expected organization to be AWS or Alexa. Found {org}"),
+                })
+            }
         }
 
-        format!(
+        Ok(format!(
             "import * as {} from '{}';",
             self.service
                 .as_ref()
                 .unwrap_or(&"cdk".to_string())
                 .to_lowercase(),
             parts.join("/")
-        )
+        ))
     }
 }
 

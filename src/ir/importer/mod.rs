@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use indexmap::IndexMap;
 
 use crate::parser::resource::ResourceAttributes;
-use crate::{Hasher, TransmuteError};
+use crate::{Error, Hasher};
 
 // ImportInstruction look something like:
 // import * as $name from '$path[0]/$path[1]...';
@@ -17,7 +17,7 @@ pub struct ImportInstruction {
 impl ImportInstruction {
     pub(super) fn from(
         parse_tree: &IndexMap<String, ResourceAttributes, Hasher>,
-    ) -> Result<Vec<Self>, TransmuteError> {
+    ) -> Result<Vec<Self>, Error> {
         let mut type_names = HashSet::new();
         for (_, resource) in parse_tree {
             let type_name = &resource.resource_type;
@@ -29,9 +29,9 @@ impl ImportInstruction {
                 }) {
                 triple
             } else {
-                return Err(TransmuteError::new(format!(
-                    "invalid resource type name: {type_name}"
-                )));
+                return Err(Error::ImportInstructionError {
+                    message: format!("Invalid resource type name: {type_name}"),
+                });
             };
 
             let service_name = if service.to_string().to_lowercase().eq("serverless") {
@@ -70,3 +70,6 @@ struct TypeName {
     organization: String,
     service: Option<String>,
 }
+
+#[cfg(test)]
+mod tests;

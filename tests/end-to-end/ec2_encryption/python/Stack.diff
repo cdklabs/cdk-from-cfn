@@ -1,0 +1,177 @@
+diff --git a/./tests/end-to-end/ec2_encryption/template.json b/tests/end-to-end/ec2_encryption-python-working-dir/cdk.out/Stack.template.json
+index f1f3918..299a126 100644
+--- a/./tests/end-to-end/ec2_encryption/template.json
++++ b/tests/end-to-end/ec2_encryption-python-working-dir/cdk.out/Stack.template.json
+@@ -1,92 +1,5 @@
+ {
+-    "AWSTemplateFormatVersion": "2010-09-09",
+-    "Conditions": {
+-        "IsProduction": {
+-            "Fn::Equals": [
+-                {
+-                    "Ref": "Environment"
+-                },
+-                "prod"
+-            ]
+-        },
+-        "HasDatabase": {
+-            "Fn::Equals": [
+-                {
+-                    "Ref": "DatabaseType"
+-                },
+-                "mysql"
+-            ]
+-        },
+-        "UseEncryption": {
+-            "Fn::And": [
+-                {
+-                    "Condition": "IsProduction"
+-                },
+-                {
+-                    "Condition": "HasDatabase"
+-                }
+-            ]
+-        },
+-        "UsePrivateSecurityGroup": {
+-            "Fn::Or": [
+-                {
+-                    "Fn::Equals": [
+-                        {
+-                            "Ref": "SubnetType"
+-                        },
+-                        "Private1"
+-                    ]
+-                },
+-                {
+-                    "Fn::Equals": [
+-                        {
+-                            "Ref": "SubnetType"
+-                        },
+-                        "Private2"
+-                    ]
+-                }
+-            ]
+-        },
+-        "KeyPairProd": {
+-            "Fn::Not": {
+-                "Condition": "IsProduction"
+-            }
+-        }
+-    },
+  "Resources": {
+-        "MyApp": {
+-            "Type": "AWS::EC2::Instance",
+-            "Properties": {
+-                "ImageId": {
+-                    "Fn::FindInMap": [
+-                        "RegionToAMI",
+-                        "us-east-1",
+-                        "AMI"
+-                    ]
+-                },
+-                "Tags": [
+-                    {
+-                      "Key": "Name",
+-                      "Value": {
+-                        "Fn::Select": [1, { "Fn::Split": ["-", "My-EC2-Instance"] }]
+-                      }
+-                    }
+-                ],
+-                "SecurityGroups": [
+-                    {
+-                        "Fn::If": [
+-                            "UsePrivateSecurityGroup",
+-                            {
+-                                "Ref": "PrivateSecurityGroup"
+-                            },
+-                            {
+-                                "Ref": "PublicSecurityGroup"
+-                            }
+-                        ]
+-                    }
+-                ]
+-            }
+-        },
+   "PrivateSecurityGroup": {
+    "Type": "AWS::EC2::SecurityGroup",
+    "Properties": {
+@@ -100,66 +13,22 @@
+     "GroupDescription": "Public security group",
+     "VpcId": "vpc-xxxxxxxx"
+    }
+-        }
+-    },
+-    "Parameters": {
+-        "Environment": {
+-            "Type": "String",
+-            "AllowedValues": [
+-                "dev",
+-                "test",
+-                "prod"
+-            ],
+-            "Default": "dev"
+-        },
+-        "DatabaseType": {
+-            "Type": "String",
+-            "AllowedValues": [
+-                "mysql",
+-                "postgresql"
+-            ],
+-            "Default": "postgresql"
+   },
+-        "UseEncryption": {
+-            "Type": "String",
+-            "AllowedValues": [
+-                "true",
+-                "false"
++  "MyApp": {
++   "Type": "AWS::EC2::Instance",
++   "Properties": {
++    "ImageId": "ami-12345678",
++    "SecurityGroups": [
++     {
++      "Ref": "PrivateSecurityGroup"
++     }
+     ],
+-            "Default": "false"
+-        },
+-        "EncryptedAmi": {
+-            "Type": "String",
+-            "Default": "ami-1234567890abcdef0"
+-        },
+-        "UnencryptedAmi": {
+-            "Type": "String",
+-            "Default": "ami-0987654321fedcba0"
+-        },
+-        "SubnetType": {
+-            "Type": "String",
+-            "Default": "Private1",
+-            "AllowedValues": [
+-                "Private1",
+-                "Private2"
+-            ]
+-        },
+-        "EnableMonitoringParameter": {
+-            "Type": "String",
+-            "Default": "false",
+-            "AllowedValues": [
+-                "true",
+-                "false"
+-            ]
++    "Tags": [
++     {
++      "Key": "Name",
++      "Value": "EC2"
+      }
+-    },
+-    "Mappings": {
+-        "RegionToAMI": {
+-            "us-east-1": {
+-                "AMI": "ami-12345678"
+-            },
+-            "us-west-2": {
+-                "AMI": "ami-87654321"
++    ]
+    }
+   }
+  }
