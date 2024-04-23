@@ -112,7 +112,11 @@ pub mod wasm {
             "java" => Box::<crate::synthesizer::Java>::default(),
             #[cfg(feature = "csharp")]
             "csharp" => Box::<crate::synthesizer::CSharp>::default(),
-            unsupported => panic!("unsupported language: {}", unsupported),
+            unsupported => {
+                return Err(JsError::from(Error::UnsupportedLanguageError {
+                    language: unsupported.to_string(),
+                }));
+            }
         };
 
         ir.synthesize(synthesizer.as_ref(), &mut output, stack_name)?;
