@@ -1,8 +1,8 @@
 diff --git a/./tests/end-to-end/simple/template.json b/tests/end-to-end/simple-python-working-dir/cdk.out/Stack.template.json
-index 2505455..b54d0ac 100644
+index 8525bcd..779d4a2 100644
 --- a/./tests/end-to-end/simple/template.json
 +++ b/tests/end-to-end/simple-python-working-dir/cdk.out/Stack.template.json
-@@ -1,171 +1,23 @@
+@@ -1,172 +1,23 @@
  {
 - "Description": "An example stack that uses many of the syntax elements permitted in a\nCloudFormation template, but does not attempt to represent a realistic stack.",
 - "Mappings": {
@@ -152,6 +152,7 @@ index 2505455..b54d0ac 100644
 -  },
    "Queue": {
     "Type": "AWS::SQS::Queue",
+-   "DeletionPolicy": "RetainExceptOnCreate",
     "Properties": {
      "DelaySeconds": 42,
 -    "SqsManagedSseEnabled": false,
@@ -177,13 +178,15 @@ index 2505455..b54d0ac 100644
         {
          "Fn::Select": [
           1,
-@@ -179,33 +31,12 @@
+@@ -180,33 +31,13 @@
        ]
       ]
      },
 -    "RedrivePolicy": {
 -     "Ref": "AWS::NoValue"
--    },
++    "SqsManagedSseEnabled": false,
++    "VisibilityTimeout": 120
+    },
 -    "VisibilityTimeout": {
 -     "Fn::Select": [
 -      "1",
@@ -194,9 +197,8 @@ index 2505455..b54d0ac 100644
 -      ]
 -     ]
 -    }
-+    "SqsManagedSseEnabled": false,
-+    "VisibilityTimeout": 120
-    }
+-   }
++   "DeletionPolicy": "RetainExceptOnCreate"
    }
   },
   "Outputs": {
@@ -213,7 +215,7 @@ index 2505455..b54d0ac 100644
    "QueueArn": {
     "Description": "The ARN of the SQS Queue",
     "Value": {
-@@ -214,13 +45,7 @@
+@@ -215,13 +46,7 @@
    },
    "IsLarge": {
     "Description": "Whether this is a large region or not",

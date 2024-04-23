@@ -208,6 +208,7 @@ pub enum DeletionPolicy {
     Delete,
     Retain,
     Snapshot,
+    RetainExceptOnCreate,
 }
 
 impl fmt::Display for DeletionPolicy {
@@ -216,6 +217,7 @@ impl fmt::Display for DeletionPolicy {
             Self::Delete => write!(f, "DELETE"),
             Self::Retain => write!(f, "RETAIN"),
             Self::Snapshot => write!(f, "SNAPSHOT"),
+            Self::RetainExceptOnCreate => write!(f, "RETAIN_EXCEPT_ON_CREATE"),
         }
     }
 }

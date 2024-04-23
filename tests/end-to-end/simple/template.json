@@ -146,6 +146,7 @@
   },
   "Queue": {
    "Type": "AWS::SQS::Queue",
+   "DeletionPolicy": "RetainExceptOnCreate",
    "Properties": {
     "DelaySeconds": 42,
     "SqsManagedSseEnabled": false,

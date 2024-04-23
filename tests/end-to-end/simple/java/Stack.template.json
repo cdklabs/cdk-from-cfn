@@ -94,7 +94,9 @@
     },
     "SqsManagedSseEnabled": false,
     "VisibilityTimeout": 120
-   }
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "RetainExceptOnCreate"
   }
  },
  "Outputs": {
