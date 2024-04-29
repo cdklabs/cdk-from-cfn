@@ -19,12 +19,16 @@ impl Constructor {
                         crate::parser::parameters::ParameterType::String => {
                             if param.allowed_values.is_some() {
                                 let values = param.allowed_values.clone().unwrap();
-                                if (values[0].to_lowercase() == "true"
-                                    && values[1].to_lowercase() == "false")
-                                    || (values[1].to_lowercase() == "true"
-                                        && values[0].to_lowercase() == "false")
-                                {
-                                    crate::parser::parameters::ParameterType::Bool.to_string()
+                                if values.len() == 2 {
+                                    if (values[0].to_lowercase() == "true"
+                                        && values[1].to_lowercase() == "false")
+                                        || (values[0].to_lowercase() == "false"
+                                            && values[1].to_lowercase() == "true")
+                                    {
+                                        crate::parser::parameters::ParameterType::Bool.to_string()
+                                    } else {
+                                        param.parameter_type.to_string()
+                                    }
                                 } else {
                                     param.parameter_type.to_string()
                                 }

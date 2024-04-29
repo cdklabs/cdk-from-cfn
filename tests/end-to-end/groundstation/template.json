@@ -1,0 +1,876 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Description": "Ground Station S3 Data Delivery stack for JPSS1",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "RT-STPS instance configuration"
+          },
+          "Parameters": [
+            "SatelliteName",
+            "GroundStationS3DataDeliveryBucketName",
+            "SoftwareS3Bucket",
+            "VpcId",
+            "SubnetId",
+            "SSHCidrBlock",
+            "SSHKeyName",
+            "NotificationEmail"
+          ]
+        }
+      ]
+    }
+  },
+  "Parameters": {
+    "GroundStationS3DataDeliveryBucketName": {
+      "Type": "String",
+      "Description": "This bucket will be created. Data will be delivered to this S3 bucket. Name must start with \"aws-groundstation-\"",
+      "Default": "aws-groundstation-s3dd-your-bucket",
+      "AllowedPattern": "^aws-groundstation-[a-z0-9-.]+"
+    },
+    "NotificationEmail": {
+      "Default": "someone@somewhere.com",
+      "Description": "Email address to receive contact updates",
+      "Type": "String",
+      "AllowedPattern": "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$",
+      "ConstraintDescription": "Must be a valid email adress"
+    },
+    "SatelliteName": {
+      "Type": "String",
+      "Description": "Used for data processing task",
+      "Default": "JPSS1",
+      "AllowedValues": [
+        "JPSS1"
+      ]
+    },
+    "SoftwareS3Bucket": {
+      "Type": "String",
+      "Description": "RT-STPS Software",
+      "Default": "your-software-bucket"
+    },
+    "SSHCidrBlock": {
+      "Description": "The CIDR Block that the security group will allow ssh access to an instance. The CIDR Block has the form x.x.x.x/x.",
+      "Type": "String",
+      "Default": "15.16.17.18/32",
+      "AllowedPattern": "((\\d{1,3})\\.){3}\\d{1,3}/\\d{1,2}",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x, for example \"15.16.17.18/16\"."
+    },
+    "SSHKeyName": {
+      "Description": "Name of the ssh key used to access ec2 hosts. Set this up ahead of time.",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair.",
+      "Default": ""
+    },
+    "VpcId": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Description": "VPC to launch instances in.",
+      "Default": ""
+    },
+    "SubnetId": {
+      "Description": "Subnet to launch instances in",
+      "Type": "AWS::EC2::Subnet::Id",
+      "Default": ""
+    }
+  },
+  "Mappings": {
+    "AmiMap": {
+      "eu-north-1": {
+        "ami": "ami-0abb1aa57ecf6a060"
+      },
+      "eu-west-1": {
+        "ami": "ami-082af980f9f5514f8"
+      },
+      "me-south-1": {
+        "ami": "ami-0687a5f8dac57444e"
+      },
+      "us-east-1": {
+        "ami": "ami-03c7d01cf4dedc891"
+      },
+      "us-east-2": {
+        "ami": "ami-06d5c50c30a35fb88"
+      },
+      "us-west-2": {
+        "ami": "ami-0ac64ad8517166fb1"
+      },
+      "ap-southeast-2": {
+        "ami": "ami-0074f30ddebf60493"
+      },
+      "af-south-1": {
+        "ami": "ami-0764fb4fffa117039"
+      },
+      "ap-northeast-2": {
+        "ami": "ami-03db74b70e1da9c56"
+      },
+      "ap-southeast-1": {
+        "ami": "ami-0b3a4110c36b9a5f0"
+      },
+      "eu-central-1": {
+        "ami": "ami-0adbcf08fdd664fed"
+      },
+      "sa-east-1": {
+        "ami": "ami-0c5cdf1548242305d"
+      }
+    }
+  },
+  "Resources": {
+    "snsTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": {
+          "Fn::Join": [
+            "-",
+            [
+              "GS-S3-Data-Delivery",
+              {
+                "Ref": "SatelliteName"
+              }
+            ]
+          ]
+        },
+        "Subscription": [
+          {
+            "Endpoint": {
+              "Ref": "NotificationEmail"
+            },
+            "Protocol": "email"
+          }
+        ]
+      }
+    },
+    "GroundStationS3DataDeliveryBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "BucketName": {
+          "Ref": "GroundStationS3DataDeliveryBucketName"
+        }
+      }
+    },
+    "GroundStationS3DataDeliveryRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "groundstation.amazonaws.com"
+                ]
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceAccount": {
+                    "Ref": "AWS::AccountId"
+                  }
+                },
+                "ArnLike": {
+                  "aws:SourceArn": {
+                    "Fn::Sub": "arn:aws:groundstation:${AWS::Region}:${AWS::AccountId}:config/s3-recording/*"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "GroundStationS3DataDeliveryIamPolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "s3:GetBucketLocation"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "GroundStationS3DataDeliveryBucketName"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "s3:PutObject"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "GroundStationS3DataDeliveryBucketName"
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "PolicyName": "GroundStationS3DataDeliveryPolicy",
+        "Roles": [
+          {
+            "Ref": "GroundStationS3DataDeliveryRole"
+          }
+        ]
+      }
+    },
+    "S3RecordingConfig": {
+      "Type": "AWS::GroundStation::Config",
+      "DependsOn": [
+        "GroundStationS3DataDeliveryBucket",
+        "GroundStationS3DataDeliveryIamPolicy"
+      ],
+      "Properties": {
+        "Name": "JPSS1 Recording Config",
+        "ConfigData": {
+          "S3RecordingConfig": {
+            "BucketArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:aws:s3:::",
+                  {
+                    "Ref": "GroundStationS3DataDeliveryBucketName"
+                  }
+                ]
+              ]
+            },
+            "RoleArn": {
+              "Fn::GetAtt": [
+                "GroundStationS3DataDeliveryRole",
+                "Arn"
+              ]
+            },
+            "Prefix": "data/JPSS1/{year}/{month}/{day}"
+          }
+        }
+      }
+    },
+    "TrackingConfig": {
+      "Type": "AWS::GroundStation::Config",
+      "Properties": {
+        "Name": "JPSS1 Tracking Config",
+        "ConfigData": {
+          "TrackingConfig": {
+            "Autotrack": "PREFERRED"
+          }
+        }
+      }
+    },
+    "SnppJpssDownlinkDemodDecodeAntennaConfig": {
+      "Type": "AWS::GroundStation::Config",
+      "Properties": {
+        "Name": "JPSS1 Downlink Demod Decode Antenna Config",
+        "ConfigData": {
+          "AntennaDownlinkDemodDecodeConfig": {
+            "SpectrumConfig": {
+              "CenterFrequency": {
+                "Value": 7812,
+                "Units": "MHz"
+              },
+              "Polarization": "RIGHT_HAND",
+              "Bandwidth": {
+                "Value": 30,
+                "Units": "MHz"
+              }
+            },
+            "DemodulationConfig": {
+              "UnvalidatedJSON": "{ \"type\":\"QPSK\", \"qpsk\":{ \"carrierFrequencyRecovery\":{ \"centerFrequency\":{ \"value\":7812, \"units\":\"MHz\" }, \"range\":{ \"value\":250, \"units\":\"kHz\" } }, \"symbolTimingRecovery\":{ \"symbolRate\":{ \"value\":15, \"units\":\"Msps\" }, \"range\":{ \"value\":0.75, \"units\":\"ksps\" }, \"matchedFilter\":{ \"type\":\"ROOT_RAISED_COSINE\", \"rolloffFactor\":0.5 } } } }"
+            },
+            "DecodeConfig": {
+              "UnvalidatedJSON": "{ \"edges\":[ { \"from\":\"I-Ingress\", \"to\":\"IQ-Recombiner\" }, { \"from\":\"Q-Ingress\", \"to\":\"IQ-Recombiner\" }, { \"from\":\"IQ-Recombiner\", \"to\":\"CcsdsViterbiDecoder\" }, { \"from\":\"CcsdsViterbiDecoder\", \"to\":\"NrzmDecoder\" }, { \"from\":\"NrzmDecoder\", \"to\":\"UncodedFramesEgress\" } ], \"nodeConfigs\":{ \"I-Ingress\":{ \"type\":\"CODED_SYMBOLS_INGRESS\", \"codedSymbolsIngress\":{ \"source\":\"I\" } }, \"Q-Ingress\":{ \"type\":\"CODED_SYMBOLS_INGRESS\", \"codedSymbolsIngress\":{ \"source\":\"Q\" } }, \"IQ-Recombiner\":{ \"type\":\"IQ_RECOMBINER\" }, \"CcsdsViterbiDecoder\":{ \"type\":\"CCSDS_171_133_VITERBI_DECODER\", \"ccsds171133ViterbiDecoder\":{ \"codeRate\":\"ONE_HALF\" } }, \"NrzmDecoder\":{ \"type\":\"NRZ_M_DECODER\" }, \"UncodedFramesEgress\":{ \"type\":\"UNCODED_FRAMES_EGRESS\" } } }"
+            }
+          }
+        }
+      }
+    },
+    "SnppJpssDemodDecodeMissionProfile": {
+      "Type": "AWS::GroundStation::MissionProfile",
+      "Properties": {
+        "Name": "43013 JPSS1 Demod Decode to S3",
+        "ContactPrePassDurationSeconds": 120,
+        "ContactPostPassDurationSeconds": 120,
+        "MinimumViableContactDurationSeconds": 180,
+        "TrackingConfigArn": {
+          "Ref": "TrackingConfig"
+        },
+        "DataflowEdges": [
+          {
+            "Source": {
+              "Fn::Join": [
+                "/",
+                [
+                  {
+                    "Ref": "SnppJpssDownlinkDemodDecodeAntennaConfig"
+                  },
+                  "UncodedFramesEgress"
+                ]
+              ]
+            },
+            "Destination": {
+              "Ref": "S3RecordingConfig"
+            }
+          }
+        ]
+      }
+    },
+    "GroundStationS3ddLambdaRolePolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:StartInstances",
+                "ec2:StopInstances",
+                "ec2:CreateTags"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": [
+                    "arn:aws:ec2:${Region}:${Account}:instance/${Instance}",
+                    {
+                      "Region": {
+                        "Ref": "AWS::Region"
+                      },
+                      "Account": {
+                        "Ref": "AWS::AccountId"
+                      },
+                      "Instance": {
+                        "Ref": "ReceiverInstance"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstanceStatus",
+                "ec2:DescribeNetworkInterfaces"
+              ],
+              "Resource": [
+                "*"
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sns:Publish"
+              ],
+              "Resource": {
+                "Ref": "snsTopic"
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:PutObjectAcl",
+                "s3:GetObject",
+                "s3:DeleteObjectVersion",
+                "s3:DeleteObject"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "GroundStationS3DataDeliveryBucketName"
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:ListBucket"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "GroundStationS3DataDeliveryBucketName"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "GroundStationS3ddLambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "Path": "/",
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+          {
+            "Ref": "GroundStationS3ddLambdaRolePolicy"
+          }
+        ],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "S3ContactCompleteEventRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "Triggered when all files have been uploaded for a Ground Station S3 data delivery contact",
+        "EventPattern": {
+          "source": [
+            "aws.groundstation"
+          ],
+          "detail-type": [
+            "Ground Station S3 Upload Complete"
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "LambdaFunctionStartRtstps",
+                "Arn"
+              ]
+            },
+            "Id": "LambdaFunctionStartRtstps"
+          }
+        ]
+      }
+    },
+    "PermissionForGroundStationCloudWatchEventsToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LambdaFunctionStartRtstps"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "S3ContactCompleteEventRule",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "LambdaFunctionStartRtstps": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Environment": {
+          "Variables": {
+            "RtstpsInstance": {
+              "Ref": "ReceiverInstance"
+            }
+          }
+        },
+        "Handler": "index.handle_cloudwatch_event",
+        "Runtime": "python3.9",
+        "MemorySize": 512,
+        "Timeout": 300,
+        "Role": {
+          "Fn::GetAtt": [
+            "GroundStationS3ddLambdaRole",
+            "Arn"
+          ]
+        },
+        "Code": {
+          "S3Bucket": {
+            "Ref": "SoftwareS3Bucket"
+          },
+          "S3Key": "software/RT-STPS/lambda.zip"
+        }
+      }
+    },
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+          "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+        ]
+      }
+    },
+    "InstanceRoleS3Policy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "SoftwareS3Bucket"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            },
+            {
+              "Action": [
+                "s3:GetObject"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    "space-solutions-",
+                    "eu-west-1",
+                    "/*"
+                  ]
+                ]
+              }
+            },
+            {
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "GroundStationS3DataDeliveryBucket"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            },
+            {
+              "Action": [
+                "s3:ListBucket"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "SoftwareS3Bucket"
+                    }
+                  ]
+                ]
+              }
+            },
+            {
+              "Action": [
+                "s3:ListBucket"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    "space-solutions-",
+                    "eu-west-1",
+                    "/*"
+                  ]
+                ]
+              }
+            },
+            {
+              "Action": [
+                "s3:ListBucket"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "GroundStationS3DataDeliveryBucket"
+                    }
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    },
+    "InstanceRoleSNSPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "sns:Publish"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "snsTopic"
+              }
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    },
+    "InstanceRoleEC2Policy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "ec2:DescribeTags"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    },
+    "InstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "AWS Ground Station receiver instance security group.",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 22,
+            "ToPort": 22,
+            "CidrIp": {
+              "Ref": "SSHCidrBlock"
+            },
+            "Description": "Inbound SSH access"
+          }
+        ]
+      }
+    },
+    "InstanceEIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "InstanceEIPAsscociation": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "InstanceEIP",
+            "AllocationId"
+          ]
+        },
+        "NetworkInterfaceId": {
+          "Ref": "ReceiverInstanceNetworkInterfacePublic"
+        }
+      }
+    },
+    "ReceiverInstanceNetworkInterfacePublic": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "Description": "Public network interface for troubleshooting",
+        "GroupSet": [
+          {
+            "Ref": "InstanceSecurityGroup"
+          }
+        ],
+        "SubnetId": {
+          "Ref": "SubnetId"
+        }
+      }
+    },
+    "GeneralInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "DependsOn": "InstanceRole",
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    },
+    "ReceiverInstance": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": [
+        "InstanceSecurityGroup",
+        "GeneralInstanceProfile"
+      ],
+      "Properties": {
+        "DisableApiTermination": false,
+        "IamInstanceProfile": {
+          "Ref": "GeneralInstanceProfile"
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AmiMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "ami"
+          ]
+        },
+        "InstanceType": "c5.4xlarge",
+        "KeyName": {
+          "Ref": "SSHKeyName"
+        },
+        "Monitoring": true,
+        "NetworkInterfaces": [
+          {
+            "NetworkInterfaceId": {
+              "Ref": "ReceiverInstanceNetworkInterfacePublic"
+            },
+            "DeviceIndex": 0,
+            "DeleteOnTermination": false
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeType": "gp2",
+              "VolumeSize": 100
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "Receiver",
+                  {
+                    "Ref": "AWS::StackName"
+                  }
+                ]
+              ]
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Sub": [
+              "#!/bin/bash\n\nexec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\necho `date +'%F %R:%S'` \"INFO: Logging Setup\" >&2\n\necho \"Setting instance hostname\"\nexport INSTANCE=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\nexport HOSTNAME=$(aws ec2 describe-tags --filters \"Name=resource-id,Values=$INSTANCE\" \"Name=key,Values=Name\" --region=${AWS::Region} --output=text |cut -f5)\necho $HOSTNAME > /etc/hostname\nhostname $HOSTNAME\n\necho \"Installing RT-STPS pre-reqs\"\nyum update -y && yum install -y wget java python3\n\nGROUND_STATION_DIR=\"/opt/aws/groundstation\"\nGROUND_STATION_BIN_DIR=\"$GROUND_STATION_DIR/bin\"\nPROCESS_SCRIPT=\"$GROUND_STATION_BIN_DIR/rt-stps-process.sh\"\n\necho \"Creating $GROUND_STATION_BIN_DIR\"\nmkdir -p \"$GROUND_STATION_BIN_DIR\"\n\necho \"Getting Assets from S3\"\naws s3 cp --region ${AWS::Region} \"s3://${SoftwareS3Bucket}/software/RT-STPS/rt-stps-process.sh\" \"$PROCESS_SCRIPT\"\nchmod +x \"$PROCESS_SCRIPT\"\nchown ec2-user:ec2-user \"$PROCESS_SCRIPT\"\n\necho \"Adding call to $PROCESS_SCRIPT into /etc/rc.local\"\necho \"TIMESTR=\\$(date '+%Y%m%d-%H%M')\" >> /etc/rc.local\necho \"$PROCESS_SCRIPT ${SatelliteName} ${SoftwareS3Bucket} ${GroundStationS3DataDeliveryBucketName} 2>&1 | tee $GROUND_STATION_BIN_DIR/data-capture_\\$TIMESTR.log\" >> /etc/rc.local\nchmod +x /etc/rc.d/rc.local\n\necho \"Creating /opt/aws/groundstation/bin/getSNSTopic.sh\"\necho \"export SNS_TOPIC=${SNSTopicArn}\" > /opt/aws/groundstation/bin/getSNSTopic.sh\nchmod +x /opt/aws/groundstation/bin/getSNSTopic.sh\n\necho \"Sending completion SNS notification\"\nexport MESSAGE=\"GroundStation setup is complete for Satellite: ${SatelliteName}.  The RT-STPS processor EC2 instance is all setup and ready to go! It will be automatically started after data from a satellite pass has been deposited in your S3 bucket.  Data will be processed using RT-STPS, then copied to the following S3 Bucket: ${GroundStationS3DataDeliveryBucketName}.  A summary of the contact will be emailed to ${NotificationEmail}. The EC2 instance will now be stopped.\"\naws sns publish --topic-arn ${SNSTopicArn} --message \"$MESSAGE\" --region ${AWS::Region}\n\necho \"Shutting down the EC2 instance\"\nshutdown -h now\n\nexit 0\n",
+              {
+                "SNSTopicArn": {
+                  "Ref": "snsTopic"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "SnsTopicArn": {
+      "Value": {
+        "Ref": "snsTopic"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-SnsTopicArn"
+        }
+      }
+    }
+  }
+}
