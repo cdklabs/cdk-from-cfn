@@ -1,0 +1,51 @@
+name: schema-sync
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # An hour before the daily release sync
+    - cron: 0 23 * * *
+
+jobs:
+  generate:
+    name: Generate Patched Schema
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+      - name: Set Git Identity
+        run: |-
+          git config user.name "cdklabs-automation"
+          git config user.email "aws-cdk-dev+cdklabs@amazon.com"
+      - name: Setup Node
+        uses: actions/setup-node@main
+        with:
+          node-version: '*'
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8196'
+      - name: Pull and Patch Schema
+        id: pull_and_patch
+        uses: cdklabs/cdk-patched-schema-generator@main
+        with:
+          output-path: '/home/runner/work/cdk-from-cfn/cdk-from-cfn/src/specification'
+      - name: Show Diff
+        run: 'git diff'
+      - name: Open Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+          author: cdklabs-automation <aws-cdk-dev+cdklabs@amazon.com>
+          committer: cdklabs-automation <aws-cdk-dev+cdklabs@amazon.com>
+          signoff: true
+          branch: github-actions/update-schema
+          body: |
+            Updates CloudFormation Specification. See details in [workflow run].
+            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          commit-message: |-
+            chore: upgrade cloudformation specification
+            Updates CloudFormation Specification. See details in [workflow run].
+            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          title: 'chore: update cloudformation specification'
+          labels: auto-approve
