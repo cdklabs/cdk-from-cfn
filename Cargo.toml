@@ -43,7 +43,7 @@ wasm-bindgen = "^0.2.92"
 
 [dev-dependencies]
 aws-config = "^1.1.9"
-aws-sdk-cloudformation = "^1.33.0"
+aws-sdk-cloudformation = "^1.34.0"
 tokio = { version = "1", features = ["full"] }
 walkdir = "2.5.0"
 zip = "0.6.6"
