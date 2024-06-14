@@ -1254,6 +1254,18 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "Certificate": {
+        "name": "Certificate",
+        "valueType": {
+          "named": "AWS::Amplify::Domain.Certificate"
+        }
+      },
+      "UpdateStatus": {
+        "name": "UpdateStatus",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     },
     "properties": {
@@ -1299,6 +1311,12 @@
             "primitive": "string"
           }
         }
+      },
+      "CertificateSettings": {
+        "name": "CertificateSettings",
+        "valueType": {
+          "named": "AWS::Amplify::Domain.CertificateSettings"
+        }
       }
     }
   },
@@ -1332,6 +1350,18 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "CreatedAt": {
+        "name": "CreatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ModifiedAt": {
+        "name": "ModifiedAt",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     },
     "properties": {
@@ -1339,8 +1369,7 @@
         "name": "ComponentType",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       },
       "SchemaVersion": {
         "name": "SchemaVersion",
@@ -1360,8 +1389,7 @@
           "mapOf": {
             "named": "AWS::AmplifyUIBuilder::Component.ComponentBindingPropertiesValue"
           }
-        },
-        "required": true
+        }
       },
       "SourceId": {
         "name": "SourceId",
@@ -1375,8 +1403,7 @@
           "mapOf": {
             "named": "AWS::AmplifyUIBuilder::Component.ComponentProperty"
           }
-        },
-        "required": true
+        }
       },
       "CollectionProperties": {
         "name": "CollectionProperties",
@@ -1390,8 +1417,7 @@
         "name": "Name",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       },
       "Variants": {
         "name": "Variants",
@@ -1399,8 +1425,7 @@
           "listOf": {
             "named": "AWS::AmplifyUIBuilder::Component.ComponentVariant"
           }
-        },
-        "required": true
+        }
       },
       "AppId": {
         "name": "AppId",
@@ -1420,8 +1445,7 @@
         "name": "Overrides",
         "valueType": {
           "primitive": "json"
-        },
-        "required": true
+        }
       },
       "Children": {
         "name": "Children",
@@ -1478,8 +1502,7 @@
         "name": "FormActionType",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       },
       "Cta": {
         "name": "Cta",
@@ -1493,15 +1516,13 @@
           "mapOf": {
             "named": "AWS::AmplifyUIBuilder::Form.FieldConfig"
           }
-        },
-        "required": true
+        }
       },
       "SchemaVersion": {
         "name": "SchemaVersion",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       },
       "AppId": {
         "name": "AppId",
@@ -1527,22 +1548,19 @@
           "mapOf": {
             "named": "AWS::AmplifyUIBuilder::Form.SectionalElement"
           }
-        },
-        "required": true
+        }
       },
       "DataType": {
         "name": "DataType",
         "valueType": {
           "named": "AWS::AmplifyUIBuilder::Form.FormDataTypeConfig"
-        },
-        "required": true
+        }
       },
       "Style": {
         "name": "Style",
         "valueType": {
           "named": "AWS::AmplifyUIBuilder::Form.FormStyle"
-        },
-        "required": true
+        }
       },
       "Tags": {
         "name": "Tags",
@@ -1556,8 +1574,7 @@
         "name": "Name",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       }
     }
   },
@@ -1591,6 +1608,18 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "CreatedAt": {
+        "name": "CreatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ModifiedAt": {
+        "name": "ModifiedAt",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     },
     "properties": {
@@ -1612,8 +1641,7 @@
           "listOf": {
             "named": "AWS::AmplifyUIBuilder::Theme.ThemeValues"
           }
-        },
-        "required": true
+        }
       },
       "Overrides": {
         "name": "Overrides",
@@ -1635,8 +1663,7 @@
         "name": "Name",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       }
     }
   },
@@ -4462,6 +4489,14 @@
             "named": "AWS::AppConfig::Deployment.Tags"
           }
         }
+      },
+      "DynamicExtensionParameters": {
+        "name": "DynamicExtensionParameters",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::AppConfig::Deployment.DynamicExtensionParameters"
+          }
+        }
       }
     }
   },
@@ -4579,8 +4614,8 @@
       }
     },
     "attributes": {
-      "Id": {
-        "name": "Id",
+      "EnvironmentId": {
+        "name": "EnvironmentId",
         "valueType": {
           "primitive": "string"
         }
@@ -4826,8 +4861,8 @@
       }
     },
     "attributes": {
-      "Id": {
-        "name": "Id",
+      "VersionNumber": {
+        "name": "VersionNumber",
         "valueType": {
           "primitive": "string"
         }
@@ -7673,6 +7708,12 @@
           "primitive": "number"
         },
         "required": true
+      },
+      "HealthMetricsConfig": {
+        "name": "HealthMetricsConfig",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     }
   },
@@ -7860,6 +7901,12 @@
         "name": "ElasticsearchConfig",
         "valueType": {
           "named": "AWS::AppSync::DataSource.ElasticsearchConfig"
+        }
+      },
+      "MetricsConfig": {
+        "name": "MetricsConfig",
+        "valueType": {
+          "primitive": "string"
         }
       }
     }
@@ -8279,6 +8326,18 @@
           "named": "AWS::AppSync::GraphQLApi.LogConfig"
         }
       },
+      "EnhancedMetricsConfig": {
+        "name": "EnhancedMetricsConfig",
+        "valueType": {
+          "named": "AWS::AppSync::GraphQLApi.EnhancedMetricsConfig"
+        }
+      },
+      "EnvironmentVariables": {
+        "name": "EnvironmentVariables",
+        "valueType": {
+          "primitive": "json"
+        }
+      },
       "QueryDepthLimit": {
         "name": "QueryDepthLimit",
         "valueType": {
@@ -8496,6 +8555,12 @@
           "primitive": "string"
         },
         "required": true
+      },
+      "MetricsConfig": {
+        "name": "MetricsConfig",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     }
   },
@@ -8882,6 +8947,12 @@
           "primitive": "string"
         },
         "required": true
+      },
+      "AttachMissingPermission": {
+        "name": "AttachMissingPermission",
+        "valueType": {
+          "primitive": "boolean"
+        }
       }
     }
   },
@@ -10691,26 +10762,8 @@
       }
     },
     "attributes": {
-      "ContainerOrchestrationType": {
-        "name": "ContainerOrchestrationType",
-        "valueType": {
-          "primitive": "string"
-        }
-      },
-      "JobDefinitionArn": {
-        "name": "JobDefinitionArn",
-        "valueType": {
-          "primitive": "string"
-        }
-      },
-      "Revision": {
-        "name": "Revision",
-        "valueType": {
-          "primitive": "number"
-        }
-      },
-      "Status": {
-        "name": "Status",
+      "Id": {
+        "name": "Id",
         "valueType": {
           "primitive": "string"
         }
@@ -10791,6 +10844,12 @@
         "valueType": {
           "primitive": "json"
         }
+      },
+      "EcsProperties": {
+        "name": "EcsProperties",
+        "valueType": {
+          "named": "AWS::Batch::JobDefinition.EcsProperties"
+        }
       }
     }
   },
@@ -10866,6 +10925,14 @@
         "valueType": {
           "mapOf": {
             "primitive": "string"
+          }
+        }
+      },
+      "JobStateTimeLimitActions": {
+        "name": "JobStateTimeLimitActions",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::Batch::JobQueue.JobStateTimeLimitAction"
           }
         }
       }
@@ -12012,6 +12079,20 @@
         "valueType": {
           "listOf": {
             "named": "CfnTag"
+          }
+        }
+      },
+      "AutoScalingSpecifications": {
+        "name": "AutoScalingSpecifications",
+        "valueType": {
+          "named": "AWS::Cassandra::Table.AutoScalingSpecification"
+        }
+      },
+      "ReplicaSpecifications": {
+        "name": "ReplicaSpecifications",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::Cassandra::Table.ReplicaSpecification"
           }
         }
       }
@@ -15358,6 +15439,14 @@
         "valueType": {
           "primitive": "number"
         }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
       }
     }
   },
@@ -15436,6 +15525,12 @@
         "name": "SingleMetricAnomalyDetector",
         "valueType": {
           "named": "AWS::CloudWatch::AnomalyDetector.SingleMetricAnomalyDetector"
+        }
+      },
+      "MetricCharacteristics": {
+        "name": "MetricCharacteristics",
+        "valueType": {
+          "named": "AWS::CloudWatch::AnomalyDetector.MetricCharacteristics"
         }
       }
     }
@@ -15538,6 +15633,14 @@
         "name": "ActionsSuppressorExtensionPeriod",
         "valueType": {
           "primitive": "number"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
         }
       }
     }
@@ -17018,6 +17121,12 @@
           }
         }
       },
+      "ExecutionMode": {
+        "name": "ExecutionMode",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
       "Triggers": {
         "name": "Triggers",
         "valueType": {
@@ -18315,14 +18424,7 @@
         "name": "CfnUserPoolRiskConfigurationAttachment"
       }
     },
-    "attributes": {
-      "Id": {
-        "name": "Id",
-        "valueType": {
-          "primitive": "string"
-        }
-      }
-    },
+    "attributes": {},
     "properties": {
       "CompromisedCredentialsRiskConfiguration": {
         "name": "CompromisedCredentialsRiskConfiguration",
@@ -20672,6 +20774,18 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "LastModifiedRegion": {
+        "name": "LastModifiedRegion",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "LastModifiedTime": {
+        "name": "LastModifiedTime",
+        "valueType": {
+          "primitive": "number"
+        }
       }
     },
     "properties": {
@@ -20724,6 +20838,28 @@
         "valueType": {
           "listOf": {
             "named": "CfnTag"
+          }
+        }
+      },
+      "HierarchyRestrictedResources": {
+        "name": "HierarchyRestrictedResources",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "AllowedAccessControlHierarchyGroupId": {
+        "name": "AllowedAccessControlHierarchyGroupId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Applications": {
+        "name": "Applications",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::Connect::SecurityProfile.Application"
           }
         }
       }
@@ -21350,6 +21486,14 @@
             "named": "AWS::ControlTower::EnabledControl.EnabledControlParameter"
           }
         }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
       }
     }
   },
@@ -21503,7 +21647,8 @@
         "name": "DefaultExpirationDays",
         "valueType": {
           "primitive": "number"
-        }
+        },
+        "required": true
       },
       "DomainName": {
         "name": "DomainName",
@@ -21765,7 +21910,8 @@
         "name": "Description",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "Fields": {
         "name": "Fields",
@@ -21792,7 +21938,8 @@
         "name": "ObjectTypeName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "Keys": {
         "name": "Keys",
@@ -24846,6 +24993,12 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "ManifestConfig": {
+        "name": "ManifestConfig",
+        "valueType": {
+          "named": "AWS::DataSync::Task.ManifestConfig"
+        }
       }
     }
   },
@@ -25891,6 +26044,24 @@
           "primitive": "number"
         },
         "required": true
+      },
+      "PreferredBackupWindow": {
+        "name": "PreferredBackupWindow",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "BackupRetentionPeriod": {
+        "name": "BackupRetentionPeriod",
+        "valueType": {
+          "primitive": "number"
+        }
+      },
+      "ShardInstanceCount": {
+        "name": "ShardInstanceCount",
+        "valueType": {
+          "primitive": "number"
+        }
       }
     }
   },
@@ -26170,6 +26341,12 @@
         "name": "TimeToLiveSpecification",
         "valueType": {
           "named": "AWS::DynamoDB::Table.TimeToLiveSpecification"
+        }
+      },
+      "ResourcePolicy": {
+        "name": "ResourcePolicy",
+        "valueType": {
+          "named": "AWS::DynamoDB::Table.ResourcePolicy"
         }
       }
     }
@@ -26850,8 +27027,7 @@
         "name": "BgpAsn",
         "valueType": {
           "primitive": "number"
-        },
-        "required": true
+        }
       },
       "Tags": {
         "name": "Tags",
@@ -26865,6 +27041,18 @@
         "name": "DeviceName",
         "valueType": {
           "primitive": "string"
+        }
+      },
+      "CertificateArn": {
+        "name": "CertificateArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "BgpAsnExtended": {
+        "name": "BgpAsnExtended",
+        "valueType": {
+          "primitive": "number"
         }
       }
     }
@@ -26944,6 +27132,12 @@
           "listOf": {
             "named": "CfnTag"
           }
+        }
+      },
+      "Ipv6AddressPreferredLeaseTime": {
+        "name": "Ipv6AddressPreferredLeaseTime",
+        "valueType": {
+          "primitive": "number"
         }
       }
     }
@@ -28285,8 +28479,14 @@
           "primitive": "string"
         }
       },
-      "Id": {
-        "name": "Id",
+      "InstanceId": {
+        "name": "InstanceId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "VpcId": {
+        "name": "VpcId",
         "valueType": {
           "primitive": "string"
         }
@@ -29826,6 +30026,12 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "VpcId": {
+        "name": "VpcId",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     },
     "properties": {
@@ -30004,6 +30210,12 @@
         "name": "DeleteOnTermination",
         "valueType": {
           "primitive": "boolean"
+        }
+      },
+      "EnaSrdSpecification": {
+        "name": "EnaSrdSpecification",
+        "valueType": {
+          "named": "AWS::EC2::NetworkInterfaceAttachment.EnaSrdSpecification"
         }
       }
     }
@@ -30236,8 +30448,7 @@
         "name": "MaxEntries",
         "valueType": {
           "primitive": "number"
-        },
-        "required": true
+        }
       },
       "PrefixListName": {
         "name": "PrefixListName",
@@ -30928,6 +31139,12 @@
           "listOf": {
             "named": "CfnTag"
           }
+        }
+      },
+      "EnableLniAtDeviceIndex": {
+        "name": "EnableLniAtDeviceIndex",
+        "valueType": {
+          "primitive": "number"
         }
       },
       "Ipv6CidrBlocks": {
@@ -32183,7 +32400,8 @@
         "name": "DestinationCidrBlock",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "Blackhole": {
         "name": "Blackhole",
@@ -32273,14 +32491,7 @@
         "name": "CfnTransitGatewayRouteTableAssociation"
       }
     },
-    "attributes": {
-      "Id": {
-        "name": "Id",
-        "valueType": {
-          "primitive": "string"
-        }
-      }
-    },
+    "attributes": {},
     "properties": {
       "TransitGatewayRouteTableId": {
         "name": "TransitGatewayRouteTableId",
@@ -34908,6 +35119,14 @@
         "name": "LaunchType",
         "valueType": {
           "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
         }
       }
     }
@@ -42218,6 +42437,12 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "ContainerGroupsConfiguration.ContainerGroupsPerInstance.MaxReplicaContainerGroupsPerInstance": {
+        "name": "ContainerGroupsConfiguration.ContainerGroupsPerInstance.MaxReplicaContainerGroupsPerInstance",
+        "valueType": {
+          "primitive": "number"
+        }
       }
     },
     "properties": {
@@ -42368,8 +42593,20 @@
           "primitive": "string"
         }
       },
+      "ContainerGroupsConfiguration": {
+        "name": "ContainerGroupsConfiguration",
+        "valueType": {
+          "named": "AWS::GameLift::Fleet.ContainerGroupsConfiguration"
+        }
+      },
       "InstanceRoleCredentialsProvider": {
         "name": "InstanceRoleCredentialsProvider",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ServerLaunchParameters": {
+        "name": "ServerLaunchParameters",
         "valueType": {
           "primitive": "string"
         }
@@ -42380,12 +42617,6 @@
           "listOf": {
             "primitive": "string"
           }
-        }
-      },
-      "ServerLaunchParameters": {
-        "name": "ServerLaunchParameters",
-        "valueType": {
-          "primitive": "string"
         }
       },
       "ServerLaunchPath": {
@@ -43456,6 +43687,12 @@
         "name": "Tags",
         "valueType": {
           "primitive": "json"
+        }
+      },
+      "LakeFormationConfiguration": {
+        "name": "LakeFormationConfiguration",
+        "valueType": {
+          "named": "AWS::Glue::Crawler.LakeFormationConfiguration"
         }
       }
     }
@@ -46341,35 +46578,25 @@
         "name": "CfnFilter"
       }
     },
-    "attributes": {
-      "Id": {
-        "name": "Id",
-        "valueType": {
-          "primitive": "string"
-        }
-      }
-    },
+    "attributes": {},
     "properties": {
       "Action": {
         "name": "Action",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       },
       "Description": {
         "name": "Description",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       },
       "DetectorId": {
         "name": "DetectorId",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       },
       "FindingCriteria": {
         "name": "FindingCriteria",
@@ -46382,8 +46609,7 @@
         "name": "Rank",
         "valueType": {
           "primitive": "number"
-        },
-        "required": true
+        }
       },
       "Tags": {
         "name": "Tags",
@@ -46397,8 +46623,7 @@
         "name": "Name",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       }
     }
   },
@@ -46561,8 +46786,7 @@
         "name": "MemberId",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       },
       "Email": {
         "name": "Email",
@@ -46587,8 +46811,7 @@
         "name": "DetectorId",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       }
     }
   },
@@ -49653,6 +49876,18 @@
             "named": "CfnTag"
           }
         }
+      },
+      "LinkedAccountId": {
+        "name": "LinkedAccountId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "IncludeLinkedAccounts": {
+        "name": "IncludeLinkedAccounts",
+        "valueType": {
+          "primitive": "boolean"
+        }
       }
     }
   },
@@ -50454,6 +50689,12 @@
           "listOf": {
             "named": "CfnTag"
           }
+        }
+      },
+      "ServerCertificateConfig": {
+        "name": "ServerCertificateConfig",
+        "valueType": {
+          "named": "AWS::IoT::DomainConfiguration.ServerCertificateConfig"
         }
       }
     }
@@ -53235,6 +53476,12 @@
             "named": "AWS::IoTSiteWise::Asset.AssetHierarchy"
           }
         }
+      },
+      "AssetExternalId": {
+        "name": "AssetExternalId",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     }
   },
@@ -53320,6 +53567,18 @@
           "listOf": {
             "named": "CfnTag"
           }
+        }
+      },
+      "AssetModelType": {
+        "name": "AssetModelType",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AssetModelExternalId": {
+        "name": "AssetModelExternalId",
+        "valueType": {
+          "primitive": "string"
         }
       }
     }
@@ -55125,6 +55384,12 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "Positioning": {
+        "name": "Positioning",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     }
   },
@@ -55475,6 +55740,12 @@
             "named": "CfnTag"
           }
         }
+      },
+      "RotationPeriodInDays": {
+        "name": "RotationPeriodInDays",
+        "valueType": {
+          "primitive": "number"
+        }
       }
     }
   },
@@ -55676,6 +55947,14 @@
           }
         },
         "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
       }
     }
   },
@@ -55871,6 +56150,12 @@
           "primitive": "string"
         },
         "required": true
+      },
+      "LanguageCode": {
+        "name": "LanguageCode",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     }
   },
@@ -56715,6 +57000,12 @@
             "named": "CfnTag"
           }
         }
+      },
+      "SnowflakeDestinationConfiguration": {
+        "name": "SnowflakeDestinationConfiguration",
+        "valueType": {
+          "named": "AWS::KinesisFirehose::DeliveryStream.SnowflakeDestinationConfiguration"
+        }
       }
     }
   },
@@ -57380,6 +57671,12 @@
     "attributes": {
       "Id": {
         "name": "Id",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AliasArn": {
+        "name": "AliasArn",
         "valueType": {
           "primitive": "string"
         }
@@ -64587,7 +64884,8 @@
         "name": "ChannelName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "Description": {
         "name": "Description",
@@ -64599,7 +64897,8 @@
         "name": "ChannelGroupName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "Tags": {
         "name": "Tags",
@@ -64672,7 +64971,8 @@
         "name": "ChannelGroupName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "Tags": {
         "name": "Tags",
@@ -64721,13 +65021,15 @@
         "name": "ChannelName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "ChannelGroupName": {
         "name": "ChannelGroupName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       }
     }
   },
@@ -64786,7 +65088,8 @@
         "name": "ChannelName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "LowLatencyHlsManifests": {
         "name": "LowLatencyHlsManifests",
@@ -64800,14 +65103,14 @@
         "name": "ContainerType",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       },
       "OriginEndpointName": {
         "name": "OriginEndpointName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "HlsManifests": {
         "name": "HlsManifests",
@@ -64821,7 +65124,8 @@
         "name": "ChannelGroupName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "Segment": {
         "name": "Segment",
@@ -64882,19 +65186,22 @@
         "name": "ChannelName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "OriginEndpointName": {
         "name": "OriginEndpointName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "ChannelGroupName": {
         "name": "ChannelGroupName",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       }
     }
   },
@@ -65065,6 +65372,14 @@
         "valueType": {
           "listOf": {
             "named": "CfnTag"
+          }
+        }
+      },
+      "Audiences": {
+        "name": "Audiences",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
           }
         }
       },
@@ -68791,6 +69106,12 @@
           "mapOf": {
             "primitive": "string"
           }
+        }
+      },
+      "LinkConfiguration": {
+        "name": "LinkConfiguration",
+        "valueType": {
+          "named": "AWS::Oam::Link.LinkConfiguration"
         }
       }
     }
@@ -73112,6 +73433,12 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "OrchestrationSendingRoleArn": {
+        "name": "OrchestrationSendingRoleArn",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     }
   },
@@ -74695,6 +75022,12 @@
         },
         "required": true
       },
+      "ValidationStrategy": {
+        "name": "ValidationStrategy",
+        "valueType": {
+          "named": "AWS::QuickSight::Analysis.ValidationStrategy"
+        }
+      },
       "Errors": {
         "name": "Errors",
         "valueType": {
@@ -74709,12 +75042,6 @@
           "listOf": {
             "named": "AWS::QuickSight::Analysis.Sheet"
           }
-        }
-      },
-      "ValidationStrategy": {
-        "name": "ValidationStrategy",
-        "valueType": {
-          "named": "AWS::QuickSight::Analysis.ValidationStrategy"
         }
       }
     }
@@ -74915,16 +75242,24 @@
         },
         "required": true
       },
+      "ValidationStrategy": {
+        "name": "ValidationStrategy",
+        "valueType": {
+          "named": "AWS::QuickSight::Dashboard.ValidationStrategy"
+        }
+      },
       "LinkSharingConfiguration": {
         "name": "LinkSharingConfiguration",
         "valueType": {
           "named": "AWS::QuickSight::Dashboard.LinkSharingConfiguration"
         }
       },
-      "ValidationStrategy": {
-        "name": "ValidationStrategy",
+      "LinkEntities": {
+        "name": "LinkEntities",
         "valueType": {
-          "named": "AWS::QuickSight::Dashboard.ValidationStrategy"
+          "listOf": {
+            "primitive": "string"
+          }
         }
       }
     }
@@ -76076,8 +76411,7 @@
         "name": "DatabaseInstallationFilesS3BucketName",
         "valueType": {
           "primitive": "string"
-        },
-        "required": true
+        }
       },
       "Description": {
         "name": "Description",
@@ -76123,6 +76457,24 @@
           "listOf": {
             "named": "CfnTag"
           }
+        }
+      },
+      "SourceCustomDbEngineVersionIdentifier": {
+        "name": "SourceCustomDbEngineVersionIdentifier",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "UseAwsProvidedLatestImage": {
+        "name": "UseAwsProvidedLatestImage",
+        "valueType": {
+          "primitive": "boolean"
+        }
+      },
+      "ImageId": {
+        "name": "ImageId",
+        "valueType": {
+          "primitive": "string"
         }
       }
     }
@@ -76192,6 +76544,12 @@
         "name": "MasterUserSecret.SecretArn",
         "valueType": {
           "primitive": "string"
+        }
+      },
+      "StorageThroughput": {
+        "name": "StorageThroughput",
+        "valueType": {
+          "primitive": "number"
         }
       },
       "ReadEndpoint": {
@@ -77134,14 +77492,14 @@
           "primitive": "boolean"
         }
       },
-      "DedicatedLogVolume": {
-        "name": "DedicatedLogVolume",
-        "valueType": {
-          "primitive": "boolean"
-        }
-      },
       "TdeCredentialArn": {
         "name": "TdeCredentialArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AutomaticBackupReplicationKmsKeyId": {
+        "name": "AutomaticBackupReplicationKmsKeyId",
         "valueType": {
           "primitive": "string"
         }
@@ -77150,6 +77508,12 @@
         "name": "TdeCredentialPassword",
         "valueType": {
           "primitive": "string"
+        }
+      },
+      "DedicatedLogVolume": {
+        "name": "DedicatedLogVolume",
+        "valueType": {
+          "primitive": "boolean"
         }
       }
     }
@@ -79231,6 +79595,38 @@
             "primitive": "string"
           }
         }
+      },
+      "AdminPasswordSecretKmsKeyId": {
+        "name": "AdminPasswordSecretKmsKeyId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ManageAdminPassword": {
+        "name": "ManageAdminPassword",
+        "valueType": {
+          "primitive": "boolean"
+        }
+      },
+      "NamespaceResourcePolicy": {
+        "name": "NamespaceResourcePolicy",
+        "valueType": {
+          "primitive": "json"
+        }
+      },
+      "RedshiftIdcApplicationArn": {
+        "name": "RedshiftIdcApplicationArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "SnapshotCopyConfigurations": {
+        "name": "SnapshotCopyConfigurations",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::RedshiftServerless::Namespace.SnapshotCopyConfiguration"
+          }
+        }
       }
     }
   },
@@ -79368,6 +79764,12 @@
             "primitive": "string"
           }
         }
+      },
+      "Workgroup.MaxCapacity": {
+        "name": "Workgroup.MaxCapacity",
+        "valueType": {
+          "primitive": "number"
+        }
       }
     },
     "properties": {
@@ -79438,6 +79840,12 @@
           "listOf": {
             "named": "CfnTag"
           }
+        }
+      },
+      "MaxCapacity": {
+        "name": "MaxCapacity",
+        "valueType": {
+          "primitive": "number"
         }
       }
     }
@@ -81534,6 +81942,12 @@
         "name": "Weight",
         "valueType": {
           "primitive": "number"
+        }
+      },
+      "GeoProximityLocation": {
+        "name": "GeoProximityLocation",
+        "valueType": {
+          "named": "AWS::Route53::RecordSet.GeoProximityLocation"
         }
       }
     }
@@ -86919,6 +87333,18 @@
             "named": "CfnTag"
           }
         }
+      },
+      "JupyterLabAppImageConfig": {
+        "name": "JupyterLabAppImageConfig",
+        "valueType": {
+          "named": "AWS::SageMaker::AppImageConfig.JupyterLabAppImageConfig"
+        }
+      },
+      "CodeEditorAppImageConfig": {
+        "name": "CodeEditorAppImageConfig",
+        "valueType": {
+          "named": "AWS::SageMaker::AppImageConfig.CodeEditorAppImageConfig"
+        }
       }
     }
   },
@@ -89368,6 +89794,12 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "Url": {
+        "name": "Url",
+        "valueType": {
+          "primitive": "string"
+        }
       }
     },
     "properties": {
@@ -89397,6 +89829,24 @@
           "listOf": {
             "named": "CfnTag"
           }
+        }
+      },
+      "OwnershipSettings": {
+        "name": "OwnershipSettings",
+        "valueType": {
+          "named": "AWS::SageMaker::Space.OwnershipSettings"
+        }
+      },
+      "SpaceSharingSettings": {
+        "name": "SpaceSharingSettings",
+        "valueType": {
+          "named": "AWS::SageMaker::Space.SpaceSharingSettings"
+        }
+      },
+      "SpaceDisplayName": {
+        "name": "SpaceDisplayName",
+        "valueType": {
+          "primitive": "string"
         }
       }
     }
@@ -94294,7 +94744,8 @@
         "name": "PolicyStoreId",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       }
     }
   },
@@ -94463,7 +94914,8 @@
         "name": "PolicyStoreId",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       }
     }
   },
@@ -97710,6 +98162,18 @@
         "valueType": {
           "primitive": "string"
         }
+      },
+      "InstanceType": {
+        "name": "InstanceType",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "MaxConcurrentSessions": {
+        "name": "MaxConcurrentSessions",
+        "valueType": {
+          "primitive": "number"
+        }
       }
     }
   },
@@ -99590,6 +100054,172 @@
       }
     }
   },
+  "AWS::AppIntegrations::Application": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-appintegrations",
+        "name": "CfnApplication"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.AppIntegrations",
+        "name": "CfnApplication"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsappintegrations",
+        "package": "awsappintegrations",
+        "name": "CfnApplication"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.appintegrations",
+        "name": "CfnApplication"
+      },
+      "python": {
+        "module": "aws_cdk.aws_appintegrations",
+        "name": "CfnApplication"
+      }
+    },
+    "attributes": {
+      "ApplicationArn": {
+        "name": "ApplicationArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Id": {
+        "name": "Id",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Namespace": {
+        "name": "Namespace",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "ApplicationSourceConfig": {
+        "name": "ApplicationSourceConfig",
+        "valueType": {
+          "named": "AWS::AppIntegrations::Application.ApplicationSourceConfig"
+        },
+        "required": true
+      },
+      "Permissions": {
+        "name": "Permissions",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::APS::Scraper": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-aps",
+        "name": "CfnScraper"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.APS",
+        "name": "CfnScraper"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsaps",
+        "package": "awsaps",
+        "name": "CfnScraper"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.aps",
+        "name": "CfnScraper"
+      },
+      "python": {
+        "module": "aws_cdk.aws_aps",
+        "name": "CfnScraper"
+      }
+    },
+    "attributes": {
+      "ScraperId": {
+        "name": "ScraperId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "RoleArn": {
+        "name": "RoleArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Alias": {
+        "name": "Alias",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ScrapeConfiguration": {
+        "name": "ScrapeConfiguration",
+        "valueType": {
+          "named": "AWS::APS::Scraper.ScrapeConfiguration"
+        },
+        "required": true
+      },
+      "Source": {
+        "name": "Source",
+        "valueType": {
+          "named": "AWS::APS::Scraper.Source"
+        },
+        "required": true
+      },
+      "Destination": {
+        "name": "Destination",
+        "valueType": {
+          "named": "AWS::APS::Scraper.Destination"
+        },
+        "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
   "AWS::ARCZonalShift::ZonalAutoshiftConfiguration": {
     "construct": {
       "typescript": {
@@ -99632,7 +100262,8 @@
         "name": "ResourceIdentifier",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       }
     }
   },
@@ -99960,6 +100591,12 @@
           "primitive": "string"
         }
       },
+      "ModifiedAt": {
+        "name": "ModifiedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
       "TransformerArn": {
         "name": "TransformerArn",
         "valueType": {
@@ -99994,12 +100631,6 @@
           "primitive": "string"
         },
         "required": true
-      },
-      "ModifiedAt": {
-        "name": "ModifiedAt",
-        "valueType": {
-          "primitive": "string"
-        }
       },
       "Name": {
         "name": "Name",
@@ -100191,6 +100822,852 @@
       }
     }
   },
+  "AWS::BCMDataExports::Export": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-bcmdataexports",
+        "name": "CfnExport"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.BCMDataExports",
+        "name": "CfnExport"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsbcmdataexports",
+        "package": "awsbcmdataexports",
+        "name": "CfnExport"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.bcmdataexports",
+        "name": "CfnExport"
+      },
+      "python": {
+        "module": "aws_cdk.aws_bcmdataexports",
+        "name": "CfnExport"
+      }
+    },
+    "attributes": {
+      "ExportArn": {
+        "name": "ExportArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Export": {
+        "name": "Export",
+        "valueType": {
+          "named": "AWS::BCMDataExports::Export.Export"
+        },
+        "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::BCMDataExports::Export.ResourceTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::Bedrock::Agent": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-bedrock",
+        "name": "CfnAgent"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Bedrock",
+        "name": "CfnAgent"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsbedrock",
+        "package": "awsbedrock",
+        "name": "CfnAgent"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.bedrock",
+        "name": "CfnAgent"
+      },
+      "python": {
+        "module": "aws_cdk.aws_bedrock",
+        "name": "CfnAgent"
+      }
+    },
+    "attributes": {
+      "AgentArn": {
+        "name": "AgentArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AgentId": {
+        "name": "AgentId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AgentStatus": {
+        "name": "AgentStatus",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AgentVersion": {
+        "name": "AgentVersion",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "CreatedAt": {
+        "name": "CreatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "FailureReasons": {
+        "name": "FailureReasons",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "PreparedAt": {
+        "name": "PreparedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "RecommendedActions": {
+        "name": "RecommendedActions",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "UpdatedAt": {
+        "name": "UpdatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "ActionGroups": {
+        "name": "ActionGroups",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::Bedrock::Agent.AgentActionGroup"
+          }
+        }
+      },
+      "AgentName": {
+        "name": "AgentName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "AgentResourceRoleArn": {
+        "name": "AgentResourceRoleArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AutoPrepare": {
+        "name": "AutoPrepare",
+        "valueType": {
+          "primitive": "boolean"
+        }
+      },
+      "CustomerEncryptionKeyArn": {
+        "name": "CustomerEncryptionKeyArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "SkipResourceInUseCheckOnDelete": {
+        "name": "SkipResourceInUseCheckOnDelete",
+        "valueType": {
+          "primitive": "boolean"
+        }
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "FoundationModel": {
+        "name": "FoundationModel",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "IdleSessionTTLInSeconds": {
+        "name": "IdleSessionTTLInSeconds",
+        "valueType": {
+          "primitive": "number"
+        }
+      },
+      "Instruction": {
+        "name": "Instruction",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "KnowledgeBases": {
+        "name": "KnowledgeBases",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::Bedrock::Agent.AgentKnowledgeBase"
+          }
+        }
+      },
+      "PromptOverrideConfiguration": {
+        "name": "PromptOverrideConfiguration",
+        "valueType": {
+          "named": "AWS::Bedrock::Agent.PromptOverrideConfiguration"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "mapOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "TestAliasTags": {
+        "name": "TestAliasTags",
+        "valueType": {
+          "mapOf": {
+            "primitive": "string"
+          }
+        }
+      }
+    }
+  },
+  "AWS::Bedrock::AgentAlias": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-bedrock",
+        "name": "CfnAgentAlias"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Bedrock",
+        "name": "CfnAgentAlias"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsbedrock",
+        "package": "awsbedrock",
+        "name": "CfnAgentAlias"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.bedrock",
+        "name": "CfnAgentAlias"
+      },
+      "python": {
+        "module": "aws_cdk.aws_bedrock",
+        "name": "CfnAgentAlias"
+      }
+    },
+    "attributes": {
+      "AgentAliasArn": {
+        "name": "AgentAliasArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AgentAliasHistoryEvents": {
+        "name": "AgentAliasHistoryEvents",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::Bedrock::AgentAlias.AgentAliasHistoryEvent"
+          }
+        }
+      },
+      "AgentAliasId": {
+        "name": "AgentAliasId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AgentAliasStatus": {
+        "name": "AgentAliasStatus",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "CreatedAt": {
+        "name": "CreatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "UpdatedAt": {
+        "name": "UpdatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "AgentAliasName": {
+        "name": "AgentAliasName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "AgentId": {
+        "name": "AgentId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "RoutingConfiguration": {
+        "name": "RoutingConfiguration",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::Bedrock::AgentAlias.AgentAliasRoutingConfigurationListItem"
+          }
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "mapOf": {
+            "primitive": "string"
+          }
+        }
+      }
+    }
+  },
+  "AWS::Bedrock::DataSource": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-bedrock",
+        "name": "CfnDataSource"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Bedrock",
+        "name": "CfnDataSource"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsbedrock",
+        "package": "awsbedrock",
+        "name": "CfnDataSource"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.bedrock",
+        "name": "CfnDataSource"
+      },
+      "python": {
+        "module": "aws_cdk.aws_bedrock",
+        "name": "CfnDataSource"
+      }
+    },
+    "attributes": {
+      "DataSourceId": {
+        "name": "DataSourceId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "DataSourceStatus": {
+        "name": "DataSourceStatus",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "CreatedAt": {
+        "name": "CreatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "UpdatedAt": {
+        "name": "UpdatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "DataSourceConfiguration": {
+        "name": "DataSourceConfiguration",
+        "valueType": {
+          "named": "AWS::Bedrock::DataSource.DataSourceConfiguration"
+        },
+        "required": true
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "KnowledgeBaseId": {
+        "name": "KnowledgeBaseId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "ServerSideEncryptionConfiguration": {
+        "name": "ServerSideEncryptionConfiguration",
+        "valueType": {
+          "named": "AWS::Bedrock::DataSource.ServerSideEncryptionConfiguration"
+        }
+      },
+      "VectorIngestionConfiguration": {
+        "name": "VectorIngestionConfiguration",
+        "valueType": {
+          "named": "AWS::Bedrock::DataSource.VectorIngestionConfiguration"
+        }
+      }
+    }
+  },
+  "AWS::Bedrock::Guardrail": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-bedrock",
+        "name": "CfnGuardrail"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Bedrock",
+        "name": "CfnGuardrail"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsbedrock",
+        "package": "awsbedrock",
+        "name": "CfnGuardrail"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.bedrock",
+        "name": "CfnGuardrail"
+      },
+      "python": {
+        "module": "aws_cdk.aws_bedrock",
+        "name": "CfnGuardrail"
+      }
+    },
+    "attributes": {
+      "CreatedAt": {
+        "name": "CreatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "FailureRecommendations": {
+        "name": "FailureRecommendations",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "GuardrailArn": {
+        "name": "GuardrailArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "GuardrailId": {
+        "name": "GuardrailId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Status": {
+        "name": "Status",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "StatusReasons": {
+        "name": "StatusReasons",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "UpdatedAt": {
+        "name": "UpdatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Version": {
+        "name": "Version",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "BlockedInputMessaging": {
+        "name": "BlockedInputMessaging",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "BlockedOutputsMessaging": {
+        "name": "BlockedOutputsMessaging",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "ContentPolicyConfig": {
+        "name": "ContentPolicyConfig",
+        "valueType": {
+          "named": "AWS::Bedrock::Guardrail.ContentPolicyConfig"
+        }
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "KmsKeyArn": {
+        "name": "KmsKeyArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "SensitiveInformationPolicyConfig": {
+        "name": "SensitiveInformationPolicyConfig",
+        "valueType": {
+          "named": "AWS::Bedrock::Guardrail.SensitiveInformationPolicyConfig"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      },
+      "TopicPolicyConfig": {
+        "name": "TopicPolicyConfig",
+        "valueType": {
+          "named": "AWS::Bedrock::Guardrail.TopicPolicyConfig"
+        }
+      },
+      "WordPolicyConfig": {
+        "name": "WordPolicyConfig",
+        "valueType": {
+          "named": "AWS::Bedrock::Guardrail.WordPolicyConfig"
+        }
+      }
+    }
+  },
+  "AWS::Bedrock::KnowledgeBase": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-bedrock",
+        "name": "CfnKnowledgeBase"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Bedrock",
+        "name": "CfnKnowledgeBase"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsbedrock",
+        "package": "awsbedrock",
+        "name": "CfnKnowledgeBase"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.bedrock",
+        "name": "CfnKnowledgeBase"
+      },
+      "python": {
+        "module": "aws_cdk.aws_bedrock",
+        "name": "CfnKnowledgeBase"
+      }
+    },
+    "attributes": {
+      "KnowledgeBaseId": {
+        "name": "KnowledgeBaseId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "KnowledgeBaseArn": {
+        "name": "KnowledgeBaseArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "CreatedAt": {
+        "name": "CreatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "UpdatedAt": {
+        "name": "UpdatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "FailureReasons": {
+        "name": "FailureReasons",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "Status": {
+        "name": "Status",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "KnowledgeBaseConfiguration": {
+        "name": "KnowledgeBaseConfiguration",
+        "valueType": {
+          "named": "AWS::Bedrock::KnowledgeBase.KnowledgeBaseConfiguration"
+        },
+        "required": true
+      },
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "RoleArn": {
+        "name": "RoleArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "mapOf": {
+            "primitive": "string"
+          }
+        }
+      }
+    }
+  },
+  "AWS::CleanRooms::PrivacyBudgetTemplate": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-cleanrooms",
+        "name": "CfnPrivacyBudgetTemplate"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.CleanRooms",
+        "name": "CfnPrivacyBudgetTemplate"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awscleanrooms",
+        "package": "awscleanrooms",
+        "name": "CfnPrivacyBudgetTemplate"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.cleanrooms",
+        "name": "CfnPrivacyBudgetTemplate"
+      },
+      "python": {
+        "module": "aws_cdk.aws_cleanrooms",
+        "name": "CfnPrivacyBudgetTemplate"
+      }
+    },
+    "attributes": {
+      "CollaborationArn": {
+        "name": "CollaborationArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "CollaborationIdentifier": {
+        "name": "CollaborationIdentifier",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "PrivacyBudgetTemplateIdentifier": {
+        "name": "PrivacyBudgetTemplateIdentifier",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "MembershipArn": {
+        "name": "MembershipArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      },
+      "AutoRefresh": {
+        "name": "AutoRefresh",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "PrivacyBudgetType": {
+        "name": "PrivacyBudgetType",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Parameters": {
+        "name": "Parameters",
+        "valueType": {
+          "named": "AWS::CleanRooms::PrivacyBudgetTemplate.Parameters"
+        },
+        "required": true
+      },
+      "MembershipIdentifier": {
+        "name": "MembershipIdentifier",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::CleanRoomsML::TrainingDataset": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-cleanroomsml",
+        "name": "CfnTrainingDataset"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.CleanRoomsML",
+        "name": "CfnTrainingDataset"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awscleanroomsml",
+        "package": "awscleanroomsml",
+        "name": "CfnTrainingDataset"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.cleanroomsml",
+        "name": "CfnTrainingDataset"
+      },
+      "python": {
+        "module": "aws_cdk.aws_cleanroomsml",
+        "name": "CfnTrainingDataset"
+      }
+    },
+    "attributes": {
+      "Status": {
+        "name": "Status",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "TrainingDatasetArn": {
+        "name": "TrainingDatasetArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "RoleArn": {
+        "name": "RoleArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      },
+      "TrainingData": {
+        "name": "TrainingData",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::CleanRoomsML::TrainingDataset.Dataset"
+          }
+        },
+        "required": true
+      }
+    }
+  },
   "AWS::CloudFront::KeyValueStore": {
     "construct": {
       "typescript": {
@@ -100253,6 +101730,228 @@
         "name": "ImportSource",
         "valueType": {
           "named": "AWS::CloudFront::KeyValueStore.ImportSource"
+        }
+      }
+    }
+  },
+  "AWS::CodeArtifact::PackageGroup": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-codeartifact",
+        "name": "CfnPackageGroup"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.CodeArtifact",
+        "name": "CfnPackageGroup"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awscodeartifact",
+        "package": "awscodeartifact",
+        "name": "CfnPackageGroup"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.codeartifact",
+        "name": "CfnPackageGroup"
+      },
+      "python": {
+        "module": "aws_cdk.aws_codeartifact",
+        "name": "CfnPackageGroup"
+      }
+    },
+    "attributes": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "DomainName": {
+        "name": "DomainName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "DomainOwner": {
+        "name": "DomainOwner",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Pattern": {
+        "name": "Pattern",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "ContactInfo": {
+        "name": "ContactInfo",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "OriginConfiguration": {
+        "name": "OriginConfiguration",
+        "valueType": {
+          "named": "AWS::CodeArtifact::PackageGroup.OriginConfiguration"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::CodeBuild::Fleet": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-codebuild",
+        "name": "CfnFleet"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.CodeBuild",
+        "name": "CfnFleet"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awscodebuild",
+        "package": "awscodebuild",
+        "name": "CfnFleet"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.codebuild",
+        "name": "CfnFleet"
+      },
+      "python": {
+        "module": "aws_cdk.aws_codebuild",
+        "name": "CfnFleet"
+      }
+    },
+    "attributes": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "BaseCapacity": {
+        "name": "BaseCapacity",
+        "valueType": {
+          "primitive": "number"
+        }
+      },
+      "EnvironmentType": {
+        "name": "EnvironmentType",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ComputeType": {
+        "name": "ComputeType",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::CodeConnections::Connection": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-codeconnections",
+        "name": "CfnConnection"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.CodeConnections",
+        "name": "CfnConnection"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awscodeconnections",
+        "package": "awscodeconnections",
+        "name": "CfnConnection"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.codeconnections",
+        "name": "CfnConnection"
+      },
+      "python": {
+        "module": "aws_cdk.aws_codeconnections",
+        "name": "CfnConnection"
+      }
+    },
+    "attributes": {
+      "ConnectionArn": {
+        "name": "ConnectionArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ConnectionStatus": {
+        "name": "ConnectionStatus",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "OwnerAccountId": {
+        "name": "OwnerAccountId",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "ConnectionName": {
+        "name": "ConnectionName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "ProviderType": {
+        "name": "ProviderType",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "HostArn": {
+        "name": "HostArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
         }
       }
     }
@@ -100419,6 +102118,18 @@
         },
         "required": true
       },
+      "PublishDeploymentStatus": {
+        "name": "PublishDeploymentStatus",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "TriggerResourceUpdateOn": {
+        "name": "TriggerResourceUpdateOn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
       "RepositoryLinkId": {
         "name": "RepositoryLinkId",
         "valueType": {
@@ -100502,7 +102213,20 @@
         "name": "CfnPredefinedAttribute"
       }
     },
-    "attributes": {},
+    "attributes": {
+      "LastModifiedRegion": {
+        "name": "LastModifiedRegion",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "LastModifiedTime": {
+        "name": "LastModifiedTime",
+        "valueType": {
+          "primitive": "number"
+        }
+      }
+    },
     "properties": {
       "InstanceArn": {
         "name": "InstanceArn",
@@ -100524,6 +102248,78 @@
           "named": "AWS::Connect::PredefinedAttribute.Values"
         },
         "required": true
+      }
+    }
+  },
+  "AWS::ControlTower::EnabledBaseline": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-controltower",
+        "name": "CfnEnabledBaseline"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.ControlTower",
+        "name": "CfnEnabledBaseline"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awscontroltower",
+        "package": "awscontroltower",
+        "name": "CfnEnabledBaseline"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.controltower",
+        "name": "CfnEnabledBaseline"
+      },
+      "python": {
+        "module": "aws_cdk.aws_controltower",
+        "name": "CfnEnabledBaseline"
+      }
+    },
+    "attributes": {
+      "EnabledBaselineIdentifier": {
+        "name": "EnabledBaselineIdentifier",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "BaselineIdentifier": {
+        "name": "BaselineIdentifier",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "BaselineVersion": {
+        "name": "BaselineVersion",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "TargetIdentifier": {
+        "name": "TargetIdentifier",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Parameters": {
+        "name": "Parameters",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::ControlTower::EnabledBaseline.Parameter"
+          }
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
       }
     }
   },
@@ -101207,13 +103003,15 @@
         "name": "AwsAccountId",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "AwsAccountRegion": {
         "name": "AwsAccountRegion",
         "valueType": {
           "primitive": "string"
-        }
+        },
+        "required": true
       },
       "Description": {
         "name": "Description",
@@ -101491,6 +103289,608 @@
       }
     }
   },
+  "AWS::Deadline::Farm": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-deadline",
+        "name": "CfnFarm"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Deadline",
+        "name": "CfnFarm"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsdeadline",
+        "package": "awsdeadline",
+        "name": "CfnFarm"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.deadline",
+        "name": "CfnFarm"
+      },
+      "python": {
+        "module": "aws_cdk.aws_deadline",
+        "name": "CfnFarm"
+      }
+    },
+    "attributes": {
+      "FarmId": {
+        "name": "FarmId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "DisplayName": {
+        "name": "DisplayName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "KmsKeyArn": {
+        "name": "KmsKeyArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    }
+  },
+  "AWS::Deadline::Fleet": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-deadline",
+        "name": "CfnFleet"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Deadline",
+        "name": "CfnFleet"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsdeadline",
+        "package": "awsdeadline",
+        "name": "CfnFleet"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.deadline",
+        "name": "CfnFleet"
+      },
+      "python": {
+        "module": "aws_cdk.aws_deadline",
+        "name": "CfnFleet"
+      }
+    },
+    "attributes": {
+      "Capabilities": {
+        "name": "Capabilities",
+        "valueType": {
+          "named": "AWS::Deadline::Fleet.FleetCapabilities"
+        }
+      },
+      "FleetId": {
+        "name": "FleetId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Status": {
+        "name": "Status",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "WorkerCount": {
+        "name": "WorkerCount",
+        "valueType": {
+          "primitive": "number"
+        }
+      },
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Configuration": {
+        "name": "Configuration",
+        "valueType": {
+          "named": "AWS::Deadline::Fleet.FleetConfiguration"
+        },
+        "required": true
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "DisplayName": {
+        "name": "DisplayName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "FarmId": {
+        "name": "FarmId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "MaxWorkerCount": {
+        "name": "MaxWorkerCount",
+        "valueType": {
+          "primitive": "number"
+        },
+        "required": true
+      },
+      "MinWorkerCount": {
+        "name": "MinWorkerCount",
+        "valueType": {
+          "primitive": "number"
+        }
+      },
+      "RoleArn": {
+        "name": "RoleArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::Deadline::LicenseEndpoint": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-deadline",
+        "name": "CfnLicenseEndpoint"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Deadline",
+        "name": "CfnLicenseEndpoint"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsdeadline",
+        "package": "awsdeadline",
+        "name": "CfnLicenseEndpoint"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.deadline",
+        "name": "CfnLicenseEndpoint"
+      },
+      "python": {
+        "module": "aws_cdk.aws_deadline",
+        "name": "CfnLicenseEndpoint"
+      }
+    },
+    "attributes": {
+      "DnsName": {
+        "name": "DnsName",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "LicenseEndpointId": {
+        "name": "LicenseEndpointId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Status": {
+        "name": "Status",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "StatusMessage": {
+        "name": "StatusMessage",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "SecurityGroupIds": {
+        "name": "SecurityGroupIds",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        },
+        "required": true
+      },
+      "SubnetIds": {
+        "name": "SubnetIds",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        },
+        "required": true
+      },
+      "VpcId": {
+        "name": "VpcId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::Deadline::MeteredProduct": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-deadline",
+        "name": "CfnMeteredProduct"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Deadline",
+        "name": "CfnMeteredProduct"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsdeadline",
+        "package": "awsdeadline",
+        "name": "CfnMeteredProduct"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.deadline",
+        "name": "CfnMeteredProduct"
+      },
+      "python": {
+        "module": "aws_cdk.aws_deadline",
+        "name": "CfnMeteredProduct"
+      }
+    },
+    "attributes": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "LicenseEndpointId": {
+        "name": "LicenseEndpointId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ProductId": {
+        "name": "ProductId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Port": {
+        "name": "Port",
+        "valueType": {
+          "primitive": "number"
+        }
+      },
+      "Family": {
+        "name": "Family",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Vendor": {
+        "name": "Vendor",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    }
+  },
+  "AWS::Deadline::Queue": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-deadline",
+        "name": "CfnQueue"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Deadline",
+        "name": "CfnQueue"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsdeadline",
+        "package": "awsdeadline",
+        "name": "CfnQueue"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.deadline",
+        "name": "CfnQueue"
+      },
+      "python": {
+        "module": "aws_cdk.aws_deadline",
+        "name": "CfnQueue"
+      }
+    },
+    "attributes": {
+      "QueueId": {
+        "name": "QueueId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "AllowedStorageProfileIds": {
+        "name": "AllowedStorageProfileIds",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "DefaultBudgetAction": {
+        "name": "DefaultBudgetAction",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "DisplayName": {
+        "name": "DisplayName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "FarmId": {
+        "name": "FarmId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "JobAttachmentSettings": {
+        "name": "JobAttachmentSettings",
+        "valueType": {
+          "named": "AWS::Deadline::Queue.JobAttachmentSettings"
+        }
+      },
+      "JobRunAsUser": {
+        "name": "JobRunAsUser",
+        "valueType": {
+          "named": "AWS::Deadline::Queue.JobRunAsUser"
+        }
+      },
+      "RequiredFileSystemLocationNames": {
+        "name": "RequiredFileSystemLocationNames",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "RoleArn": {
+        "name": "RoleArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    }
+  },
+  "AWS::Deadline::QueueEnvironment": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-deadline",
+        "name": "CfnQueueEnvironment"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Deadline",
+        "name": "CfnQueueEnvironment"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsdeadline",
+        "package": "awsdeadline",
+        "name": "CfnQueueEnvironment"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.deadline",
+        "name": "CfnQueueEnvironment"
+      },
+      "python": {
+        "module": "aws_cdk.aws_deadline",
+        "name": "CfnQueueEnvironment"
+      }
+    },
+    "attributes": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "QueueEnvironmentId": {
+        "name": "QueueEnvironmentId",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "FarmId": {
+        "name": "FarmId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Priority": {
+        "name": "Priority",
+        "valueType": {
+          "primitive": "number"
+        },
+        "required": true
+      },
+      "QueueId": {
+        "name": "QueueId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Template": {
+        "name": "Template",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "TemplateType": {
+        "name": "TemplateType",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::Deadline::QueueFleetAssociation": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-deadline",
+        "name": "CfnQueueFleetAssociation"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Deadline",
+        "name": "CfnQueueFleetAssociation"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsdeadline",
+        "package": "awsdeadline",
+        "name": "CfnQueueFleetAssociation"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.deadline",
+        "name": "CfnQueueFleetAssociation"
+      },
+      "python": {
+        "module": "aws_cdk.aws_deadline",
+        "name": "CfnQueueFleetAssociation"
+      }
+    },
+    "attributes": {},
+    "properties": {
+      "FarmId": {
+        "name": "FarmId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "FleetId": {
+        "name": "FleetId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "QueueId": {
+        "name": "QueueId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::Deadline::StorageProfile": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-deadline",
+        "name": "CfnStorageProfile"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Deadline",
+        "name": "CfnStorageProfile"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsdeadline",
+        "package": "awsdeadline",
+        "name": "CfnStorageProfile"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.deadline",
+        "name": "CfnStorageProfile"
+      },
+      "python": {
+        "module": "aws_cdk.aws_deadline",
+        "name": "CfnStorageProfile"
+      }
+    },
+    "attributes": {
+      "StorageProfileId": {
+        "name": "StorageProfileId",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "DisplayName": {
+        "name": "DisplayName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "FarmId": {
+        "name": "FarmId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "FileSystemLocations": {
+        "name": "FileSystemLocations",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::Deadline::StorageProfile.FileSystemLocation"
+          }
+        }
+      },
+      "OsFamily": {
+        "name": "OsFamily",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
   "AWS::DMS::DataProvider": {
     "construct": {
       "typescript": {
@@ -101561,6 +103961,14 @@
           "primitive": "boolean"
         }
       },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      },
       "Settings": {
         "name": "Settings",
         "valueType": {
@@ -101569,14 +103977,6 @@
               "named": "AWS::DMS::DataProvider.Settings"
             }
           ]
-        }
-      },
-      "Tags": {
-        "name": "Tags",
-        "valueType": {
-          "listOf": {
-            "named": "CfnTag"
-          }
         }
       }
     }
@@ -101917,6 +104317,101 @@
       }
     }
   },
+  "AWS::ECR::RepositoryCreationTemplate": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-ecr",
+        "name": "CfnRepositoryCreationTemplate"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.ECR",
+        "name": "CfnRepositoryCreationTemplate"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsecr",
+        "package": "awsecr",
+        "name": "CfnRepositoryCreationTemplate"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.ecr",
+        "name": "CfnRepositoryCreationTemplate"
+      },
+      "python": {
+        "module": "aws_cdk.aws_ecr",
+        "name": "CfnRepositoryCreationTemplate"
+      }
+    },
+    "attributes": {
+      "CreatedAt": {
+        "name": "CreatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "UpdatedAt": {
+        "name": "UpdatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Prefix": {
+        "name": "Prefix",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ImageTagMutability": {
+        "name": "ImageTagMutability",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "RepositoryPolicy": {
+        "name": "RepositoryPolicy",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "LifecyclePolicy": {
+        "name": "LifecyclePolicy",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "EncryptionConfiguration": {
+        "name": "EncryptionConfiguration",
+        "valueType": {
+          "named": "AWS::ECR::RepositoryCreationTemplate.EncryptionConfiguration"
+        }
+      },
+      "ResourceTags": {
+        "name": "ResourceTags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      },
+      "AppliedFor": {
+        "name": "AppliedFor",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        },
+        "required": true
+      }
+    }
+  },
   "AWS::EKS::AccessEntry": {
     "construct": {
       "typescript": {
@@ -102131,7 +104626,7 @@
       "Endpoint.Port": {
         "name": "Endpoint.Port",
         "valueType": {
-          "primitive": "number"
+          "primitive": "string"
         }
       },
       "ReaderEndpoint.Address": {
@@ -102143,7 +104638,7 @@
       "ReaderEndpoint.Port": {
         "name": "ReaderEndpoint.Port",
         "valueType": {
-          "primitive": "number"
+          "primitive": "string"
         }
       },
       "ARN": {
@@ -102471,8 +104966,7 @@
           "listOf": {
             "named": "AWS::EntityResolution::IdMappingWorkflow.IdMappingWorkflowOutputSource"
           }
-        },
-        "required": true
+        }
       },
       "IdMappingTechniques": {
         "name": "IdMappingTechniques",
@@ -102494,6 +104988,173 @@
           "listOf": {
             "named": "CfnTag"
           }
+        }
+      }
+    }
+  },
+  "AWS::EntityResolution::IdNamespace": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-entityresolution",
+        "name": "CfnIdNamespace"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.EntityResolution",
+        "name": "CfnIdNamespace"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsentityresolution",
+        "package": "awsentityresolution",
+        "name": "CfnIdNamespace"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.entityresolution",
+        "name": "CfnIdNamespace"
+      },
+      "python": {
+        "module": "aws_cdk.aws_entityresolution",
+        "name": "CfnIdNamespace"
+      }
+    },
+    "attributes": {
+      "IdNamespaceArn": {
+        "name": "IdNamespaceArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "CreatedAt": {
+        "name": "CreatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "UpdatedAt": {
+        "name": "UpdatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "IdNamespaceName": {
+        "name": "IdNamespaceName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "InputSourceConfig": {
+        "name": "InputSourceConfig",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::EntityResolution::IdNamespace.IdNamespaceInputSource"
+          }
+        }
+      },
+      "IdMappingWorkflowProperties": {
+        "name": "IdMappingWorkflowProperties",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::EntityResolution::IdNamespace.IdNamespaceIdMappingWorkflowProperties"
+          }
+        }
+      },
+      "Type": {
+        "name": "Type",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "RoleArn": {
+        "name": "RoleArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::EntityResolution::PolicyStatement": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-entityresolution",
+        "name": "CfnPolicyStatement"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.EntityResolution",
+        "name": "CfnPolicyStatement"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsentityresolution",
+        "package": "awsentityresolution",
+        "name": "CfnPolicyStatement"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.entityresolution",
+        "name": "CfnPolicyStatement"
+      },
+      "python": {
+        "module": "aws_cdk.aws_entityresolution",
+        "name": "CfnPolicyStatement"
+      }
+    },
+    "attributes": {},
+    "properties": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "StatementId": {
+        "name": "StatementId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Effect": {
+        "name": "Effect",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Action": {
+        "name": "Action",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "Principal": {
+        "name": "Principal",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "Condition": {
+        "name": "Condition",
+        "valueType": {
+          "primitive": "string"
         }
       }
     }
@@ -102549,6 +105210,164 @@
         "name": "Description",
         "valueType": {
           "primitive": "string"
+        }
+      }
+    }
+  },
+  "AWS::GameLift::ContainerGroupDefinition": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-gamelift",
+        "name": "CfnContainerGroupDefinition"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.GameLift",
+        "name": "CfnContainerGroupDefinition"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsgamelift",
+        "package": "awsgamelift",
+        "name": "CfnContainerGroupDefinition"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.gamelift",
+        "name": "CfnContainerGroupDefinition"
+      },
+      "python": {
+        "module": "aws_cdk.aws_gamelift",
+        "name": "CfnContainerGroupDefinition"
+      }
+    },
+    "attributes": {
+      "ContainerGroupDefinitionArn": {
+        "name": "ContainerGroupDefinitionArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "CreationTime": {
+        "name": "CreationTime",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "SchedulingStrategy": {
+        "name": "SchedulingStrategy",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "TotalMemoryLimit": {
+        "name": "TotalMemoryLimit",
+        "valueType": {
+          "primitive": "number"
+        },
+        "required": true
+      },
+      "TotalCpuLimit": {
+        "name": "TotalCpuLimit",
+        "valueType": {
+          "primitive": "number"
+        },
+        "required": true
+      },
+      "ContainerDefinitions": {
+        "name": "ContainerDefinitions",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::GameLift::ContainerGroupDefinition.ContainerDefinition"
+          }
+        },
+        "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      },
+      "OperatingSystem": {
+        "name": "OperatingSystem",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::GlobalAccelerator::CrossAccountAttachment": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-globalaccelerator",
+        "name": "CfnCrossAccountAttachment"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.GlobalAccelerator",
+        "name": "CfnCrossAccountAttachment"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsglobalaccelerator",
+        "package": "awsglobalaccelerator",
+        "name": "CfnCrossAccountAttachment"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.globalaccelerator",
+        "name": "CfnCrossAccountAttachment"
+      },
+      "python": {
+        "module": "aws_cdk.aws_globalaccelerator",
+        "name": "CfnCrossAccountAttachment"
+      }
+    },
+    "attributes": {
+      "AttachmentArn": {
+        "name": "AttachmentArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Principals": {
+        "name": "Principals",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "Resources": {
+        "name": "Resources",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::GlobalAccelerator::CrossAccountAttachment.Resource"
+          }
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
         }
       }
     }
@@ -102611,6 +105430,76 @@
         "valueType": {
           "primitive": "string"
         }
+      }
+    }
+  },
+  "AWS::Glue::TableOptimizer": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-glue",
+        "name": "CfnTableOptimizer"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Glue",
+        "name": "CfnTableOptimizer"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsglue",
+        "package": "awsglue",
+        "name": "CfnTableOptimizer"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.glue",
+        "name": "CfnTableOptimizer"
+      },
+      "python": {
+        "module": "aws_cdk.aws_glue",
+        "name": "CfnTableOptimizer"
+      }
+    },
+    "attributes": {
+      "Id": {
+        "name": "Id",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "DatabaseName": {
+        "name": "DatabaseName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "TableName": {
+        "name": "TableName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Type": {
+        "name": "Type",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "TableOptimizerConfiguration": {
+        "name": "TableOptimizerConfiguration",
+        "valueType": {
+          "named": "AWS::Glue::TableOptimizer.TableOptimizerConfiguration"
+        },
+        "required": true
+      },
+      "CatalogId": {
+        "name": "CatalogId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
       }
     }
   },
@@ -102800,6 +105689,73 @@
       }
     }
   },
+  "AWS::InspectorV2::CisScanConfiguration": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-inspectorv2",
+        "name": "CfnCisScanConfiguration"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.InspectorV2",
+        "name": "CfnCisScanConfiguration"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsinspectorv2",
+        "package": "awsinspectorv2",
+        "name": "CfnCisScanConfiguration"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.inspectorv2",
+        "name": "CfnCisScanConfiguration"
+      },
+      "python": {
+        "module": "aws_cdk.aws_inspectorv2",
+        "name": "CfnCisScanConfiguration"
+      }
+    },
+    "attributes": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "ScanName": {
+        "name": "ScanName",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "SecurityLevel": {
+        "name": "SecurityLevel",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Schedule": {
+        "name": "Schedule",
+        "valueType": {
+          "named": "AWS::InspectorV2::CisScanConfiguration.Schedule"
+        }
+      },
+      "Targets": {
+        "name": "Targets",
+        "valueType": {
+          "named": "AWS::InspectorV2::CisScanConfiguration.CisTargets"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "mapOf": {
+            "primitive": "string"
+          }
+        }
+      }
+    }
+  },
   "AWS::IoT::CertificateProvider": {
     "construct": {
       "typescript": {
@@ -102852,6 +105808,396 @@
           "listOf": {
             "primitive": "string"
           }
+        },
+        "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::IVS::EncoderConfiguration": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-ivs",
+        "name": "CfnEncoderConfiguration"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.IVS",
+        "name": "CfnEncoderConfiguration"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsivs",
+        "package": "awsivs",
+        "name": "CfnEncoderConfiguration"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.ivs",
+        "name": "CfnEncoderConfiguration"
+      },
+      "python": {
+        "module": "aws_cdk.aws_ivs",
+        "name": "CfnEncoderConfiguration"
+      }
+    },
+    "attributes": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Video": {
+        "name": "Video",
+        "valueType": {
+          "named": "AWS::IVS::EncoderConfiguration.Video"
+        }
+      },
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::IVS::PlaybackRestrictionPolicy": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-ivs",
+        "name": "CfnPlaybackRestrictionPolicy"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.IVS",
+        "name": "CfnPlaybackRestrictionPolicy"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsivs",
+        "package": "awsivs",
+        "name": "CfnPlaybackRestrictionPolicy"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.ivs",
+        "name": "CfnPlaybackRestrictionPolicy"
+      },
+      "python": {
+        "module": "aws_cdk.aws_ivs",
+        "name": "CfnPlaybackRestrictionPolicy"
+      }
+    },
+    "attributes": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "AllowedCountries": {
+        "name": "AllowedCountries",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        },
+        "required": true
+      },
+      "AllowedOrigins": {
+        "name": "AllowedOrigins",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        },
+        "required": true
+      },
+      "EnableStrictOriginEnforcement": {
+        "name": "EnableStrictOriginEnforcement",
+        "valueType": {
+          "primitive": "boolean"
+        }
+      },
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::IVS::Stage": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-ivs",
+        "name": "CfnStage"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.IVS",
+        "name": "CfnStage"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsivs",
+        "package": "awsivs",
+        "name": "CfnStage"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.ivs",
+        "name": "CfnStage"
+      },
+      "python": {
+        "module": "aws_cdk.aws_ivs",
+        "name": "CfnStage"
+      }
+    },
+    "attributes": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ActiveSessionId": {
+        "name": "ActiveSessionId",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::IVS::StorageConfiguration": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-ivs",
+        "name": "CfnStorageConfiguration"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.IVS",
+        "name": "CfnStorageConfiguration"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsivs",
+        "package": "awsivs",
+        "name": "CfnStorageConfiguration"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.ivs",
+        "name": "CfnStorageConfiguration"
+      },
+      "python": {
+        "module": "aws_cdk.aws_ivs",
+        "name": "CfnStorageConfiguration"
+      }
+    },
+    "attributes": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "S3": {
+        "name": "S3",
+        "valueType": {
+          "named": "AWS::IVS::StorageConfiguration.S3StorageConfiguration"
+        },
+        "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::KafkaConnect::CustomPlugin": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-kafkaconnect",
+        "name": "CfnCustomPlugin"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.KafkaConnect",
+        "name": "CfnCustomPlugin"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awskafkaconnect",
+        "package": "awskafkaconnect",
+        "name": "CfnCustomPlugin"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.kafkaconnect",
+        "name": "CfnCustomPlugin"
+      },
+      "python": {
+        "module": "aws_cdk.aws_kafkaconnect",
+        "name": "CfnCustomPlugin"
+      }
+    },
+    "attributes": {
+      "CustomPluginArn": {
+        "name": "CustomPluginArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Revision": {
+        "name": "Revision",
+        "valueType": {
+          "primitive": "number"
+        }
+      },
+      "FileDescription": {
+        "name": "FileDescription",
+        "valueType": {
+          "named": "AWS::KafkaConnect::CustomPlugin.CustomPluginFileDescription"
+        }
+      }
+    },
+    "properties": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ContentType": {
+        "name": "ContentType",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Location": {
+        "name": "Location",
+        "valueType": {
+          "named": "AWS::KafkaConnect::CustomPlugin.CustomPluginLocation"
+        },
+        "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::KafkaConnect::WorkerConfiguration": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-kafkaconnect",
+        "name": "CfnWorkerConfiguration"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.KafkaConnect",
+        "name": "CfnWorkerConfiguration"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awskafkaconnect",
+        "package": "awskafkaconnect",
+        "name": "CfnWorkerConfiguration"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.kafkaconnect",
+        "name": "CfnWorkerConfiguration"
+      },
+      "python": {
+        "module": "aws_cdk.aws_kafkaconnect",
+        "name": "CfnWorkerConfiguration"
+      }
+    },
+    "attributes": {
+      "WorkerConfigurationArn": {
+        "name": "WorkerConfigurationArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Revision": {
+        "name": "Revision",
+        "valueType": {
+          "primitive": "number"
+        }
+      }
+    },
+    "properties": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "PropertiesFileContent": {
+        "name": "PropertiesFileContent",
+        "valueType": {
+          "primitive": "string"
         },
         "required": true
       },
@@ -103824,6 +107170,423 @@
       }
     }
   },
+  "AWS::PaymentCryptography::Alias": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-paymentcryptography",
+        "name": "CfnAlias"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.PaymentCryptography",
+        "name": "CfnAlias"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awspaymentcryptography",
+        "package": "awspaymentcryptography",
+        "name": "CfnAlias"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.paymentcryptography",
+        "name": "CfnAlias"
+      },
+      "python": {
+        "module": "aws_cdk.aws_paymentcryptography",
+        "name": "CfnAlias"
+      }
+    },
+    "attributes": {},
+    "properties": {
+      "AliasName": {
+        "name": "AliasName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "KeyArn": {
+        "name": "KeyArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    }
+  },
+  "AWS::PaymentCryptography::Key": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-paymentcryptography",
+        "name": "CfnKey"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.PaymentCryptography",
+        "name": "CfnKey"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awspaymentcryptography",
+        "package": "awspaymentcryptography",
+        "name": "CfnKey"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.paymentcryptography",
+        "name": "CfnKey"
+      },
+      "python": {
+        "module": "aws_cdk.aws_paymentcryptography",
+        "name": "CfnKey"
+      }
+    },
+    "attributes": {
+      "KeyIdentifier": {
+        "name": "KeyIdentifier",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "KeyOrigin": {
+        "name": "KeyOrigin",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "KeyState": {
+        "name": "KeyState",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Enabled": {
+        "name": "Enabled",
+        "valueType": {
+          "primitive": "boolean"
+        }
+      },
+      "Exportable": {
+        "name": "Exportable",
+        "valueType": {
+          "primitive": "boolean"
+        },
+        "required": true
+      },
+      "KeyAttributes": {
+        "name": "KeyAttributes",
+        "valueType": {
+          "named": "AWS::PaymentCryptography::Key.KeyAttributes"
+        },
+        "required": true
+      },
+      "KeyCheckValueAlgorithm": {
+        "name": "KeyCheckValueAlgorithm",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::RDS::Integration": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-rds",
+        "name": "CfnIntegration"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.RDS",
+        "name": "CfnIntegration"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsrds",
+        "package": "awsrds",
+        "name": "CfnIntegration"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.rds",
+        "name": "CfnIntegration"
+      },
+      "python": {
+        "module": "aws_cdk.aws_rds",
+        "name": "CfnIntegration"
+      }
+    },
+    "attributes": {
+      "IntegrationArn": {
+        "name": "IntegrationArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "CreateTime": {
+        "name": "CreateTime",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "IntegrationName": {
+        "name": "IntegrationName",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Description": {
+        "name": "Description",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      },
+      "DataFilter": {
+        "name": "DataFilter",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "SourceArn": {
+        "name": "SourceArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "TargetArn": {
+        "name": "TargetArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "KMSKeyId": {
+        "name": "KMSKeyId",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AdditionalEncryptionContext": {
+        "name": "AdditionalEncryptionContext",
+        "valueType": {
+          "mapOf": {
+            "primitive": "string"
+          }
+        }
+      }
+    }
+  },
+  "AWS::Route53Profiles::Profile": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-route53profiles",
+        "name": "CfnProfile"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Route53Profiles",
+        "name": "CfnProfile"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsroute53profiles",
+        "package": "awsroute53profiles",
+        "name": "CfnProfile"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.route53profiles",
+        "name": "CfnProfile"
+      },
+      "python": {
+        "module": "aws_cdk.aws_route53profiles",
+        "name": "CfnProfile"
+      }
+    },
+    "attributes": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Id": {
+        "name": "Id",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ClientToken": {
+        "name": "ClientToken",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::Route53Profiles::ProfileAssociation": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-route53profiles",
+        "name": "CfnProfileAssociation"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Route53Profiles",
+        "name": "CfnProfileAssociation"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsroute53profiles",
+        "package": "awsroute53profiles",
+        "name": "CfnProfileAssociation"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.route53profiles",
+        "name": "CfnProfileAssociation"
+      },
+      "python": {
+        "module": "aws_cdk.aws_route53profiles",
+        "name": "CfnProfileAssociation"
+      }
+    },
+    "attributes": {
+      "Id": {
+        "name": "Id",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "ResourceId": {
+        "name": "ResourceId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "ProfileId": {
+        "name": "ProfileId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      },
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    }
+  },
+  "AWS::Route53Profiles::ProfileResourceAssociation": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-route53profiles",
+        "name": "CfnProfileResourceAssociation"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Route53Profiles",
+        "name": "CfnProfileResourceAssociation"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsroute53profiles",
+        "package": "awsroute53profiles",
+        "name": "CfnProfileResourceAssociation"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.route53profiles",
+        "name": "CfnProfileResourceAssociation"
+      },
+      "python": {
+        "module": "aws_cdk.aws_route53profiles",
+        "name": "CfnProfileResourceAssociation"
+      }
+    },
+    "attributes": {
+      "Id": {
+        "name": "Id",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ResourceType": {
+        "name": "ResourceType",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "ProfileId": {
+        "name": "ProfileId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "ResourceArn": {
+        "name": "ResourceArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "ResourceProperties": {
+        "name": "ResourceProperties",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    }
+  },
   "AWS::S3::AccessGrant": {
     "construct": {
       "typescript": {
@@ -104320,6 +108083,561 @@
       }
     }
   },
+  "AWS::SecurityHub::DelegatedAdmin": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-securityhub",
+        "name": "CfnDelegatedAdmin"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.SecurityHub",
+        "name": "CfnDelegatedAdmin"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awssecurityhub",
+        "package": "awssecurityhub",
+        "name": "CfnDelegatedAdmin"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.securityhub",
+        "name": "CfnDelegatedAdmin"
+      },
+      "python": {
+        "module": "aws_cdk.aws_securityhub",
+        "name": "CfnDelegatedAdmin"
+      }
+    },
+    "attributes": {
+      "DelegatedAdminIdentifier": {
+        "name": "DelegatedAdminIdentifier",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Status": {
+        "name": "Status",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "AdminAccountId": {
+        "name": "AdminAccountId",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::SecurityHub::Insight": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-securityhub",
+        "name": "CfnInsight"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.SecurityHub",
+        "name": "CfnInsight"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awssecurityhub",
+        "package": "awssecurityhub",
+        "name": "CfnInsight"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.securityhub",
+        "name": "CfnInsight"
+      },
+      "python": {
+        "module": "aws_cdk.aws_securityhub",
+        "name": "CfnInsight"
+      }
+    },
+    "attributes": {
+      "InsightArn": {
+        "name": "InsightArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Filters": {
+        "name": "Filters",
+        "valueType": {
+          "named": "AWS::SecurityHub::Insight.AwsSecurityFindingFilters"
+        },
+        "required": true
+      },
+      "GroupByAttribute": {
+        "name": "GroupByAttribute",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::SecurityHub::ProductSubscription": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-securityhub",
+        "name": "CfnProductSubscription"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.SecurityHub",
+        "name": "CfnProductSubscription"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awssecurityhub",
+        "package": "awssecurityhub",
+        "name": "CfnProductSubscription"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.securityhub",
+        "name": "CfnProductSubscription"
+      },
+      "python": {
+        "module": "aws_cdk.aws_securityhub",
+        "name": "CfnProductSubscription"
+      }
+    },
+    "attributes": {
+      "ProductSubscriptionArn": {
+        "name": "ProductSubscriptionArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "ProductArn": {
+        "name": "ProductArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::SecurityLake::AwsLogSource": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-securitylake",
+        "name": "CfnAwsLogSource"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.SecurityLake",
+        "name": "CfnAwsLogSource"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awssecuritylake",
+        "package": "awssecuritylake",
+        "name": "CfnAwsLogSource"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.securitylake",
+        "name": "CfnAwsLogSource"
+      },
+      "python": {
+        "module": "aws_cdk.aws_securitylake",
+        "name": "CfnAwsLogSource"
+      }
+    },
+    "attributes": {},
+    "properties": {
+      "Accounts": {
+        "name": "Accounts",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "DataLakeArn": {
+        "name": "DataLakeArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "SourceName": {
+        "name": "SourceName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "SourceVersion": {
+        "name": "SourceVersion",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::SecurityLake::DataLake": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-securitylake",
+        "name": "CfnDataLake"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.SecurityLake",
+        "name": "CfnDataLake"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awssecuritylake",
+        "package": "awssecuritylake",
+        "name": "CfnDataLake"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.securitylake",
+        "name": "CfnDataLake"
+      },
+      "python": {
+        "module": "aws_cdk.aws_securitylake",
+        "name": "CfnDataLake"
+      }
+    },
+    "attributes": {
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "S3BucketArn": {
+        "name": "S3BucketArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "EncryptionConfiguration": {
+        "name": "EncryptionConfiguration",
+        "valueType": {
+          "named": "AWS::SecurityLake::DataLake.EncryptionConfiguration"
+        }
+      },
+      "LifecycleConfiguration": {
+        "name": "LifecycleConfiguration",
+        "valueType": {
+          "named": "AWS::SecurityLake::DataLake.LifecycleConfiguration"
+        }
+      },
+      "ReplicationConfiguration": {
+        "name": "ReplicationConfiguration",
+        "valueType": {
+          "named": "AWS::SecurityLake::DataLake.ReplicationConfiguration"
+        }
+      },
+      "MetaStoreManagerRoleArn": {
+        "name": "MetaStoreManagerRoleArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
+  "AWS::SecurityLake::Subscriber": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-securitylake",
+        "name": "CfnSubscriber"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.SecurityLake",
+        "name": "CfnSubscriber"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awssecuritylake",
+        "package": "awssecuritylake",
+        "name": "CfnSubscriber"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.securitylake",
+        "name": "CfnSubscriber"
+      },
+      "python": {
+        "module": "aws_cdk.aws_securitylake",
+        "name": "CfnSubscriber"
+      }
+    },
+    "attributes": {
+      "SubscriberArn": {
+        "name": "SubscriberArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "S3BucketArn": {
+        "name": "S3BucketArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "SubscriberRoleArn": {
+        "name": "SubscriberRoleArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ResourceShareArn": {
+        "name": "ResourceShareArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ResourceShareName": {
+        "name": "ResourceShareName",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "AccessTypes": {
+        "name": "AccessTypes",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        },
+        "required": true
+      },
+      "DataLakeArn": {
+        "name": "DataLakeArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "SubscriberIdentity": {
+        "name": "SubscriberIdentity",
+        "valueType": {
+          "named": "AWS::SecurityLake::Subscriber.SubscriberIdentity"
+        },
+        "required": true
+      },
+      "SubscriberName": {
+        "name": "SubscriberName",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "SubscriberDescription": {
+        "name": "SubscriberDescription",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      },
+      "Sources": {
+        "name": "Sources",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::SecurityLake::Subscriber.Source"
+          }
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::Timestream::InfluxDBInstance": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-timestream",
+        "name": "CfnInfluxDBInstance"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.Timestream",
+        "name": "CfnInfluxDBInstance"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awstimestream",
+        "package": "awstimestream",
+        "name": "CfnInfluxDBInstance"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.timestream",
+        "name": "CfnInfluxDBInstance"
+      },
+      "python": {
+        "module": "aws_cdk.aws_timestream",
+        "name": "CfnInfluxDBInstance"
+      }
+    },
+    "attributes": {
+      "Status": {
+        "name": "Status",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Arn": {
+        "name": "Arn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Id": {
+        "name": "Id",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AvailabilityZone": {
+        "name": "AvailabilityZone",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Endpoint": {
+        "name": "Endpoint",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "SecondaryAvailabilityZone": {
+        "name": "SecondaryAvailabilityZone",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "InfluxAuthParametersSecretArn": {
+        "name": "InfluxAuthParametersSecretArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Username": {
+        "name": "Username",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Password": {
+        "name": "Password",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Organization": {
+        "name": "Organization",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Bucket": {
+        "name": "Bucket",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "DbInstanceType": {
+        "name": "DbInstanceType",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "VpcSubnetIds": {
+        "name": "VpcSubnetIds",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "VpcSecurityGroupIds": {
+        "name": "VpcSecurityGroupIds",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "PubliclyAccessible": {
+        "name": "PubliclyAccessible",
+        "valueType": {
+          "primitive": "boolean"
+        }
+      },
+      "DbStorageType": {
+        "name": "DbStorageType",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "AllocatedStorage": {
+        "name": "AllocatedStorage",
+        "valueType": {
+          "primitive": "number"
+        }
+      },
+      "DbParameterGroupIdentifier": {
+        "name": "DbParameterGroupIdentifier",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "LogDeliveryConfiguration": {
+        "name": "LogDeliveryConfiguration",
+        "valueType": {
+          "named": "AWS::Timestream::InfluxDBInstance.LogDeliveryConfiguration"
+        }
+      },
+      "Name": {
+        "name": "Name",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "DeploymentType": {
+        "name": "DeploymentType",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      }
+    }
+  },
   "AWS::WorkSpacesThinClient::Environment": {
     "construct": {
       "typescript": {
@@ -104452,265 +108770,6 @@
       },
       "KmsKeyArn": {
         "name": "KmsKeyArn",
-        "valueType": {
-          "primitive": "string"
-        }
-      },
-      "Tags": {
-        "name": "Tags",
-        "valueType": {
-          "listOf": {
-            "named": "CfnTag"
-          }
-        }
-      }
-    }
-  },
-  "AMZN::SDC::Deployment": {
-    "construct": {
-      "typescript": {
-        "module": "aws-cdk-lib/amzn-sdc",
-        "name": "CfnDeployment"
-      },
-      "csharp": {
-        "namespace": "Amazon.CDK.AMZN.SDC",
-        "name": "CfnDeployment"
-      },
-      "golang": {
-        "module": "github.com/aws/aws-cdk-go/awscdk/v2/amznsdc",
-        "package": "amznsdc",
-        "name": "CfnDeployment"
-      },
-      "java": {
-        "package": "software.amazon.awscdk.amzn.sdc",
-        "name": "CfnDeployment"
-      },
-      "python": {
-        "module": "aws_cdk.amzn_sdc",
-        "name": "CfnDeployment"
-      }
-    },
-    "attributes": {
-      "Id": {
-        "name": "Id",
-        "valueType": {
-          "primitive": "string"
-        }
-      }
-    },
-    "properties": {
-      "ConfigName": {
-        "name": "ConfigName",
-        "valueType": {
-          "primitive": "string"
-        },
-        "required": true
-      },
-      "S3Bucket": {
-        "name": "S3Bucket",
-        "valueType": {
-          "primitive": "string"
-        },
-        "required": true
-      },
-      "TargetRegionOverride": {
-        "name": "TargetRegionOverride",
-        "valueType": {
-          "primitive": "string"
-        }
-      },
-      "S3Key": {
-        "name": "S3Key",
-        "valueType": {
-          "primitive": "string"
-        },
-        "required": true
-      },
-      "Stage": {
-        "name": "Stage",
-        "valueType": {
-          "primitive": "string"
-        },
-        "required": true
-      },
-      "PipelineId": {
-        "name": "PipelineId",
-        "valueType": {
-          "primitive": "string"
-        }
-      },
-      "Dimension": {
-        "name": "Dimension",
-        "valueType": {
-          "primitive": "string"
-        },
-        "required": true
-      }
-    }
-  },
-  "AWS::CodeTest::PersistentConfiguration": {
-    "construct": {
-      "typescript": {
-        "module": "aws-cdk-lib/aws-codetest",
-        "name": "CfnPersistentConfiguration"
-      },
-      "csharp": {
-        "namespace": "Amazon.CDK.AWS.CodeTest",
-        "name": "CfnPersistentConfiguration"
-      },
-      "golang": {
-        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awscodetest",
-        "package": "awscodetest",
-        "name": "CfnPersistentConfiguration"
-      },
-      "java": {
-        "package": "software.amazon.awscdk.services.codetest",
-        "name": "CfnPersistentConfiguration"
-      },
-      "python": {
-        "module": "aws_cdk.aws_codetest",
-        "name": "CfnPersistentConfiguration"
-      }
-    },
-    "attributes": {
-      "Id": {
-        "name": "Id",
-        "valueType": {
-          "primitive": "string"
-        }
-      }
-    },
-    "properties": {
-      "Version": {
-        "name": "Version",
-        "valueType": {
-          "primitive": "string"
-        }
-      },
-      "VpcConfig": {
-        "name": "VpcConfig",
-        "valueType": {
-          "named": "AWS::CodeTest::PersistentConfiguration.VpcConfig"
-        }
-      },
-      "Name": {
-        "name": "Name",
-        "valueType": {
-          "primitive": "string"
-        }
-      },
-      "ResultsRoleArn": {
-        "name": "ResultsRoleArn",
-        "valueType": {
-          "primitive": "string"
-        },
-        "required": true
-      }
-    }
-  },
-  "AWS::CodeTest::Series": {
-    "construct": {
-      "typescript": {
-        "module": "aws-cdk-lib/aws-codetest",
-        "name": "CfnSeries"
-      },
-      "csharp": {
-        "namespace": "Amazon.CDK.AWS.CodeTest",
-        "name": "CfnSeries"
-      },
-      "golang": {
-        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awscodetest",
-        "package": "awscodetest",
-        "name": "CfnSeries"
-      },
-      "java": {
-        "package": "software.amazon.awscdk.services.codetest",
-        "name": "CfnSeries"
-      },
-      "python": {
-        "module": "aws_cdk.aws_codetest",
-        "name": "CfnSeries"
-      }
-    },
-    "attributes": {
-      "Id": {
-        "name": "Id",
-        "valueType": {
-          "primitive": "string"
-        }
-      }
-    },
-    "properties": {
-      "PersistentConfigurationId": {
-        "name": "PersistentConfigurationId",
-        "valueType": {
-          "primitive": "string"
-        },
-        "required": true
-      },
-      "RunDefinition": {
-        "name": "RunDefinition",
-        "valueType": {
-          "primitive": "json"
-        },
-        "required": true
-      },
-      "State": {
-        "name": "State",
-        "valueType": {
-          "primitive": "string"
-        },
-        "required": true
-      },
-      "Name": {
-        "name": "Name",
-        "valueType": {
-          "primitive": "string"
-        }
-      }
-    }
-  },
-  "AWS::IVS::Stage": {
-    "construct": {
-      "typescript": {
-        "module": "aws-cdk-lib/aws-ivs",
-        "name": "CfnStage"
-      },
-      "csharp": {
-        "namespace": "Amazon.CDK.AWS.IVS",
-        "name": "CfnStage"
-      },
-      "golang": {
-        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsivs",
-        "package": "awsivs",
-        "name": "CfnStage"
-      },
-      "java": {
-        "package": "software.amazon.awscdk.services.ivs",
-        "name": "CfnStage"
-      },
-      "python": {
-        "module": "aws_cdk.aws_ivs",
-        "name": "CfnStage"
-      }
-    },
-    "attributes": {
-      "Arn": {
-        "name": "Arn",
-        "valueType": {
-          "primitive": "string"
-        }
-      },
-      "ActiveSessionId": {
-        "name": "ActiveSessionId",
-        "valueType": {
-          "primitive": "string"
-        }
-      }
-    },
-    "properties": {
-      "Name": {
-        "name": "Name",
         "valueType": {
           "primitive": "string"
         }
