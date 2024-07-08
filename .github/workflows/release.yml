@@ -36,16 +36,10 @@ jobs:
           branch: github-actions/release
           base: main
           body: |
-            release: <%= crate.name %> v<%= version.actual %>
-
+            release: cdk-from-cfn
             [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          commit-message: |-
-            release: <%= crate.name %> v<%= version.actual %>
-
-            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
           title: |
-            release: <%= crate.name %> v<%= version.actual %>
+            chore: release cdk-from-cfn
           labels: auto-approve
       - name: Push New Tag
         run: git push origin --tags
