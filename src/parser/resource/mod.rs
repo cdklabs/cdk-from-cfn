@@ -96,7 +96,7 @@ impl<'de> serde::de::Deserialize<'de> for ResourceValue {
                             entry.insert(data.next_value()?);
                         }
                         Entry::Occupied(entry) => {
-                            return Err(A::Error::custom(&format!(
+                            return Err(A::Error::custom(format!(
                                 "duplicate object key {key:?}",
                                 key = entry.key()
                             )))

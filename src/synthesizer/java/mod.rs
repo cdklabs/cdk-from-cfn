@@ -932,22 +932,6 @@ fn name(key: &str) -> String {
         .collect()
 }
 
-trait JavaCodeBuffer {
-    fn java_doc(&self) -> Rc<CodeBuffer>;
-}
-
-impl JavaCodeBuffer for CodeBuffer {
-    #[inline]
-    fn java_doc(&self) -> Rc<CodeBuffer> {
-        self.indent_with_options(IndentOptions {
-            indent: " * ".into(),
-            leading: Some("/**".into()),
-            trailing: Some(" */".into()),
-            trailing_newline: true,
-        })
-    }
-}
-
 pub struct JavaConstructorParameter {
     pub name: String,
     pub description: Option<String>,
