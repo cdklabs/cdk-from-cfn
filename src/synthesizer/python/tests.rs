@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use crate::ir::{conditions::ConditionIr, importer::ImportInstruction};
 
 use super::synthesize_condition_recursive;
