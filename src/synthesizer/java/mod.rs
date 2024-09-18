@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use super::Synthesizer;
 use crate::cdk::{ItemType, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
