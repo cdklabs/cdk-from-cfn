@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use core::panic;
 use std::fs::{self, canonicalize, copy, create_dir_all, remove_dir_all, File};
 use std::io::{Read, Write};

@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::marker::PhantomData;

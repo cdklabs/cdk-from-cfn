@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use crate::cdk::TypeReference;
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;

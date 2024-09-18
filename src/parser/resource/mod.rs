@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use crate::primitives::WrapperF64;
 use crate::Hasher;
 use indexmap::map::Entry;

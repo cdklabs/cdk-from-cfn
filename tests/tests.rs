@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use cdk_from_cfn::cdk::Schema;
 use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::parser::condition::{ConditionFunction, ConditionValue};

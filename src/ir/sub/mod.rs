@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take, take_until};
 use nom::combinator::{map, rest};
