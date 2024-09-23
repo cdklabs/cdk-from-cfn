@@ -42,10 +42,13 @@ jobs:
           branch: github-actions/update-schema
           body: |
             Updates CloudFormation Specification. See details in [workflow run].
-            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            [workflow run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           commit-message: |-
             chore: upgrade cloudformation specification
+            
             Updates CloudFormation Specification. See details in [workflow run].
-            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            [workflow run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           title: 'chore: update cloudformation specification'
           labels: auto-approve
