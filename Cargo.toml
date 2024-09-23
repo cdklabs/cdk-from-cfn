@@ -24,39 +24,39 @@ python = []
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-anyhow = "^1.0.82"
+anyhow = "^1.0.89"
 base64 = "^0.22.1"
-clap = { version = "^4.5.8", features = ["cargo"] }
-indexmap = { version = "^2.2.6", features = ["serde"] }
+clap = { version = "^4.5.17", features = ["cargo"] }
+indexmap = { version = "^2.5.0", features = ["serde"] }
 nom = "^7.1.3"
 numberkit = "^0.1.0"
 phf = { version = "^0.11.2", features = ["macros"] }
 rustc-hash = { version = "2.0.0", optional = true }
-serde = { version = "^1.0.199", features = ["derive"] }
+serde = { version = "^1.0.210", features = ["derive"] }
 serde-enum-str = "^0.4.0"
-serde_with = "^3.8.2"
+serde_with = "^3.9.0"
 serde_yaml = "^0.9.34"
-thiserror = "^1.0.59"
+thiserror = "^1.0.63"
 topological-sort = "^0.2.2"
 voca_rs = "^1.15.2"
-wasm-bindgen = "^0.2.92"
+wasm-bindgen = "^0.2.93"
 
 [dev-dependencies]
-aws-config = "^1.1.9"
+aws-config = "^1.5.1"
 aws-sdk-cloudformation = "^1.33.0"
 tokio = { version = "1", features = ["full"] }
 walkdir = "2.5.0"
 zip = "0.6.6"
 
 [build-dependencies]
-indexmap = "^2.2.6"
+indexmap = "^2.5.0"
 phf = { version = "^0.11.2", features = ["macros"] }
 phf_codegen = "^0.11.2"
 rustc-hash = { version = "2.0.0", optional = true }
-serde = { version = "^1.0.199", features = ["derive"] }
+serde = { version = "^1.0.210", features = ["derive"] }
 serde-enum-str = "^0.4.0"
-serde_json = "^1.0.120"
-serde_with = "^3.8.2"
+serde_json = "^1.0.128"
+serde_with = "^3.9.0"
 voca_rs = "^1.15.2"
 walkdir = "2.5.0"
 zip = "0.6.6"

@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take, take_until};
 use nom::combinator::{map, rest};
@@ -34,7 +36,7 @@ pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, crate::Error> {
 /// inner_resolver will do one of the following:
 /// * take until you see a ${ which is the start of the variable bits.
 /// * take something like ${ ... }
-/// TODO -- there are some Sub strings that will escape the $, that are not captured yet.
+///   TODO -- there are some Sub strings that will escape the $, that are not captured yet.
 ///         Will need to rewrite the parse tree to handle character escapes.
 fn inner_resolver(str: &str) -> IResult<&str, SubValue> {
     // Due to the caller being many1, we will need to create out own EOF error to

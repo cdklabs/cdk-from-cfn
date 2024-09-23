@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use crate::primitives::WrapperF64;
 use crate::Hasher;
 use indexmap::map::Entry;
@@ -96,7 +98,7 @@ impl<'de> serde::de::Deserialize<'de> for ResourceValue {
                             entry.insert(data.next_value()?);
                         }
                         Entry::Occupied(entry) => {
-                            return Err(A::Error::custom(&format!(
+                            return Err(A::Error::custom(format!(
                                 "duplicate object key {key:?}",
                                 key = entry.key()
                             )))

@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 /// Was previously shamelessly copied from: https://docs.rs/serde_json/latest/src/serde_json/macros.rs.html
 /// Constructs a serde::yaml from a json literal (or yaml literal)
 

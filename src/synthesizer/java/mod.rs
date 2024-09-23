@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use super::Synthesizer;
 use crate::cdk::{ItemType, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
@@ -930,22 +932,6 @@ fn name(key: &str) -> String {
         .chars()
         .filter(|c| c.is_alphanumeric())
         .collect()
-}
-
-trait JavaCodeBuffer {
-    fn java_doc(&self) -> Rc<CodeBuffer>;
-}
-
-impl JavaCodeBuffer for CodeBuffer {
-    #[inline]
-    fn java_doc(&self) -> Rc<CodeBuffer> {
-        self.indent_with_options(IndentOptions {
-            indent: " * ".into(),
-            leading: Some("/**".into()),
-            trailing: Some(" */".into()),
-            trailing_newline: true,
-        })
-    }
 }
 
 pub struct JavaConstructorParameter {

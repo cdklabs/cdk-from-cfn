@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 /**
  * Primitives are for things that can be outside the scope of parsing and IR and used heavily across both
  * Generally, attempt to keep this section to a minimu
