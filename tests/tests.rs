@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use cdk_from_cfn::cdk::Schema;
 use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::parser::condition::{ConditionFunction, ConditionValue};
@@ -6,6 +8,7 @@ use cdk_from_cfn::parser::parameters::{Parameter, ParameterType};
 use cdk_from_cfn::parser::resource::{DeletionPolicy, IntrinsicFunction};
 use cdk_from_cfn::parser::resource::{ResourceAttributes, ResourceValue};
 use cdk_from_cfn::primitives::WrapperF64;
+use cdk_from_cfn::synthesizer::Java;
 use cdk_from_cfn::CloudformationParseTree;
 use indexmap::IndexMap;
 use std::borrow::Cow;
@@ -781,4 +784,88 @@ fn test_invalid_resource_property() {
     let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
     let schema = Cow::Borrowed(Schema::builtin());
     CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
+}
+
+#[test]
+fn test_resource_translation_error() {
+    let cfn_template = json!({
+        "Resources": {
+            "ClientFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                "FunctionName": "pricing-client",
+                "Handler": "client_lambda.lambda_handler",
+                "MemorySize": 512,
+                "Timeout": 300,
+                "CodeUri": "./pricing-client/",
+                "PermissionsBoundary": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/GithubActionsIamResourcePermissionsBoundary"
+                },
+                "Runtime": "python3.11",
+                "Events": {
+                    "ApiEvent": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/path",
+                            "Method": "get"
+                        }
+                    }
+                }
+            }
+        }
+    }});
+
+    let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let result = CloudformationProgramIr::from(cfn_tree, &schema).unwrap_err();
+    let expected = "Some(Union(Static([\
+        Named(\"AWS::Serverless::Function.S3Event\"), \
+        Named(\"AWS::Serverless::Function.SNSEvent\"), \
+        Named(\"AWS::Serverless::Function.SQSEvent\"), \
+        Named(\"AWS::Serverless::Function.KinesisEvent\"), \
+        Named(\"AWS::Serverless::Function.DynamoDBEvent\"), \
+        Named(\"AWS::Serverless::Function.ApiEvent\"), \
+        Named(\"AWS::Serverless::Function.ScheduleEvent\"), \
+        Named(\"AWS::Serverless::Function.CloudWatchEventEvent\"), \
+        Named(\"AWS::Serverless::Function.CloudWatchLogsEvent\"), \
+        Named(\"AWS::Serverless::Function.IoTRuleEvent\"), \
+        Named(\"AWS::Serverless::Function.AlexaSkillEvent\"), \
+        Named(\"AWS::Serverless::Function.EventBridgeRuleEvent\"), \
+        Named(\"AWS::Serverless::Function.HttpApiEvent\"), \
+        Named(\"AWS::Serverless::Function.CognitoEvent\")\
+        ]))) is not implemented for ResourceValue::Object";
+    assert_eq!(expected, result.to_string());
+}
+
+#[test]
+fn test_update_policy_java() {
+    let cfn_template = json!({
+        "Resources": {
+            "MyEC2Instance": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId": "ami-12345678",
+                    "InstanceType": "t2.micro"
+                },
+                "UpdatePolicy": {
+                    "AutoScalingReplacingUpdate": {
+                        "WillReplace": "true"
+                    },
+                    "AutoScalingRollingUpdate": {
+                        "MinInstanceInService": "1",
+                        "MaxBatchSize": "1",
+                        "PauseTime": "PT5M",
+                        "WaitOnResourceSignals": "true"
+                    }
+                },
+            }
+        }
+    });
+    let cfn_tree: CloudformationParseTree = serde_yaml::from_value(cfn_template).unwrap();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let ir = CloudformationProgramIr::from(cfn_tree, &schema).unwrap();
+    let synthesizer = Box::<Java>::default();
+    let mut output = Vec::new();
+    let result = ir.synthesize(synthesizer.as_ref(), &mut output, "Stack");
+    assert_eq!((), result.unwrap());
 }

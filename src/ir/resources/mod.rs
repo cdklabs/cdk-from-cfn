@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::convert::TryInto;
 use std::fmt;
@@ -14,8 +16,8 @@ use crate::parser::resource::{
     DeletionPolicy, IntrinsicFunction, ResourceAttributes, ResourceValue,
 };
 use crate::primitives::WrapperF64;
+use crate::Error;
 use crate::Hasher;
-use crate::TransmuteError;
 
 use super::ReferenceOrigins;
 
@@ -68,10 +70,7 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
         }
     }
 
-    pub(super) fn translate(
-        &self,
-        resource_value: ResourceValue,
-    ) -> Result<ResourceIr, TransmuteError> {
+    pub(super) fn translate(&self, resource_value: ResourceValue) -> Result<ResourceIr, Error> {
         match resource_value {
             ResourceValue::Null => Ok(ResourceIr::Null),
             ResourceValue::Bool(b) => Ok(ResourceIr::Bool(b)),
@@ -80,14 +79,16 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
             ResourceValue::String(s) => {
                 if let Some(TypeReference::Primitive(simple_type)) = self.value_type {
                     return match simple_type {
-                        Primitive::Boolean => {
-                            Ok(ResourceIr::Bool(s.parse().map_err(|cause| {
-                                TransmuteError::new(format!("{cause}"))
-                            })?))
-                        }
+                        Primitive::Boolean => Ok(ResourceIr::Bool(s.parse().map_err(|cause| {
+                            Error::ResourceTranslationError {
+                                message: format!("{cause}"),
+                            }
+                        })?)),
                         Primitive::Number => {
                             Ok(ResourceIr::Number(s.parse().map_err(|cause| {
-                                TransmuteError::new(format!("{cause}"))
+                                Error::ResourceTranslationError {
+                                    message: format!("{cause}"),
+                                }
                             })?))
                         }
                         _ => Ok(ResourceIr::String(s)),
@@ -130,7 +131,13 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     Some(TypeReference::Primitive(Primitive::Json)) => {
                         Box::new(MapOf(&TypeReference::Primitive(Primitive::Json)))
                     }
-                    other => unimplemented!("{other:?}"),
+                    other => {
+                        return Err(Error::ResourceTranslationError {
+                            message: format!(
+                                "{other:?} is not implemented for ResourceValue::Object"
+                            ),
+                        })
+                    }
                 };
 
                 let mut new_hash = IndexMap::with_capacity_and_hasher(o.len(), Hasher::default());
@@ -172,9 +179,9 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                                 }
                                 _ => {
                                     // these aren't possible, so panic
-                                    return Err(TransmuteError::new(
-                                        "Sub excess map must be an object",
-                                    ));
+                                    return Err(Error::ResourceTranslationError {
+                                        message: "Sub excess map must be an object".to_string(),
+                                    });
                                 }
                             }
                         }
@@ -259,9 +266,9 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                                         Ok(ResourceIr::Base64(Box::new(ResourceIr::String(b64))))
                                     }
                                 },
-                                Err(cause) => Err(TransmuteError::new(format!(
-                                    "invalid base64: {b64:?} -- {cause}"
-                                ))),
+                                Err(cause) => Err(Error::ResourceTranslationError {
+                                    message: format!("Invalid base64 {b64:?} -- {cause}"),
+                                }),
                             }
                         }
                         x => {
@@ -278,18 +285,24 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                             ResourceValue::String(x) => match x.parse::<usize>() {
                                 Ok(x) => x,
                                 Err(_) => {
-                                    return Err(TransmuteError::new("index must be int for Select"))
+                                    return Err(Error::ResourceTranslationError {
+                                        message: "Index must be int for Select".to_string(),
+                                    })
                                 }
                             },
                             ResourceValue::Number(x) => match x.try_into() {
                                 Ok(x) => x,
-                                Err(cause) => {
-                                    return Err(TransmuteError::new(format!(
-                                        "index is too large for Select: {cause}"
-                                    )))
+                                Err(_) => {
+                                    return Err(Error::ResourceTranslationError {
+                                        message: "Index is out of range for Select".to_string(),
+                                    })
                                 }
                             },
-                            _ => return Err(TransmuteError::new("index must be int for Select")),
+                            _ => {
+                                return Err(Error::ResourceTranslationError {
+                                    message: "Index must be int for Select".to_string(),
+                                })
+                            }
                         };
 
                         let obj = self.translate(list)?;
@@ -381,7 +394,7 @@ impl ResourceInstruction {
         parse_tree: IndexMap<String, ResourceAttributes, Hasher>,
         schema: &Schema,
         origins: &ReferenceOrigins,
-    ) -> Result<Vec<Self>, TransmuteError> {
+    ) -> Result<Vec<Self>, Error> {
         let mut instructions = Vec::with_capacity(parse_tree.len());
 
         for (resource_name, attributes) in parse_tree {
@@ -413,9 +426,11 @@ impl ResourceInstruction {
                         resource_type.type_name(),
                     )
                     .replace('\"', "");
-                    return Err(TransmuteError::new(format!(
-                        "{prop_name} is not a valid property for resource {resource_name} of type {resource_type}"
-                    )));
+                    return Err(Error::ResourceInstructionError {
+                        message: format!(
+                            "{prop_name} is not a valid property for resource {resource_name} of type {resource_type}"
+                        ),
+                    });
                 }
                 let translator = ResourceTranslator {
                     schema,
@@ -461,7 +476,7 @@ pub enum ResourceType {
 }
 
 impl ResourceType {
-    fn parse(from: &str) -> Result<Self, TransmuteError> {
+    fn parse(from: &str) -> Result<Self, Error> {
         let mut parts = from.split("::");
         let first = parts.next().unwrap();
 
@@ -469,49 +484,59 @@ impl ResourceType {
             "Custom" => {
                 let name = match parts.next() {
                     Some("") | None => {
-                        return Err(TransmuteError::new(format!(
-                            "invalid resource type: {from:?}"
-                        )))
+                        return Err(Error::ResourceTypeError {
+                            message: format!("{from:?}"),
+                        });
                     }
                     Some(name) => name,
                 };
                 if parts.next().is_some() {
-                    return Err(TransmuteError::new(format!(
-                        "invalid resource type: {from:?} (only two segments expected)"
-                    )));
+                    return Err(Error::ResourceTypeError {
+                        message: format!(
+                            "Invalid resource type {from:?} (only two segments expected)"
+                        ),
+                    });
                 }
                 Ok(Self::Custom(name.into()))
             }
             "Alexa" => {
                 let service = match parts.next() {
                     Some("") | None => {
-                        return Err(TransmuteError::new(format!(
-                            "invalid resource type: {from:?} (missing service name)"
-                        )))
+                        return Err(Error::ResourceTypeError {
+                            message: format!(
+                                "Invalid resource type {from:?} (missing service name)"
+                            ),
+                        });
                     }
                     Some(service) => service.into(),
                 };
                 let type_name = match parts.next() {
                     Some("") | None => {
-                        return Err(TransmuteError::new(format!(
-                            "invalid resource type: {from:?} (missing resource type name)"
-                        )))
+                        return Err(Error::ResourceTypeError {
+                            message: format!(
+                                "Invalid resource type {from:?} (missing resource type name)"
+                            ),
+                        });
                     }
                     Some(type_name) => type_name.into(),
                 };
                 if parts.next().is_some() {
-                    return Err(TransmuteError::new(format!(
-                        "invalid resource type: {from:?} (only three segments expected)"
-                    )));
+                    return Err(Error::ResourceTypeError {
+                        message: format!(
+                            "Invalid resource type {from:?} (only three segments expected)"
+                        ),
+                    });
                 }
                 Ok(Self::Alexa { service, type_name })
             }
             "AWS" => {
                 let service = match parts.next() {
                     Some("") | None => {
-                        return Err(TransmuteError::new(format!(
-                            "invalid resource type: {from:?} (missing service name)"
-                        )))
+                        return Err(Error::ResourceTypeError {
+                            message: format!(
+                                "Invalid resource type {from:?} (missing service name)"
+                            ),
+                        });
                     }
                     Some(service) => {
                         if service.to_lowercase().eq("serverless") {
@@ -523,22 +548,26 @@ impl ResourceType {
                 };
                 let type_name = match parts.next() {
                     Some("") | None => {
-                        return Err(TransmuteError::new(format!(
-                            "invalid resource type: {from:?} (missing resource type name)"
-                        )))
+                        return Err(Error::ResourceTypeError {
+                            message: format!(
+                                "Invalid resource type {from:?} (missing resource type name)"
+                            ),
+                        });
                     }
                     Some(type_name) => type_name.into(),
                 };
                 if parts.next().is_some() {
-                    return Err(TransmuteError::new(format!(
-                        "invalid resource type: {from:?} (only three segments expected)"
-                    )));
+                    return Err(Error::ResourceTypeError {
+                        message: format!(
+                            "Invalid resource type {from:?} (only three segments expected)"
+                        ),
+                    });
                 }
                 Ok(Self::AWS { service, type_name })
             }
-            other => Err(TransmuteError::new(format!(
-                "unknown resource type namespace: {other} (in {from:?})"
-            ))),
+            other => Err(Error::ResourceTypeError {
+                message: format!("Unknown resource type namespace {other} in {from:?}"),
+            }),
         }
     }
 

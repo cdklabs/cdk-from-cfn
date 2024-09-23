@@ -1,7 +1,10 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use super::*;
+use crate::Error;
 
 #[test]
-fn substitute_arn() -> Result<(), TransmuteError> {
+fn substitute_arn() -> Result<(), Error> {
     let prefix = String::from("arn:");
     let var = String::from("some_value");
     let postfix = String::from(":constant");
@@ -26,7 +29,16 @@ fn error_on_missing_brackets() {
 }
 
 #[test]
-fn empty_variable() -> Result<(), TransmuteError> {
+fn sub_parse_error() {
+    let error = sub_parse_tree("").unwrap_err();
+    assert_eq!(
+        "Parsing Error: Error { input: \"\", code: Eof }",
+        error.to_string(),
+    );
+}
+
+#[test]
+fn empty_variable() -> Result<(), Error> {
     let v = sub_parse_tree("arn:${}")?;
     assert_eq!(
         v,
@@ -40,7 +52,7 @@ fn empty_variable() -> Result<(), TransmuteError> {
 }
 
 #[test]
-fn test_suffix_substitution() -> Result<(), TransmuteError> {
+fn test_suffix_substitution() -> Result<(), Error> {
     let v = sub_parse_tree("${Tag}-Concatenated")?;
     assert_eq!(
         v,
@@ -54,7 +66,7 @@ fn test_suffix_substitution() -> Result<(), TransmuteError> {
 }
 
 #[test]
-fn test_no_substitution() -> Result<(), TransmuteError> {
+fn test_no_substitution() -> Result<(), Error> {
     let v = sub_parse_tree("NoSubstitution")?;
     assert_eq!(v, vec![SubValue::String(String::from("NoSubstitution"))]);
 
@@ -62,7 +74,7 @@ fn test_no_substitution() -> Result<(), TransmuteError> {
 }
 
 #[test]
-fn test_quotes() -> Result<(), TransmuteError> {
+fn test_quotes() -> Result<(), Error> {
     let v = sub_parse_tree("echo \"${lol}\"")?;
     assert_eq!(
         v,
@@ -79,7 +91,7 @@ fn test_quotes() -> Result<(), TransmuteError> {
 // As quoted in the sub docs: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-sub.html
 // To write a dollar sign and curly braces (${}) literally, add an exclamation point (!) after the open curly brace, such as ${!Literal}. CloudFormation resolves this text as ${Literal}.
 #[test]
-fn test_literal() -> Result<(), TransmuteError> {
+fn test_literal() -> Result<(), Error> {
     let v = sub_parse_tree("echo ${!lol}")?;
     assert_eq!(
         v,

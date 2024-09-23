@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use crate::cdk::{ItemType, Primitive, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
@@ -9,6 +11,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::ResourceIr;
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
+use crate::Error;
 use std::borrow::Cow;
 use std::io;
 use voca_rs::case::{camel_case, pascal_case};
@@ -39,13 +42,13 @@ impl Synthesizer for CSharp<'_> {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
-    ) -> io::Result<()> {
+    ) -> Result<(), Error> {
         // Initialize the code buffer in which all of the code will be generated
         let code = CodeBuffer::default();
 
         // Imports
         for import in &ir.imports {
-            code.line(import.to_csharp())
+            code.line(import.to_csharp()?)
         }
         code.line("using Constructs;");
         code.line("using System.Collections.Generic;");
@@ -298,7 +301,7 @@ impl Synthesizer for CSharp<'_> {
             });
             for (name, value) in &resource.properties {
                 resource_constructor.text(format!("{name} = ", name = pascal_case(name)));
-                value.emit_csharp(&resource_constructor, self.schema);
+                value.emit_csharp(&resource_constructor, self.schema)?;
                 resource_constructor.text(",");
                 resource_constructor.newline();
             }
@@ -310,16 +313,16 @@ impl Synthesizer for CSharp<'_> {
             ctor.line("// Outputs");
 
             for op in &ir.outputs {
-                op.emit_csharp(&ctor, self.schema);
+                op.emit_csharp(&ctor, self.schema)?;
             }
         }
 
-        code.write(into)
+        Ok(code.write(into)?)
     }
 }
 
 impl ImportInstruction {
-    fn to_csharp(&self) -> String {
+    fn to_csharp(&self) -> Result<String, Error> {
         let mut parts: Vec<String> = vec!["Amazon".to_string(), "CDK".to_string()];
         match self.organization.as_str() {
             "AWS" => {
@@ -335,11 +338,15 @@ impl ImportInstruction {
                 parts.push("Alexa".to_string());
                 parts.push(pascal_case(self.service.as_ref().unwrap()));
             }
-            _ => unreachable!(),
+            org => {
+                return Err(Error::ImportInstructionError {
+                    message: format!("Expected organization to be AWS or Alexa. Found {org}"),
+                })
+            }
         };
         let namespace = parts.join(".");
 
-        format!("using {namespace};")
+        Ok(format!("using {namespace};"))
     }
 }
 
@@ -359,10 +366,10 @@ impl ConstructorParameter {
 }
 
 trait CsharpEmitter {
-    fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema);
+    fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema) -> Result<(), Error>;
 }
 
-impl CsharpEmitter for ConditionIr {
+impl ConditionIr {
     fn emit_csharp(&self, output: &CodeBuffer, _schema: &Schema) {
         match self {
             ConditionIr::Ref(reference) => reference.emit_csharp(output),
@@ -460,18 +467,31 @@ impl Reference {
 }
 
 impl ResourceIr {
-    fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema) {
+    fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema) -> Result<(), Error> {
         match self {
-            ResourceIr::Null => output.text("null"),
-            ResourceIr::Bool(bool) => output.text(bool.to_string()),
-            ResourceIr::Number(number) => output.text(number.to_string()),
-            ResourceIr::Double(double) => output.text(double.to_string()),
+            ResourceIr::Null => {
+                output.text("null");
+                Ok(())
+            }
+            ResourceIr::Bool(bool) => {
+                output.text(bool.to_string());
+                Ok(())
+            }
+            ResourceIr::Number(number) => {
+                output.text(number.to_string());
+                Ok(())
+            }
+            ResourceIr::Double(double) => {
+                output.text(double.to_string());
+                Ok(())
+            }
             ResourceIr::String(str) => {
                 if str.lines().count() > 1 {
                     output.text(format!("@\"{str}\""));
                 } else {
                     output.text(format!("\"{str}\""));
                 };
+                Ok(())
             }
             ResourceIr::Array(_structure, array) => {
                 let array_block = output.indent_with_options(IndentOptions {
@@ -481,58 +501,91 @@ impl ResourceIr {
                     trailing_newline: false,
                 });
                 for item in array {
-                    item.emit_csharp(&array_block, schema);
+                    item.emit_csharp(&array_block, schema)?;
                     array_block.text(",");
                     array_block.newline();
                 }
+                Ok(())
             }
-            ResourceIr::Object(structure, properties) => {
-                let object_block = output.indent_with_options(IndentOptions {
-                    indent: INDENT,
-                    leading: Some(match structure {
-                        TypeReference::Named(name) | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => match name.as_ref() {
-                            "CfnTag" => "new CfnTag\n{".into(),
-                            name => {
-                                let name = &schema.type_named(name).unwrap().name.csharp;
-                                format!("new {}\n{{", name.name).into()
+            ResourceIr::Object(structure, properties) => match &structure {
+                TypeReference::Named(name)
+                | TypeReference::List(ItemType::Static(TypeReference::Named(name))) => {
+                    match name.as_ref() {
+                        "CfnTag" => {
+                            let object_block = output.indent_with_options(IndentOptions {
+                                indent: INDENT,
+                                leading: Some("new CfnTag\n{".into()),
+                                trailing: Some("}".into()),
+                                trailing_newline: false,
+                            });
+                            for (name, val) in properties {
+                                object_block.text(format!("{name} = "));
+                                val.emit_csharp(&object_block, schema)?;
+                                object_block.text(",");
+                                object_block.newline();
                             }
+                            Ok(())
                         }
-                        TypeReference::Primitive(cfn) => match cfn {
-                            Primitive::Json => "new Dictionary<string, object>\n{".into(),
-                            _ => unreachable!("cannot emit ResourceIr::Object with non-json simple structure ({:?})", cfn)
+                        name => {
+                            let name = &schema.type_named(name).unwrap().name.csharp;
+                            let object_block = output.indent_with_options(IndentOptions {
+                                indent: INDENT,
+                                leading: Some(format!("new {}\n{{", name.name).into()),
+                                trailing: Some("}".into()),
+                                trailing_newline: false,
+                            });
+                            for (name, val) in properties {
+                                object_block.text(format!("{name} = "));
+                                val.emit_csharp(&object_block, schema)?;
+                                object_block.text(",");
+                                object_block.newline();
+                            }
+                            Ok(())
                         }
-                        TypeReference::Map(_) => {
-                            "new Dictionary<string, string>\n{".into()
-                        }
-                        other => unimplemented!("{other:?}"),
-                    }),
-                    trailing: Some("}".into()),
-                    trailing_newline: false,
-                });
-
-                for (name, val) in properties {
-                    object_block.text(match structure {
-                        TypeReference::Named(_) | TypeReference::List(_) => format!("{name} = "),
-                        TypeReference::Primitive(_) | TypeReference::Map(_) => {
-                            format!("{{ \"{name}\", ")
-                        }
-                        other => unimplemented!("{other:?}"),
-                    });
-                    val.emit_csharp(&object_block, schema);
-                    object_block.text(match structure {
-                        TypeReference::Named(_) | TypeReference::List(_) => ",",
-                        TypeReference::Primitive(_) | TypeReference::Map(_) => "},",
-                        other => unimplemented!("{other:?}"),
-                    });
-                    object_block.newline();
+                    }
                 }
-            }
-
+                TypeReference::Primitive(Primitive::Json) => {
+                    let object_block = output.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some("new Dictionary<string, object>\n{".into()),
+                        trailing: Some("}".into()),
+                        trailing_newline: false,
+                    });
+                    for (name, val) in properties {
+                        object_block.text(format!("{{ \"{name}\", "));
+                        val.emit_csharp(&object_block, schema)?;
+                        object_block.text("},");
+                        object_block.newline();
+                    }
+                    Ok(())
+                }
+                TypeReference::Map(_) => {
+                    let object_block = output.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some("new Dictionary<string, string>\n{".into()),
+                        trailing: Some("}".into()),
+                        trailing_newline: false,
+                    });
+                    for (name, val) in properties {
+                        object_block.text(format!("{{ \"{name}\", "));
+                        val.emit_csharp(&object_block, schema)?;
+                        object_block.text("},");
+                        object_block.newline();
+                    }
+                    Ok(())
+                }
+                other => Err(Error::TypeReferenceError {
+                    message: format!(
+                        "Type reference {other:#?} not implemented for ResourceIr::Object"
+                    ),
+                }),
+            },
             ResourceIr::If(cond, when_true, when_false) => {
                 output.text(format!("{} ? ", camel_case(cond)));
-                when_true.emit_csharp(output, schema);
+                when_true.emit_csharp(output, schema)?;
                 output.text(" : ");
-                when_false.emit_csharp(output, schema);
+                when_false.emit_csharp(output, schema)?;
+                Ok(())
             }
             ResourceIr::Join(sep, list) => {
                 let items = output.indent_with_options(IndentOptions {
@@ -548,23 +601,29 @@ impl ResourceIr {
                     trailing_newline: false,
                 });
                 for item in list {
-                    item.emit_csharp(&items, schema);
+                    item.emit_csharp(&items, schema)?;
                     items.text(",");
                     items.newline();
                 }
+                Ok(())
             }
             ResourceIr::Split(sep, str) => match str.as_ref() {
                 ResourceIr::String(str) => {
-                    output.text(format!("'{str}'", str = str.escape_debug()));
-                    output.text(format!(".Split('{sep}')", sep = sep.escape_debug()))
+                    output.text(format!("\"{str}\"", str = str.escape_debug()));
+                    output.text(format!(".Split('{sep}')", sep = sep.escape_debug()));
+                    Ok(())
                 }
                 other => {
-                    output.text(format!("Fn.Split(\"{sep}\", "));
-                    other.emit_csharp(output, schema);
-                    output.text(")")
+                    output.text(format!("Fn.Split('{sep}', "));
+                    other.emit_csharp(output, schema)?;
+                    output.text(")");
+                    Ok(())
                 }
             },
-            ResourceIr::Ref(reference) => reference.emit_csharp(output),
+            ResourceIr::Ref(reference) => {
+                reference.emit_csharp(output);
+                Ok(())
+            }
             ResourceIr::Sub(parts) => {
                 output.text("$\"");
                 for part in parts {
@@ -572,55 +631,62 @@ impl ResourceIr {
                         ResourceIr::String(lit) => output.text(lit.clone()),
                         other => {
                             output.text("{");
-                            other.emit_csharp(output, schema);
+                            other.emit_csharp(output, schema)?;
                             output.text("}");
                         }
                     }
                 }
-                output.text("\"")
+                output.text("\"");
+                Ok(())
             }
             ResourceIr::Map(table, top_level_key, second_level_key) => {
                 output.text(camel_case(table));
                 output.text("[");
-                top_level_key.emit_csharp(output, schema);
+                top_level_key.emit_csharp(output, schema)?;
                 output.text("][");
-                second_level_key.emit_csharp(output, schema);
+                second_level_key.emit_csharp(output, schema)?;
                 output.text("]");
+                Ok(())
             }
             ResourceIr::Base64(value) => {
                 output.text("Fn.Base64(");
-                value.emit_csharp(output, schema);
+                value.emit_csharp(output, schema)?;
                 output.text(" as string)");
+                Ok(())
             }
             ResourceIr::ImportValue(import) => {
                 output.text("Fn.ImportValue(");
-                import.emit_csharp(output, schema);
+                import.emit_csharp(output, schema)?;
                 output.text(")");
+                Ok(())
             }
             ResourceIr::GetAZs(region) => {
                 output.text("Fn.GetAzs(");
-                region.emit_csharp(output, schema);
+                region.emit_csharp(output, schema)?;
                 output.text(")");
+                Ok(())
             }
             ResourceIr::Select(idx, list) => match list.as_ref() {
                 ResourceIr::Array(_, array) => {
                     if *idx <= array.len() {
-                        array[*idx].emit_csharp(output, schema);
+                        array[*idx].emit_csharp(output, schema)?;
                     } else {
-                        output.text("null")
+                        output.text("null");
                     }
+                    Ok(())
                 }
                 other => {
                     output.text(format!("Fn.Select({idx}, "));
-                    other.emit_csharp(output, schema);
-                    output.text(")")
+                    other.emit_csharp(output, schema)?;
+                    output.text(")");
+                    Ok(())
                 }
             },
             ResourceIr::Cidr(cidr_block, count, mask) => {
                 output.text("Fn.Cidr(");
-                cidr_block.emit_csharp(output, schema);
+                cidr_block.emit_csharp(output, schema)?;
                 output.text(", ");
-                count.emit_csharp(output, schema);
+                count.emit_csharp(output, schema)?;
                 output.text(", ");
                 match mask.as_ref() {
                     ResourceIr::Number(mask) => {
@@ -629,28 +695,29 @@ impl ResourceIr {
                     ResourceIr::String(mask) => {
                         output.text(mask.to_string());
                     }
-                    mask => mask.emit_csharp(output, schema),
+                    mask => mask.emit_csharp(output, schema)?,
                 }
                 output.text(")");
+                Ok(())
             }
         }
     }
 }
 
 impl CsharpEmitter for OutputInstruction {
-    fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema) {
+    fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema) -> Result<(), Error> {
         let var_name = &self.name;
 
         if let Some(cond) = &self.condition {
             output.line(format!("{var_name} = {}", camel_case(cond)));
             output.text(format!("{INDENT}? "));
             let indented = output.indent(INDENT);
-            self.value.emit_csharp(&indented, schema);
+            self.value.emit_csharp(&indented, schema)?;
             output.line(format!("\n{INDENT}: null;"));
         } else {
             output.text(format!("{var_name} = "));
-            self.value.emit_csharp(output, schema);
-            output.line(";")
+            self.value.emit_csharp(output, schema)?;
+            output.line(";");
         }
 
         // Create CfnOutputs if the output is an export
@@ -662,11 +729,13 @@ impl CsharpEmitter for OutputInstruction {
                     trailing: Some("}".into()),
                     trailing_newline: true,
                 });
-                self.emit_cfn_output(&indented, export, var_name, schema);
+                self.emit_cfn_output(&indented, export, var_name, schema)?;
             } else {
-                self.emit_cfn_output(output, export, var_name, schema);
+                self.emit_cfn_output(output, export, var_name, schema)?;
             }
         }
+
+        Ok(())
     }
 }
 
@@ -677,7 +746,7 @@ impl OutputInstruction {
         export: &ResourceIr,
         var_name: &str,
         schema: &Schema,
-    ) {
+    ) -> Result<(), Error> {
         let output = output.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(
@@ -696,10 +765,13 @@ impl OutputInstruction {
             output.line(format!("Description = \"{}\",", description.escape_debug()));
         }
         output.text("ExportName = ");
-        export.emit_csharp(&output, schema);
+        export.emit_csharp(&output, schema)?;
         output.text(",\n");
         output.line(format!("Value = {var_name} as string,"));
+
+        Ok(())
     }
 }
+
 #[cfg(test)]
-mod tests {}
+mod tests;

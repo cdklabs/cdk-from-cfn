@@ -97,6 +97,8 @@ class SimpleStack extends Stack {
                 .visibilityTimeout(120)
                 .build();
 
+        queue.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE);
+
         Optional<CfnBucket> bucket = isUsEast1 ? Optional.of(CfnBucket.Builder.create(this, "Bucket")
                 .accessControl("Private")
                 .bucketName(bucketNamePrefix + "-" + this.getRegion() + "-bucket")

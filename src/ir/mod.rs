@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use std::collections::HashMap;
 
 use crate::cdk::Schema;
@@ -7,7 +9,7 @@ use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::MappingInstruction;
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::resources::ResourceInstruction;
-use crate::{CloudformationParseTree, TransmuteError};
+use crate::{CloudformationParseTree, Error};
 
 use self::reference::{Origin, PseudoParameter};
 
@@ -20,7 +22,7 @@ pub mod reference;
 pub mod resources;
 pub mod sub;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CloudformationProgramIr {
     pub description: Option<String>,
     pub transforms: Vec<String>,
@@ -40,7 +42,7 @@ impl CloudformationProgramIr {
     pub fn from(
         parse_tree: CloudformationParseTree,
         schema: &Schema,
-    ) -> Result<CloudformationProgramIr, TransmuteError> {
+    ) -> Result<CloudformationProgramIr, Error> {
         let origins = ReferenceOrigins::new(&parse_tree);
 
         Ok(CloudformationProgramIr {

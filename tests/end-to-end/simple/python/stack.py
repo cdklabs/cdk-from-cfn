@@ -82,6 +82,7 @@ class SimpleStack(Stack):
           redrive_policy = None,
           visibility_timeout = 120,
         )
+    queue.cfn_options.deletion_policy = cdk.CfnDeletionPolicy.RETAIN_EXCEPT_ON_CREATE
 
     bucket = s3.CfnBucket(self, 'Bucket',
           access_control = 'Private',

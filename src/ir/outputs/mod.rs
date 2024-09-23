@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use indexmap::IndexMap;
 
 use crate::cdk::{Primitive, Schema, TypeReference};
@@ -5,7 +7,7 @@ use crate::ir::resources::{ResourceIr, ResourceTranslator};
 use crate::parser::output::Output;
 use crate::parser::resource::ResourceValue;
 use crate::util::Hasher;
-use crate::TransmuteError;
+use crate::Error;
 
 use super::ReferenceOrigins;
 
@@ -23,7 +25,7 @@ impl OutputInstruction {
         parse_tree: IndexMap<String, Output, Hasher>,
         schema: &Schema,
         origins: &ReferenceOrigins,
-    ) -> Result<Vec<Self>, TransmuteError> {
+    ) -> Result<Vec<Self>, Error> {
         let mut list = Vec::with_capacity(parse_tree.len());
 
         for (name, output) in parse_tree {

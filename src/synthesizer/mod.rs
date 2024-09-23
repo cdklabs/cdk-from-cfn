@@ -1,6 +1,8 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use std::io;
 
-use crate::ir::CloudformationProgramIr;
+use crate::{ir::CloudformationProgramIr, Error};
 
 #[cfg(feature = "csharp")]
 mod csharp;
@@ -38,7 +40,7 @@ pub trait Synthesizer {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
-    ) -> io::Result<()>;
+    ) -> Result<(), Error>;
 }
 
 impl CloudformationProgramIr {
@@ -48,7 +50,7 @@ impl CloudformationProgramIr {
         using: &dyn Synthesizer,
         into: &mut impl io::Write,
         stack_name: &str,
-    ) -> io::Result<()> {
+    ) -> Result<(), Error> {
         using.synthesize(self, into, stack_name)
     }
 }

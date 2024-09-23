@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use super::Synthesizer;
 use crate::cdk::{ItemType, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
@@ -8,6 +10,7 @@ use crate::ir::resources::{ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::parser::resource::DeletionPolicy;
+use crate::Error;
 use std::borrow::Cow;
 use std::rc::Rc;
 use std::{io, vec};
@@ -237,7 +240,7 @@ impl<'a> Java<'a> {
         resource: &ResourceInstruction,
         writer: &Rc<CodeBuffer>,
         schema: &Schema,
-    ) -> bool {
+    ) -> Result<bool, Error> {
         let class = resource.resource_type.type_name();
         let res_name = &resource.name;
 
@@ -246,11 +249,11 @@ impl<'a> Java<'a> {
             let properties = writer.indent(DOUBLE_INDENT);
             for (name, prop) in &resource.properties {
                 properties.text(format!(".{}(", camel_case(name)));
-                emit_java(prop.clone(), &properties, Some(class), schema);
+                emit_java(prop.clone(), &properties, Some(class), schema)?;
                 properties.text(")\n");
             }
             properties.line(".build()) : Optional.empty();");
-            true
+            Ok(true)
         } else {
             writer.line(format!(
                 "Cfn{class} {} = Cfn{class}.Builder.create(this, \"{res_name}\")",
@@ -259,11 +262,11 @@ impl<'a> Java<'a> {
             let properties = writer.indent(DOUBLE_INDENT);
             for (name, prop) in &resource.properties {
                 properties.text(format!(".{}(", camel_case(name)));
-                emit_java(prop.clone(), &properties, Some(class), schema);
+                emit_java(prop.clone(), &properties, Some(class), schema)?;
                 properties.text(")\n");
             }
             properties.line(".build();");
-            false
+            Ok(false)
         }
     }
 
@@ -276,12 +279,17 @@ impl<'a> Java<'a> {
         }
     }
 
-    fn write_resources(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>, schema: &Schema) {
+    fn write_resources(
+        ir: &CloudformationProgramIr,
+        writer: &Rc<CodeBuffer>,
+        schema: &Schema,
+    ) -> Result<(), Error> {
         for resource in &ir.resources {
-            let maybe_undefined = Self::write_resource(resource, writer, schema);
+            let maybe_undefined = Self::write_resource(resource, writer, schema)?;
             writer.newline();
-            Self::write_resource_attributes(resource, writer, maybe_undefined, schema);
+            Self::write_resource_attributes(resource, writer, maybe_undefined, schema)?;
         }
+        Ok(())
     }
 
     fn write_resource_attributes(
@@ -289,7 +297,7 @@ impl<'a> Java<'a> {
         writer: &Rc<CodeBuffer>,
         maybe_undefined: bool,
         schema: &Schema,
-    ) {
+    ) -> Result<(), Error> {
         let res_name = if maybe_undefined {
             format!(
                 "{}.ifPresent(_{} -> _{}",
@@ -308,7 +316,7 @@ impl<'a> Java<'a> {
                 ResourceIr::Object(_, entries) => {
                     for (name, value) in entries {
                         writer.text(format!("{res_name}.addMetadata(\"{name}\", "));
-                        emit_java(value.clone(), writer, None, schema);
+                        emit_java(value.clone(), writer, None, schema)?;
                         writer.text(format!("){trailer}"));
                     }
                 }
@@ -328,14 +336,24 @@ impl<'a> Java<'a> {
             extra_line = true;
         }
 
-        // Madness. Why is Java DESTROY instead of DELETE?
-
+        // Java high level stack resources uses `RemovalPolicy`, which is a higher level
+        // enum compared to CfnDeletionPolicy, like other languages. Below is the captured
+        // differences between RemovalPolicy and CfnDeletionPolicy. To see the difference:
+        //
+        // DeletionPolicy: https://docs.aws.amazon.com/cdk/api/v2/java/software/amazon/awscdk/CfnDeletionPolicy.html
+        // RemovalPolicy: https://docs.aws.amazon.com/cdk/api/v2/java/software/amazon/awscdk/RemovalPolicy.html
         if let Some(deletion_policy) = &resource.deletion_policy {
-            // Madness
             match deletion_policy {
                 DeletionPolicy::Delete => {
                     writer.text(format!(
                         "{res_name}.applyRemovalPolicy(RemovalPolicy.DESTROY){}",
+                        trailer
+                    ));
+                    extra_line = true;
+                }
+                DeletionPolicy::RetainExceptOnCreate => {
+                    writer.text(format!(
+                        "{res_name}.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE){}",
                         trailer
                     ));
                     extra_line = true;
@@ -352,13 +370,15 @@ impl<'a> Java<'a> {
 
         if let Some(update_policy) = &resource.update_policy {
             writer.text(format!("{res_name}.getCfnOptions().setUpdatePolicy("));
-            emit_java(update_policy.clone(), writer, None, schema);
+            emit_java(update_policy.clone(), writer, None, schema)?;
             writer.text(format!("){trailer}"));
             extra_line = true;
         }
         if extra_line {
             writer.newline();
         }
+
+        Ok(())
     }
 
     fn write_conditions(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
@@ -408,13 +428,17 @@ impl<'a> Java<'a> {
         }
     }
 
-    fn write_outputs(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>, schema: &Schema) {
+    fn write_outputs(
+        ir: &CloudformationProgramIr,
+        writer: &Rc<CodeBuffer>,
+        schema: &Schema,
+    ) -> Result<(), Error> {
         for output in &ir.outputs {
             let var_name = camel_case(&output.name);
             let output_writer = match &output.condition {
                 None => {
                     writer.text(format!("this.{var_name} = "));
-                    emit_java(output.value.clone(), writer, None, schema);
+                    emit_java(output.value.clone(), writer, None, schema)?;
                     writer.text(";\n");
                     let output_writer = writer.indent_with_options(IndentOptions {
                         indent: DOUBLE_INDENT,
@@ -438,7 +462,7 @@ impl<'a> Java<'a> {
                         camel_case(&output.name),
                         camel_case(cond)
                     ));
-                    emit_java(output.value.clone(), writer, None, schema);
+                    emit_java(output.value.clone(), writer, None, schema)?;
                     writer.text(" : Optional.empty();\n");
                     let output_writer = writer.indent_with_options(IndentOptions {
                         indent: DOUBLE_INDENT,
@@ -465,11 +489,12 @@ impl<'a> Java<'a> {
             }
             if output.export.is_some() {
                 output_writer.text(".exportName(");
-                emit_java(output.export.clone().unwrap(), &output_writer, None, schema);
+                emit_java(output.export.clone().unwrap(), &output_writer, None, schema)?;
                 output_writer.text(")\n");
             }
             writer.newline();
         }
+        Ok(())
     }
 }
 
@@ -485,13 +510,13 @@ impl Synthesizer for Java<'_> {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
-    ) -> io::Result<()> {
+    ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 
         self.write_header(&code);
 
         for import in &ir.imports {
-            code.line(import.to_java_import());
+            code.line(import.to_java_import()?);
         }
         code.newline();
 
@@ -511,15 +536,15 @@ impl Synthesizer for Java<'_> {
 
         Self::write_mappings(&ir, &definitions);
         Self::write_conditions(&ir, &definitions);
-        Self::write_resources(&ir, &definitions, self.schema);
-        Self::write_outputs(&ir, &definitions, self.schema);
+        Self::write_resources(&ir, &definitions, self.schema)?;
+        Self::write_outputs(&ir, &definitions, self.schema)?;
 
-        code.write(into)
+        Ok(code.write(into)?)
     }
 }
 
 impl ImportInstruction {
-    fn to_java_import(&self) -> String {
+    fn to_java_import(&self) -> Result<String, Error> {
         let mut parts: Vec<String> = vec![
             "software".to_string(),
             "amazon".to_string(),
@@ -539,9 +564,13 @@ impl ImportInstruction {
                 parts.push("alexa".to_string());
                 parts.push(self.service.as_ref().unwrap().to_lowercase());
             }
-            _ => unreachable!(),
+            org => {
+                return Err(Error::ImportInstructionError {
+                    message: format!("Expected organization to be AWS or Alexa. Found {org}"),
+                })
+            }
         }
-        format!("import {}.*;", parts.join("."))
+        Ok(format!("import {}.*;", parts.join(".")))
     }
 }
 
@@ -649,28 +678,45 @@ fn get_condition(list: Vec<ConditionIr>, sep: &str) -> String {
         .join(sep)
 }
 
-fn emit_tag_value(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema: &Schema) {
+fn emit_tag_value(
+    this: ResourceIr,
+    output: &CodeBuffer,
+    class: Option<&str>,
+    schema: &Schema,
+) -> Result<(), Error> {
     match this {
-        ResourceIr::Bool(bool) => output.text(format!("String.valueOf({bool})")),
-        ResourceIr::Double(number) => output.text(format!("String.valueOf({number})")),
-        ResourceIr::Number(number) => output.text(format!("String.valueOf({number})")),
-        other => emit_java(other, output, class, schema),
+        ResourceIr::Bool(bool) => Ok(output.text(format!("String.valueOf({bool})"))),
+        ResourceIr::Double(number) => Ok(output.text(format!("String.valueOf({number})"))),
+        ResourceIr::Number(number) => Ok(output.text(format!("String.valueOf({number})"))),
+        other => Ok(emit_java(other, output, class, schema)?),
     }
 }
 
-fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema: &Schema) {
+fn emit_java(
+    this: ResourceIr,
+    output: &CodeBuffer,
+    class: Option<&str>,
+    schema: &Schema,
+) -> Result<(), Error> {
     match this {
         // Literal values
-        ResourceIr::Null => output.text("null"),
-        ResourceIr::Bool(bool) => output.text(bool.to_string()),
-        ResourceIr::Double(number) => output.text(format!("{number}")),
-        ResourceIr::Number(number) => output.text(format!("{number}")),
+        ResourceIr::Null => {
+            output.text("null");
+            Ok(())
+        }
+        ResourceIr::Bool(bool) => {
+            output.text(bool.to_string());
+            Ok(())
+        }
+        ResourceIr::Double(number) => Ok(output.text(format!("{number}"))),
+        ResourceIr::Number(number) => Ok(output.text(format!("{number}"))),
         ResourceIr::String(text) => {
             if text.lines().count() > 1 {
                 output.text(format!("\"\"\"\n{text}\"\"\""))
             } else {
                 output.text(format!("\"{text}\""))
             }
+            Ok(())
         }
 
         // Collection values
@@ -684,13 +730,14 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
             let mut arr = array.iter().peekable();
             while let Some(resource) = arr.next() {
                 if arr.peek().is_none() {
-                    emit_java(resource.clone(), &arr_writer, class, schema);
+                    emit_java(resource.clone(), &arr_writer, class, schema)?;
                     arr_writer.text(")");
                 } else {
-                    emit_java(resource.clone(), &arr_writer, class, schema);
+                    emit_java(resource.clone(), &arr_writer, class, schema)?;
                     arr_writer.text(",\n");
                 }
             }
+            Ok(())
         }
         ResourceIr::Object(structure, entries) => match &structure {
             TypeReference::Named(property)
@@ -706,15 +753,16 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
                         for (key, value) in &entries {
                             if key.eq_ignore_ascii_case("Key") {
                                 obj.text(".key(");
-                                emit_java(value.clone(), &obj, class, schema);
+                                emit_java(value.clone(), &obj, class, schema)?;
                                 obj.text(")\n");
                             }
                             if key.eq_ignore_ascii_case("Value") {
                                 obj.text(".value(");
-                                emit_tag_value(value.clone(), &obj, class, schema);
+                                emit_tag_value(value.clone(), &obj, class, schema)?;
                                 obj.text(")\n")
                             }
                         }
+                        Ok(())
                     }
                     name => {
                         let name = &schema.type_named(name).unwrap().name.java.name;
@@ -726,9 +774,10 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
                         });
                         for (key, value) in &entries {
                             obj.text(format!(".{}(", camel_case(key)));
-                            emit_java(value.clone(), &obj, class, schema);
+                            emit_java(value.clone(), &obj, class, schema)?;
                             obj.text(")\n");
                         }
+                        Ok(())
                     }
                 }
             }
@@ -737,15 +786,20 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
                 let mut map = entries.iter().peekable();
                 while let Some((key, value)) = map.next() {
                     output.text(format!("\"{key}\", "));
-                    emit_java(value.clone(), output, class, schema);
+                    emit_java(value.clone(), output, class, schema)?;
                     if map.peek().is_some() {
                         output.text(",\n");
                     } else {
                         output.text(")");
                     }
                 }
+                Ok(())
             }
-            other => unimplemented!("{other:?}"),
+            other => Err(Error::TypeReferenceError {
+                message: format!(
+                    "Type reference {other:#?} not implemented for ResourceIr::Object"
+                ),
+            }),
         },
 
         // Intrinsics
@@ -755,18 +809,20 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
                     "new String(Base64.getDecoder().decode(\"{}\"))",
                     b64.escape_debug()
                 ));
+                Ok(())
             }
             other => {
                 output.text("Fn.base64(");
-                emit_java(other.clone(), output, class, schema);
+                emit_java(other.clone(), output, class, schema)?;
                 output.text(")");
+                Ok(())
             }
         },
         ResourceIr::Cidr(cidr_block, count, mask) => {
             output.text("Fn.cidr(");
-            emit_java(*cidr_block, output, class, schema);
+            emit_java(*cidr_block, output, class, schema)?;
             output.text(", ");
-            emit_java(*count, output, class, schema);
+            emit_java(*count, output, class, schema)?;
             output.text(", ");
             match mask.as_ref() {
                 ResourceIr::Number(mask) => {
@@ -778,22 +834,26 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
                 mask => output.text(format!("String.valueOf({mask:?})")),
             }
             output.text(")");
+            Ok(())
         }
         ResourceIr::GetAZs(region) => {
             output.text("Fn.getAzs(");
-            emit_java(*region, output, None, schema);
+            emit_java(*region, output, None, schema)?;
             output.text(")");
+            Ok(())
         }
         ResourceIr::If(cond_name, if_true, if_false) => {
             output.text(format!("{} ? ", camel_case(&cond_name)));
-            emit_java(*if_true, output, class, schema);
+            emit_java(*if_true, output, class, schema)?;
             output.text(format!("\n{DOUBLE_INDENT}: "));
-            emit_java(*if_false, output, class, schema);
+            emit_java(*if_false, output, class, schema)?;
+            Ok(())
         }
         ResourceIr::ImportValue(import) => {
             output.text("Fn.importValue(");
-            emit_java(*import, output, None, schema);
+            emit_java(*import, output, None, schema)?;
             output.text(")");
+            Ok(())
         }
         ResourceIr::Join(sep, list) => {
             let items = output.indent_with_options(IndentOptions {
@@ -804,41 +864,47 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
             });
             let mut l = list.iter().peekable();
             while let Some(item) = l.next() {
-                emit_java(item.clone(), &items, class, schema);
+                emit_java(item.clone(), &items, class, schema)?;
                 if l.peek().is_some() {
                     items.text(",\n");
                 }
             }
+            Ok(())
         }
         ResourceIr::Map(name, tlk, slk) => {
             output.text(format!("{}.findInMap(", camel_case(&name)));
-            emit_java(*tlk, output, class, schema);
+            emit_java(*tlk, output, class, schema)?;
             output.text(", ");
-            emit_java(*slk, output, class, schema);
+            emit_java(*slk, output, class, schema)?;
             output.text(")");
+            Ok(())
         }
         ResourceIr::Select(idx, list) => match list.as_ref() {
             ResourceIr::Array(_, array) => {
                 if idx <= array.len() {
-                    emit_java(array[idx].clone(), output, class, schema)
+                    emit_java(array[idx].clone(), output, class, schema)?;
                 } else {
                     output.text("null");
                 }
+                Ok(())
             }
             list => {
                 output.text(format!("Fn.select({idx}, "));
-                emit_java(list.clone(), output, class, schema);
+                emit_java(list.clone(), output, class, schema)?;
                 output.text(")");
+                Ok(())
             }
         },
         ResourceIr::Split(separator, resource) => match resource.as_ref() {
             ResourceIr::String(str) => {
                 output.text(format!("{str}.split(\"{separator}\")"));
+                Ok(())
             }
             other => {
                 output.text(format!("Fn.split({separator}, "));
-                emit_java(other.clone(), output, class, schema);
+                emit_java(other.clone(), output, class, schema)?;
                 output.text(")");
+                Ok(())
             }
         },
         ResourceIr::Sub(parts) => {
@@ -846,15 +912,18 @@ fn emit_java(this: ResourceIr, output: &CodeBuffer, class: Option<&str>, schema:
             while let Some(p) = part.next() {
                 match p {
                     ResourceIr::String(lit) => output.text(format!("\"{}\"", lit.clone())),
-                    other => emit_java(other.clone(), output, class, schema),
+                    other => emit_java(other.clone(), output, class, schema)?,
                 }
                 if part.peek().is_some() {
                     output.text(" + ");
                 }
             }
+            Ok(())
         }
-
-        ResourceIr::Ref(reference) => output.text(emit_reference(reference)),
+        ResourceIr::Ref(reference) => {
+            output.text(emit_reference(reference));
+            Ok(())
+        }
     }
 }
 
@@ -863,22 +932,6 @@ fn name(key: &str) -> String {
         .chars()
         .filter(|c| c.is_alphanumeric())
         .collect()
-}
-
-trait JavaCodeBuffer {
-    fn java_doc(&self) -> Rc<CodeBuffer>;
-}
-
-impl JavaCodeBuffer for CodeBuffer {
-    #[inline]
-    fn java_doc(&self) -> Rc<CodeBuffer> {
-        self.indent_with_options(IndentOptions {
-            indent: " * ".into(),
-            leading: Some("/**".into()),
-            trailing: Some(" */".into()),
-            trailing_newline: true,
-        })
-    }
 }
 
 pub struct JavaConstructorParameter {
@@ -893,4 +946,4 @@ pub struct JavaConstructorParameter {
 pub struct JavaResourceInstruction {}
 
 #[cfg(test)]
-mod tests {}
+mod tests;

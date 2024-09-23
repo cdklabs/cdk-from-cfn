@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 #![allow(unused_variables)]
 
 use crate::cdk::{ItemType, Primitive, Schema, TypeReference};
@@ -10,6 +12,7 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{find_references, ResourceInstruction, ResourceIr};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
+use crate::Error;
 use std::borrow::Cow;
 use std::io;
 use std::rc::Rc;
@@ -42,7 +45,7 @@ impl Synthesizer for Golang<'_> {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
-    ) -> io::Result<()> {
+    ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 
         code.line("package main");
@@ -57,7 +60,7 @@ impl Synthesizer for Golang<'_> {
         let stdlib_imports = imports.section(false);
 
         for import in &ir.imports {
-            imports.line(import.to_golang());
+            imports.line(import.to_golang()?);
         }
         // The usual imports of constructs library & jsii runtime
         imports.line("\"github.com/aws/constructs-go/constructs/v10\"");
@@ -217,7 +220,7 @@ impl Synthesizer for Golang<'_> {
                 "{name} := ",
                 name = golang_identifier(&condition.name, IdentifierKind::Unexported)
             ));
-            condition.value.emit_golang(context, &ctor, None);
+            condition.value.emit_golang(context, &ctor, None)?;
             ctor.newline();
             ctor.newline();
         }
@@ -260,7 +263,7 @@ impl Synthesizer for Golang<'_> {
                     "{}: ",
                     golang_identifier(name, IdentifierKind::Exported)
                 ));
-                value.emit_golang(context, &props, None);
+                value.emit_golang(context, &props, None)?;
                 props.line(",");
             }
             ctor.newline();
@@ -285,9 +288,9 @@ impl Synthesizer for Golang<'_> {
                     props.line(format!("Description: jsii.String({description:?}),"));
                 }
                 props.text("ExportName: ");
-                export.emit_golang(context, &props, Some(","));
+                export.emit_golang(context, &props, Some(","))?;
                 props.text("Value: ");
-                output.value.emit_golang(context, &props, Some(","));
+                output.value.emit_golang(context, &props, Some(","))?;
                 ctor.newline();
             }
         }
@@ -304,7 +307,7 @@ impl Synthesizer for Golang<'_> {
                 "{name}: ",
                 name = golang_identifier(&output.name, IdentifierKind::Exported)
             ));
-            output.value.emit_golang(context, &fields, None);
+            output.value.emit_golang(context, &fields, None)?;
             fields.line(",");
         }
         code.newline();
@@ -383,7 +386,7 @@ impl Synthesizer for Golang<'_> {
         env_block.line("//  Region:  jsii.String(os.Getenv(\"CDK_DEFAULT_REGION\")),");
         env_block.line("// }");
 
-        code.write(into)
+        Ok(code.write(into)?)
     }
 }
 
@@ -565,7 +568,7 @@ impl Inspectable for ResourceIr {
 }
 
 impl ImportInstruction {
-    fn to_golang(&self) -> String {
+    fn to_golang(&self) -> Result<String, Error> {
         let mut parts: Vec<String> = vec![
             "github.com".to_string(),
             "aws".to_string(),
@@ -584,10 +587,14 @@ impl ImportInstruction {
                 "alexa{}",
                 self.service.as_ref().unwrap().to_lowercase()
             )),
-            _ => unreachable!(),
+            org => {
+                return Err(Error::ImportInstructionError {
+                    message: format!("Expected organization to be AWS or Alexa. Found {org}"),
+                })
+            }
         }
 
-        format!(
+        Ok(format!(
             "{} \"{}\"",
             &self
                 .service
@@ -595,7 +602,7 @@ impl ImportInstruction {
                 .unwrap_or(&"cdk".to_string())
                 .to_lowercase(),
             parts.join("/")
-        )
+        ))
     }
 }
 
@@ -617,13 +624,23 @@ trait AsGolang {
 }
 
 trait GolangEmitter {
-    fn emit_golang(&self, context: &mut GoContext, output: &CodeBuffer, trailer: Option<&str>);
+    fn emit_golang(
+        &self,
+        context: &mut GoContext,
+        output: &CodeBuffer,
+        trailer: Option<&str>,
+    ) -> Result<(), Error>;
 }
 
 impl GolangEmitter for ConditionIr {
-    fn emit_golang(&self, context: &mut GoContext, output: &CodeBuffer, trailer: Option<&str>) {
+    fn emit_golang(
+        &self,
+        context: &mut GoContext,
+        output: &CodeBuffer,
+        trailer: Option<&str>,
+    ) -> Result<(), Error> {
         match self {
-            Self::Ref(reference) => reference.emit_golang(context, output, None),
+            Self::Ref(reference) => reference.emit_golang(context, output, None)?,
             Self::Str(str) => output.text(format!("jsii.String({str:?})")),
             Self::Condition(x) => output.text(golang_identifier(x, IdentifierKind::Unexported)),
 
@@ -632,7 +649,7 @@ impl GolangEmitter for ConditionIr {
                     if idx > 0 {
                         output.text(" && ");
                     }
-                    cond.emit_golang(context, output, None);
+                    cond.emit_golang(context, output, None)?;
                 }
             }
             Self::Or(list) => {
@@ -640,63 +657,63 @@ impl GolangEmitter for ConditionIr {
                     if idx > 0 {
                         output.text(" || ");
                     }
-                    cond.emit_golang(context, output, None);
+                    cond.emit_golang(context, output, None)?;
                 }
             }
 
             Self::Not(cond) => {
                 output.text("!");
-                cond.emit_golang(context, output, None);
+                cond.emit_golang(context, output, None)?;
             }
 
             Self::Equals(lhs, rhs) => {
-                lhs.emit_golang(context, output, None);
+                lhs.emit_golang(context, output, None)?;
                 output.text(" == ");
-                rhs.emit_golang(context, output, None)
+                rhs.emit_golang(context, output, None)?
             }
 
             Self::Map(map, tlk, slk) => {
                 output.text(golang_identifier(map, IdentifierKind::Unexported));
                 output.text("[");
-                tlk.emit_golang(context, output, None);
+                tlk.emit_golang(context, output, None)?;
                 output.text("][");
-                slk.emit_golang(context, output, None);
+                slk.emit_golang(context, output, None)?;
                 output.text("]");
             }
             ConditionIr::Split(sep, str) => {
                 output.text(format!("cdk.Fn_Split(jsii.String({sep:?}), "));
-                str.emit_golang(context, output, None);
+                str.emit_golang(context, output, None)?;
                 output.text(")");
             }
             ConditionIr::Select(index, str) => {
                 output.text(format!("cdk.Fn_Select(jsii.Number({index:?}), "));
-                str.emit_golang(context, output, None);
+                str.emit_golang(context, output, None)?;
                 output.text(")");
             }
         }
         if let Some(trailer) = trailer {
-            output.text(trailer.to_owned())
+            output.text(trailer.to_owned());
         }
+        Ok(())
     }
 }
 
 impl GolangEmitter for ResourceIr {
-    fn emit_golang(&self, context: &mut GoContext, output: &CodeBuffer, trailer: Option<&str>) {
+    fn emit_golang(
+        &self,
+        context: &mut GoContext,
+        output: &CodeBuffer,
+        trailer: Option<&str>,
+    ) -> Result<(), Error> {
         match self {
             // Canonical nil
             Self::Null => output.text("nil"),
 
             // Literal values
             Self::Bool(bool) => output.text(format!("jsii.Bool({bool})")),
-            Self::Double(double) => {
-                output.text(format!("jsii.Number({double})"));
-            }
-            Self::Number(number) => {
-                output.text(format!("jsii.Number({number})"));
-            }
-            Self::String(text) => {
-                output.text(format!("jsii.String({text:?})"));
-            }
+            Self::Double(double) => output.text(format!("jsii.Number({double})")),
+            Self::Number(number) => output.text(format!("jsii.Number({number})")),
+            Self::String(text) => output.text(format!("jsii.String({text:?})")),
 
             // Composites
             Self::Array(structure, array) => {
@@ -732,7 +749,7 @@ impl GolangEmitter for ResourceIr {
                     trailing_newline: false,
                 });
                 for item in array {
-                    item.emit_golang(context, &items, None);
+                    item.emit_golang(context, &items, None)?;
                     items.line(",");
                 }
             }
@@ -758,7 +775,13 @@ impl GolangEmitter for ResourceIr {
                                 structure_is_simple_json = true;
                                 "map[string]interface{} {".into()
                             }
-                            _ => unreachable!("object with simple structure ({:?})", cfn),
+                            _ => {
+                                return Err(Error::PrimitiveError {
+                                    message: format!(
+                                        "Cannot emit ResourceIr::Object with non-json simple structure ({cfn:?})",
+                                    )
+                                })
+                            }
                         },
                         TypeReference::List(item_type) => {
                             format!("[]{}", item_type.as_golang(context.schema)).into()
@@ -790,21 +813,21 @@ impl GolangEmitter for ResourceIr {
                             name = golang_identifier(name, IdentifierKind::Exported)
                         ));
                     }
-                    val.emit_golang(context, &props, Some(","));
+                    val.emit_golang(context, &props, Some(","))?;
                 }
             }
 
             // Intrinsic functions
             Self::Base64(value) => {
                 output.text("cdk.Fn_Base64(");
-                value.emit_golang(context, output, None);
+                value.emit_golang(context, output, None)?;
                 output.text(")");
             }
             Self::Cidr(cidr_block, count, mask) => {
                 output.text("cdk.Fn_Cidr(");
-                cidr_block.emit_golang(context, output, None);
+                cidr_block.emit_golang(context, output, None)?;
                 output.text(", ");
-                count.emit_golang(context, output, None);
+                count.emit_golang(context, output, None)?;
                 output.text(", ");
                 match mask.as_ref() {
                     ResourceIr::Number(mask) => {
@@ -816,7 +839,7 @@ impl GolangEmitter for ResourceIr {
                     mask => {
                         context.import_fmt();
                         output.text("jsii.String(fmt.Sprintf(\"%v\", ");
-                        mask.emit_golang(context, output, None);
+                        mask.emit_golang(context, output, None)?;
                         output.text("))");
                     }
                 }
@@ -824,7 +847,7 @@ impl GolangEmitter for ResourceIr {
             }
             Self::GetAZs(region) => {
                 output.text("cdk.Fn_GetAzs(");
-                region.emit_golang(context, output, None);
+                region.emit_golang(context, output, None)?;
                 output.text(")");
             }
             Self::If(cond, when_true, when_false) => {
@@ -841,12 +864,12 @@ impl GolangEmitter for ResourceIr {
                     "{cond},",
                     cond = golang_identifier(cond, IdentifierKind::Unexported)
                 ));
-                when_true.emit_golang(context, &call, Some(","));
-                when_false.emit_golang(context, &call, Some(","));
+                when_true.emit_golang(context, &call, Some(","))?;
+                when_false.emit_golang(context, &call, Some(","))?;
             }
             Self::ImportValue(import) => {
                 output.text("cdk.Fn_ImportValue(");
-                import.emit_golang(context, output, None);
+                import.emit_golang(context, output, None)?;
                 output.text(")");
             }
             Self::Join(sep, list) => {
@@ -857,7 +880,7 @@ impl GolangEmitter for ResourceIr {
                     trailing_newline: false,
                 });
                 for item in list {
-                    item.emit_golang(context, &items, Some(","));
+                    item.emit_golang(context, &items, Some(","))?;
                 }
             }
             Self::Map(table, tlk, slk) => {
@@ -865,24 +888,24 @@ impl GolangEmitter for ResourceIr {
                     "{table}[",
                     table = golang_identifier(table, IdentifierKind::Unexported)
                 ));
-                tlk.emit_golang(context, output, None);
+                tlk.emit_golang(context, output, None)?;
                 output.text("][");
-                slk.emit_golang(context, output, None);
+                slk.emit_golang(context, output, None)?;
                 output.text("]");
             }
             Self::Select(idx, list) => match list.as_ref() {
                 ResourceIr::Array(_, items) => {
-                    items[*idx].emit_golang(context, output, None);
+                    items[*idx].emit_golang(context, output, None)?;
                 }
                 list => {
                     output.text(format!("cdk.Fn_Select(jsii.Number({idx}), "));
-                    list.emit_golang(context, output, None);
+                    list.emit_golang(context, output, None)?;
                     output.text(")");
                 }
             },
             Self::Split(sep, str) => {
                 output.text(format!("cdk.Fn_Split(jsii.String({sep:?}), "));
-                str.emit_golang(context, output, None);
+                str.emit_golang(context, output, None)?;
                 output.text(")");
             }
             Self::Sub(parts) => {
@@ -906,7 +929,7 @@ impl GolangEmitter for ResourceIr {
                         | ResourceIr::String(_) => {}
                         part => {
                             output.text(", ");
-                            part.emit_golang(context, output, None);
+                            part.emit_golang(context, output, None)?;
                         }
                     }
                 }
@@ -914,12 +937,13 @@ impl GolangEmitter for ResourceIr {
             }
 
             // References
-            Self::Ref(reference) => reference.emit_golang(context, output, None),
+            Self::Ref(reference) => reference.emit_golang(context, output, None)?,
         }
 
         if let Some(trailer) = trailer {
-            output.line(trailer.to_owned())
+            output.line(trailer.to_owned());
         }
+        Ok(())
     }
 }
 
@@ -955,7 +979,12 @@ impl AsGolang for Primitive {
 }
 
 impl GolangEmitter for Reference {
-    fn emit_golang(&self, context: &mut GoContext, output: &CodeBuffer, trailer: Option<&str>) {
+    fn emit_golang(
+        &self,
+        context: &mut GoContext,
+        output: &CodeBuffer,
+        trailer: Option<&str>,
+    ) -> Result<(), Error> {
         match &self.origin {
             Origin::Condition => {
                 output.text(golang_identifier(&self.name, IdentifierKind::Unexported))
@@ -991,8 +1020,9 @@ impl GolangEmitter for Reference {
         }
 
         if let Some(trailer) = trailer {
-            output.line(trailer.to_owned())
+            output.line(trailer.to_owned());
         }
+        Ok(())
     }
 }
 
@@ -1016,3 +1046,6 @@ fn golang_identifier(text: &str, kind: IdentifierKind) -> String {
         IdentifierKind::Unexported => camel_case(&text_string),
     }
 }
+
+#[cfg(test)]
+mod tests;

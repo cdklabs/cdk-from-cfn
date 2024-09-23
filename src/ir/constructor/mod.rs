@@ -1,8 +1,10 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use crate::{parser::parameters::Parameter, Hasher};
 use indexmap::IndexMap;
 use voca_rs::case::camel_case;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Constructor {
     pub inputs: Vec<ConstructorParameter>,
 }
@@ -19,12 +21,16 @@ impl Constructor {
                         crate::parser::parameters::ParameterType::String => {
                             if param.allowed_values.is_some() {
                                 let values = param.allowed_values.clone().unwrap();
-                                if (values[0].to_lowercase() == "true"
-                                    && values[1].to_lowercase() == "false")
-                                    || (values[1].to_lowercase() == "true"
-                                        && values[0].to_lowercase() == "false")
-                                {
-                                    crate::parser::parameters::ParameterType::Bool.to_string()
+                                if values.len() == 2 {
+                                    if (values[0].to_lowercase() == "true"
+                                        && values[1].to_lowercase() == "false")
+                                        || (values[0].to_lowercase() == "false"
+                                            && values[1].to_lowercase() == "true")
+                                    {
+                                        crate::parser::parameters::ParameterType::Bool.to_string()
+                                    } else {
+                                        param.parameter_type.to_string()
+                                    }
                                 } else {
                                     param.parameter_type.to_string()
                                 }
@@ -43,7 +49,7 @@ impl Constructor {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConstructorParameter {
     pub name: String,
     pub description: Option<String>,

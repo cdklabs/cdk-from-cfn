@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 use core::panic;
 use std::fs::{self, canonicalize, copy, create_dir_all, remove_dir_all, File};
 use std::io::{Read, Write};
@@ -84,6 +86,7 @@ test_case!(cloudwatch, "CloudwatchStack", &["golang"]);
 test_case!(ecs, "EcsStack", &["java", "golang"]);
 test_case!(ec2, "Ec2Stack", &["java", "golang"]);
 test_case!(efs, "EfsStack", &["java", "golang"]);
+test_case!(ec2_encryption, "Ec2EncryptionStack", &["golang", "java"]);
 test_case!(apigatewayv2, "ApiGatewayV2Stack", &["golang"]);
 
 // Add new test cases here
