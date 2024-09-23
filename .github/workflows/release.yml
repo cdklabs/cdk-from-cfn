@@ -37,6 +37,7 @@ jobs:
           base: main
           body: |
             release: cdk-from-cfn
+            
             [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           title: |
             chore: release cdk-from-cfn
