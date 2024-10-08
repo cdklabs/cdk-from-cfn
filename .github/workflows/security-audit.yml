@@ -9,6 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - uses: rustsec/audit-check@main
+      - uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
