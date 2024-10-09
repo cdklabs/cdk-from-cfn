@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - uses: rustsec/audit-check@master
+      - uses: rustsec/audit-check@2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
