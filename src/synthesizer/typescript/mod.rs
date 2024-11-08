@@ -294,7 +294,11 @@ impl ImportInstruction {
     fn to_typescript(&self) -> Result<String, Error> {
         let mut parts: Vec<String> = vec!["aws-cdk-lib".to_string()];
         match self.organization.as_str() {
-            "AWS" => if let Some(service) = &self.service { parts.push(format!("aws-{}", service.to_lowercase())) },
+            "AWS" => {
+                if let Some(service) = &self.service {
+                    parts.push(format!("aws-{}", service.to_lowercase()))
+                }
+            }
             "Alexa" => parts.push(format!(
                 "alexa-{}",
                 self.service.as_ref().unwrap().to_lowercase()
