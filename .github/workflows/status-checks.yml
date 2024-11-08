@@ -60,6 +60,10 @@ jobs:
         with:
           distribution: corretto
           java-version: 17
+      - name: Install Dotnet 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.202'
       - name: Tests with Coverage
         run: cargo llvm-cov --all-features --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --no-fail-fast --lcov --output-path target/lcov.info
       - name: Coverage Report
