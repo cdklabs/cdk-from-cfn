@@ -577,11 +577,8 @@ impl ImportInstruction {
             "v2".to_string(),
         ];
         match self.organization.as_str() {
-            "AWS" => match &self.service {
-                Some(service) => {
-                    parts.push(format!("aws{}", service.to_lowercase()));
-                }
-                None => {}
+            "AWS" => if let Some(service) = &self.service {
+                parts.push(format!("aws{}", service.to_lowercase()));
             },
             "Alexa" => parts.push(format!(
                 "alexa{}",

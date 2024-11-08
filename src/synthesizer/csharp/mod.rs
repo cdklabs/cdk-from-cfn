@@ -326,12 +326,9 @@ impl ImportInstruction {
         let mut parts: Vec<String> = vec!["Amazon".to_string(), "CDK".to_string()];
         match self.organization.as_str() {
             "AWS" => {
-                match &self.service {
-                    Some(service) => {
-                        parts.push("AWS".to_string());
-                        parts.push(service.into());
-                    }
-                    None => {}
+                if let Some(service) = &self.service {
+                    parts.push("AWS".to_string());
+                    parts.push(service.into());
                 };
             }
             "Alexa" => {
