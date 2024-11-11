@@ -40,6 +40,9 @@ jobs:
   security_audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      checks: write
     steps:
       - uses: actions/checkout@main
       - uses: rustsec/audit-check@v2
@@ -63,7 +66,7 @@ jobs:
       - name: Install Dotnet 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.110'
+          dotnet-version: "8.0.110"
       - name: Tests with Coverage
         run: cargo llvm-cov --all-features --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --no-fail-fast --lcov --output-path target/lcov.info
       - name: Coverage Report
