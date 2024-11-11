@@ -9,7 +9,7 @@ use std::path;
 use std::path::Path;
 
 use walkdir::WalkDir;
-use zip::write::FileOptions;
+use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 fn main() -> io::Result<()> {
@@ -364,7 +364,7 @@ fn zip_test_snapshots() -> io::Result<()> {
 
     let walkdir = WalkDir::new(src_dir);
     let mut zip = ZipWriter::new(file);
-    let options = FileOptions::default();
+    let options = SimpleFileOptions::default();
     let mut buffer = Vec::new();
 
     'dir_entries: for entry in walkdir.into_iter().map(|e| e.unwrap()) {
