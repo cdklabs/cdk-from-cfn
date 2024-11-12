@@ -15,7 +15,7 @@ $ ./target/release/cdk-from-cfn [INPUT] [OUTPUT]
 - `INPUT` is the input file path (STDIN by default).
 - `OUTPUT` is the output file path; if not specified, output will be printed on your command line (STDOUT by default).
 
-### Cargo Features
+### Cargo Feature
 
 Name         | Enabled by default | Description
 -------------|:------------------:|---------------------------------------------
