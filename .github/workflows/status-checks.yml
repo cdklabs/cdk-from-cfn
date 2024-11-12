@@ -13,7 +13,7 @@ jobs:
     name: Lint and Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@main
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -44,7 +44,7 @@ jobs:
       pull-requests: write
       checks: write
     steps:
-      - uses: actions/checkout@main
+      - uses: actions/checkout@v4
       - uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -52,8 +52,10 @@ jobs:
   testing:
     name: Run Tests
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
-      - uses: actions/checkout@main
+      - uses: actions/checkout@v4
       - name: Install Rust
         run: rustup update stable
       - name: Install cargo-llvm-cov
@@ -74,26 +76,10 @@ jobs:
           cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --codecov --output-path target/codecov.json
           cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --html --output-dir target/coverage
           cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$'
-      - name: Upload Coverage Reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: target/codecov.json
-
-  codecov:
-    name: Collect Coverage
-    runs-on: ubuntu-latest
-    needs: testing
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: coverage
       - name: Upload Coverage to CodeCov
         uses: codecov/codecov-action@v4
         with:
           use_oidc: true
           fail_ci_if_error: true
-          files: codecov.json
+          files: target/codecov.json
           name: codecov.json
