@@ -25,7 +25,7 @@ class CloudwatchStack(Stack):
           metric_name = '5XXError',
           comparison_operator = 'GreaterThanThreshold',
           statistic = 'Average',
-          threshold = 0,
+          threshold = 0.005,
           period = 900,
           evaluation_periods = 1,
           treat_missing_data = 'notBreaching',

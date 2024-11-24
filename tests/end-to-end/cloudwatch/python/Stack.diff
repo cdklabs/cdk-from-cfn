@@ -1,5 +1,5 @@
 diff --git a/./tests/end-to-end/cloudwatch/template.json b/tests/end-to-end/cloudwatch-python-working-dir/cdk.out/Stack.template.json
-index 8d26c7b..aad44e9 100644
+index 30a1dd6..fd7e22a 100644
 --- a/./tests/end-to-end/cloudwatch/template.json
 +++ b/tests/end-to-end/cloudwatch-python-working-dir/cdk.out/Stack.template.json
 @@ -1,50 +1,28 @@
@@ -38,11 +38,10 @@ index 8d26c7b..aad44e9 100644
 +    "EvaluationPeriods": 1,
      "MetricName": "5XXError",
 -        "ComparisonOperator": "GreaterThanThreshold",
+-        "Statistic": "Average",
+-        "Threshold": "0.005",
 +    "Namespace": "AWS/ApiGateway",
-+    "Period": 900,
-     "Statistic": "Average",
-     "Threshold": 0,
--        "Period": 900,
+     "Period": 900,
 -        "EvaluationPeriods": 1,
 -        "TreatMissingData": "notBreaching",
 -        "AlarmActions": [
@@ -59,6 +58,8 @@ index 8d26c7b..aad44e9 100644
 -            }
 -          }
 -        ]
++    "Statistic": "Average",
++    "Threshold": 0.005,
 +    "TreatMissingData": "notBreaching"
     }
    }

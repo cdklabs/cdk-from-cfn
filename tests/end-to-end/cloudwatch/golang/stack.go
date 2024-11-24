@@ -41,7 +41,7 @@ func NewCloudwatchStack(scope constructs.Construct, id string, props *Cloudwatch
 			MetricName: jsii.String("5XXError"),
 			ComparisonOperator: jsii.String("GreaterThanThreshold"),
 			Statistic: jsii.String("Average"),
-			Threshold: jsii.Number(0),
+			Threshold: jsii.Number(0.005),
 			Period: jsii.Number(900),
 			EvaluationPeriods: jsii.Number(1),
 			TreatMissingData: jsii.String("notBreaching"),

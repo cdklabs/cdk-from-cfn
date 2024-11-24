@@ -38,7 +38,7 @@ class CloudwatchStack extends Stack {
                 .metricName("5XXError")
                 .comparisonOperator("GreaterThanThreshold")
                 .statistic("Average")
-                .threshold(0)
+                .threshold(0.005)
                 .period(900)
                 .evaluationPeriods(1)
                 .treatMissingData("notBreaching")
