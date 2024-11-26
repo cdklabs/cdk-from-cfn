@@ -76,8 +76,8 @@ jobs:
           cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --codecov --output-path target/codecov.json
           cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --html --output-dir target/coverage
           cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$'
-      - name: upload-codecov
-        uses: codecov/codecov-action@v5
+      - name: Upload Coverage to CodeCov
+        uses: codecov/codecov-action@v4
         with:
           use_oidc: true
           fail_ci_if_error: true
