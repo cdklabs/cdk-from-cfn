@@ -8,6 +8,7 @@ use crate::ir::reference::{Origin, Reference};
 use crate::ir::resources::{order, ResourceInstruction, ResourceIr, ResourceType};
 use crate::ir::ReferenceOrigins;
 use crate::parser::resource::{IntrinsicFunction, ResourceValue};
+use crate::primitives::WrapperF64;
 use crate::Hasher;
 
 use super::{Primitive, ResourceTranslator, Schema, TypeReference};
@@ -198,7 +199,7 @@ fn test_boolean_parse_error() {
 }
 
 #[test]
-fn test_number_parse_error() {
+fn test_number_parse_float() {
     let origins = ReferenceOrigins {
         origins: HashMap::default(),
     };
@@ -208,6 +209,21 @@ fn test_number_parse_error() {
         value_type: Some(TypeReference::Primitive(Primitive::Number)),
     };
     let resource_value = ResourceValue::String("1.5".into());
+    let result = translator.translate(resource_value).unwrap();
+    assert_eq!(ResourceIr::Double(WrapperF64::new(1.5)), result);
+}
+
+#[test]
+fn test_number_parse_error() {
+    let origins = ReferenceOrigins {
+        origins: HashMap::default(),
+    };
+    let translator = ResourceTranslator {
+        schema: &Schema::builtin(),
+        origins: &origins,
+        value_type: Some(TypeReference::Primitive(Primitive::Number)),
+    };
+    let resource_value = ResourceValue::String("15abc".into());
     let result = translator.translate(resource_value).unwrap_err();
     assert_eq!("invalid digit found in string", result.to_string());
 }

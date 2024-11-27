@@ -21,7 +21,7 @@
     "Namespace": "AWS/ApiGateway",
     "Period": 900,
     "Statistic": "Average",
-    "Threshold": 0,
+    "Threshold": 0.005,
     "TreatMissingData": "notBreaching"
    }
   }

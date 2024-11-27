@@ -85,11 +85,20 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                             }
                         })?)),
                         Primitive::Number => {
-                            Ok(ResourceIr::Number(s.parse().map_err(|cause| {
-                                Error::ResourceTranslationError {
-                                    message: format!("{cause}"),
-                                }
-                            })?))
+                            let ir = match s.contains(".") {
+                                true => ResourceIr::Double(WrapperF64::new(s.parse().map_err(
+                                    |cause| Error::ResourceTranslationError {
+                                        message: format!("{cause}"),
+                                    },
+                                )?)),
+                                false => ResourceIr::Number(s.parse().map_err(|cause| {
+                                    Error::ResourceTranslationError {
+                                        message: format!("{cause}"),
+                                    }
+                                })?),
+                            };
+
+                            Ok(ir)
                         }
                         _ => Ok(ResourceIr::String(s)),
                     };

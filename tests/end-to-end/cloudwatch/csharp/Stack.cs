@@ -39,7 +39,7 @@ namespace CloudwatchStack
                 MetricName = "5XXError",
                 ComparisonOperator = "GreaterThanThreshold",
                 Statistic = "Average",
-                Threshold = 0,
+                Threshold = 0.005,
                 Period = 900,
                 EvaluationPeriods = 1,
                 TreatMissingData = "notBreaching",
