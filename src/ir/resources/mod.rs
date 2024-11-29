@@ -85,7 +85,7 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                             }
                         })?)),
                         Primitive::Number => {
-                            let ir = match s.contains(".") {
+                            let ir = match s.contains('.') {
                                 true => ResourceIr::Double(WrapperF64::new(s.parse().map_err(
                                     |cause| Error::ResourceTranslationError {
                                         message: format!("{cause}"),
