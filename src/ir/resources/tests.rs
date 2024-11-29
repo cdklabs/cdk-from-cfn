@@ -186,7 +186,7 @@ fn test_boolean_parse_error() {
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
-        schema: &Schema::builtin(),
+        schema: Schema::builtin(),
         origins: &origins,
         value_type: Some(TypeReference::Primitive(Primitive::Boolean)),
     };
@@ -204,7 +204,7 @@ fn test_number_parse_float() {
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
-        schema: &Schema::builtin(),
+        schema: Schema::builtin(),
         origins: &origins,
         value_type: Some(TypeReference::Primitive(Primitive::Number)),
     };
@@ -219,7 +219,7 @@ fn test_number_parse_error() {
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
-        schema: &Schema::builtin(),
+        schema: Schema::builtin(),
         origins: &origins,
         value_type: Some(TypeReference::Primitive(Primitive::Number)),
     };
@@ -234,7 +234,7 @@ fn test_sub_excess_map_error() {
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
-        schema: &Schema::builtin(),
+        schema: Schema::builtin(),
         origins: &origins,
         value_type: Some(TypeReference::Primitive(Primitive::Number)),
     };
@@ -252,7 +252,7 @@ fn test_invalid_base_64() {
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
-        schema: &Schema::builtin(),
+        schema: Schema::builtin(),
         origins: &origins,
         value_type: Some(TypeReference::Primitive(Primitive::Number)),
     };
@@ -272,7 +272,7 @@ fn test_invalid_select_index() {
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
-        schema: &Schema::builtin(),
+        schema: Schema::builtin(),
         origins: &origins,
         value_type: Some(TypeReference::Primitive(Primitive::Number)),
     };
@@ -290,7 +290,7 @@ fn test_invalid_select_index_range_error() {
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
-        schema: &Schema::builtin(),
+        schema: Schema::builtin(),
         origins: &origins,
         value_type: Some(TypeReference::Primitive(Primitive::Number)),
     };
@@ -308,7 +308,7 @@ fn test_select_index_int_error() {
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
-        schema: &Schema::builtin(),
+        schema: Schema::builtin(),
         origins: &origins,
         value_type: Some(TypeReference::Primitive(Primitive::Number)),
     };

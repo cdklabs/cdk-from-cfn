@@ -1,5 +1,14 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
+
+// All kinds of Clippy warnings we're not interested int
+#![allow(
+    // Many tests assert against unit value, I'm not rewriting them now
+    clippy::unit_cmp,
+    // We should be allowed to do `Ok(value)` when value is `()`
+    clippy::unit_arg,
+)]
+
 use indexmap::IndexMap;
 use parser::condition::ConditionFunction;
 use parser::lookup_table::MappingTable;

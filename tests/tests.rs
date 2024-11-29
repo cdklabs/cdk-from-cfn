@@ -867,5 +867,5 @@ fn test_update_policy_java() {
     let synthesizer = Box::<Java>::default();
     let mut output = Vec::new();
     let result = ir.synthesize(synthesizer.as_ref(), &mut output, "Stack");
-    assert_eq!((), result.unwrap());
+    result.unwrap();
 }
