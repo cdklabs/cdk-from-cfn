@@ -1,77 +1,78 @@
 # .github/workflows/release.yml
+name: Release from release branch
 
-name: release
 on:
+  workflow_dispatch: {}
   push:
     branches:
       - release
 
+env:
+  RELEASE_BRANCH: release
+  MERGEBACK_BRANCH: github-actions/mergeback
+
 jobs:
-  release_to_crates:
-    name: Release to crates.io
+  create_mergeback:
+    name: Create the merge-back PR
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@main
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
+          ref: ${{ env.RELEASE_BRANCH }}
           token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
-      - name: Set git identity
-        run: |-
-          git config user.name "cdklabs-automation"
-          git config user.email "aws-cdk-dev+cdklabs@amazon.com"
-      - name: Install cargo-release
-        uses: taiki-e/install-action@main
-        with:
-          tool: cargo-binstall
-      - run: cargo binstall --no-confirm cargo-release
-      - run: cargo release --all-features --verbose minor --execute --no-confirm --no-push
-      - name: Open pull request
-        id: create-pr
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
-          author: cdklabs-automation <aws-cdk-dev+cdklabs@amazon.com>
-          committer: cdklabs-automation <aws-cdk-dev+cdklabs@amazon.com>
-          signoff: true
-          branch: github-actions/release
-          base: main
-          body: |
-            release: <%= crate.name %> v<%= version.actual %>
 
-            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          commit-message: |-
-            release: <%= crate.name %> v<%= version.actual %>
+      - name: Open merge-back pull request
+        run: |
+          git push -f origin HEAD:${{ env.MERGEBACK_BRANCH }}
+          git checkout ${{ env.MERGEBACK_BRANCH }}
 
-            [Workflow Run]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-          title: |
-            release: <%= crate.name %> v<%= version.actual %>
-          labels: auto-approve
-      - name: Push New Tag
-        run: git push origin --tags
-    env:
-      CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
+          env GITHUB_TOKEN=${{ secrets.PROJEN_GITHUB_TOKEN }} gh pr create \
+            --title "chore: merge-back" \
+            --fill \
+            --base main \
+            --label auto-approve \
+            --label pr/no-squash
 
   release_to_npm:
-    name: Release to npm
-    needs: release_to_crates
+    name: Release to NPM
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@main
+        uses: actions/checkout@v4
         with:
-          ref: github-actions/release
+          ref: ${{ env.RELEASE_BRANCH }}
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+
       - name: Setup Node.js
         uses: actions/setup-node@main
         with:
-          node-version: latest
-      - uses: jetli/wasm-pack-action@v0.4.0
-        name: Install wasm-pack
+          node-version: lts/*
+
+      - name: 🦀 Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: ⚡ Cache
+        uses: actions/cache@v4
         with:
-          version: latest
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            ${{ runner.os }}-cargo
+
+      - name: Install wasm-pack
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: wasm-pack
+
       - name: Prepare Release
         run: |-
           wasm-pack build --all-features --target=nodejs --out-name=index
+
       - name: Release
         run: |-
           npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_TOKEN }}

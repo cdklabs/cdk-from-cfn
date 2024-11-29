@@ -14,28 +14,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+
+      - name: 🦀 Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: ⚡ Cache
+        uses: actions/cache@v4
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
-      # Ensure build.rs has ran before we assert formatting...
-      - name: Build
-        uses: actions-rs/cargo@v1
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            ${{ runner.os }}-cargo
+
+      - name: Install just
+        uses: baptiste0928/cargo-install@v3
         with:
-          command: build
-          args: --all-features
-      - name: Check formatting
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --manifest-path ./Cargo.toml --all -- --check
-      - name: Run clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --manifest-path ./Cargo.toml -- -Adead-code -D warnings
+          crate: just
+
+      - name: Run lint
+        run: just lint
 
   security_audit:
     name: Security Audit
@@ -56,26 +57,57 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust
-        run: rustup update stable
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: 🦀 Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: ⚡ Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            ${{ runner.os }}-cargo
+
+      - name: Install just
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: just
+
+      - name: Install wasm-pack
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-llvm-cov
+
       - name: Install Java 17
         uses: actions/setup-java@v4
         with:
           distribution: corretto
           java-version: 17
+
       - name: Install Dotnet 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.110"
+
+      - name: Try to fix .NET issue
+        # https://github.com/dotnet/runtime/issues/91987
+        run: |
+          sudo rm -rf /tmp/.dotnet
+
       - name: Tests with Coverage
-        run: cargo llvm-cov --all-features --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --no-fail-fast --lcov --output-path target/lcov.info
+        run: just test-cov
+
       - name: Coverage Report
         run: |
           cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --codecov --output-path target/codecov.json
           cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --html --output-dir target/coverage
           cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$'
+
       - name: Upload Coverage to CodeCov
         uses: codecov/codecov-action@v4.5.0
         with:
