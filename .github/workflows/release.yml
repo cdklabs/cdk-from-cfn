@@ -21,19 +21,21 @@ jobs:
         with:
           ref: ${{ env.RELEASE_BRANCH }}
           token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: Open merge-back pull request
+      - name: Prepare git identity
+        run: |
+          git config --global user.email "aws-cdk-dev+cdklabs@amazon.com"
+          git config --global user.name "cdklabs-automation"
+
+      - name: Create merge-back commit
+        # We would use a pull request, but the merge require forces a squash merge
+        # and we want a history-preserving merge here. So we do a bypassing commit to main instead.
         run: |
           git fetch origin main
-          git push -f origin HEAD:${{ env.MERGEBACK_BRANCH }}
-          git checkout ${{ env.MERGEBACK_BRANCH }}
-
-          env GITHUB_TOKEN=${{ secrets.PROJEN_GITHUB_TOKEN }} gh pr create \
-            --title "chore: merge-back" \
-            --fill \
-            --base main \
-            --label auto-approve \
-            --label pr/no-squash
+          git checkout main
+          git merge origin/${{ env.RELEASE_BRANCH }} -m "chore: merge-back"
+          git push origin main
 
   release_to_npm:
     name: Release to NPM
@@ -74,7 +76,24 @@ jobs:
         run: |-
           wasm-pack build --all-features --target=nodejs --out-name=index
 
+      - name: Determine build version
+        id: build
+        run: |-
+          echo "name=$(node -p 'require("./pkg/package.json").name')" >> $GITHUB_OUTPUT
+          echo "version=$(node -p 'require("./pkg/package.json").version')" >> $GITHUB_OUTPUT
+
+      - name: Check if ${{ steps.build.outputs.name }}@${{ steps.build.outputs.version }} is already published
+        id: published
+        run: |-
+          npm_view=$(npm view ${{ steps.build.outputs.name }}@${{ steps.build.outputs.version }} 2> /dev/null || true)
+          if [ -z "${npm_view}" ]; then
+            echo "published=false" >> $GITHUB_OUTPUT
+          else
+            echo "published=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Release
+        if: steps.published.outputs.published == 'false'
         run: |-
           npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_TOKEN }}
           wasm-pack publish --tag latest
