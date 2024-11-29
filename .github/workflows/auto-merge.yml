@@ -5,6 +5,7 @@ on:
       - opened
       - reopened
       - ready_for_review
+      - labeled
 jobs:
   enableAutoMerge:
     name: 'Set AutoMerge on PR #${{ github.event.number }}'
@@ -17,4 +18,4 @@ jobs:
         with:
           token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
           pull-request-number: ${{ github.event.number }}
-          merge-method: squash
+          merge-method: ${{ contains(github.event.pull_request.labels.*.name, 'pr/no-squash') && 'merge' || 'squash' }}

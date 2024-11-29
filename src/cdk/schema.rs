@@ -506,7 +506,7 @@ impl From<Box<TypeReference>> for ItemType {
 impl PartialEq for ItemType {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.deref() == other.deref()
+        **self == **other
     }
 }
 
@@ -553,7 +553,7 @@ impl From<Vec<TypeReference>> for TypeUnion {
 impl PartialEq for TypeUnion {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.deref() == other.deref()
+        **self == **other
     }
 }
 
