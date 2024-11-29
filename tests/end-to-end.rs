@@ -3,7 +3,7 @@
 use core::panic;
 use std::fs::{self, canonicalize, copy, create_dir_all, remove_dir_all, File};
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::{env, path};
 
@@ -165,11 +165,9 @@ impl EndToEndTest<'_> {
             cdk_from_cfn_synthesizer,
             cdk_stack_filename,
             cdk_app_filename,
-            language_boilerplate_dir: String::from(format!(
-                "tests/end-to-end/app-boilerplate-files/{lang}"
-            )),
-            test_working_dir: String::from(format!("tests/end-to-end/{name}-{lang}-working-dir")),
-            expected_outputs_dir: String::from(format!("{name}/{lang}")),
+            language_boilerplate_dir: format!("tests/end-to-end/app-boilerplate-files/{lang}"),
+            test_working_dir: format!("tests/end-to-end/{name}-{lang}-working-dir"),
+            expected_outputs_dir: format!("{name}/{lang}"),
             snapshots_zip,
             skip_cdk_synth: skip_cdk_synth.contains(&lang),
         }
@@ -242,7 +240,7 @@ impl EndToEndTest<'_> {
                 &create_first_template_str,
             )
             .await
-            .expect(&format!("failed to create stack: {stack_name}"));
+            .unwrap_or_else(|_| panic!("failed to create stack: {stack_name}"));
         }
 
         EndToEndTest::create_cfn_stack_from_template(
@@ -251,7 +249,7 @@ impl EndToEndTest<'_> {
             self.original_template,
         )
         .await
-        .expect(&format!("failed to create stack: {}", self.stack_name));
+        .unwrap_or_else(|_| panic!("failed to create stack: {}", self.stack_name));
     }
 
     async fn create_cfn_stack_from_template(
@@ -271,13 +269,13 @@ impl EndToEndTest<'_> {
         print!("Stack {id} create in progress...");
         std::io::stdout().flush().expect("failed to flush stdout");
 
-        let mut status = EndToEndTest::check_stack_status(&id, &client).await?;
+        let mut status = EndToEndTest::check_stack_status(&id, client).await?;
 
         while let StackStatus::CreateInProgress = status {
             print!(".");
             std::io::stdout().flush().expect("failed to flush stdout");
             tokio::time::sleep(std::time::Duration::new(2, 0)).await;
-            status = EndToEndTest::check_stack_status(&id, &client).await?;
+            status = EndToEndTest::check_stack_status(&id, client).await?;
         }
         match status {
             StackStatus::CreateFailed
@@ -308,14 +306,16 @@ impl EndToEndTest<'_> {
 
     fn run_cdk_from_cfn(&self) -> String {
         let mut output = Vec::new();
-        let cfn: CloudformationParseTree =
-            serde_yaml::from_str(self.original_template).expect(&format!(
-                "end-to-end/{}/template.json should be valid json",
-                self.name
-            ));
+        let cfn: CloudformationParseTree = serde_yaml::from_str(self.original_template)
+            .unwrap_or_else(|_| {
+                panic!(
+                    "end-to-end/{}/template.json should be valid json",
+                    self.name
+                )
+            });
         let schema = Schema::builtin();
 
-        let ir = CloudformationProgramIr::from(cfn, &schema)
+        let ir = CloudformationProgramIr::from(cfn, schema)
             .expect("failed to convert cfn template into CloudformationProgramIr");
         ir.synthesize(
             self.cdk_from_cfn_synthesizer.as_ref(),
@@ -361,9 +361,9 @@ impl EndToEndTest<'_> {
         println!("Updating cdk stack definition snapshot because UPDATE_SNAPSHOTS=true");
 
         let expected_outputs_path = &format!("tests/end-to-end/{}", self.expected_outputs_dir);
-        create_dir_all(expected_outputs_path).expect(&format!(
-            "failed to create directory for updated snapshots at: {expected_outputs_path}"
-        ));
+        create_dir_all(expected_outputs_path).unwrap_or_else(|_| {
+            panic!("failed to create directory for updated snapshots at: {expected_outputs_path}")
+        });
 
         // The parent directory for the stack file might not exist yet. Example:
         // Java uses src/main/java/com/myorg/stack.java
@@ -386,15 +386,16 @@ impl EndToEndTest<'_> {
         if Path::new(&self.test_working_dir).exists() {
             remove_dir_all(&self.test_working_dir).expect("failed to remove working dir");
         }
-        create_dir_all(&self.test_working_dir).expect(&format!(
-            "failed to create test working directory: {}",
-            self.test_working_dir
-        ));
+        create_dir_all(&self.test_working_dir).unwrap_or_else(|_| {
+            panic!(
+                "failed to create test working directory: {}",
+                self.test_working_dir
+            )
+        });
 
-        let test_working_dir_abs_path = canonicalize(&self.test_working_dir).expect(&format!(
-            "failed to get absolute path for {}",
-            self.test_working_dir
-        ));
+        let test_working_dir_abs_path = canonicalize(&self.test_working_dir).unwrap_or_else(|_| {
+            panic!("failed to get absolute path for {}", self.test_working_dir)
+        });
 
         // Write Stack definition to a file in the working directory
         let stack_dst_path = test_working_dir_abs_path.join(self.cdk_stack_filename);
@@ -415,15 +416,14 @@ impl EndToEndTest<'_> {
         let walkdir = WalkDir::new(&self.language_boilerplate_dir);
         for entry in walkdir.into_iter().map(|e| e.expect("walkdir failed")) {
             if entry.path().is_file() {
-                let filename = entry.file_name().to_str().expect(&format!(
-                    "{:?} should be convertible to a string",
-                    entry.file_name()
-                ));
+                let filename = entry.file_name().to_str().unwrap_or_else(|| {
+                    panic!("{:?} should be convertible to a string", entry.file_name())
+                });
                 println!("Copying {filename} into {}", self.test_working_dir);
 
                 let from = entry.path();
                 let to = format!("{}/{filename}", self.test_working_dir);
-                copy(from, &to).expect(&format!("failed to copy {:?} to {}", from, &to));
+                copy(from, &to).unwrap_or_else(|_| panic!("failed to copy {:?} to {}", from, &to));
             }
         }
 
@@ -456,7 +456,7 @@ impl EndToEndTest<'_> {
         println!("CDK synth complete");
     }
 
-    fn create_or_copy_app_file(&mut self, test_working_dir_abs_path: &PathBuf) {
+    fn create_or_copy_app_file(&mut self, test_working_dir_abs_path: &Path) {
         let cdk_app_file_path = format!("{}/{}", self.expected_outputs_dir, self.cdk_app_filename);
 
         let app_dst_path = test_working_dir_abs_path.join(self.cdk_app_filename);
@@ -494,32 +494,30 @@ impl EndToEndTest<'_> {
                 "walkdir failed - this could indicate that cdk synth did not execute correctly",
             )
         }) {
-            let filename = entry.file_name().to_str().expect(&format!(
-                "{:?} should be convertible to a string",
-                entry.file_name()
-            ));
+            let filename = entry.file_name().to_str().unwrap_or_else(|| {
+                panic!("{:?} should be convertible to a string", entry.file_name())
+            });
             if filename.contains("template.json") {
                 println!("Comparing {filename} to the original template");
                 let expected = &format!("./tests/end-to-end/{}/template.json", self.name);
-                let actual = entry.path().to_str().expect(&format!(
-                    "{:?} should be convertible to a string",
-                    entry.path()
-                ));
+                let actual = entry.path().to_str().unwrap_or_else(|| {
+                    panic!("{:?} should be convertible to a string", entry.path())
+                });
                 let res = std::process::Command::new("git")
                     .args(["diff", "--no-index", "--ignore-all-space", expected, actual])
                     .output()
                     .expect("git diff failed");
 
                 let stack_name = filename
-                    .split(".")
+                    .split('.')
                     .next()
-                    .expect(&format!("failed to extract stack name from {filename}"));
+                    .unwrap_or_else(|| panic!("failed to extract stack name from {filename}"));
                 let diff_filename = &format!("{}/{stack_name}.diff", self.test_working_dir);
                 let mut f = fs::File::create(diff_filename)
-                    .expect(&format!("failed to create diff file: {diff_filename}"));
-                f.write_all(&res.stdout).expect(&format!(
-                    "failed to write contents to diff file: {diff_filename}"
-                ));
+                    .unwrap_or_else(|_| panic!("failed to create diff file: {diff_filename}"));
+                f.write_all(&res.stdout).unwrap_or_else(|_| {
+                    panic!("failed to write contents to diff file: {diff_filename}")
+                });
             }
         }
     }
@@ -540,18 +538,22 @@ impl EndToEndTest<'_> {
         let mut actual_index = 0;
         let mut stacks_with_empty_diffs: Vec<String> = Vec::new();
         while actual_index < actual_outputs.len() {
-            let actual = actual_outputs.get(actual_index).expect(&format!(
-                "{actual_index} should be less than {}",
-                actual_outputs.len()
-            ));
+            let actual = actual_outputs.get(actual_index).unwrap_or_else(|| {
+                panic!(
+                    "{actual_index} should be less than {}",
+                    actual_outputs.len()
+                )
+            });
 
             // Look for an expected file to match the current actual file
             let mut index_of_expected_file_that_matches_actual_file = None;
             for expected_index in 0..expected_outputs.len() {
-                let expected = expected_outputs.get(expected_index).expect(&format!(
-                    "{expected_index} should be less than {}",
-                    expected_outputs.len()
-                ));
+                let expected = expected_outputs.get(expected_index).unwrap_or_else(|| {
+                    panic!(
+                        "{expected_index} should be less than {}",
+                        expected_outputs.len()
+                    )
+                });
                 if expected.file_name() == actual.file_name() {
                     println!("Checking if {:?} matches {:?} ", expected, actual);
                     let expected =
@@ -576,20 +578,18 @@ impl EndToEndTest<'_> {
                 .contains(".diff")
                 && fs::read_to_string(actual.path())
                     .expect("failed to read file")
-                    .len()
-                    == 0
+                    .is_empty()
             {
                 let stack_name = String::from(
                     actual
                         .file_name()
                         .to_str()
                         .expect("failed to convert filename to string")
-                        .split(".")
+                        .split('.')
                         .next()
-                        .expect(&format!(
-                            "filename should have a '.' in it: {:?}",
-                            actual.file_name()
-                        )),
+                        .unwrap_or_else(|| {
+                            panic!("filename should have a '.' in it: {:?}", actual.file_name())
+                        }),
                 );
                 stacks_with_empty_diffs.push(stack_name);
                 actual_outputs.remove(actual_index);
@@ -607,16 +607,18 @@ impl EndToEndTest<'_> {
         // outputs.
         let mut actual_index = 0;
         while actual_index < actual_outputs.len() {
-            let actual = actual_outputs.get(actual_index).expect(&format!(
-                "{actual_index} should be less than {}",
-                actual_outputs.len()
-            ));
+            let actual = actual_outputs.get(actual_index).unwrap_or_else(|| {
+                panic!(
+                    "{actual_index} should be less than {}",
+                    actual_outputs.len()
+                )
+            });
             let stack_name = String::from(
                 actual
                     .file_name()
                     .to_str()
                     .expect("failed to convert filename to string")
-                    .split(".")
+                    .split('.')
                     .next()
                     .unwrap(),
             );
@@ -630,7 +632,7 @@ impl EndToEndTest<'_> {
         // Finally print out the name of the files that are remaining, which
         // means they do not have a corresponding match in either the expected
         // output or the actual output.
-        if actual_outputs.len() > 0 || expected_outputs.len() > 0 {
+        if !actual_outputs.is_empty() || !expected_outputs.is_empty() {
             actual_outputs.iter().for_each(|e| {
                 println!(
                     "Test run created an unexpected file: {:?}",
@@ -683,7 +685,7 @@ impl EndToEndTest<'_> {
             // Check if the app file exists before trying to copy it. It may not exist if the test did not run cdk synth.
             if Path::new(app_file_src).exists() {
                 copy(app_file_src, app_file_dst)
-                    .expect(&format!("failed to copy {app_file_src} to {app_file_dst}"));
+                    .unwrap_or_else(|_| panic!("failed to copy {app_file_src} to {app_file_dst}"));
             }
         }
 
@@ -691,18 +693,17 @@ impl EndToEndTest<'_> {
         println!("Updating template and diff file snapshot(s)");
         let walkdir = self.get_template_and_diff_dir_entries(&self.test_working_dir);
         for entry in walkdir {
-            let filename = entry.file_name().to_str().expect(&format!(
-                "{:?} should be convertible to a string",
-                entry.file_name()
-            ));
+            let filename = entry.file_name().to_str().unwrap_or_else(|| {
+                panic!("{:?} should be convertible to a string", entry.file_name())
+            });
 
             if filename.contains(".diff") {
                 let diff_dst_path = &format!("{expected_outputs_path}/{filename}");
                 let stack_name = String::from(
                     filename
-                        .split(".")
+                        .split('.')
                         .next()
-                        .expect(&format!("filename should have a '.' in it: {filename}")),
+                        .unwrap_or_else(|| panic!("filename should have a '.' in it: {filename}")),
                 );
                 let template_filename = format!("{stack_name}.template.json");
                 let template_dst_path = &format!("{expected_outputs_path}/{template_filename}");
@@ -713,7 +714,7 @@ impl EndToEndTest<'_> {
                 {
                     // If the diff is not empty, save it, and the corresponding template file
                     copy(entry.path(), diff_dst_path)
-                        .expect(&format!("failed to copy {filename} to {diff_dst_path}"));
+                        .unwrap_or_else(|_| panic!("failed to copy {filename} to {diff_dst_path}"));
                     let template_src_path =
                         format!("{}/cdk.out/{}", self.test_working_dir, template_filename);
                     copy(template_src_path, template_dst_path).expect("iugh");
@@ -736,9 +737,11 @@ impl EndToEndTest<'_> {
             "Cleaning up test working directory: {}",
             self.test_working_dir
         );
-        remove_dir_all(&self.test_working_dir).expect(&format!(
-            "failed to remove test working directory: {}",
-            self.test_working_dir
-        ));
+        remove_dir_all(&self.test_working_dir).unwrap_or_else(|_| {
+            panic!(
+                "failed to remove test working directory: {}",
+                self.test_working_dir
+            )
+        });
     }
 }
