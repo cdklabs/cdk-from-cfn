@@ -15,7 +15,17 @@ jobs:
       contents: write
     steps:
       - uses: peter-evans/enable-pull-request-automerge@v3
+        name: Enable regular-merge
+        if: contains(github.event.pull_request.labels.*.name, 'pr/no-squash')
         with:
           token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
           pull-request-number: ${{ github.event.number }}
-          merge-method: ${{ contains(github.event.pull_request.labels.*.name, 'pr/no-squash') && 'merge' || 'squash' }}
+          merge-method: 'merge'
+
+      - uses: peter-evans/enable-pull-request-automerge@v3
+        name: Enable squash-merge
+        if: ! contains(github.event.pull_request.labels.*.name, 'pr/no-squash')
+        with:
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+          pull-request-number: ${{ github.event.number }}
+          merge-method: 'squash'
