@@ -24,6 +24,7 @@ jobs:
 
       - name: Open merge-back pull request
         run: |
+          git fetch origin main
           git push -f origin HEAD:${{ env.MERGEBACK_BRANCH }}
           git checkout ${{ env.MERGEBACK_BRANCH }}
 
