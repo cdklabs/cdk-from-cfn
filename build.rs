@@ -30,6 +30,9 @@ mod cdk {
     include!("src/cdk/schema.rs");
 
     pub fn update_schema() -> io::Result<()> {
+        static RESOURCES: &str = include_str!("src/specification/cdk-resources.json");
+        static TYPES: &str = include_str!("src/specification/cdk-types.json");
+
         let out_dir = path::PathBuf::from(env::var("OUT_DIR").unwrap()).join("gen");
         fs::create_dir_all(&out_dir)?;
         let out_file = out_dir.join("cdk-schema.rs");
@@ -38,7 +41,6 @@ mod cdk {
         println!("cargo:rerun-if-changed=src/specification/cdk-resources.json");
         println!("cargo:rerun-if-changed=src/specification/cdk-types.json");
 
-        static RESOURCES: &str = include_str!("src/specification/cdk-resources.json");
         let resource_schema = serde_json::from_str::<Map<CfnResource>>(RESOURCES).unwrap();
 
         let mut resources = phf_codegen::Map::new();
@@ -77,7 +79,6 @@ mod cdk {
             resources.entry(cfn_name, &format!("&{name}"));
         }
 
-        static TYPES: &str = include_str!("src/specification/cdk-types.json");
         let types_schema = serde_json::from_str::<Map<DataType>>(TYPES).unwrap();
 
         let mut types = phf_codegen::Map::new();
@@ -371,7 +372,7 @@ fn zip_test_snapshots() -> io::Result<()> {
         let path = entry.path();
         let name = path
             .strip_prefix(Path::new(src_dir))
-            .unwrap_or_else(|_| panic!("{src_dir} should be a prefix of {:?}", path))
+            .unwrap_or_else(|_| panic!("{src_dir} should be a prefix of {path:?}"))
             .to_str()
             .expect("failed to convert filename to string");
 
@@ -384,16 +385,15 @@ fn zip_test_snapshots() -> io::Result<()> {
         if path.is_file() && entry.depth() > 1 {
             zip.start_file(name, options)
                 .expect("failed to start zip file");
-            let mut f =
-                fs::File::open(path).unwrap_or_else(|_| panic!("failed to open {:?}", path));
+            let mut f = fs::File::open(path).unwrap_or_else(|_| panic!("failed to open {path:?}"));
             f.read_to_end(&mut buffer)
-                .unwrap_or_else(|_| panic!("failed to read {:?}", path));
+                .unwrap_or_else(|_| panic!("failed to read {path:?}"));
             zip.write_all(&buffer)
-                .unwrap_or_else(|_| panic!("failed to write {:?} to the zip file", path));
+                .unwrap_or_else(|_| panic!("failed to write {path:?} to the zip file"));
             buffer.clear();
         } else if path.is_dir() {
             zip.add_directory(name, options)
-                .unwrap_or_else(|_| panic!("failed to add directory {:?} to the zip file", path));
+                .unwrap_or_else(|_| panic!("failed to add directory {path:?} to the zip file"));
         }
     }
     zip.finish().expect("failed to write zip file");

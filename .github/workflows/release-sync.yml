@@ -1,4 +1,4 @@
-name: sync-release-branch
+name: Daily Release Check
 
 on:
   workflow_dispatch: {}
@@ -11,9 +11,77 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@main
-      - name: Push to release branch
-        uses: connor-baer/action-sync-branch@main
+        uses: actions/checkout@v4
         with:
-          branch: release
+          ref: main
           token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+
+      - name: 🦀 Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: ⚡ Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            ${{ runner.os }}-cargo
+
+      - name: Install cargo-release
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-release
+
+      - name: Prepare git identity
+        run: |
+          git config --global user.email "aws-cdk-dev+cdklabs@amazon.com"
+          git config --global user.name "cdklabs-automation"
+
+      - name: Check if there are commits to release
+        id: check_commits
+        run: |
+          git fetch origin release
+          if [[ "$(git rev-list -n1 origin/release..HEAD)" != "" ]]; then
+            echo "has_commits=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_commits=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Wat
+        run: git log -n 3
+
+      - name: Bump package versions and commit
+        if: steps.check_commits.outputs.has_commits == 'true'
+        run: |
+          cargo release --all-features --verbose minor --execute --no-confirm --no-push --no-tag --no-publish
+
+      - name: After
+        run: git log -n 3
+
+      - name: Determine commit message
+        id: commit
+        if: steps.check_commits.outputs.has_commits == 'true'
+        run: |
+          echo "title=$(git log --format=%B -n 1)" >> $GITHUB_OUTPUT
+
+      # We push the branch ourselves, otherwise peter-evans/create-pull-request will
+      # cherry-pick our top commit onto `release`, which is not what we want.
+      - name: Push the branch
+        if: steps.check_commits.outputs.has_commits == 'true'
+        run: |
+          git push -f origin HEAD:github-actions/release
+          git checkout github-actions/release
+
+      - name: Open release pull request
+        if: steps.check_commits.outputs.has_commits == 'true'
+        run: |
+          env GITHUB_TOKEN=${{ secrets.PROJEN_GITHUB_TOKEN }} gh pr create \
+            --title "${{ steps.commit.outputs.title }}" \
+            --fill \
+            --base release \
+            --label auto-approve \
+            --label pr/no-squash
