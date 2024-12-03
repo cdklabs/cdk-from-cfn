@@ -93,7 +93,7 @@ jobs:
       - name: Install Dotnet 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.110"
+          dotnet-version: 8.x
 
       - name: Try to fix .NET issue
         # https://github.com/dotnet/runtime/issues/91987
