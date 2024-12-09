@@ -94,7 +94,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.x
-          cache: true
 
       - name: Try to fix .NET issue
         # https://github.com/dotnet/runtime/issues/91987
