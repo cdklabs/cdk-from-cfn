@@ -35,6 +35,8 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
+          # Last version to support the Rust version we're using
+          version: 0.25.13  
 
       - name: Prepare git identity
         run: |
