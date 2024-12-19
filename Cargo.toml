@@ -1,6 +1,6 @@
 [package]
 name = "cdk-from-cfn"
-version = "0.166.0"
+version = "0.167.0"
 edition = "2021"
 rust-version = "1.78"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
@@ -36,7 +36,7 @@ serde = { version = "^1.0.216", features = ["derive"] }
 serde-enum-str = "^0.4.0"
 serde_with = "^3.11.0"
 serde_yaml = "^0.9.34"
-thiserror = "^2.0.6"
+thiserror = "^2.0.7"
 topological-sort = "^0.2.2"
 voca_rs = "^1.15.2"
 wasm-bindgen = "^0.2.99"
