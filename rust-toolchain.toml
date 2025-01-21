@@ -1,5 +1,5 @@
 [toolchain]
-channel = "1.78"
+channel = "1.84"
 #targets = [ "x86_64-unknown-linux-gnu", "aarch64-apple-darwin" ]
 
 profile = "default"

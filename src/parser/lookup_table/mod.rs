@@ -31,7 +31,7 @@ pub enum MappingInnerValue {
 
 impl Display for MappingInnerValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        return match self {
+        match self {
             MappingInnerValue::String(string_val) => write!(f, "'{string_val}'"),
             MappingInnerValue::List(list_val) => {
                 let quoted_list_values: Vec<String> =
@@ -41,6 +41,6 @@ impl Display for MappingInnerValue {
             MappingInnerValue::Number(val) => write!(f, "{val}"),
             MappingInnerValue::Float(val) => write!(f, "{val}"),
             MappingInnerValue::Bool(val) => write!(f, "{val}"),
-        };
+        }
     }
 }
