@@ -1,8 +1,8 @@
 [package]
 name = "cdk-from-cfn"
-version = "0.175.0"
+version = "0.176.0"
 edition = "2021"
-rust-version = "1.78"
+rust-version = "1.84"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
 license = "MIT OR Apache-2.0"
 
