@@ -1,6 +1,6 @@
 [package]
 name = "cdk-from-cfn"
-version = "0.176.0"
+version = "0.177.0"
 edition = "2021"
 rust-version = "1.84"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
