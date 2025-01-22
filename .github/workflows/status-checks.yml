@@ -79,7 +79,7 @@ jobs:
         with:
           crate: just
 
-      - name: Install wasm-pack
+      - name: Install cargo-llvm-cov
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-llvm-cov
@@ -116,3 +116,38 @@ jobs:
           fail_ci_if_error: true
           files: target/codecov.json
           name: codecov.json
+
+  wasm:
+    name: Build wasm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🦀 Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@main
+        with:
+          node-version: lts/*
+
+      - name: ⚡ Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            ${{ runner.os }}-cargo
+
+      - name: Install wasm-pack
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: wasm-pack
+
+      - name: Build wasm package
+        run: |-
+          wasm-pack build --all-features --target=nodejs --out-name=index
