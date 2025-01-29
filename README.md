@@ -1,21 +1,38 @@
 # cdk-from-cfn
 
-In a world where people want to use the full extent of the cdk, there **was** no product that would transform all your
-JSON/YAML into beautiful typescript...until now.
+`cdk-from-cfn` is a command-line tool that converts AWS CloudFormation templates into AWS CDK code. It supports multiple programming languages including TypeScript, Python, Java, Go, and C#.
 
-`cdk-from-cfn` will take your JSON/YAML and output the equivalent typescript.
-
-## User Guide
+## Installation
 
 ```console
-$ cargo build --release
-$ ./target/release/cdk-from-cfn [INPUT] [OUTPUT]
+$ cargo install cdk-from-cfn
+```
+
+## Usage
+
+```console
+$ cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME>
 ```
 
 - `INPUT` is the input file path (STDIN by default).
 - `OUTPUT` is the output file path; if not specified, output will be printed on your command line (STDOUT by default).
 
-### Cargo Features
+## Node Usage
+
+cdk-from-cfn is also vended as a module on [npm](https://www.npmjs.com/package/cdk-from-cfn) and exposes some apis which can be used
+in a node project. Simply take a dependency on `cdk-from-cfn` in your package.json and utilize it as you would a normal module. i.e.
+
+```typescript
+import * as cdk_from_cfn from 'cdk-from-cfn';
+
+// get supported languages
+cdk_from_cfn.supported_languages();
+
+// transmute cfn template into cdk app
+cdk_from_cfn.transmute(template, language, stackName)
+```
+
+## Language and Feature support
 
 Name         | Enabled by default | Description
 -------------|:------------------:|---------------------------------------------
@@ -39,7 +56,7 @@ $ cargo build --release --no-default-features --features=golang
 Finished release [optimized] target(s) in 0.17s
 ```
 
-## Implemented
+### Implemented
 
 - [x] Fn::FindInMap
 - [x] Fn::Join
@@ -63,7 +80,7 @@ Finished release [optimized] target(s) in 0.17s
 - [x] Deletion policy
 - [x] Fn::Cidr support
 
-## Remaining
+### Remaining
 
 There are known unsupported features. Working on them in priority order:
 
