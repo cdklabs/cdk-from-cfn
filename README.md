@@ -17,10 +17,9 @@ $ cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME>
 - `INPUT` is the input file path (STDIN by default).
 - `OUTPUT` is the output file path; if not specified, output will be printed on your command line (STDOUT by default).
 
-## Node Usage
+## Node.js Module Usage
 
-cdk-from-cfn is also vended as a module on [npm](https://www.npmjs.com/package/cdk-from-cfn) and exposes some apis which can be used
-in a node project. Simply take a dependency on `cdk-from-cfn` in your package.json and utilize it as you would a normal module. i.e.
+cdk-from-cfn utilizes WASM bindings to vend a cdk-from-cfn library as a module on [npm](https://www.npmjs.com/package/cdk-from-cfn) which exposes some apis which can be used in a node project. Simply take a dependency on `cdk-from-cfn` in your package.json and utilize it as you would a normal module. i.e.
 
 ```typescript
 import * as cdk_from_cfn from 'cdk-from-cfn';
