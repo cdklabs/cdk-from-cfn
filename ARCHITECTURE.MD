@@ -97,7 +97,7 @@ Key responsibilities:
 - Adds necessary CDK imports and type information
 
 ```rust
-// IR - Adds understanding and validation
+// IR - Validates against the schema and adds additional information for app generation
 CloudformationProgramIr {
     resources: [
         ResourceInstruction {
