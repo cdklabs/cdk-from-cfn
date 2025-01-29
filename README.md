@@ -19,7 +19,7 @@ $ cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME>
 
 ## Node.js Module Usage
 
-cdk-from-cfn leverages WebAssembly (WASM) bindings to provide a cross-platform [npm](https://www.npmjs.com/package/cdk-from-cfn) module, which exposes some apis to be used in Node.js projects. Simply take a dependency on `cdk-from-cfn` in your package.json and utilize it as you would a normal module. i.e.
+cdk-from-cfn leverages WebAssembly (WASM) bindings to provide a cross-platform [npm](https://www.npmjs.com/package/cdk-from-cfn) module, which exposes apis to be used in Node.js projects. Simply take a dependency on `cdk-from-cfn` in your package.json and utilize it as you would a normal module. i.e.
 
 ```typescript
 import * as cdk_from_cfn from 'cdk-from-cfn';
