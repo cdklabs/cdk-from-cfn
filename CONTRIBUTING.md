@@ -1,51 +1,43 @@
-# Contributing
+# Contributing to cdk-from-cfn
 
-This document describes how to set up a development environment and submit your changes.
+We welcome contributions to the cdk-from-cfn project! This guide will help you get started with contributing.
 
-## Getting Started
+## Development Environment Setup
 
-### Setup
-
-#### Required
-
-- [Rust](https://www.rust-lang.org/tools/install)
+### Prerequisites
+- [Rust](https://www.rust-lang.org/tools/install) (Latest stable version)
+- [Wasm-Pack](https://github.com/rustwasm/wasm-pack?tab=readme-ov-file)
 - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-- [GitHub account](https://github.com/join)
+- [GitHub Account](https://github.com/join)
 
-#### Recommended
+### Getting the Project
 
-- [Brew](https://docs.brew.sh/Installation)
-- IDE
-  - [VSCode](https://code.visualstudio.com/download)
-  - [IntelliJ](https://www.jetbrains.com/idea/download)
-- [GitHub CLI](https://cli.github.com/)
-
-```console
-// Using github cli
+```bash
+# Clone your fork
 gh repo fork cdklabs/cdk-from-cfn
+# Or manually clone
+git clone https://github.com/YOUR_USERNAME/cdk-from-cfn.git
 cd cdk-from-cfn
+```
+
+## Building the Project
+```bash
+# build the debug target
 cargo build
+
+# build the release target
+cargo build --release
+
+# build the wasm release
+wasm-pack build --all-features --target=nodejs
 ```
 
-### Tests
+## Testing the Project
 
-```console
+```bash
+# run all tests
 cargo test
+
+# run clippy to lint
+cargo clippy
 ```
-
-```console
-./tasks/coverage.sh
-```
-
-### Making changes
-
-Following guidance is for making changes in your fork and pushing changes to your fork's remote:
-
-```console
-git status
-git add <file-name or .>
-git commit -m "<commit message following https://www.conventionalcommits.org/en/v1.0.0/#summary>"
-git push
-```
-
-Once you have done the above, you can then [create a PR from your fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork).

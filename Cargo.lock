@@ -192,9 +192,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-cloudformation"
-version = "1.62.0"
+version = "1.63.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eadb0b11239dc7fe6dfd56ccda1a3fbb7508f435ec3a3a4e46dedf2b8b1ec56e"
+checksum = "cc026d391c020d35e0001814c4cdb74be587fae80b2867796078e58b669a7319"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
@@ -561,7 +561,7 @@ dependencies = [
 
 [[package]]
 name = "cdk-from-cfn"
-version = "0.179.0"
+version = "0.183.0"
 dependencies = [
  "anyhow",
  "aws-config",
@@ -1901,9 +1901,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.137"
+version = "1.0.138"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "930cfb6e6abf99298aaad7d29abbef7a9999a9a8806a40088f55f0dcec03146b"
+checksum = "d434192e7da787e94a6ea7e9670b26a036d0ca41e0b7efb2676dd32bae872949"
 dependencies = [
  "itoa",
  "memchr",
