@@ -6,8 +6,8 @@ use nom::combinator::{map, rest};
 use nom::error::{Error, ErrorKind};
 use nom::multi::many1;
 use nom::sequence::delimited;
-use nom::Err;
 use nom::IResult;
+use nom::{Err, Parser};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SubValue {
@@ -18,7 +18,7 @@ pub enum SubValue {
 pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, crate::Error> {
     let mut full_resolver = many1(inner_resolver);
 
-    match full_resolver(str) {
+    match full_resolver.parse(str) {
         Ok((remaining, built_subs)) => {
             let mut subs = built_subs;
             if !remaining.is_empty() {
@@ -45,7 +45,7 @@ fn inner_resolver(str: &str) -> IResult<&str, SubValue> {
         return IResult::Err(Err::Error(Error::new(str, ErrorKind::Eof)));
     }
 
-    let ir = alt((
+    let mut ir = alt((
         map(
             delimited(tag("${!"), take_until("}"), take(1usize)),
             |var: &str| SubValue::String(format!("${{{var}}}")),
@@ -64,9 +64,9 @@ fn inner_resolver(str: &str) -> IResult<&str, SubValue> {
         map(rest, |static_str: &str| {
             SubValue::String(static_str.to_string())
         }),
-    ))(str);
+    ));
 
-    let (remaining, res) = ir?;
+    let (remaining, res) = ir.parse(str)?;
     IResult::Ok((remaining, res))
 }
 
