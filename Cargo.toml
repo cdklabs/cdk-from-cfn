@@ -47,7 +47,7 @@ aws-config = "^1.5.17"
 aws-sdk-cloudformation = "^1.67.0"
 tokio = { version = "1", features = ["full"] }
 walkdir = "2.5.0"
-zip = "2.2.2"
+zip = "2.2.3"
 
 [build-dependencies]
 indexmap = "^2.7.0"
@@ -60,7 +60,7 @@ serde_json = "^1.0.139"
 serde_with = "^3.12.0"
 voca_rs = "^1.15.2"
 walkdir = "2.5.0"
-zip = "2.2.2"
+zip = "2.2.3"
 
 [profile.release]
 codegen-units = 1
