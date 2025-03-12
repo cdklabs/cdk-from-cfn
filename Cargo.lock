@@ -623,7 +623,7 @@ dependencies = [
 
 [[package]]
 name = "cdk-from-cfn"
-version = "0.195.0"
+version = "0.196.0"
 dependencies = [
  "anyhow",
  "aws-config",
@@ -631,7 +631,7 @@ dependencies = [
  "base64 0.22.1",
  "clap",
  "console_error_panic_hook",
- "indexmap 2.7.1",
+ "indexmap 2.8.0",
  "nom",
  "numberkit",
  "phf",
@@ -682,18 +682,18 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.31"
+version = "4.5.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "027bb0d98429ae334a8698531da7077bdf906419543a35a55c2cb1b66437d767"
+checksum = "6088f3ae8c3608d19260cd7445411865a485688711b78b5be70d78cd96136f83"
 dependencies = [
  "clap_builder",
 ]
 
 [[package]]
 name = "clap_builder"
-version = "4.5.31"
+version = "4.5.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5589e0cba072e0f3d23791efac0fd8627b49c829c196a492e88168e6a669d863"
+checksum = "22a7ef7f676155edfb82daa97f99441f3ebf4a58d5e32f295a56259f1b6facc8"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1033,7 +1033,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http 0.2.12",
- "indexmap 2.7.1",
+ "indexmap 2.8.0",
  "slab",
  "tokio",
  "tokio-util",
@@ -1052,7 +1052,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "http 1.2.0",
- "indexmap 2.7.1",
+ "indexmap 2.8.0",
  "slab",
  "tokio",
  "tokio-util",
@@ -1375,9 +1375,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.7.1"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c9c992b02b5b4c94ea26e32fe5bccb7aa7d9f390ab5c1221ff895bc7ea8b652"
+checksum = "3954d50fe15b02142bf25d3b8bdadb634ec3948f103d04ffe3031bc8fe9d7058"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.2",
@@ -2001,7 +2001,7 @@ dependencies = [
  "chrono",
  "hex",
  "indexmap 1.9.3",
- "indexmap 2.7.1",
+ "indexmap 2.8.0",
  "serde",
  "serde_derive",
  "serde_json",
@@ -2027,7 +2027,7 @@ version = "0.9.34+deprecated"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
 dependencies = [
- "indexmap 2.7.1",
+ "indexmap 2.8.0",
  "itoa",
  "ryu",
  "serde",
@@ -2751,7 +2751,7 @@ dependencies = [
  "displaydoc",
  "flate2",
  "hmac",
- "indexmap 2.7.1",
+ "indexmap 2.8.0",
  "lzma-rs",
  "memchr",
  "pbkdf2",
