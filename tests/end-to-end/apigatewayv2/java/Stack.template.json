@@ -1,0 +1,75 @@
+{
+ "Resources": {
+  "MyApi": {
+   "Type": "AWS::ApiGatewayV2::Api",
+   "Properties": {
+    "Description": "My HTTP API",
+    "Name": "MyHttpApi",
+    "ProtocolType": "HTTP"
+   }
+  },
+  "DefaultStage": {
+   "Type": "AWS::ApiGatewayV2::Stage",
+   "Properties": {
+    "ApiId": {
+     "Ref": "MyApi"
+    },
+    "AutoDeploy": true,
+    "StageName": "default"
+   }
+  },
+  "HelloWorldIntegration": {
+   "Type": "AWS::ApiGatewayV2::Integration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "MyApi"
+    },
+    "IntegrationMethod": "GET",
+    "IntegrationType": "HTTP_PROXY",
+    "IntegrationUri": "https://jsonplaceholder.typicode.com/posts/1",
+    "PayloadFormatVersion": "1.0"
+   }
+  },
+  "HelloWorldRoute": {
+   "Type": "AWS::ApiGatewayV2::Route",
+   "Properties": {
+    "ApiId": {
+     "Ref": "MyApi"
+    },
+    "RouteKey": "GET /hello",
+    "Target": {
+     "Fn::Join": [
+      "",
+      [
+       "integrations/",
+       {
+        "Ref": "HelloWorldIntegration"
+       }
+      ]
+     ]
+    }
+   }
+  }
+ },
+ "Outputs": {
+  "ApiEndpoint": {
+   "Description": "Endpoint for the HTTP API",
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Ref": "MyApi"
+      },
+      ".execute-api.",
+      {
+       "Ref": "AWS::Region"
+      },
+      ".amazonaws.com/default"
+     ]
+    ]
+   }
+  }
+ }
+}
