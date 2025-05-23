@@ -1,6 +1,6 @@
 [package]
 name = "cdk-from-cfn"
-version = "0.216.0"
+version = "0.217.0"
 edition = "2021"
 rust-version = "1.85"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
@@ -44,10 +44,10 @@ wasm-bindgen = "^0.2.100"
 
 [dev-dependencies]
 aws-config = "^1.6.3"
-aws-sdk-cloudformation = "^1.76.0"
+aws-sdk-cloudformation = "^1.77.0"
 tokio = { version = "1", features = ["full"] }
 walkdir = "2.5.0"
-zip = "3.0.0"
+zip = "4.0.0"
 
 [build-dependencies]
 indexmap = "^2.9.0"
@@ -60,7 +60,7 @@ serde_json = "^1.0.140"
 serde_with = "^3.12.0"
 voca_rs = "^1.15.2"
 walkdir = "2.5.0"
-zip = "3.0.0"
+zip = "4.0.0"
 
 [profile.release]
 codegen-units = 1
