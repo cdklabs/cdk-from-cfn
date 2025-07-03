@@ -52,7 +52,7 @@ zip = "4.2.0"
 [build-dependencies]
 indexmap = "^2.10.0"
 phf = { version = "^0.12.1", features = ["macros"] }
-phf_codegen = "^0.11.3"
+phf_codegen = "^0.12.1"
 rustc-hash = { version = "2.1.1", optional = true }
 serde = { version = "^1.0.218", features = ["derive"] }
 serde-enum-str = "^0.4.0"
