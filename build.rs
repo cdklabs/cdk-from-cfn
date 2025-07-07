@@ -47,12 +47,12 @@ mod cdk {
         for (cfn_name, construct) in &resource_schema {
             let mut properties = phf_codegen::Map::new();
             for (name, prop) in &construct.properties {
-                properties.entry(name, &format!("&{prop:#?}"));
+                properties.entry(name, format!("&{prop:#?}"));
             }
 
             let mut attributes = phf_codegen::Map::new();
             for (name, prop) in &construct.attributes {
-                attributes.entry(name, &format!("&{prop:#?}"));
+                attributes.entry(name, format!("&{prop:#?}"));
             }
 
             let name = voca_rs::case::shouty_snake_case(&cfn_name.replace("::", "_"));
@@ -76,7 +76,7 @@ mod cdk {
             )?;
             writeln!(file)?;
 
-            resources.entry(cfn_name, &format!("&{name}"));
+            resources.entry(cfn_name, format!("&{name}"));
         }
 
         let types_schema = serde_json::from_str::<Map<DataType>>(TYPES).unwrap();
@@ -85,7 +85,7 @@ mod cdk {
         for (cfn_name, named_type) in &types_schema {
             let mut properties = phf_codegen::Map::new();
             for (name, prop) in &named_type.properties {
-                properties.entry(name, &format!("&{prop:#?}"));
+                properties.entry(name, format!("&{prop:#?}"));
             }
             let name =
                 voca_rs::case::shouty_snake_case(&cfn_name.replace("::", "_").replace('.', "_"));
@@ -103,7 +103,7 @@ mod cdk {
             )?;
             writeln!(file)?;
 
-            types.entry(cfn_name, &format!("&{name}"));
+            types.entry(cfn_name, format!("&{name}"));
         }
 
         writeln!(
@@ -152,7 +152,7 @@ mod cdk {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             let mut builder = phf_codegen::Map::new();
             for (k, v) in self {
-                builder.entry(k, &format!("&{v:#?}").replace('\n', "\n        "));
+                builder.entry(k, format!("&{v:#?}").replace('\n', "\n        "));
             }
             write!(f, "Map::PhfMap({})", builder.build())
         }
