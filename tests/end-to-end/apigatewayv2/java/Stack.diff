@@ -1,0 +1,98 @@
+diff --git a/./tests/end-to-end/apigatewayv2/template.json b/tests/end-to-end/apigatewayv2-java-working-dir/cdk.out/Stack.template.json
+index fd7cdf1..442de83 100644
+--- a/./tests/end-to-end/apigatewayv2/template.json
++++ b/tests/end-to-end/apigatewayv2-java-working-dir/cdk.out/Stack.template.json
+@@ -1,12 +1,11 @@
+ {
+-    "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+   "MyApi": {
+    "Type": "AWS::ApiGatewayV2::Api",
+    "Properties": {
++    "Description": "My HTTP API",
+     "Name": "MyHttpApi",
+-          "ProtocolType": "HTTP",
+-          "Description": "My HTTP API"
++    "ProtocolType": "HTTP"
+    }
+   },
+   "DefaultStage": {
+@@ -15,8 +14,20 @@
+     "ApiId": {
+      "Ref": "MyApi"
+     },
+-          "StageName": "default",
+-          "AutoDeploy": true
++    "AutoDeploy": true,
++    "StageName": "default"
++   }
++  },
++  "HelloWorldIntegration": {
++   "Type": "AWS::ApiGatewayV2::Integration",
++   "Properties": {
++    "ApiId": {
++     "Ref": "MyApi"
++    },
++    "IntegrationMethod": "GET",
++    "IntegrationType": "HTTP_PROXY",
++    "IntegrationUri": "https://jsonplaceholder.typicode.com/posts/1",
++    "PayloadFormatVersion": "1.0"
+    }
+   },
+   "HelloWorldRoute": {
+@@ -28,9 +39,9 @@
+     "RouteKey": "GET /hello",
+     "Target": {
+      "Fn::Join": [
+-              "/",
++      "",
+       [
+-                "integrations",
++       "integrations/",
+        {
+         "Ref": "HelloWorldIntegration"
+        }
+@@ -38,27 +49,27 @@
+      ]
+     }
+    }
+-      },
+-      "HelloWorldIntegration": {
+-        "Type": "AWS::ApiGatewayV2::Integration",
+-        "Properties": {
+-          "ApiId": {
+-            "Ref": "MyApi"
+-          },
+-          "IntegrationType": "HTTP_PROXY",
+-          "IntegrationUri": "https://jsonplaceholder.typicode.com/posts/1",
+-          "IntegrationMethod": "GET",
+-          "PayloadFormatVersion": "1.0"
+-        }
+   }
+  },
+  "Outputs": {
+   "ApiEndpoint": {
+    "Description": "Endpoint for the HTTP API",
+    "Value": {
+-          "Fn::Sub": "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/default"
++    "Fn::Join": [
++     "",
++     [
++      "https://",
++      {
++       "Ref": "MyApi"
++      },
++      ".execute-api.",
++      {
++       "Ref": "AWS::Region"
++      },
++      ".amazonaws.com/default"
++     ]
++    ]
+    }
+   }
+  }
+ }
+\ No newline at end of file
+-  
+\ No newline at end of file
