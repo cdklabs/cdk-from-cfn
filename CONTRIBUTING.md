@@ -5,6 +5,7 @@ We welcome contributions to the cdk-from-cfn project! This guide will help you g
 ## Development Environment Setup
 
 ### Prerequisites
+
 - [Rust](https://www.rust-lang.org/tools/install) (Latest stable version)
 - [Wasm-Pack](https://github.com/rustwasm/wasm-pack?tab=readme-ov-file)
 - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
@@ -21,6 +22,7 @@ cd cdk-from-cfn
 ```
 
 ## Building the Project
+
 ```bash
 # build the debug target
 cargo build
