@@ -1,0 +1,13 @@
+{
+  "rust-analyzer.check.command": "clippy",
+  "[rust]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4
+  },
+  "rust-analyzer.check.extraArgs": [
+    "--",
+    "-Adead-code",
+    "-Dwarnings",
+    "-Dclippy::dbg_macro"
+  ]
+}
