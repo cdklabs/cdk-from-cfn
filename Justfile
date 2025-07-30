@@ -14,8 +14,11 @@ lint: fmt clippy
 fmt:
 		cargo fmt -- --version && cargo fmt --check
 
-clippy:
-    cargo clippy --tests -- -Adead-code -Dwarnings -Dclippy::dbg_macro
+clippy *args:
+    cargo clippy --tests {{args}} -- -Adead-code -Dwarnings -Dclippy::dbg_macro
+
+fix: (clippy "--fix --allow-dirty")
+	cargo fmt
 
 test-cov:
 		cargo llvm-cov --all-features --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --no-fail-fast --lcov --output-path target/lcov.info

@@ -605,9 +605,9 @@ impl ResourceType {
 impl fmt::Display for ResourceType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Alexa { service, type_name } => write!(f, "Alexa::{}::{}", service, type_name),
-            Self::AWS { service, type_name } => write!(f, "AWS::{}::{}", service, type_name),
-            Self::Custom(name) => write!(f, "Custom::{}", name),
+            Self::Alexa { service, type_name } => write!(f, "Alexa::{service}::{type_name}"),
+            Self::AWS { service, type_name } => write!(f, "AWS::{service}::{type_name}"),
+            Self::Custom(name) => write!(f, "Custom::{name}"),
         }
     }
 }
@@ -636,7 +636,7 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruc
         // Ensures consistent ordering of generated code...
         list.sort();
         sorted_instructions.extend(list.into_iter().map(|name| match hash.remove(&name) {
-            None => panic!("Attempted to reference or depend on a resource not defined in the CloudFormation template. Resource: {}", name),
+            None => panic!("Attempted to reference or depend on a resource not defined in the CloudFormation template. Resource: {name}"),
             Some(instruction) => instruction,
         }));
     }
