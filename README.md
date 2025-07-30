@@ -5,13 +5,13 @@
 ## Installation
 
 ```console
-$ cargo install cdk-from-cfn
+cargo install cdk-from-cfn
 ```
 
 ## Usage
 
 ```console
-$ cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME>
+cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME>
 ```
 
 - `INPUT` is the input file path (STDIN by default).
@@ -33,13 +33,13 @@ cdk_from_cfn.transmute(template, language, stackName)
 
 ## Language and Feature support
 
-Name         | Enabled by default | Description
--------------|:------------------:|---------------------------------------------
-`typescript` | :heavy_check_mark: | Enables support for TypeScript output
-`golang`     | :heavy_check_mark: | Enables support for Go output
-`java`       | :heavy_check_mark: | Enables support for Java output
-`Python`     | :heavy_check_mark: | Enables support for Python output
-`csharp`     | :heavy_check_mark: | Enables support for C# output
+| Name         | Enabled by default | Description                           |
+| ------------ | :----------------: | ------------------------------------- |
+| `typescript` | :heavy_check_mark: | Enables support for TypeScript output |
+| `golang`     | :heavy_check_mark: | Enables support for Go output         |
+| `java`       | :heavy_check_mark: | Enables support for Java output       |
+| `Python`     | :heavy_check_mark: | Enables support for Python output     |
+| `csharp`     | :heavy_check_mark: | Enables support for C# output         |
 
 You can enable experimental languages (not enabled by default) by enabling the relevant feature:
 

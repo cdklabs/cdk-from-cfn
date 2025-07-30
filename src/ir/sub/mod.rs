@@ -37,7 +37,7 @@ pub fn sub_parse_tree(str: &str) -> Result<Vec<SubValue>, crate::Error> {
 /// * take until you see a ${ which is the start of the variable bits.
 /// * take something like ${ ... }
 ///   TODO -- there are some Sub strings that will escape the $, that are not captured yet.
-///         Will need to rewrite the parse tree to handle character escapes.
+///   Will need to rewrite the parse tree to handle character escapes.
 fn inner_resolver(str: &str) -> IResult<&str, SubValue> {
     // Due to the caller being many1, we will need to create out own EOF error to
     // stop the call pattern.

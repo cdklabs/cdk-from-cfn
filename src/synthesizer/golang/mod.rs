@@ -765,7 +765,7 @@ impl GolangEmitter for ResourceIr {
                                 name => {
                                     let name =
                                         &context.schema.type_named(name).unwrap().name.golang.name;
-                                    format!("&{}{{", name.split('_').last().unwrap()).into()
+                                    format!("&{}{{", name.split('_').next_back().unwrap()).into()
                                 }
                             }
                         }
