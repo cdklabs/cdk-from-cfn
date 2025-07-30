@@ -1,0 +1,79 @@
+name: Update Rust Version
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: "0 9 * * 1"
+  # Allow manual triggering
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  update-rust-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Get latest Rust version
+        id: rust-version
+        run: |
+          # Update rustup and get the latest stable version
+          rustup update
+          LATEST_VERSION=$(rustup run stable rustc --version | sed 's/rustc \([0-9.]*\).*/\1/')
+
+          echo "latest-version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "Latest Rust version: $LATEST_VERSION"
+
+      - name: Check current version
+        id: current-version
+        run: |
+          CURRENT_VERSION=$(grep '^channel = ' rust-toolchain.toml | sed 's/channel = "\(.*\)"/\1/')
+          echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current Rust version: $CURRENT_VERSION"
+
+      - name: Update rust-toolchain.toml
+        id: update-file
+        run: |
+          LATEST_VERSION="${{ steps.rust-version.outputs.latest-version }}"
+          CURRENT_VERSION="${{ steps.current-version.outputs.current-version }}"
+
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
+            # Update the channel line while preserving the rest of the file
+            sed -i "s/^channel = \".*\"/channel = \"$LATEST_VERSION\"/" rust-toolchain.toml
+            echo "updated=true" >> $GITHUB_OUTPUT
+            echo "Updated rust-toolchain.toml from $CURRENT_VERSION to $LATEST_VERSION"
+          else
+            echo "updated=false" >> $GITHUB_OUTPUT
+            echo "Rust version is already up to date ($CURRENT_VERSION)"
+          fi
+
+      - name: Create Pull Request
+        if: steps.update-file.outputs.updated == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          title: "chore: update rust version from ${{ steps.current-version.outputs.current-version }} to ${{ steps.rust-version.outputs.latest-version }}"
+          branch: "automation/update-rust-${{ steps.rust-version.outputs.latest-version }}"
+          labels: "auto-approve"
+          delete-branch: true
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+          body: |
+            This automated PR updates the Rust toolchain version from `${{ steps.current-version.outputs.current-version }}` to `${{ steps.rust-version.outputs.latest-version }}`.
+
+            ## Changes
+            - Updated `rust-toolchain.toml` to use Rust `${{ steps.rust-version.outputs.latest-version }}`
+
+            ## Motivation
+            This keeps the project up to date with the latest stable Rust release, ensuring we benefit from the latest improvements, bug fixes, and security updates.
+
+            ---
+
+            This PR was created by the [Update Rust Version workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
