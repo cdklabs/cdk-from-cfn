@@ -17,8 +17,7 @@ impl CdkAppCodeWriter for Typescript {
         code.line("// auto-generated! a human should update this!");
         code.line("import * as cdk from \"aws-cdk-lib\";");
         code.line(format!(
-            "import {{ {} }} from \"./stack\";",
-            cdk_stack_classname
+            "import {{ {cdk_stack_classname} }} from \"./stack\";"
         ));
         let app = code.indent_with_options(IndentOptions {
             indent: INDENT,
@@ -33,7 +32,7 @@ impl CdkAppCodeWriter for Typescript {
             trailing_newline: true,
         });
         app_props.line("generateBootstrapVersionRule: false,");
-        code.line(format!("new {}(app, \"Stack\");", cdk_stack_classname));
+        code.line(format!("new {cdk_stack_classname}(app, \"Stack\");"));
         code.line("app.synth();");
     }
 }
@@ -111,11 +110,7 @@ impl CdkAppCodeWriter for Java {
         let stack_props = app_constructor.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(
-                format!(
-                    "new {}(app, \"Stack\", StackProps.builder()",
-                    cdk_stack_classname
-                )
-                .into(),
+                format!("new {cdk_stack_classname}(app, \"Stack\", StackProps.builder()").into(),
             ),
             trailing: None,
             trailing_newline: false,
@@ -163,8 +158,7 @@ impl CdkAppCodeWriter for CSharp {
         stack_synthesizer_props.line("GenerateBootstrapVersionRule = false,");
 
         main_function.line(format!(
-            "new {}.{}(app, \"Stack\");",
-            cdk_stack_classname, cdk_stack_classname
+            "new {cdk_stack_classname}.{cdk_stack_classname}(app, \"Stack\");"
         ));
         main_function.line("app.Synth();");
     }

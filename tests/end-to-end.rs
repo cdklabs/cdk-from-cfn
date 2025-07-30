@@ -555,7 +555,7 @@ impl EndToEndTest<'_> {
                     )
                 });
                 if expected.file_name() == actual.file_name() {
-                    println!("Checking if {:?} matches {:?} ", expected, actual);
+                    println!("Checking if {expected:?} matches {actual:?} ");
                     let expected =
                         fs::read_to_string(expected.path()).expect("failed to read file");
                     let actual = fs::read_to_string(actual.path()).expect("failed to read file");

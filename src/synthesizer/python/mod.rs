@@ -58,7 +58,7 @@ impl Synthesizer for Python {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("class {}(Stack):", stack_name).into()),
+            leading: Some(format!("class {stack_name}(Stack):").into()),
             trailing: Some("".into()),
             trailing_newline: true,
         });
@@ -119,7 +119,7 @@ impl Synthesizer for Python {
                         cfn_param.line(format!("default = str(kwargs.get('{name}')),"));
                     };
                     if let Some(v) = &param.description {
-                        cfn_param.line(format!("description = '{}',", v));
+                        cfn_param.line(format!("description = '{v}',"));
                     };
                     if let Some(v) = &param.no_echo {
                         cfn_param.line(format!("no_echo = {},", v._pascal_case()));
@@ -130,7 +130,7 @@ impl Synthesizer for Python {
                         Some(value) => {
                             let value = match param.constructor_type.as_str() {
                                 "String" => format!("'{}'", value.escape_debug()),
-                                "List<Number>" => format!("[{}]", value),
+                                "List<Number>" => format!("[{value}]"),
                                 "CommaDelimitedList" => format!(
                                     "[{}]",
                                     value

@@ -46,11 +46,7 @@ impl Synthesizer for Typescript {
         let iface_props = code.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(
-                format!(
-                    "export interface {}Props extends cdk.StackProps {{",
-                    stack_name
-                )
-                .into(),
+                format!("export interface {stack_name}Props extends cdk.StackProps {{").into(),
             ),
             trailing: Some("}".into()),
             trailing_newline: true,
@@ -91,7 +87,7 @@ impl Synthesizer for Typescript {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("export class {} extends cdk.Stack {{", stack_name).into()),
+            leading: Some(format!("export class {stack_name} extends cdk.Stack {{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -127,7 +123,7 @@ impl Synthesizer for Typescript {
 
         let  ctor = class.indent_with_options(IndentOptions{
             indent: INDENT,
-            leading: Some(format!("public constructor(scope: cdk.App, id: string, props: {}Props{default_empty}) {{", stack_name).into()),
+            leading: Some(format!("public constructor(scope: cdk.App, id: string, props: {stack_name}Props{default_empty}) {{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -185,7 +181,7 @@ impl Synthesizer for Typescript {
                         cfn_param.line(format!("default: props.{name}.{to_string},"));
                     };
                     if let Some(v) = &param.description {
-                        cfn_param.line(format!("description: '{}',", v));
+                        cfn_param.line(format!("description: '{v}',"));
                     };
                     if let Some(v) = &param.no_echo {
                         cfn_param.line(format!("noEcho: {v},"));
@@ -196,7 +192,7 @@ impl Synthesizer for Typescript {
                         Some(value) => {
                             let value = match param.constructor_type.as_str() {
                                 "String" => format!("'{}'", value.escape_debug()),
-                                "List<Number>" => format!("[{}]", value),
+                                "List<Number>" => format!("[{value}]"),
                                 "CommaDelimitedList" => format!(
                                     "[{}]",
                                     value
