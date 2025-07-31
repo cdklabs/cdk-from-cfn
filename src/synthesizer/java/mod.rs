@@ -217,12 +217,12 @@ impl<'a> Java<'a> {
                         trailing_newline: false,
                     });
                     prop_details.line(format!(".type(\"{}\")", prop.constructor_type));
-                    prop_details.line(format!(".defaultValue(\"{}\")", v));
+                    prop_details.line(format!(".defaultValue(\"{v}\")"));
                     if let Some(v) = &prop.no_echo {
                         prop_details.line(format!(".noEcho({v})"))
                     }
                     prop_details.line(".build()");
-                    prop_details.line(format!(".{}();", value_as));
+                    prop_details.line(format!(".{value_as}();"));
                 }
                 Some(v) if prop.constructor_type == ("Boolean") => writer.line(format!(
                     "{} = Optional.ofNullable({}).isPresent() ? {}\n{DOUBLE_INDENT}: {v};",
@@ -346,22 +346,19 @@ impl<'a> Java<'a> {
             match deletion_policy {
                 DeletionPolicy::Delete => {
                     writer.text(format!(
-                        "{res_name}.applyRemovalPolicy(RemovalPolicy.DESTROY){}",
-                        trailer
+                        "{res_name}.applyRemovalPolicy(RemovalPolicy.DESTROY){trailer}"
                     ));
                     extra_line = true;
                 }
                 DeletionPolicy::RetainExceptOnCreate => {
                     writer.text(format!(
-                        "{res_name}.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE){}",
-                        trailer
+                        "{res_name}.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE){trailer}"
                     ));
                     extra_line = true;
                 }
                 _ => {
                     writer.text(format!(
-                        "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy}){}",
-                        trailer
+                        "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy}){trailer}"
                     ));
                     extra_line = true;
                 }
@@ -522,7 +519,7 @@ impl Synthesizer for Java<'_> {
 
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("class {} extends Stack {{", stack_name).into()),
+            leading: Some(format!("class {stack_name} extends Stack {{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });

@@ -70,7 +70,7 @@ impl Synthesizer for Golang<'_> {
 
         let props = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("type {}Props struct {{", stack_name).into()),
+            leading: Some(format!("type {stack_name}Props struct {{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -88,7 +88,7 @@ impl Synthesizer for Golang<'_> {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("type {} struct {{", stack_name).into()),
+            leading: Some(format!("type {stack_name} struct {{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -108,8 +108,7 @@ impl Synthesizer for Golang<'_> {
             indent: INDENT,
             leading: Some(
                 format!(
-                    "func New{}(scope constructs.Construct, id string, props *{}Props) *{} {{",
-                    stack_name, stack_name, stack_name
+                    "func New{stack_name}(scope constructs.Construct, id string, props *{stack_name}Props) *{stack_name} {{"
                 )
                 .into(),
             ),
@@ -297,7 +296,7 @@ impl Synthesizer for Golang<'_> {
 
         let fields = ctor.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("return &{}{{", stack_name).into()),
+            leading: Some(format!("return &{stack_name}{{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });

@@ -57,7 +57,7 @@ impl Synthesizer for CSharp<'_> {
         // Namespace definition
         let namespace = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("namespace {}\n{{", stack_name).into()),
+            leading: Some(format!("namespace {stack_name}\n{{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -118,9 +118,7 @@ impl Synthesizer for CSharp<'_> {
         let ctor = stack_class.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(format!(
-                "public {}(Construct scope, string id, {}Props props = null) : base(scope, id, props)\n{{",
-                stack_name,
-                stack_name
+                "public {stack_name}(Construct scope, string id, {stack_name}Props props = null) : base(scope, id, props)\n{{"
             ).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
@@ -176,7 +174,7 @@ impl Synthesizer for CSharp<'_> {
                         ));
                     };
                     if let Some(v) = &param.description {
-                        cfn_param.line(format!("Description = \"{}\",", v));
+                        cfn_param.line(format!("Description = \"{v}\","));
                     };
                     if let Some(v) = &param.no_echo {
                         cfn_param.line(format!("NoEcho = {v},"));
