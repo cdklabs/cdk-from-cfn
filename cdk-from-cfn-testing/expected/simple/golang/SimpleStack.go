@@ -13,6 +13,7 @@ type SimpleStackProps struct {
 	/// The prefix for the bucket name
 	BucketNamePrefix *string
 	LogDestinationBucketName interface{/* AWS::SSM::Parameter::Value<String> */}
+	DelaySeconds *float64
 }
 
 /// An example stack that uses many of the syntax elements permitted in a
@@ -105,7 +106,7 @@ func NewSimpleStack(scope constructs.Construct, id string, props *SimpleStackPro
 		stack,
 		jsii.String("Queue"),
 		&sqs.CfnQueueProps{
-			DelaySeconds: jsii.Number(42),
+			DelaySeconds: props.DelaySeconds,
 			SqsManagedSseEnabled: jsii.Bool(false),
 			KmsMasterKeyId: cdk.Fn_ImportValue(jsii.String("Shared-KmsKeyArn")),
 			QueueName: cdk.Fn_Join(jsii.String("-"), &[]*string{

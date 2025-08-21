@@ -16,7 +16,7 @@ import (
 
 type ConfigStackProps struct {
 	cdk.StackProps
-	Ec2VolumeAutoEnableIo interface{/* Boolean */}
+	Ec2VolumeAutoEnableIo *bool
 	Ec2VolumeTagKey *string
 }
 

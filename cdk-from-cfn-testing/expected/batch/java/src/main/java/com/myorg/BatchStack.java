@@ -37,7 +37,22 @@ class BatchStack extends Stack {
     }
 
     public BatchStack(final Construct scope, final String id, final StackProps props) {
+        this(scope, id, props, null);
+    }
+
+    public BatchStack(final Construct scope, final String id, final StackProps props,
+            Number maxCpus) {
         super(scope, id, props);
+
+        maxCpus = Optional.ofNullable(maxCpus).isPresent()
+                ? maxCpus
+                : CfnParameter.Builder.create(this, "MaxCpus")
+                        .type("Number")
+                        .defaultValue("64")
+                        .noEcho(true)
+                        .build()
+                        .getValueAsNumber();
+
 
         CfnRole batchServiceRole = CfnRole.Builder.create(this, "BatchServiceRole")
                 .assumeRolePolicyDocument(Map.of("Version", "2012-10-17",
@@ -116,7 +131,7 @@ class BatchStack extends Stack {
                         .type("EC2")
                         .minvCpus(0)
                         .desiredvCpus(0)
-                        .maxvCpus(64)
+                        .maxvCpus(maxCpus)
                         .instanceTypes(Arrays.asList(
                                 "optimal"))
                         .subnets(Arrays.asList(

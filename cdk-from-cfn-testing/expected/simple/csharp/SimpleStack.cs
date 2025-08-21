@@ -15,6 +15,8 @@ namespace SimpleStack
 
         public string LogDestinationBucketName { get; set; }
 
+        public double? DelaySeconds { get; set; }
+
     }
 
     /// <summary>
@@ -48,6 +50,7 @@ namespace SimpleStack
                 Type = "AWS::SSM::Parameter::Value<String>",
                 Default = props.LogDestinationBucketName ?? "/logging/bucket/name",
             }).ValueAsString;
+            props.DelaySeconds ??= 42;
 
             // Mappings
             var booleans = new Dictionary<string, Dictionary<string,bool>> 
@@ -81,7 +84,7 @@ namespace SimpleStack
             // Resources
             var queue = new CfnQueue(this, "Queue", new CfnQueueProps
             {
-                DelaySeconds = 42,
+                DelaySeconds = props.DelaySeconds,
                 SqsManagedSseEnabled = false,
                 KmsMasterKeyId = Fn.ImportValue("Shared-KmsKeyArn"),
                 QueueName = string.Join("-", new []

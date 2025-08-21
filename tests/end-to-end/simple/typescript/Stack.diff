@@ -1,0 +1,239 @@
+diff --git a/./tests/end-to-end/simple/template.json b/tests/end-to-end/simple-typescript-working-dir/cdk.out/Stack.template.json
+index 365925a..606d2e6 100644
+--- a/./tests/end-to-end/simple/template.json
++++ b/tests/end-to-end/simple-typescript-working-dir/cdk.out/Stack.template.json
+@@ -1,178 +1,23 @@
+ {
+- "Description": "An example stack that uses many of the syntax elements permitted in a\nCloudFormation template, but does not attempt to represent a realistic stack.",
+- "Mappings": {
+-  "Booleans": {
+-   "True": {
+-    "true": true
+-   },
+-   "False": {
+-    "false": false
+-   }
+-  },
+-  "Lists": {
+-   "Candidates": {
+-    "Empty": [],
+-    "Singleton": [
+-     "One"
+-    ],
+-    "Pair": [
+-     "One",
+-     "Two"
+-    ]
+-   }
+-  },
+-  "Numbers": {
+-   "Prime": {
+-    "Eleven": 11,
+-    "Thirteen": 13,
+-    "Seventeen": 17
+-   }
+-  },
+-  "Strings": {
+-   "Foos": {
+-    "Foo1": "Foo1",
+-    "Foo2": "Foo2"
+-   },
+-   "Bars": {
+-    "Bar": "Bar"
+-   }
+-  },
+-  "Table": {
+-   "Values": {
+-    "Boolean": true,
+-    "Float": 3.14,
+-    "List": [
+-     "1",
+-     "2",
+-     "3"
+-    ],
+-    "Number": 42,
+-    "String": "Baz"
+-   }
+-  }
+- },
+- "Conditions": {
+-  "IsLargeRegion": {
+-   "Condition": "IsUsEast1"
+-  },
+-  "IsUsEast1": {
+-   "Fn::Equals": [
+-    {
+-     "Ref": "AWS::Region"
+-    },
+-    "us-east-1"
+-   ]
+-  },
+-  "IsUs": {
+-   "Fn::Equals": [
+-    {
+-     "Fn::Select": [
+-      "0",
+-      {
+-       "Fn::Split": [
+-        "-",
+-        {
+-         "Ref": "AWS::Region"
+-        }
+-       ]
+-      }
+-     ]
+-    },
+-    "us"
+-   ]
+-  }
+- },
+  "Parameters": {
+-  "BucketNamePrefix": {
+-   "Type": "String",
+-   "Default": "bucket",
+-   "Description": "The prefix for the bucket name"
+-  },
+   "LogDestinationBucketName": {
+    "Type": "AWS::SSM::Parameter::Value<String>",
+    "Default": "/logging/bucket/name"
+-  },
+-  "DelaySeconds": {
+-   "Type": "Number",
+-   "Default": 42
+   }
+  },
+  "Resources": {
+-  "Bucket": {
+-   "Condition": "IsUsEast1",
+-   "Type": "AWS::S3::Bucket",
+-   "Properties": {
+-    "AccessControl": "Private",
+-    "BucketName": {
+-     "Fn::Sub": "${BucketNamePrefix}-${AWS::Region}-bucket"
+-    },
+-    "LoggingConfiguration": {
+-     "DestinationBucketName": {
+-      "Ref": "LogDestinationBucketName"
+-     }
+-    },
+-    "WebsiteConfiguration": {
+-     "RedirectAllRequestsTo": {
+-      "HostName": "example.com",
+-      "Protocol": "https"
+-     }
+-    },
+-    "Tags": [
+-     {
+-      "Key": "FancyTag",
+-      "Value": {
+-       "Fn::If": [
+-        "IsUsEast1",
+-        {
+-         "Fn::Base64": {
+-          "Fn::FindInMap": [
+-           "Table",
+-           "Values",
+-           "String"
+-          ]
+-         }
+-        },
+-        {
+-         "Fn::Base64": "8CiMvAo="
+-        }
+-       ]
+-      }
+-     }
+-    ]
+-   },
+-   "DependsOn": [
+-    "Queue"
+-   ],
+-   "DeletionPolicy": "Delete",
+-   "Metadata": {
+-    "CostCenter": 1337
+-   }
+-  },
+   "Queue": {
+    "Type": "AWS::SQS::Queue",
+-   "DeletionPolicy": "RetainExceptOnCreate",
+    "Properties": {
+-    "DelaySeconds": {
+-     "Ref": "DelaySeconds"
+-    },
+-    "SqsManagedSseEnabled": false,
++    "DelaySeconds": 42,
+     "KmsMasterKeyId": {
+      "Fn::ImportValue": "Shared-KmsKeyArn"
+     },
+     "QueueName": {
+      "Fn::Join": [
+-      "-",
++      "",
+       [
+-       {
+-        "Ref": "AWS::StackName"
+-       },
+-       {
+-        "Fn::FindInMap": [
+-         "Strings",
+-         "Bars",
+-         "Bar"
+-        ]
+-       },
++       "Stack-Bar-",
+        {
+         "Fn::Select": [
+          1,
+@@ -186,33 +31,13 @@
+       ]
+      ]
+     },
+-    "RedrivePolicy": {
+-     "Ref": "AWS::NoValue"
++    "SqsManagedSseEnabled": false,
++    "VisibilityTimeout": 120
+    },
+-    "VisibilityTimeout": {
+-     "Fn::Select": [
+-      "1",
+-      [
+-       60,
+-       120,
+-       240
+-      ]
+-     ]
+-    }
+-   }
++   "DeletionPolicy": "RetainExceptOnCreate"
+   }
+  },
+  "Outputs": {
+-  "BucketArn": {
+-   "Condition": "IsUsEast1",
+-   "Description": "The ARN of the bucket in this template!",
+-   "Export": {
+-    "Name": "ExportName"
+-   },
+-   "Value": {
+-    "Fn::GetAtt": "Bucket.Arn"
+-   }
+-  },
+   "QueueArn": {
+    "Description": "The ARN of the SQS Queue",
+    "Value": {
+@@ -221,13 +46,7 @@
+   },
+   "IsLarge": {
+    "Description": "Whether this is a large region or not",
+-   "Value": {
+-    "Fn::If": [
+-     "IsLargeRegion",
+-     true,
+-     false
+-    ]
+-   }
++   "Value": "false"
+   }
+  }
+ }
+\ No newline at end of file

@@ -11,6 +11,7 @@ import (
 
 type BatchStackProps struct {
 	cdk.StackProps
+	MaxCpus *float64
 }
 
 /// AWS CloudFormation Sample Template Managed Single Batch Job Queue: This template demonstrates the usage of simple Job Queue and EC2 style Compute Environment.  **WARNING** You will be billed for the AWS resources used if you create a stack from this template.
@@ -167,7 +168,7 @@ func NewBatchStack(scope constructs.Construct, id string, props *BatchStackProps
 				Type: jsii.String("EC2"),
 				MinvCpus: jsii.Number(0),
 				DesiredvCpus: jsii.Number(0),
-				MaxvCpus: jsii.Number(64),
+				MaxvCpus: props.MaxCpus,
 				InstanceTypes: &[]*string{
 					jsii.String("optimal"),
 				},

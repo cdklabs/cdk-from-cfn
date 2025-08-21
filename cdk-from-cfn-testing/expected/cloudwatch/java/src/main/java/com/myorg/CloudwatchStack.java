@@ -17,15 +17,25 @@ class CloudwatchStack extends Stack {
     }
 
     public CloudwatchStack(final Construct scope, final String id, final StackProps props) {
-        this(scope, id, props, null);
+        this(scope, id, props, null, null);
     }
 
     public CloudwatchStack(final Construct scope, final String id, final StackProps props,
-            String environmentName) {
+            String environmentName,
+            Number alarmThreshold) {
         super(scope, id, props);
 
         environmentName = Optional.ofNullable(environmentName).isPresent() ? environmentName
                 : "dev";
+        alarmThreshold = Optional.ofNullable(alarmThreshold).isPresent()
+                ? alarmThreshold
+                : CfnParameter.Builder.create(this, "AlarmThreshold")
+                        .type("Number")
+                        .defaultValue("0.005")
+                        .noEcho(true)
+                        .build()
+                        .getValueAsNumber();
+
 
         CfnAlarm myApi5xxErrorsAlarm = CfnAlarm.Builder.create(this, "MyApi5xxErrorsAlarm")
                 .alarmDescription("Example alarm")
@@ -38,7 +48,7 @@ class CloudwatchStack extends Stack {
                 .metricName("5XXError")
                 .comparisonOperator("GreaterThanThreshold")
                 .statistic("Average")
-                .threshold(0.005)
+                .threshold(alarmThreshold)
                 .period(900)
                 .evaluationPeriods(1)
                 .treatMissingData("notBreaching")

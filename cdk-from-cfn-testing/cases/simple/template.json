@@ -91,6 +91,10 @@
   "LogDestinationBucketName": {
    "Type": "AWS::SSM::Parameter::Value<String>",
    "Default": "/logging/bucket/name"
+  },
+  "DelaySeconds": {
+   "Type": "Number",
+   "Default": 42
   }
  },
  "Resources": {
@@ -145,7 +149,9 @@
    "Type": "AWS::SQS::Queue",
    "DeletionPolicy": "RetainExceptOnCreate",
    "Properties": {
-    "DelaySeconds": 42,
+    "DelaySeconds": {
+     "Ref": "DelaySeconds"
+    },
     "SqsManagedSseEnabled": false,
     "KmsMasterKeyId": {
      "Fn::ImportValue": "Shared-KmsKeyArn"

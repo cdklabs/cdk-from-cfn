@@ -10,6 +10,11 @@
         "stage",
         "prod"
       ]
+    },
+    "AlarmThreshold": {
+      "Type": "Number",
+      "Default": 0.005,
+      "NoEcho": true
     }
   },
   "Resources": {
@@ -27,7 +32,9 @@
         "MetricName": "5XXError",
         "ComparisonOperator": "GreaterThanThreshold",
         "Statistic": "Average",
-        "Threshold": "0.005",
+        "Threshold": {
+          "Ref": "AlarmThreshold"
+        },
         "Period": 900,
         "EvaluationPeriods": 1,
         "TreatMissingData": "notBreaching",
