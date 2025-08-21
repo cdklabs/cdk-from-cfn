@@ -19,7 +19,7 @@ namespace SAMNodeJSLambda
             // Resources
             var myFunction = new CfnFunction(this, "MyFunction", new CfnFunctionProps
             {
-                Runtime = "nodejs18.x",
+                Runtime = "nodejs20.x",
                 Handler = "index.handler",
                 InlineCode = @"exports.handler = async (event) => {
                   console.log(event);
