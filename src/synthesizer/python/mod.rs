@@ -97,6 +97,10 @@ impl Synthesizer for Python {
                 if param.constructor_type.contains("AWS::")
                     || param.no_echo.as_ref().is_some_and(|x| x == "true")
                 {
+                    let value_accessor = match param.constructor_type.as_str() {
+                        "Number" => "value_as_number",
+                        _ => "value_as_string",
+                    };
                     let cfn_param = obj.indent_with_options(IndentOptions {
                         indent: INDENT,
                         leading: Some(
@@ -106,7 +110,7 @@ impl Synthesizer for Python {
                             )
                             .into(),
                         ),
-                        trailing: Some("),".into()),
+                        trailing: Some(format!(").{value_accessor},").into()),
                         trailing_newline: true,
                     });
                     cfn_param.line(format!("type = '{}',", param.constructor_type));
@@ -130,6 +134,7 @@ impl Synthesizer for Python {
                         Some(value) => {
                             let value = match param.constructor_type.as_str() {
                                 "String" => format!("'{}'", value.escape_debug()),
+                                "Number" => value.clone(),
                                 "List<Number>" => format!("[{value}]"),
                                 "CommaDelimitedList" => format!(
                                     "[{}]",
@@ -428,9 +433,7 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
 impl Reference {
     fn to_python(&self) -> Cow<'static, str> {
         match &self.origin {
-            Origin::CfnParameter => {
-                format!("props['{}'].value_as_string", camel_case(&self.name)).into()
-            }
+            Origin::CfnParameter => format!("props['{}']", camel_case(&self.name)).into(),
             Origin::Parameter => format!("props['{}']", camel_case(&self.name)).into(),
             Origin::LogicalId { conditional: _ } => {
                 format!("{var}{chain}ref", var = camel_case(&self.name), chain = ".").into()

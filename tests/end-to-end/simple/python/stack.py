@@ -19,7 +19,8 @@ class SimpleStack(Stack):
       'logDestinationBucketName': cdk.CfnParameter(self, 'logDestinationBucketName', 
         type = 'AWS::SSM::Parameter::Value<String>',
         default = str(kwargs.get('logDestinationBucketName', '/logging/bucket/name')),
-      ),
+      ).value_as_string,
+      'delaySeconds': kwargs.get('delaySeconds', 42),
     }
 
     # Mappings
@@ -71,7 +72,7 @@ class SimpleStack(Stack):
 
     # Resources
     queue = sqs.CfnQueue(self, 'Queue',
-          delay_seconds = 42,
+          delay_seconds = props['delaySeconds'],
           sqs_managed_sse_enabled = False,
           kms_master_key_id = cdk.Fn.import_value('Shared-KmsKeyArn'),
           queue_name = '-'.join([

@@ -3,6 +3,13 @@
 
   "Description" : "AWS CloudFormation Sample Template Managed Single Batch Job Queue: This template demonstrates the usage of simple Job Queue and EC2 style Compute Environment.  **WARNING** You will be billed for the AWS resources used if you create a stack from this template.",
 
+  "Parameters" : {
+    "MaxCpus" : {
+      "Type" : "Number",
+      "Default" : 64,
+      "NoEcho" : true
+    }
+  },
 
   "Resources" : {
     "VPC" : {
@@ -141,7 +148,7 @@
           "Type" : "EC2",
           "MinvCpus" : 0,
           "DesiredvCpus" : 0,
-          "MaxvCpus" : 64,
+          "MaxvCpus" : { "Ref" : "MaxCpus" },
           "InstanceTypes" : [
             "optimal"
           ],

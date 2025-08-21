@@ -36,12 +36,13 @@ class SimpleStack extends Stack {
     }
 
     public SimpleStack(final Construct scope, final String id, final StackProps props) {
-        this(scope, id, props, null, null);
+        this(scope, id, props, null, null, null);
     }
 
     public SimpleStack(final Construct scope, final String id, final StackProps props,
             String bucketNamePrefix,
-            String logDestinationBucketName) {
+            String logDestinationBucketName,
+            Number delaySeconds) {
         super(scope, id, props);
 
         bucketNamePrefix = Optional.ofNullable(bucketNamePrefix).isPresent() ? bucketNamePrefix
@@ -54,6 +55,8 @@ class SimpleStack extends Stack {
                         .build()
                         .getValueAsString();
 
+        delaySeconds = Optional.ofNullable(delaySeconds).isPresent() ? delaySeconds
+                : 42;
         // Mappings
         final CfnMapping booleans = new CfnMapping(this, "booleans");
         booleans.setValue("True", "true", true);
@@ -86,7 +89,7 @@ class SimpleStack extends Stack {
         Boolean isLargeRegion = isUsEast1;
 
         CfnQueue queue = CfnQueue.Builder.create(this, "Queue")
-                .delaySeconds(42)
+                .delaySeconds(delaySeconds)
                 .sqsManagedSseEnabled(false)
                 .kmsMasterKeyId(Fn.importValue("Shared-KmsKeyArn"))
                 .queueName(String.join("-",

@@ -9,6 +9,8 @@ namespace BatchStack
 {
     public class BatchStackProps : StackProps
     {
+        public double MaxCpus { get; set; }
+
     }
 
     /// <summary>
@@ -24,6 +26,15 @@ namespace BatchStack
 
         public BatchStack(Construct scope, string id, BatchStackProps props = null) : base(scope, id, props)
         {
+            // Applying default props
+            props ??= new BatchStackProps();
+            props.MaxCpus = new CfnParameter(this, "MaxCpus", new CfnParameterProps
+            {
+                Type = "Number",
+                Default = props.MaxCpus.ToString() ?? "64",
+                NoEcho = true,
+            }).ValueAsNumber;
+
 
             // Resources
             var batchServiceRole = new CfnRole(this, "BatchServiceRole", new CfnRoleProps
@@ -139,7 +150,7 @@ namespace BatchStack
                     Type = "EC2",
                     MinvCpus = 0,
                     DesiredvCpus = 0,
-                    MaxvCpus = 64,
+                    MaxvCpus = props.MaxCpus,
                     InstanceTypes = new []
                     {
                         "optimal",

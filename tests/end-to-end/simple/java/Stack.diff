@@ -1,5 +1,5 @@
 diff --git a/./tests/end-to-end/simple/template.json b/tests/end-to-end/simple-java-working-dir/cdk.out/Stack.template.json
-index 8525bcd..d7c86ad 100644
+index 365925a..d7c86ad 100644
 --- a/./tests/end-to-end/simple/template.json
 +++ b/tests/end-to-end/simple-java-working-dir/cdk.out/Stack.template.json
 @@ -1,7 +1,12 @@
@@ -57,7 +57,7 @@ index 8525bcd..d7c86ad 100644
     "Values": {
      "Boolean": true,
      "Float": 3.14,
-@@ -51,122 +58,27 @@
+@@ -51,128 +58,27 @@
     }
    }
   },
@@ -101,6 +101,10 @@ index 8525bcd..d7c86ad 100644
 -  "LogDestinationBucketName": {
 -   "Type": "AWS::SSM::Parameter::Value<String>",
 -   "Default": "/logging/bucket/name"
+-  },
+-  "DelaySeconds": {
+-   "Type": "Number",
+-   "Default": 42
 -  }
 - },
   "Resources": {
@@ -158,8 +162,11 @@ index 8525bcd..d7c86ad 100644
     "Type": "AWS::SQS::Queue",
 -   "DeletionPolicy": "RetainExceptOnCreate",
     "Properties": {
-     "DelaySeconds": 42,
+-    "DelaySeconds": {
+-     "Ref": "DelaySeconds"
+-    },
 -    "SqsManagedSseEnabled": false,
++    "DelaySeconds": 42,
      "KmsMasterKeyId": {
       "Fn::ImportValue": "Shared-KmsKeyArn"
      },
@@ -184,7 +191,7 @@ index 8525bcd..d7c86ad 100644
         {
          "Fn::Select": [
           1,
-@@ -180,33 +92,14 @@
+@@ -186,33 +92,14 @@
        ]
       ]
      },
@@ -222,7 +229,7 @@ index 8525bcd..d7c86ad 100644
    "QueueArn": {
     "Description": "The ARN of the SQS Queue",
     "Value": {
-@@ -215,13 +108,7 @@
+@@ -221,13 +108,7 @@
    },
    "IsLarge": {
     "Description": "Whether this is a large region or not",

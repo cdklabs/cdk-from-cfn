@@ -1,13 +1,21 @@
 diff --git a/./tests/end-to-end/batch/template.json b/tests/end-to-end/batch-typescript-working-dir/cdk.out/Stack.template.json
-index c503353..fae5d52 100644
+index d75fe65..ca257db 100644
 --- a/./tests/end-to-end/batch/template.json
 +++ b/tests/end-to-end/batch-typescript-working-dir/cdk.out/Stack.template.json
-@@ -1,62 +1,5 @@
+@@ -1,69 +1,12 @@
  {
 -  "AWSTemplateFormatVersion" : "2010-09-09",
 -
 -  "Description" : "AWS CloudFormation Sample Template Managed Single Batch Job Queue: This template demonstrates the usage of simple Job Queue and EC2 style Compute Environment.  **WARNING** You will be billed for the AWS resources used if you create a stack from this template.",
 -
+  "Parameters": {
+   "MaxCpus": {
+    "Type": "Number",
+-      "Default" : 64,
++   "Default": "64",
+    "NoEcho": true
+   }
+  },
 -
   "Resources": {
 -    "VPC" : {
@@ -65,7 +73,7 @@ index c503353..fae5d52 100644
    "BatchServiceRole": {
     "Type": "AWS::IAM::Role",
     "Properties": {
-@@ -77,12 +20,6 @@
+@@ -84,12 +27,6 @@
      ]
     }
    },
@@ -78,7 +86,7 @@ index c503353..fae5d52 100644
    "EcsInstanceRole": {
     "Type": "AWS::IAM::Role",
     "Properties": {
-@@ -104,64 +41,176 @@
+@@ -111,64 +48,178 @@
      ]
     }
    },
@@ -186,7 +194,7 @@ index c503353..fae5d52 100644
 -          "Type" : "EC2",
 -          "MinvCpus" : 0,
       "DesiredvCpus": 0,
--          "MaxvCpus" : 64,
+-          "MaxvCpus" : { "Ref" : "MaxCpus" },
 +     "InstanceRole": {
 +      "Ref": "IamInstanceProfile"
 +     },
@@ -196,7 +204,9 @@ index c503353..fae5d52 100644
 -          "Subnets" : [{ "Ref" : "Subnet" }],
 -          "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
 -          "InstanceRole" : { "Ref" : "IamInstanceProfile" }
-+     "MaxvCpus": 64,
++     "MaxvCpus": {
++      "Ref": "MaxCpus"
++     },
 +     "MinvCpus": 0,
 +     "SecurityGroupIds": [
 +      {

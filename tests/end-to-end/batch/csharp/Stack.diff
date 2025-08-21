@@ -1,13 +1,21 @@
 diff --git a/./tests/end-to-end/batch/template.json b/tests/end-to-end/batch-csharp-working-dir/cdk.out/Stack.template.json
-index c503353..684c8cb 100644
+index d75fe65..afb2161 100644
 --- a/./tests/end-to-end/batch/template.json
 +++ b/tests/end-to-end/batch-csharp-working-dir/cdk.out/Stack.template.json
-@@ -1,62 +1,5 @@
+@@ -1,69 +1,12 @@
  {
 -  "AWSTemplateFormatVersion" : "2010-09-09",
 -
 -  "Description" : "AWS CloudFormation Sample Template Managed Single Batch Job Queue: This template demonstrates the usage of simple Job Queue and EC2 style Compute Environment.  **WARNING** You will be billed for the AWS resources used if you create a stack from this template.",
 -
+  "Parameters": {
+   "MaxCpus": {
+    "Type": "Number",
+-      "Default" : 64,
++   "Default": "0",
+    "NoEcho": true
+   }
+  },
 -
   "Resources": {
 -    "VPC" : {
@@ -65,7 +73,7 @@ index c503353..684c8cb 100644
    "BatchServiceRole": {
     "Type": "AWS::IAM::Role",
     "Properties": {
-@@ -77,12 +20,6 @@
+@@ -84,12 +27,6 @@
      ]
     }
    },
@@ -78,7 +86,7 @@ index c503353..684c8cb 100644
    "EcsInstanceRole": {
     "Type": "AWS::IAM::Role",
     "Properties": {
-@@ -104,64 +41,159 @@
+@@ -111,64 +48,161 @@
      ]
     }
    },
@@ -186,7 +194,7 @@ index c503353..684c8cb 100644
 -          "Type" : "EC2",
 -          "MinvCpus" : 0,
       "DesiredvCpus": 0,
--          "MaxvCpus" : 64,
+-          "MaxvCpus" : { "Ref" : "MaxCpus" },
 +     "InstanceRole": {
 +      "Ref": "IamInstanceProfile"
 +     },
@@ -196,7 +204,10 @@ index c503353..684c8cb 100644
 -          "Subnets" : [{ "Ref" : "Subnet" }],
 -          "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
 -          "InstanceRole" : { "Ref" : "IamInstanceProfile" }
-+     "MaxvCpus": 64,
++     "MaxvCpus": {
++      "Ref": "MaxCpus"
+      },
+-        "ServiceRole" : { "Ref" : "BatchServiceRole" }
 +     "MinvCpus": 0,
 +     "SecurityGroupIds": [
 +      {
@@ -206,7 +217,7 @@ index c503353..684c8cb 100644
 +     "Subnets": [
 +      {
 +       "Ref": "Subnet"
-+      }
+       }
 +     ],
 +     "Type": "EC2"
 +    },
@@ -214,8 +225,11 @@ index c503353..684c8cb 100644
 +     "Ref": "BatchServiceRole"
 +    },
 +    "Type": "MANAGED"
-+   }
-+  },
+    }
+   },
+-  "Outputs" : {
+-    "ComputeEnvironmentArn" : {
+-      "Value" : { "Ref" : "ComputeEnvironment" }
 +  "Route": {
 +   "Type": "AWS::EC2::Route",
 +   "Properties": {
@@ -223,30 +237,26 @@ index c503353..684c8cb 100644
 +    "GatewayId": {
 +     "Ref": "InternetGateway"
      },
--        "ServiceRole" : { "Ref" : "BatchServiceRole" }
-+    "RouteTableId": {
-+     "Ref": "RouteTable"
-     }
-    }
-   },
--  "Outputs" : {
--    "ComputeEnvironmentArn" : {
--      "Value" : { "Ref" : "ComputeEnvironment" }
-+  "SubnetRouteTableAssociation": {
-+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
-+   "Properties": {
-+    "RouteTableId": {
-+     "Ref": "RouteTable"
-     },
 -    "JobQueueArn" : {
 -      "Value" : { "Ref" : "JobQueue" }
-+    "SubnetId": {
-+     "Ref": "Subnet"
++    "RouteTableId": {
++     "Ref": "RouteTable"
 +    }
 +   }
    },
 -    "JobDefinitionArn": {
 -      "Value" : { "Ref" : "JobDefinition" }
++  "SubnetRouteTableAssociation": {
++   "Type": "AWS::EC2::SubnetRouteTableAssociation",
++   "Properties": {
++    "RouteTableId": {
++     "Ref": "RouteTable"
++    },
++    "SubnetId": {
++     "Ref": "Subnet"
++    }
++   }
++  },
 +  "JobQueue": {
 +   "Type": "AWS::Batch::JobQueue",
 +   "Properties": {

@@ -71,6 +71,7 @@ impl Synthesizer for Typescript {
                 "List<Number>" => "number[]",
                 t if t.contains("List") => "string[]",
                 "Boolean" => "boolean",
+                "Number" => "number",
                 _ => "string",
             };
             iface_props.line(format!(
@@ -151,8 +152,9 @@ impl Synthesizer for Typescript {
                 if param.constructor_type.contains("AWS::")
                     || param.no_echo.as_ref().is_some_and(|x| x == "true")
                 {
-                    let value_as = match &param.constructor_type {
+                    let value_as = match param.constructor_type.as_str() {
                         t if t.contains("List") => "valueAsList",
+                        "Number" => "valueAsNumber",
                         _ => "valueAsString",
                     };
                     let cfn_param = obj.indent_with_options(IndentOptions {
@@ -192,6 +194,7 @@ impl Synthesizer for Typescript {
                         Some(value) => {
                             let value = match param.constructor_type.as_str() {
                                 "String" => format!("'{}'", value.escape_debug()),
+                                "Number" => value.clone(),
                                 "List<Number>" => format!("[{value}]"),
                                 "CommaDelimitedList" => format!(
                                     "[{}]",

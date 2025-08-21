@@ -1,4 +1,11 @@
 {
+ "Parameters": {
+  "AlarmThreshold": {
+   "Type": "Number",
+   "Default": "0.005",
+   "NoEcho": true
+  }
+ },
  "Resources": {
   "MyApi5xxErrorsAlarm": {
    "Type": "AWS::CloudWatch::Alarm",
@@ -21,7 +28,9 @@
     "Namespace": "AWS/ApiGateway",
     "Period": 900,
     "Statistic": "Average",
-    "Threshold": 0.005,
+    "Threshold": {
+     "Ref": "AlarmThreshold"
+    },
     "TreatMissingData": "notBreaching"
    }
   }

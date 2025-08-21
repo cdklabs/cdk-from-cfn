@@ -12,6 +12,8 @@ namespace CloudwatchStack
         /// </summary>
         public string EnvironmentName { get; set; }
 
+        public double AlarmThreshold { get; set; }
+
     }
 
     public class CloudwatchStack : Stack
@@ -21,6 +23,12 @@ namespace CloudwatchStack
             // Applying default props
             props ??= new CloudwatchStackProps();
             props.EnvironmentName ??= "dev";
+            props.AlarmThreshold = new CfnParameter(this, "AlarmThreshold", new CfnParameterProps
+            {
+                Type = "Number",
+                Default = props.AlarmThreshold.ToString() ?? "0.005",
+                NoEcho = true,
+            }).ValueAsNumber;
 
 
             // Resources
@@ -39,7 +47,7 @@ namespace CloudwatchStack
                 MetricName = "5XXError",
                 ComparisonOperator = "GreaterThanThreshold",
                 Statistic = "Average",
-                Threshold = 0.005,
+                Threshold = props.AlarmThreshold,
                 Period = 900,
                 EvaluationPeriods = 1,
                 TreatMissingData = "notBreaching",
