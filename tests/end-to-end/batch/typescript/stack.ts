@@ -4,6 +4,10 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 
 export interface BatchStackProps extends cdk.StackProps {
+  /**
+   * @default 64
+   */
+  readonly maxCpus?: number;
 }
 
 /**
@@ -16,6 +20,16 @@ export class BatchStack extends cdk.Stack {
 
   public constructor(scope: cdk.App, id: string, props: BatchStackProps = {}) {
     super(scope, id, props);
+
+    // Applying default props
+    props = {
+      ...props,
+      maxCpus: new cdk.CfnParameter(this, 'MaxCpus', {
+        type: 'Number',
+        default: props.maxCpus?.toString() ?? '64',
+        noEcho: true,
+      }).valueAsNumber,
+    };
 
     // Resources
     const batchServiceRole = new iam.CfnRole(this, 'BatchServiceRole', {
@@ -114,7 +128,7 @@ export class BatchStack extends cdk.Stack {
         type: 'EC2',
         minvCpus: 0,
         desiredvCpus: 0,
-        maxvCpus: 64,
+        maxvCpus: props.maxCpus!,
         instanceTypes: [
           'optimal',
         ],

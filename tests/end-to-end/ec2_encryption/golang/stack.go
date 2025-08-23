@@ -11,11 +11,11 @@ type Ec2EncryptionStackProps struct {
 	cdk.StackProps
 	Environment *string
 	DatabaseType *string
-	UseEncryption interface{/* Boolean */}
+	UseEncryption *bool
 	EncryptedAmi *string
 	UnencryptedAmi *string
 	SubnetType *string
-	EnableMonitoringParameter interface{/* Boolean */}
+	EnableMonitoringParameter *bool
 }
 
 type Ec2EncryptionStack struct {

@@ -12,6 +12,15 @@ class BatchStack(Stack):
   def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
     super().__init__(scope, construct_id, **kwargs)
 
+    # Applying default props
+    props = {
+      'maxCpus': cdk.CfnParameter(self, 'maxCpus', 
+        type = 'Number',
+        default = str(kwargs.get('maxCpus', '64')),
+        no_echo = True,
+      ).value_as_number,
+    }
+
     # Resources
     batchServiceRole = iam.CfnRole(self, 'BatchServiceRole',
           assume_role_policy_document = {
@@ -109,7 +118,7 @@ class BatchStack(Stack):
             'type': 'EC2',
             'minvCpus': 0,
             'desiredvCpus': 0,
-            'maxvCpus': 64,
+            'maxvCpus': props['maxCpus'],
             'instanceTypes': [
               'optimal',
             ],

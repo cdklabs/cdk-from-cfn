@@ -1,11 +1,11 @@
 diff --git a/./tests/end-to-end/cloudwatch/template.json b/tests/end-to-end/cloudwatch-typescript-working-dir/cdk.out/Stack.template.json
-index 30a1dd6..fd7e22a 100644
+index 74e96dd..0b1be17 100644
 --- a/./tests/end-to-end/cloudwatch/template.json
 +++ b/tests/end-to-end/cloudwatch-typescript-working-dir/cdk.out/Stack.template.json
-@@ -1,50 +1,28 @@
+@@ -1,19 +1,8 @@
  {
 -  "AWSTemplateFormatVersion": "2010-09-09",
--  "Parameters": {
+  "Parameters": {
 -    "EnvironmentName": {
 -      "Default": "dev",
 -      "Description": "Environment used for this deployment.",
@@ -15,9 +15,15 @@ index 30a1dd6..fd7e22a 100644
 -        "stage",
 -        "prod"
 -      ]
--    }
--  },
-  "Resources": {
+-    },
+   "AlarmThreshold": {
+    "Type": "Number",
+-      "Default": 0.005,
++   "Default": "0.005",
+    "NoEcho": true
+   }
+  },
+@@ -21,37 +10,28 @@
    "MyApi5xxErrorsAlarm": {
     "Type": "AWS::CloudWatch::Alarm",
     "Properties": {
@@ -38,10 +44,13 @@ index 30a1dd6..fd7e22a 100644
 +    "EvaluationPeriods": 1,
      "MetricName": "5XXError",
 -        "ComparisonOperator": "GreaterThanThreshold",
--        "Statistic": "Average",
--        "Threshold": "0.005",
 +    "Namespace": "AWS/ApiGateway",
-     "Period": 900,
++    "Period": 900,
+     "Statistic": "Average",
+     "Threshold": {
+      "Ref": "AlarmThreshold"
+     },
+-        "Period": 900,
 -        "EvaluationPeriods": 1,
 -        "TreatMissingData": "notBreaching",
 -        "AlarmActions": [
@@ -58,8 +67,6 @@ index 30a1dd6..fd7e22a 100644
 -            }
 -          }
 -        ]
-+    "Statistic": "Average",
-+    "Threshold": 0.005,
 +    "TreatMissingData": "notBreaching"
     }
    }
