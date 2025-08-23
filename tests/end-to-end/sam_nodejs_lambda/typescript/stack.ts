@@ -13,7 +13,7 @@ export class SAMNodeJSLambda extends cdk.Stack {
 
     // Resources
     const myFunction = new sam.CfnFunction(this, 'MyFunction', {
-      runtime: 'nodejs18.x',
+      runtime: 'nodejs20.x',
       handler: 'index.handler',
       inlineCode: 'exports.handler = async (event) => {\n  console.log(event);\n}\n',
     });

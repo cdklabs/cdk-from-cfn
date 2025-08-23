@@ -1,18 +1,21 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-use core::panic;
+use std::env;
 use std::fs::{self, canonicalize, copy, create_dir_all, remove_dir_all, File};
-use std::io::{Read, Write};
-use std::path::Path;
+use std::io::{self, Read, Write};
+use std::panic::{self, AssertUnwindSafe};
+use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::{env, path};
+use std::time::Duration;
 
 use aws_config::BehaviorVersion;
 use aws_sdk_cloudformation::types::{Capability, OnFailure};
 
 use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_cloudformation::error::ProvideErrorMetadata;
 use aws_sdk_cloudformation::types::StackStatus;
 use aws_sdk_cloudformation::{Client, Error};
+use aws_sdk_s3::Client as S3Client;
 use cdk_from_cfn::cdk::Schema;
 use cdk_from_cfn::code::CodeBuffer;
 use cdk_from_cfn::ir::CloudformationProgramIr;
@@ -20,6 +23,7 @@ use cdk_from_cfn::synthesizer::{self, *};
 use cdk_from_cfn::CloudformationParseTree;
 
 use nom::AsBytes;
+use serial_test::serial;
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
@@ -50,6 +54,7 @@ macro_rules! test_case {
 
     ($name: ident, $lang:ident, $stack_name:literal, $skip_cdk_synth:expr) => {
         #[test]
+        #[serial($name)]
         fn $lang() {
             // GIVEN
             let mut test = EndToEndTest::new(
@@ -65,8 +70,6 @@ macro_rules! test_case {
     };
 }
 
-const ALL: &[&str; 5] = &["csharp", "golang", "java", "python", "typescript"];
-
 test_case!(simple, "SimpleStack", &["golang"]);
 test_case!(bucket, "BucketStack");
 test_case!(config, "ConfigStack", &["golang", "java"]); //java fails cdk synth bc template produced has non-deterministic order
@@ -80,7 +83,7 @@ test_case!(vpc, "VpcStack");
 
 test_case!(sam_nodejs_lambda, "SAMNodeJSLambda");
 // These stack should be identical to the ones above
-test_case!(sam_nodejs_lambda_arr_transform, "SAMNodeJSLambda", ALL);
+test_case!(sam_nodejs_lambda_arr_transform, "SAMNodeJSLambdaArr");
 test_case!(batch, "BatchStack", &["golang", "java"]); //java fails cdk synth bc template produced has non-deterministic order
 test_case!(cloudwatch, "CloudwatchStack", &["golang"]);
 test_case!(ecs, "EcsStack", &["java", "golang"]);
@@ -149,10 +152,7 @@ impl EndToEndTest<'_> {
                 other => panic!("Unsupported language: {other}"),
             };
 
-        let source = File::open(path::PathBuf::from(
-            env::var("END_TO_END_SNAPSHOTS").unwrap(),
-        ))
-        .unwrap();
+        let source = File::open(PathBuf::from(env::var("END_TO_END_SNAPSHOTS").unwrap())).unwrap();
         let snapshots_zip = ZipArchive::new(source)
             .expect("Failed to convert end-to-end-test-snapshots.zip contents into ZipArchive");
 
@@ -174,49 +174,151 @@ impl EndToEndTest<'_> {
     }
 
     fn run(&mut self) {
-        // GIVEN
-        if std::env::var_os("CREATE_CFN_STACK").is_some() {
-            // Only create a CloudFormation stack if the developer has set this
-            // env var.
-            self.create_cfn_stack();
+        let should_create_stacks = env::var_os("CREATE_CFN_STACK").is_some();
+        let mut errors = Vec::new();
+        let mut cdk_synth_successful = false;
+        let mut cleanup_stacks = false;
+
+        let result = panic::catch_unwind(AssertUnwindSafe(|| {
+            // WHEN
+            let cdk_stack_definition =
+                match panic::catch_unwind(AssertUnwindSafe(|| self.run_cdk_from_cfn())) {
+                    Ok(def) => def,
+                    Err(e) => {
+                        errors.push(format!("CDK synthesis failed: {:?}", e));
+                        return;
+                    }
+                };
+
+            // THEN
+            if env::var_os("UPDATE_SNAPSHOTS").is_none() {
+                if let Err(e) = panic::catch_unwind(AssertUnwindSafe(|| {
+                    self.check_cdk_stack_def_matches_expected(&cdk_stack_definition);
+                })) {
+                    errors.push(format!("Stack definition check failed: {:?}", e));
+                }
+            }
+
+            if self.skip_cdk_synth || env::var_os("SKIP_SYNTH").is_some() {
+                if env::var_os("SKIP_SYNTH").is_some() {
+                    let _ = writeln!(
+                        io::stderr(),
+                        "✓ Test passed for {}/{} - CDK synthesis skipped (SKIP_SYNTH set)",
+                        self.name,
+                        self.lang
+                    );
+                } else {
+                    let _ = writeln!(
+                        io::stderr(),
+                        "✓ Test passed for {}/{} - CDK synthesis skipped (configured)",
+                        self.name,
+                        self.lang
+                    );
+                }
+                if env::var_os("UPDATE_SNAPSHOTS").is_some() {
+                    if let Err(e) = panic::catch_unwind(AssertUnwindSafe(|| {
+                        self.update_cdk_stack_def_snapshot(&cdk_stack_definition);
+                    })) {
+                        errors.push(format!("Snapshot update failed: {:?}", e));
+                    }
+                }
+            } else {
+                if let Err(e) = panic::catch_unwind(AssertUnwindSafe(|| {
+                    self.synth_cdk_app(&cdk_stack_definition);
+                })) {
+                    errors.push(format!("CDK synth failed: {:?}", e));
+                } else {
+                    cdk_synth_successful = true;
+                }
+
+                // Only create CloudFormation stacks after successful CDK synthesis
+                if should_create_stacks && cdk_synth_successful {
+                    match tokio::runtime::Runtime::new()
+                        .unwrap()
+                        .block_on(self.create_cfn_stack())
+                    {
+                        Ok(_) => {
+                            cleanup_stacks = true;
+                        }
+                        Err(e) => {
+                            errors.push(format!("Stack creation failed: {}", e));
+                        }
+                    }
+                } else if should_create_stacks && !cdk_synth_successful {
+                    println!(
+                        "Skipping CloudFormation stack deployment due to CDK synthesis failure"
+                    );
+                } else if !should_create_stacks {
+                    println!("Skipping CloudFormation stack deployment (CREATE_CFN_STACK not set)");
+                }
+
+                if let Err(e) = panic::catch_unwind(AssertUnwindSafe(|| {
+                    self.diff_original_template_with_new_templates();
+                })) {
+                    errors.push(format!("Template diff failed: {:?}", e));
+                }
+
+                if env::var_os("UPDATE_SNAPSHOTS").is_some() {
+                    if let Err(e) = panic::catch_unwind(AssertUnwindSafe(|| {
+                        self.update_snapshots(&cdk_stack_definition);
+                    })) {
+                        errors.push(format!("Snapshot update failed: {:?}", e));
+                    }
+                } else if let Err(e) = panic::catch_unwind(AssertUnwindSafe(|| {
+                    self.check_new_templates_and_diffs_match_expected();
+                })) {
+                    errors.push(format!("Template/diff check failed: {:?}", e));
+                }
+
+                if env::var_os("SKIP_CLEAN").is_none() {
+                    if let Err(e) = panic::catch_unwind(AssertUnwindSafe(|| {
+                        self.clean();
+                    })) {
+                        errors.push(format!("Cleanup failed: {:?}", e));
+                    }
+                } else {
+                    println!("Skipping test directory cleanup because SKIP_CLEAN=true");
+                }
+            }
+        }));
+
+        // Cleanup stacks regardless of test success or failure
+        if cleanup_stacks {
+            if let Err(e) = panic::catch_unwind(AssertUnwindSafe(|| {
+                if env::var_os("FAIL_FAST").is_some() {
+                    tokio::runtime::Runtime::new()
+                        .unwrap()
+                        .block_on(self.initiate_cfn_stack_deletion());
+                } else {
+                    tokio::runtime::Runtime::new()
+                        .unwrap()
+                        .block_on(self.cleanup_cfn_stacks());
+                }
+            })) {
+                errors.push(format!("Stack cleanup failed: {:?}", e));
+            }
         }
 
-        // WHEN
-        let cdk_stack_definition = self.run_cdk_from_cfn();
-
-        // THEN
-        if std::env::var_os("UPDATE_SNAPSHOTS").is_none() {
-            // Only check the expected output files if UPDATE_SNAPSHOTS is not
-            // set. If it is set, then don't bother checking the expected output
-            // files, because they will be over-written.
-            self.check_cdk_stack_def_matches_expected(&cdk_stack_definition);
+        // Report all errors at the end
+        if !errors.is_empty() {
+            println!(
+                "\n=== TEST FAILURE SUMMARY for {}/{} ===",
+                self.name, self.lang
+            );
+            for (i, error) in errors.iter().enumerate() {
+                println!("{}. {}", i + 1, error);
+            }
+            println!("=== END FAILURE SUMMARY ===\n");
+            panic!("Test failed with {} error(s)", errors.len());
         }
 
-        if self.skip_cdk_synth {
-            if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
-                self.update_cdk_stack_def_snapshot(&cdk_stack_definition);
-            }
-        } else {
-            self.synth_cdk_app(&cdk_stack_definition);
-
-            self.diff_original_template_with_new_templates();
-
-            if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
-                self.update_snapshots(&cdk_stack_definition);
-            } else {
-                self.check_new_templates_and_diffs_match_expected();
-            }
-
-            if std::env::var_os("SKIP_CLEAN").is_none() {
-                self.clean();
-            } else {
-                println!("Skipping test directory cleanup because SKIP_CLEAN=true");
-            }
+        // Re-panic if there was an uncaught error
+        if let Err(e) = result {
+            panic::resume_unwind(e);
         }
     }
 
-    #[tokio::main]
-    async fn create_cfn_stack(&mut self) {
+    async fn create_cfn_stack(&mut self) -> Result<(), String> {
         println!("Verifying a CloudFormation stack can be created from original template");
         let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
         let config = aws_config::defaults(BehaviorVersion::latest())
@@ -232,7 +334,7 @@ impl EndToEndTest<'_> {
             let mut create_first_template_str = String::new();
             create_first_template
                 .read_to_string(&mut create_first_template_str)
-                .expect("failed to read create_first.json from end-to-end-test-snapshots.zip");
+                .map_err(|e| format!("failed to read create_first.json: {e}"))?;
             let stack_name = &format!("{}CreateFirst", self.stack_name);
             EndToEndTest::create_cfn_stack_from_template(
                 &client,
@@ -240,7 +342,7 @@ impl EndToEndTest<'_> {
                 &create_first_template_str,
             )
             .await
-            .unwrap_or_else(|_| panic!("failed to create stack: {stack_name}"));
+            .map_err(|e| format!("failed to create stack {stack_name}: {e}"))?;
         }
 
         EndToEndTest::create_cfn_stack_from_template(
@@ -249,46 +351,258 @@ impl EndToEndTest<'_> {
             self.original_template,
         )
         .await
-        .unwrap_or_else(|_| panic!("failed to create stack: {}", self.stack_name));
+        .map_err(|e| format!("failed to create stack {}: {e}", self.stack_name))?;
+
+        Ok(())
+    }
+
+    async fn cleanup_cfn_stacks(&mut self) {
+        println!("Cleaning up CloudFormation stacks");
+        let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
+        let config = aws_config::defaults(BehaviorVersion::latest())
+            .region(region_provider)
+            .load()
+            .await;
+        let client = Client::new(&config);
+        let s3_client = S3Client::new(&config);
+
+        // Delete main stack
+        let _ = EndToEndTest::delete_cfn_stack(&client, &s3_client, self.stack_name).await;
+
+        // Delete create_first stack if it exists
+        let create_first_stack_name = &format!("{}CreateFirst", self.stack_name);
+        let _ = EndToEndTest::delete_cfn_stack(&client, &s3_client, create_first_stack_name).await;
+    }
+
+    async fn initiate_cfn_stack_deletion(&mut self) {
+        println!("Initiating CloudFormation stack deletion (FAIL_FAST mode - not waiting for completion)");
+        let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
+        let config = aws_config::defaults(BehaviorVersion::latest())
+            .region(region_provider)
+            .load()
+            .await;
+        let client = Client::new(&config);
+        let s3_client = S3Client::new(&config);
+
+        // Initiate deletion of main stack
+        let _ =
+            EndToEndTest::initiate_cfn_stack_deletion_only(&client, &s3_client, self.stack_name)
+                .await;
+
+        // Initiate deletion of create_first stack if it exists
+        let create_first_stack_name = &format!("{}CreateFirst", self.stack_name);
+        let _ = EndToEndTest::initiate_cfn_stack_deletion_only(
+            &client,
+            &s3_client,
+            create_first_stack_name,
+        )
+        .await;
+    }
+
+    async fn delete_cfn_stack(
+        client: &Client,
+        s3_client: &S3Client,
+        stack_name: &str,
+    ) -> Result<(), Error> {
+        println!("Deleting stack: {stack_name}");
+
+        // Empty S3 buckets before deleting stack
+        let _ = EndToEndTest::empty_stack_buckets(client, s3_client, stack_name).await;
+
+        let _ = client.delete_stack().stack_name(stack_name).send().await?;
+
+        // Wait for deletion to complete
+        loop {
+            match EndToEndTest::check_stack_status(stack_name, client).await {
+                Ok(status) => match status {
+                    StackStatus::DeleteInProgress => {
+                        print!(".");
+                        io::stdout().flush().expect("failed to flush stdout");
+                        tokio::time::sleep(Duration::new(2, 0)).await;
+                    }
+                    StackStatus::DeleteComplete => {
+                        println!("\nStack {stack_name} deleted successfully");
+                        break;
+                    }
+                    StackStatus::DeleteFailed => {
+                        println!("\nStack {stack_name} deletion failed");
+                        break;
+                    }
+                    _ => {
+                        println!(
+                            "\nUnexpected stack status during deletion: {}",
+                            status.as_str()
+                        );
+                        break;
+                    }
+                },
+                Err(_) => {
+                    // Stack not found - deletion complete
+                    println!("\nStack {stack_name} deleted successfully");
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn initiate_cfn_stack_deletion_only(
+        client: &Client,
+        s3_client: &S3Client,
+        stack_name: &str,
+    ) -> Result<(), Error> {
+        println!("Initiating deletion of stack: {stack_name}");
+
+        // Empty S3 buckets before deleting stack
+        let _ = EndToEndTest::empty_stack_buckets(client, s3_client, stack_name).await;
+
+        // Start deletion but don't wait for completion
+        let _ = client.delete_stack().stack_name(stack_name).send().await?;
+        println!("Stack deletion initiated for: {stack_name}");
+
+        Ok(())
+    }
+
+    async fn empty_stack_buckets(
+        cfn_client: &Client,
+        s3_client: &S3Client,
+        stack_name: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // Get stack resources
+        let resources = cfn_client
+            .list_stack_resources()
+            .stack_name(stack_name)
+            .send()
+            .await?;
+
+        if let Some(summaries) = resources.stack_resource_summaries {
+            for resource in summaries {
+                if resource.resource_type == Some("AWS::S3::Bucket".to_string()) {
+                    if let Some(bucket_name) = resource.physical_resource_id {
+                        println!("Emptying S3 bucket: {bucket_name}");
+                        let _ = EndToEndTest::empty_bucket(s3_client, &bucket_name).await;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn empty_bucket(
+        s3_client: &S3Client,
+        bucket_name: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // List and delete all objects
+        let mut continuation_token = None;
+        loop {
+            let mut list_request = s3_client.list_objects_v2().bucket(bucket_name);
+            if let Some(token) = continuation_token {
+                list_request = list_request.continuation_token(token);
+            }
+
+            let objects = list_request.send().await?;
+
+            if let Some(contents) = objects.contents {
+                if !contents.is_empty() {
+                    let delete_objects: Vec<_> = contents
+                        .iter()
+                        .filter_map(|obj| obj.key.as_ref())
+                        .map(|key| {
+                            aws_sdk_s3::types::ObjectIdentifier::builder()
+                                .key(key)
+                                .build()
+                                .unwrap()
+                        })
+                        .collect();
+
+                    if !delete_objects.is_empty() {
+                        let delete_request = aws_sdk_s3::types::Delete::builder()
+                            .set_objects(Some(delete_objects))
+                            .build()?;
+                        let _ = s3_client
+                            .delete_objects()
+                            .bucket(bucket_name)
+                            .delete(delete_request)
+                            .send()
+                            .await?;
+                    }
+                }
+            }
+
+            if !objects.is_truncated.unwrap_or(false) {
+                break;
+            }
+            continuation_token = objects.next_continuation_token;
+        }
+        Ok(())
     }
 
     async fn create_cfn_stack_from_template(
         client: &Client,
         stack_name: &str,
         template: &str,
-    ) -> Result<StackStatus, Error> {
+    ) -> Result<StackStatus, String> {
         let resp = client
             .create_stack()
             .stack_name(stack_name)
             .template_body(template)
             .capabilities(Capability::CapabilityIam)
+            .capabilities(Capability::CapabilityNamedIam)
+            .capabilities(Capability::CapabilityAutoExpand)
             .on_failure(OnFailure::Delete)
             .send()
-            .await?;
+            .await
+            .map_err(|e| {
+                let error_code = e.code().unwrap_or("Unknown");
+                let error_message = e.message().unwrap_or("No message");
+                format!(
+                    "CreateStack API failed - Code: {}, Message: {}, Full Error: {}",
+                    error_code, error_message, e
+                )
+            })?;
         let id = resp.stack_id.unwrap_or_default();
         print!("Stack {id} create in progress...");
-        std::io::stdout().flush().expect("failed to flush stdout");
+        io::stdout().flush().expect("failed to flush stdout");
 
-        let mut status = EndToEndTest::check_stack_status(&id, client).await?;
+        let mut status = EndToEndTest::check_stack_status(&id, client)
+            .await
+            .map_err(|e| {
+                let error_code = e.code().unwrap_or("Unknown");
+                let error_message = e.message().unwrap_or("No message");
+                format!(
+                    "DescribeStacks API failed - Code: {}, Message: {}, Full Error: {}",
+                    error_code, error_message, e
+                )
+            })?;
 
         while let StackStatus::CreateInProgress = status {
             print!(".");
-            std::io::stdout().flush().expect("failed to flush stdout");
-            tokio::time::sleep(std::time::Duration::new(2, 0)).await;
-            status = EndToEndTest::check_stack_status(&id, client).await?;
+            io::stdout().flush().expect("failed to flush stdout");
+            tokio::time::sleep(Duration::new(2, 0)).await;
+            status = EndToEndTest::check_stack_status(&id, client)
+                .await
+                .map_err(|e| {
+                    let error_code = e.code().unwrap_or("Unknown");
+                    let error_message = e.message().unwrap_or("No message");
+                    format!(
+                        "DescribeStacks API failed - Code: {}, Message: {}, Full Error: {}",
+                        error_code, error_message, e
+                    )
+                })?;
         }
         match status {
             StackStatus::CreateFailed
             | StackStatus::DeleteComplete
             | StackStatus::DeleteFailed
-            | StackStatus::DeleteInProgress => {
-                panic!("stack creation failed. stack status: {}", status.as_str())
-            }
+            | StackStatus::DeleteInProgress => Err(format!(
+                "stack creation failed. stack status: {}",
+                status.as_str()
+            )),
             StackStatus::CreateComplete => {
                 println!("create complete!");
                 Ok(status)
             }
-            _ => panic!("unexpected stack status: {}", status.as_str()),
+            _ => Err(format!("unexpected stack status: {}", status.as_str())),
         }
     }
 
@@ -472,7 +786,7 @@ impl EndToEndTest<'_> {
             let mut file = File::create(app_dst_path).expect("failed to create cdk app file");
             file.write_all(contents.as_bytes())
                 .expect("failed to write contents into cdk app file");
-        } else if std::env::var_os("UPDATE_SNAPSHOTS").is_some() {
+        } else if env::var_os("UPDATE_SNAPSHOTS").is_some() {
             println!("UPDATE_SNAPSHOTS=true, and there is no existing app file, creating default one at {}", app_dst_path.to_str().unwrap_or(""));
             let mut file: File = File::create(app_dst_path).expect("failed to create cdk app file");
             let code: CodeBuffer = CodeBuffer::default();
@@ -503,7 +817,7 @@ impl EndToEndTest<'_> {
                 let actual = entry.path().to_str().unwrap_or_else(|| {
                     panic!("{:?} should be convertible to a string", entry.path())
                 });
-                let res = std::process::Command::new("git")
+                let res = Command::new("git")
                     .args(["diff", "--no-index", "--ignore-all-space", expected, actual])
                     .output()
                     .expect("git diff failed");

@@ -12,7 +12,7 @@ class SAMNodeJSLambda(Stack):
 
     # Resources
     myFunction = sam.CfnFunction(self, 'MyFunction',
-          runtime = 'nodejs18.x',
+          runtime = 'nodejs20.x',
           handler = 'index.handler',
           inline_code = 'exports.handler = async (event) => {\n  console.log(event);\n}\n',
         )

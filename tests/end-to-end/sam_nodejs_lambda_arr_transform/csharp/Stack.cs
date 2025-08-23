@@ -3,15 +3,15 @@ using Amazon.CDK.AWS.SAM;
 using Constructs;
 using System.Collections.Generic;
 
-namespace SAMNodeJSLambda
+namespace SAMNodeJSLambdaArr
 {
-    public class SAMNodeJSLambdaProps : StackProps
+    public class SAMNodeJSLambdaArrProps : StackProps
     {
     }
 
-    public class SAMNodeJSLambda : Stack
+    public class SAMNodeJSLambdaArr : Stack
     {
-        public SAMNodeJSLambda(Construct scope, string id, SAMNodeJSLambdaProps props = null) : base(scope, id, props)
+        public SAMNodeJSLambdaArr(Construct scope, string id, SAMNodeJSLambdaArrProps props = null) : base(scope, id, props)
         {
             // Transforms
             AddTransform("AWS::Serverless-2016-10-31");
@@ -19,7 +19,7 @@ namespace SAMNodeJSLambda
             // Resources
             var myFunction = new CfnFunction(this, "MyFunction", new CfnFunctionProps
             {
-                Runtime = "nodejs18.x",
+                Runtime = "nodejs20.x",
                 Handler = "index.handler",
                 InlineCode = @"exports.handler = async (event) => {
                   console.log(event);

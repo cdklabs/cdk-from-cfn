@@ -32,6 +32,17 @@ cargo test --test end-to-end simple::typescript
 
 # run one end-to-end test case in one language, and monitor its output
 cargo test --test end-to-end simple::typescript -- --nocapture
+
+# skip specific tests by name pattern
+cargo test --test end-to-end -- --skip simple
+cargo test --test end-to-end -- --skip simple --skip bucket
+
+# run only typescript tests across all test cases
+cargo test --test end-to-end typescript
+
+# control test parallelism
+cargo test --test end-to-end -- --test-threads=4
+cargo test --test end-to-end -- --test-threads=1  # single-threaded
 ```
 
 ### Environment Variables
@@ -41,6 +52,27 @@ cargo test --test end-to-end simple::typescript -- --nocapture
 | CREATE_CFN_STACK | Create a CFN stack from the test's input `template.json` file at the beginning of the test execution.                                                                                           | Don't create a CFN stack.                                                                                                                  |
 | UPDATE_SNAPSHOTS | Update all snapshot files, if the test is successful. When this variable is set, the test does not compare its output to whatever was previously stored in the snapshot. It just overwrites it. | Don't update snapshot files. This will not edit any files, and the test will fail if snapshots don't match, or if the app file is missing. |
 | SKIP_CLEAN       | Do not delete any working directories where `cdk synth` was executed. For example `simple-typescript-working-dir/`.                                                                             | At the end of executing each test, delete its working directory where `cdk synth` was executed.                                           |
+| SKIP_SYNTH       | Skip CDK synthesis (`cdk synth`) for all tests and languages. Only runs cdk-from-cfn code generation and snapshot comparison.                                                                   | Run full test workflow including CDK synthesis and template comparison.                                                                   |
+| FAIL_FAST        | When used with `CREATE_CFN_STACK=true`, initiate CloudFormation stack deletion but don't wait for completion. Tests exit immediately after initiating cleanup for faster iteration.          | Wait for complete stack deletion before test completion. Ensures all resources are fully cleaned up.                                      |
+
+### Test Execution Control
+
+**Skipping Tests:**
+- Use `--skip <pattern>` to skip tests matching a pattern
+- Skip multiple patterns: `--skip simple --skip bucket`
+- Run specific language only: `cargo test typescript`
+
+**Concurrency:**
+- Tests with different names run in parallel (up to CPU cores)
+- Tests with same name but different languages run serially to prevent CloudFormation stack name conflicts
+- Control with `--test-threads=N` (default: number of CPU cores)
+- Note: `documentdb` tests are particularly long-running due to DocumentDB cluster provisioning time
+
+**Configured Skips:**
+Some tests skip CDK synthesis in certain languages due to known issues:
+```rust
+test_case!(simple, "SimpleStack", &["golang"]);  // skips golang
+```
 
 ## Glossary
 
@@ -169,9 +201,9 @@ all-encompassing.*
         You will see a message indicating that creation of the CloudFormation
         stack was successful. Iterate on your template until is successful.
 
-        *note*: you must specify the specific language you want to run if you have
-        `CREATE_CFN_STACK` set; the test command will create a stack for each
-        language in parallel, causing them to complain that the stack already exists.
+        *note*: All tests can safely be run concurrently. Tests with the same name
+        but different languages are automatically serialized to prevent CloudFormation
+        stack name conflicts, while tests with different names run in parallel.
 
         After getting past this part, the test will fail on later parts of the
         workflow. Follow the next steps to resolve.

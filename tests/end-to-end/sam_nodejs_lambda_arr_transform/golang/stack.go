@@ -7,15 +7,15 @@ import (
 	"github.com/aws/jsii-runtime-go"
 )
 
-type SAMNodeJSLambdaProps struct {
+type SAMNodeJSLambdaArrProps struct {
 	cdk.StackProps
 }
 
-type SAMNodeJSLambda struct {
+type SAMNodeJSLambdaArr struct {
 	cdk.Stack
 }
 
-func NewSAMNodeJSLambda(scope constructs.Construct, id string, props *SAMNodeJSLambdaProps) *SAMNodeJSLambda {
+func NewSAMNodeJSLambdaArr(scope constructs.Construct, id string, props *SAMNodeJSLambdaArrProps) *SAMNodeJSLambdaArr {
 	var sprops cdk.StackProps
 	if props != nil {
 		sprops = props.StackProps
@@ -28,13 +28,13 @@ func NewSAMNodeJSLambda(scope constructs.Construct, id string, props *SAMNodeJSL
 		stack,
 		jsii.String("MyFunction"),
 		&sam.CfnFunctionProps{
-			Runtime: jsii.String("nodejs18.x"),
+			Runtime: jsii.String("nodejs20.x"),
 			Handler: jsii.String("index.handler"),
 			InlineCode: jsii.String("exports.handler = async (event) => {\n  console.log(event);\n}\n"),
 		},
 	)
 
-	return &SAMNodeJSLambda{
+	return &SAMNodeJSLambdaArr{
 		Stack: stack,
 	}
 }

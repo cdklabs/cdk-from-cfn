@@ -1,5 +1,5 @@
 diff --git a/./tests/end-to-end/sam_nodejs_lambda/template.json b/tests/end-to-end/sam_nodejs_lambda-csharp-working-dir/cdk.out/Stack.template.json
-index a2eafe6..e26b60a 100644
+index e191481..ab154ef 100644
 --- a/./tests/end-to-end/sam_nodejs_lambda/template.json
 +++ b/tests/end-to-end/sam_nodejs_lambda-csharp-working-dir/cdk.out/Stack.template.json
 @@ -1,12 +1,14 @@
@@ -12,11 +12,11 @@ index a2eafe6..e26b60a 100644
    "MyFunction": {
     "Type": "AWS::Serverless::Function",
     "Properties": {
--        "Runtime": "nodejs18.x",
+-        "Runtime": "nodejs20.x",
      "Handler": "index.handler",
 -        "InlineCode": "exports.handler = async (event) => {\n  console.log(event);\n}\n"
 +    "InlineCode": "exports.handler = async (event) => {\n                  console.log(event);\n                }\n                ",
-+    "Runtime": "nodejs18.x"
++    "Runtime": "nodejs20.x"
     }
    }
   }
