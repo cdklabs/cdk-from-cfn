@@ -1,11 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import * as sam from 'aws-cdk-lib/aws-sam';
 
-export interface SAMNodeJSLambdaProps extends cdk.StackProps {
+export interface SAMNodeJSLambdaArrProps extends cdk.StackProps {
 }
 
-export class SAMNodeJSLambda extends cdk.Stack {
-  public constructor(scope: cdk.App, id: string, props: SAMNodeJSLambdaProps = {}) {
+export class SAMNodeJSLambdaArr extends cdk.Stack {
+  public constructor(scope: cdk.App, id: string, props: SAMNodeJSLambdaArrProps = {}) {
     super(scope, id, props);
 
     // Transforms
@@ -13,7 +13,7 @@ export class SAMNodeJSLambda extends cdk.Stack {
 
     // Resources
     const myFunction = new sam.CfnFunction(this, 'MyFunction', {
-      runtime: 'nodejs18.x',
+      runtime: 'nodejs20.x',
       handler: 'index.handler',
       inlineCode: 'exports.handler = async (event) => {\n  console.log(event);\n}\n',
     });

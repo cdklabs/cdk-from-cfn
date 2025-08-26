@@ -28,7 +28,7 @@ func NewSAMNodeJSLambda(scope constructs.Construct, id string, props *SAMNodeJSL
 		stack,
 		jsii.String("MyFunction"),
 		&sam.CfnFunctionProps{
-			Runtime: jsii.String("nodejs18.x"),
+			Runtime: jsii.String("nodejs20.x"),
 			Handler: jsii.String("index.handler"),
 			InlineCode: jsii.String("exports.handler = async (event) => {\n  console.log(event);\n}\n"),
 		},
