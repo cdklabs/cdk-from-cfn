@@ -27,7 +27,7 @@ anyhow = "^1.0.99"
 base64 = "^0.22.1"
 clap = { version = "^4.5.45", features = ["cargo"] }
 console_error_panic_hook = { version = "0.1.1", optional = true }
-indexmap = { version = "^2.10.0", features = ["serde"] }
+indexmap = { version = "^2.11.0", features = ["serde"] }
 nom = "^8.0.0"
 numberkit = "^0.1.0"
 phf = { version = "^0.13.1", features = ["macros"] }
@@ -51,7 +51,7 @@ walkdir = "2.5.0"
 zip = "4.5.0"
 
 [build-dependencies]
-indexmap = "^2.10.0"
+indexmap = "^2.11.0"
 phf = { version = "^0.13.1", features = ["macros"] }
 phf_codegen = "^0.12.1"
 rustc-hash = { version = "2.1.1", optional = true }
