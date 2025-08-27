@@ -3,7 +3,7 @@ import aws_cdk as cdk
 import aws_cdk.aws_sam as sam
 from constructs import Construct
 
-class SAMNodeJSLambda(Stack):
+class SAMNodeJSLambdaArr(Stack):
   def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
     super().__init__(scope, construct_id, **kwargs)
 
@@ -12,7 +12,7 @@ class SAMNodeJSLambda(Stack):
 
     # Resources
     myFunction = sam.CfnFunction(self, 'MyFunction',
-          runtime = 'nodejs18.x',
+          runtime = 'nodejs20.x',
           handler = 'index.handler',
           inline_code = 'exports.handler = async (event) => {\n  console.log(event);\n}\n',
         )

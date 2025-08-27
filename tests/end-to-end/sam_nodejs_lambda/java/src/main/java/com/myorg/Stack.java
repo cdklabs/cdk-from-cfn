@@ -22,7 +22,7 @@ class SAMNodeJSLambda extends Stack {
         this.addTransform("AWS::Serverless-2016-10-31");
 
         CfnFunction myFunction = CfnFunction.Builder.create(this, "MyFunction")
-                .runtime("nodejs18.x")
+                .runtime("nodejs20.x")
                 .handler("index.handler")
                 .inlineCode("""
                 exports.handler = async (event) => {
