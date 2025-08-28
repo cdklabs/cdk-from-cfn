@@ -13,6 +13,7 @@ type CloudwatchStackProps struct {
 	cdk.StackProps
 	/// Environment used for this deployment.
 	EnvironmentName *string
+	AlarmThreshold *float64
 }
 
 type CloudwatchStack struct {
@@ -41,7 +42,7 @@ func NewCloudwatchStack(scope constructs.Construct, id string, props *Cloudwatch
 			MetricName: jsii.String("5XXError"),
 			ComparisonOperator: jsii.String("GreaterThanThreshold"),
 			Statistic: jsii.String("Average"),
-			Threshold: jsii.Number(0.005),
+			Threshold: props.AlarmThreshold,
 			Period: jsii.Number(900),
 			EvaluationPeriods: jsii.Number(1),
 			TreatMissingData: jsii.String("notBreaching"),

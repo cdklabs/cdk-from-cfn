@@ -140,8 +140,9 @@ impl Synthesizer for CSharp<'_> {
                 if param.constructor_type.contains("AWS::")
                     || param.no_echo.as_ref().is_some_and(|x| x == "true")
                 {
-                    let value_as = match &param.constructor_type {
+                    let value_as = match param.constructor_type.as_str() {
                         t if t.contains("List") => "ValueAsList",
+                        "Number" => "ValueAsNumber",
                         _ => "ValueAsString",
                     };
                     let cfn_param = ctor.indent_with_options(IndentOptions {
@@ -164,14 +165,31 @@ impl Synthesizer for CSharp<'_> {
                         _ => "",
                     };
                     if let Some(v) = &param.default_value {
-                        cfn_param.line(format!(
-                            "Default = {list_optional_prefix}props.{name}{list_optional_suffix} ?? \"{}\",",
-                            v.escape_debug()
-                        ));
+                        let default_conversion = match param.constructor_type.as_str() {
+                            "Number" => {
+                                if param.no_echo.as_ref().is_some_and(|x| x == "true") {
+                                    format!("props.{name}.ToString() ?? \"{}\"", v.escape_debug())
+                                } else {
+                                    format!("props.{name}?.ToString() ?? \"{}\"", v.escape_debug())
+                                }
+                            },
+                            _ => format!("{list_optional_prefix}props.{name}{list_optional_suffix} ?? \"{}\"", v.escape_debug()),
+                        };
+                        cfn_param.line(format!("Default = {default_conversion},"));
                     } else {
-                        cfn_param.line(format!(
-                            "Default = {list_optional_prefix}props.{name}{list_optional_suffix},"
-                        ));
+                        let default_conversion = match param.constructor_type.as_str() {
+                            "Number" => {
+                                if param.no_echo.as_ref().is_some_and(|x| x == "true") {
+                                    format!("props.{name}.ToString()")
+                                } else {
+                                    format!("props.{name}?.ToString()")
+                                }
+                            }
+                            _ => {
+                                format!("{list_optional_prefix}props.{name}{list_optional_suffix}")
+                            }
+                        };
+                        cfn_param.line(format!("Default = {default_conversion},"));
                     };
                     if let Some(v) = &param.description {
                         cfn_param.line(format!("Description = \"{v}\","));
@@ -185,6 +203,7 @@ impl Synthesizer for CSharp<'_> {
                         Some(value) => {
                             let value = match param.constructor_type.as_str() {
                                 "String" => format!("\"{}\"", value.escape_debug()),
+                                "Number" => value.clone(),
                                 "List<Number>" => format!("[{value}]"),
                                 "CommaDelimitedList" => format!(
                                     "[{}]",
@@ -350,6 +369,13 @@ impl ConstructorParameter {
         let prop_type = match &self.constructor_type {
             t if t.contains("List") => "string[]",
             t if t == "Boolean" => "bool?",
+            t if t == "Number" => {
+                if self.no_echo.as_ref().is_some_and(|x| x == "true") {
+                    "double"
+                } else {
+                    "double?"
+                }
+            }
             _ => "string",
         };
 
