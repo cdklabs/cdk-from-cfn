@@ -1,6 +1,6 @@
 [package]
 name = "cdk-from-cfn"
-version = "0.243.0"
+version = "0.244.0"
 edition = "2021"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
 license = "MIT OR Apache-2.0"
@@ -25,7 +25,7 @@ crate-type = ["cdylib", "lib"]
 [dependencies]
 anyhow = "^1.0.99"
 base64 = "^0.22.1"
-clap = { version = "^4.5.46", features = ["cargo"] }
+clap = { version = "^4.5.47", features = ["cargo"] }
 console_error_panic_hook = { version = "0.1.1", optional = true }
 indexmap = { version = "^2.11.0", features = ["serde"] }
 nom = "^8.0.0"
@@ -48,7 +48,7 @@ aws-sdk-s3 = "^1.83.0"
 serial_test = "3.0"
 tokio = { version = "1", features = ["full"] }
 walkdir = "2.5.0"
-zip = "4.6.0"
+zip = "4.6.1"
 
 [build-dependencies]
 indexmap = "^2.11.0"
@@ -61,7 +61,7 @@ serde_json = "^1.0.143"
 serde_with = "^3.14.0"
 voca_rs = "^1.15.2"
 walkdir = "2.5.0"
-zip = "4.6.0"
+zip = "4.6.1"
 
 [profile.release]
 codegen-units = 1
