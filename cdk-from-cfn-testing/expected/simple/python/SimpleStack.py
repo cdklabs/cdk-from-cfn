@@ -86,7 +86,6 @@ class SimpleStack(Stack):
 
     bucket = s3.CfnBucket(self, 'Bucket',
           access_control = 'Private',
-          bucket_name = f"""{props['bucketNamePrefix']}-{self.region}-bucket""",
           logging_configuration = {
             'destinationBucketName': props['logDestinationBucketName'],
           },

@@ -3,7 +3,7 @@ import aws_cdk as cdk
 import aws_cdk.aws_sam as sam
 from constructs import Construct
 
-class SAMNodeJSLambdaArr(Stack):
+class SAMNodeJSLambdaArrStack(Stack):
   def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
     super().__init__(scope, construct_id, **kwargs)
 

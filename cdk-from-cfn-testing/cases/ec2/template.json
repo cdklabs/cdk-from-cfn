@@ -8,12 +8,14 @@
         "VpcId": {
           "Ref": "TestVPC"
         },
-        "SecurityGroupEgress": {
-          "IpProtocol": "TCP",
-          "FromPort": 10000,
-          "ToPort": 10000,
-          "CidrIp": "10.0.0.0/16"
-        }
+        "SecurityGroupEgress": [ 
+          {
+            "IpProtocol": "TCP",
+            "FromPort": 10000,
+            "ToPort": 10000,
+            "CidrIp": "10.0.0.0/16"
+          }
+        ]
       }
     },
     "TestVPC": {

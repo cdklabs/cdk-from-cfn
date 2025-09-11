@@ -25,10 +25,19 @@ type Ec2EncryptionStack struct {
 func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2EncryptionStackProps) *Ec2EncryptionStack {
 	regionToAmi := map[*string]map[*string]*string{
 		jsii.String("us-east-1"): map[*string]*string{
-			jsii.String("AMI"): jsii.String("ami-12345678"),
+			jsii.String("AMI"): jsii.String("ami-0c02fb55956c7d316"),
 		},
 		jsii.String("us-west-2"): map[*string]*string{
-			jsii.String("AMI"): jsii.String("ami-87654321"),
+			jsii.String("AMI"): jsii.String("ami-008fe2fc65df48dac"),
+		},
+		jsii.String("eu-west-1"): map[*string]*string{
+			jsii.String("AMI"): jsii.String("ami-0c9c942bd7bf113a2"),
+		},
+		jsii.String("ap-southeast-1"): map[*string]*string{
+			jsii.String("AMI"): jsii.String("ami-0c802847a7dd848c0"),
+		},
+		jsii.String("us-east-2"): map[*string]*string{
+			jsii.String("AMI"): jsii.String("ami-0900fe555666598a2"),
 		},
 	}
 
@@ -53,7 +62,6 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 		jsii.String("PrivateSecurityGroup"),
 		&ec2.CfnSecurityGroupProps{
 			GroupDescription: jsii.String("Private security group"),
-			VpcId: jsii.String("vpc-xxxxxxxx"),
 		},
 	)
 
@@ -62,7 +70,6 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 		jsii.String("PublicSecurityGroup"),
 		&ec2.CfnSecurityGroupProps{
 			GroupDescription: jsii.String("Public security group"),
-			VpcId: jsii.String("vpc-xxxxxxxx"),
 		},
 	)
 
@@ -70,7 +77,8 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 		stack,
 		jsii.String("MyApp"),
 		&ec2.CfnInstanceProps{
-			ImageId: regionToAmi[jsii.String("us-east-1")][jsii.String("AMI")],
+			ImageId: regionToAmi[stack.Region()][jsii.String("AMI")],
+			InstanceType: jsii.String("t3.micro"),
 			Tags: &[]*cdk.CfnTag{
 				&cdk.CfnTag{
 					Key: jsii.String("Name"),

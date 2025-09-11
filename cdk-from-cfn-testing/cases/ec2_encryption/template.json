@@ -48,9 +48,11 @@
             ]
         },
         "KeyPairProd": {
-            "Fn::Not": {
-                "Condition": "IsProduction"
-            }
+            "Fn::Not": [
+                {
+                    "Condition": "IsProduction"
+                }
+            ]
         }
     },
     "Resources": {
@@ -60,10 +62,13 @@
                 "ImageId": {
                     "Fn::FindInMap": [
                         "RegionToAMI",
-                        "us-east-1",
+                        {
+                            "Ref": "AWS::Region"
+                        },
                         "AMI"
                     ]
                 },
+                "InstanceType": "t3.micro",
                 "Tags": [
                     {
                       "Key": "Name",
@@ -90,15 +95,13 @@
         "PrivateSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
-                "GroupDescription": "Private security group",
-                "VpcId": "vpc-xxxxxxxx"
+                "GroupDescription": "Private security group"
             }
         },
         "PublicSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
-                "GroupDescription": "Public security group",
-                "VpcId": "vpc-xxxxxxxx"
+                "GroupDescription": "Public security group"
             }
         }
     },
@@ -156,10 +159,19 @@
     "Mappings": {
         "RegionToAMI": {
             "us-east-1": {
-                "AMI": "ami-12345678"
+                "AMI": "ami-0c02fb55956c7d316"
             },
             "us-west-2": {
-                "AMI": "ami-87654321"
+                "AMI": "ami-008fe2fc65df48dac"
+            },
+            "eu-west-1": {
+                "AMI": "ami-0c9c942bd7bf113a2"
+            },
+            "ap-southeast-1": {
+                "AMI": "ami-0c802847a7dd848c0"
+            },
+            "us-east-2": {
+                "AMI": "ami-0900fe555666598a2"
             }
         }
     }

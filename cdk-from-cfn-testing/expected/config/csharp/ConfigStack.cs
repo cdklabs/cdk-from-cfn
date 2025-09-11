@@ -40,6 +40,7 @@ namespace ConfigStack
             // Resources
             var configBucket = new CfnBucket(this, "ConfigBucket", new CfnBucketProps
             {
+                BucketName = $"cdk-from-cfn-e2e-test-config-bucket-{Account}-{Region}",
             });
             var configTopic = new CfnTopic(this, "ConfigTopic", new CfnTopicProps
             {

@@ -46,8 +46,11 @@ class Ec2EncryptionStack extends Stack {
                 : false;
         // Mappings
         final CfnMapping regionToAmi = new CfnMapping(this, "regionToAmi");
-        regionToAmi.setValue("us-east-1", "AMI", "ami-12345678");
-        regionToAmi.setValue("us-west-2", "AMI", "ami-87654321");
+        regionToAmi.setValue("us-east-1", "AMI", "ami-0c02fb55956c7d316");
+        regionToAmi.setValue("us-west-2", "AMI", "ami-008fe2fc65df48dac");
+        regionToAmi.setValue("eu-west-1", "AMI", "ami-0c9c942bd7bf113a2");
+        regionToAmi.setValue("ap-southeast-1", "AMI", "ami-0c802847a7dd848c0");
+        regionToAmi.setValue("us-east-2", "AMI", "ami-0900fe555666598a2");
 
         Boolean hasDatabase = databaseType.equals("mysql");
         Boolean isProduction = environment.equals("prod");
@@ -57,16 +60,15 @@ class Ec2EncryptionStack extends Stack {
 
         CfnSecurityGroup privateSecurityGroup = CfnSecurityGroup.Builder.create(this, "PrivateSecurityGroup")
                 .groupDescription("Private security group")
-                .vpcId("vpc-xxxxxxxx")
                 .build();
 
         CfnSecurityGroup publicSecurityGroup = CfnSecurityGroup.Builder.create(this, "PublicSecurityGroup")
                 .groupDescription("Public security group")
-                .vpcId("vpc-xxxxxxxx")
                 .build();
 
         CfnInstance myApp = CfnInstance.Builder.create(this, "MyApp")
-                .imageId(regionToAmi.findInMap("us-east-1", "AMI"))
+                .imageId(regionToAmi.findInMap(this.getRegion(), "AMI"))
+                .instanceType("t3.micro")
                 .tags(Arrays.asList(
                         CfnTag.builder()
                                 .key("Name")

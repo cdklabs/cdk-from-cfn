@@ -1,0 +1,8 @@
+Differences found:
+Value mismatch at Transform:
+  Expected:
+    "AWS::Serverless-2016-10-31"
+  Actual:
+    [
+      "AWS::Serverless-2016-10-31"
+    ]

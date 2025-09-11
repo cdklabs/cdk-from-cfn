@@ -96,7 +96,6 @@ namespace SimpleStack
             var bucket = new CfnBucket(this, "Bucket", new CfnBucketProps
             {
                 AccessControl = "Private",
-                BucketName = $"{props.BucketNamePrefix}-{Region}-bucket",
                 LoggingConfiguration = new CfnBucket.LoggingConfigurationProperty
                 {
                     DestinationBucketName = props.LogDestinationBucketName,

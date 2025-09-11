@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	cdk "github.com/aws/aws-cdk-go/awscdk/v2"
 	config "github.com/aws/aws-cdk-go/awscdk/v2/awsconfig"
 	ec2 "github.com/aws/aws-cdk-go/awscdk/v2/awsec2"
@@ -37,6 +39,7 @@ func NewConfigStack(scope constructs.Construct, id string, props *ConfigStackPro
 		stack,
 		jsii.String("ConfigBucket"),
 		&s3.CfnBucketProps{
+			BucketName: jsii.String(fmt.Sprintf("cdk-from-cfn-e2e-test-config-bucket-%v-%v", stack.Account(), stack.Region())),
 		},
 	)
 

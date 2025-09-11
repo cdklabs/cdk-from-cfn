@@ -40,8 +40,11 @@ namespace Ec2EncryptionStack
             // Mappings
             var regionToAmi = new Dictionary<string, Dictionary<string,string>> 
             {
-                ["us-east-1"] = new Dictionary<string, string> {["AMI"] = "ami-12345678", },
-                ["us-west-2"] = new Dictionary<string, string> {["AMI"] = "ami-87654321", },
+                ["us-east-1"] = new Dictionary<string, string> {["AMI"] = "ami-0c02fb55956c7d316", },
+                ["us-west-2"] = new Dictionary<string, string> {["AMI"] = "ami-008fe2fc65df48dac", },
+                ["eu-west-1"] = new Dictionary<string, string> {["AMI"] = "ami-0c9c942bd7bf113a2", },
+                ["ap-southeast-1"] = new Dictionary<string, string> {["AMI"] = "ami-0c802847a7dd848c0", },
+                ["us-east-2"] = new Dictionary<string, string> {["AMI"] = "ami-0900fe555666598a2", },
             };
 
             // Conditions
@@ -55,16 +58,15 @@ namespace Ec2EncryptionStack
             var privateSecurityGroup = new CfnSecurityGroup(this, "PrivateSecurityGroup", new CfnSecurityGroupProps
             {
                 GroupDescription = "Private security group",
-                VpcId = "vpc-xxxxxxxx",
             });
             var publicSecurityGroup = new CfnSecurityGroup(this, "PublicSecurityGroup", new CfnSecurityGroupProps
             {
                 GroupDescription = "Public security group",
-                VpcId = "vpc-xxxxxxxx",
             });
             var myApp = new CfnInstance(this, "MyApp", new CfnInstanceProps
             {
-                ImageId = regionToAmi["us-east-1"]["AMI"],
+                ImageId = regionToAmi[Region]["AMI"],
+                InstanceType = "t3.micro",
                 Tags = new []
                 {
                     new CfnTag

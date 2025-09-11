@@ -23,6 +23,7 @@ class ConfigStack(Stack):
 
     # Resources
     configBucket = s3.CfnBucket(self, 'ConfigBucket',
+          bucket_name = f"""cdk-from-cfn-e2e-test-config-bucket-{self.account}-{self.region}""",
         )
 
     configTopic = sns.CfnTopic(self, 'ConfigTopic',

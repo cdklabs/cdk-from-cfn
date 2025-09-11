@@ -7,15 +7,15 @@ import (
 	"github.com/aws/jsii-runtime-go"
 )
 
-type SAMNodeJSLambdaArrProps struct {
+type SAMNodeJSLambdaArrStackProps struct {
 	cdk.StackProps
 }
 
-type SAMNodeJSLambdaArr struct {
+type SAMNodeJSLambdaArrStack struct {
 	cdk.Stack
 }
 
-func NewSAMNodeJSLambdaArr(scope constructs.Construct, id string, props *SAMNodeJSLambdaArrProps) *SAMNodeJSLambdaArr {
+func NewSAMNodeJSLambdaArrStack(scope constructs.Construct, id string, props *SAMNodeJSLambdaArrStackProps) *SAMNodeJSLambdaArrStack {
 	var sprops cdk.StackProps
 	if props != nil {
 		sprops = props.StackProps
@@ -34,7 +34,7 @@ func NewSAMNodeJSLambdaArr(scope constructs.Construct, id string, props *SAMNode
 		},
 	)
 
-	return &SAMNodeJSLambdaArr{
+	return &SAMNodeJSLambdaArrStack{
 		Stack: stack,
 	}
 }

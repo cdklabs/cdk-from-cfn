@@ -21,10 +21,19 @@ class Ec2EncryptionStack(Stack):
     # Mappings
     regionToAmi = {
       'us-east-1': {
-        'AMI': 'ami-12345678',
+        'AMI': 'ami-0c02fb55956c7d316',
       },
       'us-west-2': {
-        'AMI': 'ami-87654321',
+        'AMI': 'ami-008fe2fc65df48dac',
+      },
+      'eu-west-1': {
+        'AMI': 'ami-0c9c942bd7bf113a2',
+      },
+      'ap-southeast-1': {
+        'AMI': 'ami-0c802847a7dd848c0',
+      },
+      'us-east-2': {
+        'AMI': 'ami-0900fe555666598a2',
       },
     }
 
@@ -38,16 +47,15 @@ class Ec2EncryptionStack(Stack):
     # Resources
     privateSecurityGroup = ec2.CfnSecurityGroup(self, 'PrivateSecurityGroup',
           group_description = 'Private security group',
-          vpc_id = 'vpc-xxxxxxxx',
         )
 
     publicSecurityGroup = ec2.CfnSecurityGroup(self, 'PublicSecurityGroup',
           group_description = 'Public security group',
-          vpc_id = 'vpc-xxxxxxxx',
         )
 
     myApp = ec2.CfnInstance(self, 'MyApp',
-          image_id = regionToAmi['us-east-1']['AMI'],
+          image_id = regionToAmi[self.region]['AMI'],
+          instance_type = 't3.micro',
           tags = [
             {
               'key': 'Name',

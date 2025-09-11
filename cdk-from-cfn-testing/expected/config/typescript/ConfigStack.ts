@@ -37,6 +37,7 @@ export class ConfigStack extends cdk.Stack {
 
     // Resources
     const configBucket = new s3.CfnBucket(this, 'ConfigBucket', {
+      bucketName: `cdk-from-cfn-e2e-test-config-bucket-${this.account}-${this.region}`,
     });
 
     const configTopic = new sns.CfnTopic(this, 'ConfigTopic', {

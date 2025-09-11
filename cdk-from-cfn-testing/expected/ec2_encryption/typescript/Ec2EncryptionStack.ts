@@ -51,10 +51,19 @@ export class Ec2EncryptionStack extends cdk.Stack {
     // Mappings
     const regionToAmi: Record<string, Record<string, string>> = {
       'us-east-1': {
-        'AMI': 'ami-12345678',
+        'AMI': 'ami-0c02fb55956c7d316',
       },
       'us-west-2': {
-        'AMI': 'ami-87654321',
+        'AMI': 'ami-008fe2fc65df48dac',
+      },
+      'eu-west-1': {
+        'AMI': 'ami-0c9c942bd7bf113a2',
+      },
+      'ap-southeast-1': {
+        'AMI': 'ami-0c802847a7dd848c0',
+      },
+      'us-east-2': {
+        'AMI': 'ami-0900fe555666598a2',
       },
     };
 
@@ -68,16 +77,15 @@ export class Ec2EncryptionStack extends cdk.Stack {
     // Resources
     const privateSecurityGroup = new ec2.CfnSecurityGroup(this, 'PrivateSecurityGroup', {
       groupDescription: 'Private security group',
-      vpcId: 'vpc-xxxxxxxx',
     });
 
     const publicSecurityGroup = new ec2.CfnSecurityGroup(this, 'PublicSecurityGroup', {
       groupDescription: 'Public security group',
-      vpcId: 'vpc-xxxxxxxx',
     });
 
     const myApp = new ec2.CfnInstance(this, 'MyApp', {
-      imageId: regionToAmi['us-east-1']['AMI'],
+      imageId: regionToAmi[this.region]['AMI'],
+      instanceType: 't3.micro',
       tags: [
         {
           key: 'Name',

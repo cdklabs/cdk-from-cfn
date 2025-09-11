@@ -99,9 +99,6 @@
    "Type": "AWS::S3::Bucket",
    "Properties": {
     "AccessControl": "Private",
-    "BucketName": {
-     "Fn::Sub": "${BucketNamePrefix}-${AWS::Region}-bucket"
-    },
     "LoggingConfiguration": {
      "DestinationBucketName": {
       "Ref": "LogDestinationBucketName"

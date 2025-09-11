@@ -1,0 +1,227 @@
+Differences found:
+- Missing key: Conditions
+  Expected:
+    {
+      "IsLargeRegion": {
+        "Condition": "IsUsEast1"
+      },
+      "IsUs": {
+        "Fn::Equals": [
+          {
+            "Fn::Select": [
+              "0",
+              {
+                "Fn::Split": [
+                  "-",
+                  {
+                    "Ref": "AWS::Region"
+                  }
+                ]
+              }
+            ]
+          },
+          "us"
+        ]
+      },
+      "IsUsEast1": {
+        "Fn::Equals": [
+          {
+            "Ref": "AWS::Region"
+          },
+          "us-east-1"
+        ]
+      }
+    }
+
+- Missing key: Mappings
+  Expected:
+    {
+      "Booleans": {
+        "False": {
+          "false": false
+        },
+        "True": {
+          "true": true
+        }
+      },
+      "Lists": {
+        "Candidates": {
+          "Empty": [],
+          "Pair": [
+            "One",
+            "Two"
+          ],
+          "Singleton": [
+            "One"
+          ]
+        }
+      },
+      "Numbers": {
+        "Prime": {
+          "Eleven": 11,
+          "Seventeen": 17,
+          "Thirteen": 13
+        }
+      },
+      "Strings": {
+        "Bars": {
+          "Bar": "Bar"
+        },
+        "Foos": {
+          "Foo1": "Foo1",
+          "Foo2": "Foo2"
+        }
+      },
+      "Table": {
+        "Values": {
+          "Boolean": true,
+          "Float": 3.14,
+          "List": [
+            "1",
+            "2",
+            "3"
+          ],
+          "Number": 42,
+          "String": "Baz"
+        }
+      }
+    }
+
+- Missing key: Outputs.BucketArn
+  Expected:
+    {
+      "Condition": "IsUsEast1",
+      "Description": "The ARN of the bucket in this template!",
+      "Export": {
+        "Name": "ExportName"
+      },
+      "Value": {
+        "Fn::GetAtt": "Bucket.Arn"
+      }
+    }
+
+Value mismatch at Outputs.IsLarge.Value:
+  Expected:
+    {
+      "Fn::If": [
+        "IsLargeRegion",
+        true,
+        false
+      ]
+    }
+  Actual:
+    "false"
+
+- Missing key: Parameters.BucketNamePrefix
+  Expected:
+    {
+      "Default": "bucket",
+      "Description": "The prefix for the bucket name",
+      "Type": "String"
+    }
+
+- Missing key: Resources.Bucket
+  Expected:
+    {
+      "Condition": "IsUsEast1",
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "Queue"
+      ],
+      "Metadata": {
+        "CostCenter": 1337
+      },
+      "Properties": {
+        "AccessControl": "Private",
+        "LoggingConfiguration": {
+          "DestinationBucketName": {
+            "Ref": "LogDestinationBucketName"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "FancyTag",
+            "Value": {
+              "Fn::If": [
+                "IsUsEast1",
+                {
+                  "Fn::Base64": {
+                    "Fn::FindInMap": [
+                      "Table",
+                      "Values",
+                      "String"
+                    ]
+                  }
+                },
+                {
+                  "Fn::Base64": "8CiMvAo="
+                }
+              ]
+            }
+          }
+        ],
+        "WebsiteConfiguration": {
+          "RedirectAllRequestsTo": {
+            "HostName": "example.com",
+            "Protocol": "https"
+          }
+        }
+      },
+      "Type": "AWS::S3::Bucket"
+    }
+
+Value mismatch at Resources.Queue.Properties.QueueName.Fn::Join[0]:
+  Expected:
+    "-"
+  Actual:
+    ""
+
+Array length mismatch at Resources.Queue.Properties.QueueName.Fn::Join[1]: expected 3, got 2
+
+Value mismatch at Resources.Queue.Properties.QueueName.Fn::Join[1][0]:
+  Expected:
+    {
+      "Ref": "AWS::StackName"
+    }
+  Actual:
+    "cdk-from-cfn-e2e-test-SimpleStack-Bar-"
+
+- Missing key: Resources.Queue.Properties.QueueName.Fn::Join[1][1].Fn::FindInMap
+  Expected:
+    [
+      "Strings",
+      "Bars",
+      "Bar"
+    ]
+
++ Extra key: Resources.Queue.Properties.QueueName.Fn::Join[1][1].Fn::Select
+  Actual:
+    [
+      1,
+      {
+        "Fn::GetAZs": {
+          "Ref": "AWS::Region"
+        }
+      }
+    ]
+
+- Missing key: Resources.Queue.Properties.RedrivePolicy
+  Expected:
+    {
+      "Ref": "AWS::NoValue"
+    }
+
+Value mismatch at Resources.Queue.Properties.VisibilityTimeout:
+  Expected:
+    {
+      "Fn::Select": [
+        "1",
+        [
+          60,
+          120,
+          240
+        ]
+      ]
+    }
+  Actual:
+    120

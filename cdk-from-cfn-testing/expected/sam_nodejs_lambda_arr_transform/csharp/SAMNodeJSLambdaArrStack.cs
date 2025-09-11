@@ -3,15 +3,15 @@ using Amazon.CDK.AWS.SAM;
 using Constructs;
 using System.Collections.Generic;
 
-namespace SAMNodeJSLambdaArr
+namespace SAMNodeJSLambdaArrStack
 {
-    public class SAMNodeJSLambdaArrProps : StackProps
+    public class SAMNodeJSLambdaArrStackProps : StackProps
     {
     }
 
-    public class SAMNodeJSLambdaArr : Stack
+    public class SAMNodeJSLambdaArrStack : Stack
     {
-        public SAMNodeJSLambdaArr(Construct scope, string id, SAMNodeJSLambdaArrProps props = null) : base(scope, id, props)
+        public SAMNodeJSLambdaArrStack(Construct scope, string id, SAMNodeJSLambdaArrStackProps props = null) : base(scope, id, props)
         {
             // Transforms
             AddTransform("AWS::Serverless-2016-10-31");

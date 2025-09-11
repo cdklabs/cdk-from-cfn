@@ -54,6 +54,7 @@ class ConfigStack extends Stack {
                 : "CostCenter";
 
         CfnBucket configBucket = CfnBucket.Builder.create(this, "ConfigBucket")
+                .bucketName("cdk-from-cfn-e2e-test-config-bucket-" + this.getAccount() + "-" + this.getRegion())
                 .build();
 
         CfnTopic configTopic = CfnTopic.Builder.create(this, "ConfigTopic")

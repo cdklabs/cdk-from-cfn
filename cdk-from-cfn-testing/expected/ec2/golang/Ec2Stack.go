@@ -36,7 +36,7 @@ func NewEc2Stack(scope constructs.Construct, id string, props *Ec2StackProps) *E
 		&ec2.CfnSecurityGroupProps{
 			GroupDescription: jsii.String("SG2"),
 			VpcId: testVpc.Ref(),
-			SecurityGroupEgress: &[][]*awsec2.CfnSecurityGroup_EgressProperty{
+			SecurityGroupEgress: &[]interface{}{
 				&EgressProperty{
 					IpProtocol: jsii.String("TCP"),
 					FromPort: jsii.Number(10000),

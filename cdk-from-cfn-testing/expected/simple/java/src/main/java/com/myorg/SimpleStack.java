@@ -101,7 +101,6 @@ class SimpleStack extends Stack {
 
         Optional<CfnBucket> bucket = isUsEast1 ? Optional.of(CfnBucket.Builder.create(this, "Bucket")
                 .accessControl("Private")
-                .bucketName(bucketNamePrefix + "-" + this.getRegion() + "-bucket")
                 .loggingConfiguration(CfnBucket.LoggingConfigurationProperty.builder()
                         .destinationBucketName(logDestinationBucketName)
                         .build())

@@ -11,12 +11,12 @@ import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.*;
 import software.amazon.awscdk.services.sam.*;
 
-class SAMNodeJSLambdaArr extends Stack {
-    public SAMNodeJSLambdaArr(final Construct scope, final String id) {
+class SAMNodeJSLambdaStack extends Stack {
+    public SAMNodeJSLambdaStack(final Construct scope, final String id) {
         super(scope, id, null);
     }
 
-    public SAMNodeJSLambdaArr(final Construct scope, final String id, final StackProps props) {
+    public SAMNodeJSLambdaStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
 
         this.addTransform("AWS::Serverless-2016-10-31");

@@ -73,7 +73,12 @@
    }
   },
   "ConfigBucket": {
-   "Type": "AWS::S3::Bucket"
+   "Type": "AWS::S3::Bucket",
+   "Properties": {
+    "BucketName": {
+     "Fn::Sub": "cdk-from-cfn-e2e-test-config-bucket-${AWS::AccountId}-${AWS::Region}"
+    }
+   }
   },
   "ConfigTopic": {
    "Type": "AWS::SNS::Topic"

@@ -111,7 +111,6 @@ export class SimpleStack extends cdk.Stack {
     const bucket = isUsEast1
       ? new s3.CfnBucket(this, 'Bucket', {
           accessControl: 'Private',
-          bucketName: `${props.bucketNamePrefix!}-${this.region}-bucket`,
           loggingConfiguration: {
             destinationBucketName: props.logDestinationBucketName!,
           },

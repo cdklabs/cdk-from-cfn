@@ -1,11 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import * as sam from 'aws-cdk-lib/aws-sam';
 
-export interface SAMNodeJSLambdaProps extends cdk.StackProps {
+export interface SAMNodeJSLambdaStackProps extends cdk.StackProps {
 }
 
-export class SAMNodeJSLambda extends cdk.Stack {
-  public constructor(scope: cdk.App, id: string, props: SAMNodeJSLambdaProps = {}) {
+export class SAMNodeJSLambdaStack extends cdk.Stack {
+  public constructor(scope: cdk.App, id: string, props: SAMNodeJSLambdaStackProps = {}) {
     super(scope, id, props);
 
     // Transforms

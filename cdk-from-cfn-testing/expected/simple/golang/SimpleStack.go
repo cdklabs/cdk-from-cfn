@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	cdk "github.com/aws/aws-cdk-go/awscdk/v2"
 	s3 "github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	sqs "github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
@@ -125,7 +123,6 @@ func NewSimpleStack(scope constructs.Construct, id string, props *SimpleStackPro
 		jsii.String("Bucket"),
 		&s3.CfnBucketProps{
 			AccessControl: jsii.String("Private"),
-			BucketName: jsii.String(fmt.Sprintf("%v-%v-bucket", props.BucketNamePrefix, stack.Region())),
 			LoggingConfiguration: &LoggingConfigurationProperty{
 				DestinationBucketName: props.LogDestinationBucketName,
 			},
