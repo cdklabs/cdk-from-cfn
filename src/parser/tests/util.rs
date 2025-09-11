@@ -1,6 +1,28 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-// Was previously shamelessly copied from: https://docs.rs/serde_json/latest/src/serde_json/macros.rs.html
+
+#[macro_export]
+macro_rules! map{
+    ($($key:expr => $value:expr),+) => {
+        {
+            let mut m = ::indexmap::IndexMap::<String, _, _>::default();
+            $(
+                m.insert($key.into(), $value);
+            )+
+            m
+        }
+     };
+}
+
+#[macro_export]
+macro_rules! assert_resource_equal {
+    ($name:expr => $val:expr, $resource:expr) => {
+        let obj = ($val).as_mapping().unwrap();
+        let resources: IndexMap<String, ResourceAttributes> =
+            serde_yaml::from_value(serde_yaml::Value::Mapping(obj.clone())).unwrap();
+        assert_eq!(resources[$name], ($resource))
+    };
+}
 
 /// Constructs a serde::yaml from a json literal (or yaml literal)
 #[macro_export]

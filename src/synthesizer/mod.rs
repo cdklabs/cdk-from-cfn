@@ -47,10 +47,26 @@ impl CloudformationProgramIr {
     #[inline(always)]
     pub fn synthesize(
         self,
-        using: &dyn Synthesizer,
+        language: &str,
         into: &mut impl io::Write,
         stack_name: &str,
     ) -> Result<(), Error> {
-        using.synthesize(self, into, stack_name)
+        let synthesizer: Box<dyn Synthesizer> = match language {
+            #[cfg(feature = "csharp")]
+            "csharp" => Box::<CSharp>::default(),
+            #[cfg(feature = "golang")]
+            "go" => Box::<Golang>::default(),
+            #[cfg(feature = "java")]
+            "java" => Box::<Java>::default(),
+            #[cfg(feature = "python")]
+            "python" => Box::new(Python {}),
+            #[cfg(feature = "typescript")]
+            "typescript" => Box::new(Typescript {}),
+            _ => panic!("Unsupported language: {}", language),
+        };
+        synthesizer.synthesize(self, into, stack_name)
     }
 }
+
+#[cfg(test)]
+mod tests;

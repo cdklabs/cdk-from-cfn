@@ -87,18 +87,18 @@ Differences found:
       }
     }
 
-- Missing key: Outputs.BucketArn
+- Missing key: Outputs.BucketArn.Condition
   Expected:
-    {
-      "Condition": "IsUsEast1",
-      "Description": "The ARN of the bucket in this template!",
-      "Export": {
-        "Name": "ExportName"
-      },
-      "Value": {
-        "Fn::GetAtt": "Bucket.Arn"
-      }
-    }
+    "IsUsEast1"
+
+Value mismatch at Outputs.BucketArn.Value.Fn::GetAtt:
+  Expected:
+    "Bucket.Arn"
+  Actual:
+    [
+      "Bucket",
+      "Arn"
+    ]
 
 Value mismatch at Outputs.IsLarge.Value:
   Expected:
@@ -110,7 +110,7 @@ Value mismatch at Outputs.IsLarge.Value:
       ]
     }
   Actual:
-    "false"
+    "true"
 
 - Missing key: Parameters.BucketNamePrefix
   Expected:
@@ -120,55 +120,31 @@ Value mismatch at Outputs.IsLarge.Value:
       "Type": "String"
     }
 
-- Missing key: Resources.Bucket
+- Missing key: Resources.Bucket.Condition
   Expected:
-    {
-      "Condition": "IsUsEast1",
-      "DeletionPolicy": "Delete",
-      "DependsOn": [
-        "Queue"
-      ],
-      "Metadata": {
-        "CostCenter": 1337
-      },
-      "Properties": {
-        "AccessControl": "Private",
-        "LoggingConfiguration": {
-          "DestinationBucketName": {
-            "Ref": "LogDestinationBucketName"
-          }
-        },
-        "Tags": [
-          {
-            "Key": "FancyTag",
-            "Value": {
-              "Fn::If": [
-                "IsUsEast1",
-                {
-                  "Fn::Base64": {
-                    "Fn::FindInMap": [
-                      "Table",
-                      "Values",
-                      "String"
-                    ]
-                  }
-                },
-                {
-                  "Fn::Base64": "8CiMvAo="
-                }
-              ]
-            }
-          }
-        ],
-        "WebsiteConfiguration": {
-          "RedirectAllRequestsTo": {
-            "HostName": "example.com",
-            "Protocol": "https"
-          }
+    "IsUsEast1"
+
+- Missing key: Resources.Bucket.Properties.Tags[0].Value.Fn::If
+  Expected:
+    [
+      "IsUsEast1",
+      {
+        "Fn::Base64": {
+          "Fn::FindInMap": [
+            "Table",
+            "Values",
+            "String"
+          ]
         }
       },
-      "Type": "AWS::S3::Bucket"
-    }
+      {
+        "Fn::Base64": "8CiMvAo="
+      }
+    ]
+
++ Extra key: Resources.Bucket.Properties.Tags[0].Value.Fn::Base64
+  Actual:
+    "Baz"
 
 Value mismatch at Resources.Queue.Properties.QueueName.Fn::Join[0]:
   Expected:
@@ -199,9 +175,7 @@ Value mismatch at Resources.Queue.Properties.QueueName.Fn::Join[1][0]:
     [
       1,
       {
-        "Fn::GetAZs": {
-          "Ref": "AWS::Region"
-        }
+        "Fn::GetAZs": "us-east-1"
       }
     ]
 
