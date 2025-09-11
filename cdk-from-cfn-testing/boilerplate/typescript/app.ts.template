@@ -1,0 +1,17 @@
+// auto-generated! a human should update this!
+import * as cdk from "aws-cdk-lib";
+import { {{STACK_CLASS_NAME}} } from "./{{STACK_CLASS_NAME}}";
+
+const app = new cdk.App({
+  defaultStackSynthesizer: new cdk.DefaultStackSynthesizer({
+    generateBootstrapVersionRule: false,
+  }),
+});
+
+{{#if INCLUDE_ENV}}
+new {{STACK_CLASS_NAME}}(app, "{{STACK_NAME}}", { env: { region: process.env.CDK_DEFAULT_REGION || process.env.AWS_DEFAULT_REGION } });
+{{else}}
+new {{STACK_CLASS_NAME}}(app, "{{STACK_NAME}}");
+{{/if}}
+
+app.synth();

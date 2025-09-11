@@ -1,0 +1,24 @@
+//Auto-generated
+using Amazon.CDK;
+
+sealed class Program
+{
+    public static void Main(string[] args)
+    {
+        var app = new App(new AppProps
+        {
+            DefaultStackSynthesizer = new DefaultStackSynthesizer(new DefaultStackSynthesizerProps
+            {
+                GenerateBootstrapVersionRule = false,
+            }),
+        });
+
+        {{#if INCLUDE_ENV}}
+        new {{STACK_CLASS_NAME}}.{{STACK_CLASS_NAME}}(app, "{{STACK_NAME}}", new {{STACK_CLASS_NAME}}.{{STACK_CLASS_NAME}}Props { Env = new Amazon.CDK.Environment { Region = System.Environment.GetEnvironmentVariable("CDK_DEFAULT_REGION") ?? System.Environment.GetEnvironmentVariable("AWS_DEFAULT_REGION") } });
+        {{else}}
+        new {{STACK_CLASS_NAME}}.{{STACK_CLASS_NAME}}(app, "{{STACK_NAME}}");
+        {{/if}}
+
+        app.Synth();
+    }
+}
