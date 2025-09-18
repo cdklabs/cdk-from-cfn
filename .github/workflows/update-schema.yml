@@ -1,0 +1,24 @@
+name: Update CDK Schema
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  generate_schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: TheRealAmazonKendra/cdk-patched-schema-generator@main
+        with:
+          output-path: ./src/specification
+          
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+          commit-message: Update CDK schemas
+          title: 'chore: update CDK schemas'
+          body: Auto-generated CDK schema update
+          branch: update-cdk-schemas
