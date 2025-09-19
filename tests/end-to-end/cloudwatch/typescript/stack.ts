@@ -7,6 +7,10 @@ export interface CloudwatchStackProps extends cdk.StackProps {
    * @default 'dev'
    */
   readonly environmentName?: string;
+  /**
+   * @default 0.005
+   */
+  readonly alarmThreshold?: number;
 }
 
 export class CloudwatchStack extends cdk.Stack {
@@ -17,6 +21,11 @@ export class CloudwatchStack extends cdk.Stack {
     props = {
       ...props,
       environmentName: props.environmentName ?? 'dev',
+      alarmThreshold: new cdk.CfnParameter(this, 'AlarmThreshold', {
+        type: 'Number',
+        default: props.alarmThreshold?.toString() ?? '0.005',
+        noEcho: true,
+      }).valueAsNumber,
     };
 
     // Resources
@@ -32,7 +41,7 @@ export class CloudwatchStack extends cdk.Stack {
       metricName: '5XXError',
       comparisonOperator: 'GreaterThanThreshold',
       statistic: 'Average',
-      threshold: 0.005,
+      threshold: props.alarmThreshold!,
       period: 900,
       evaluationPeriods: 1,
       treatMissingData: 'notBreaching',

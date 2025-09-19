@@ -10,6 +10,11 @@ class CloudwatchStack(Stack):
     # Applying default props
     props = {
       'environmentName': kwargs.get('environmentName', 'dev'),
+      'alarmThreshold': cdk.CfnParameter(self, 'alarmThreshold', 
+        type = 'Number',
+        default = str(kwargs.get('alarmThreshold', '0.005')),
+        no_echo = True,
+      ).value_as_number,
     }
 
     # Resources
@@ -25,7 +30,7 @@ class CloudwatchStack(Stack):
           metric_name = '5XXError',
           comparison_operator = 'GreaterThanThreshold',
           statistic = 'Average',
-          threshold = 0.005,
+          threshold = props['alarmThreshold'],
           period = 900,
           evaluation_periods = 1,
           treat_missing_data = 'notBreaching',

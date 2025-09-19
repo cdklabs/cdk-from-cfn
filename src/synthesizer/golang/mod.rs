@@ -611,6 +611,8 @@ impl ConstructorParameter {
             name = golang_identifier(&self.name, IdentifierKind::Exported),
             r#type = match self.constructor_type.as_ref() {
                 "String" => "*string".into(),
+                "Number" => "*float64".into(),
+                "Boolean" => "*bool".into(),
                 other => format!("interface{{/* {other} */}}"),
             }
         )

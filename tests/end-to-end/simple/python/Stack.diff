@@ -1,8 +1,8 @@
 diff --git a/./tests/end-to-end/simple/template.json b/tests/end-to-end/simple-python-working-dir/cdk.out/Stack.template.json
-index 8525bcd..779d4a2 100644
+index 365925a..779d4a2 100644
 --- a/./tests/end-to-end/simple/template.json
 +++ b/tests/end-to-end/simple-python-working-dir/cdk.out/Stack.template.json
-@@ -1,172 +1,23 @@
+@@ -1,178 +1,23 @@
  {
 - "Description": "An example stack that uses many of the syntax elements permitted in a\nCloudFormation template, but does not attempt to represent a realistic stack.",
 - "Mappings": {
@@ -97,6 +97,10 @@ index 8525bcd..779d4a2 100644
 +  "logDestinationBucketName": {
     "Type": "AWS::SSM::Parameter::Value<String>",
     "Default": "/logging/bucket/name"
+-  },
+-  "DelaySeconds": {
+-   "Type": "Number",
+-   "Default": 42
    }
   },
   "Resources": {
@@ -154,8 +158,11 @@ index 8525bcd..779d4a2 100644
     "Type": "AWS::SQS::Queue",
 -   "DeletionPolicy": "RetainExceptOnCreate",
     "Properties": {
-     "DelaySeconds": 42,
+-    "DelaySeconds": {
+-     "Ref": "DelaySeconds"
+-    },
 -    "SqsManagedSseEnabled": false,
++    "DelaySeconds": 42,
      "KmsMasterKeyId": {
       "Fn::ImportValue": "Shared-KmsKeyArn"
      },
@@ -178,7 +185,7 @@ index 8525bcd..779d4a2 100644
         {
          "Fn::Select": [
           1,
-@@ -180,33 +31,13 @@
+@@ -186,33 +31,13 @@
        ]
       ]
      },
@@ -215,7 +222,7 @@ index 8525bcd..779d4a2 100644
    "QueueArn": {
     "Description": "The ARN of the SQS Queue",
     "Value": {
-@@ -215,13 +46,7 @@
+@@ -221,13 +46,7 @@
    },
    "IsLarge": {
     "Description": "Whether this is a large region or not",

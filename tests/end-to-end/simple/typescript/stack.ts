@@ -13,6 +13,10 @@ export interface SimpleStackProps extends cdk.StackProps {
    * @default '/logging/bucket/name'
    */
   readonly logDestinationBucketName?: string;
+  /**
+   * @default 42
+   */
+  readonly delaySeconds?: number;
 }
 
 /**
@@ -44,6 +48,7 @@ export class SimpleStack extends cdk.Stack {
         type: 'AWS::SSM::Parameter::Value<String>',
         default: props.logDestinationBucketName?.toString() ?? '/logging/bucket/name',
       }).valueAsString,
+      delaySeconds: props.delaySeconds ?? 42,
     };
 
     // Mappings
@@ -95,7 +100,7 @@ export class SimpleStack extends cdk.Stack {
 
     // Resources
     const queue = new sqs.CfnQueue(this, 'Queue', {
-      delaySeconds: 42,
+      delaySeconds: props.delaySeconds!,
       sqsManagedSseEnabled: false,
       kmsMasterKeyId: cdk.Fn.importValue('Shared-KmsKeyArn'),
       queueName: [
