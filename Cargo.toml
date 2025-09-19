@@ -33,7 +33,7 @@ crate-type = ["cdylib", "lib"]
 base64 = "^0.22.1"
 clap = { version = "^4.5.47", features = ["cargo"] }
 console_error_panic_hook = { version = "0.1.1", optional = true }
-indexmap = { version = "^2.11.3", features = ["serde"] }
+indexmap = { version = "^2.11.4", features = ["serde"] }
 nom = "^8.0.0"
 phf = { version = "^0.13.1", features = ["macros"] }
 rustc-hash = { version = "2.1.1", optional = true }
@@ -55,7 +55,7 @@ serial_test = "3.0"
 tokio = { version = "1", features = ["full"] }
 
 [build-dependencies]
-indexmap = "^2.11.3"
+indexmap = "^2.11.4"
 phf = { version = "^0.13.1", features = ["macros"] }
 phf_codegen = "^0.13.1"
 rustc-hash = { version = "2.1.1", optional = true }
