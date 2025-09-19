@@ -105,9 +105,9 @@ jobs:
 
       - name: Coverage Report
         run: |
-          cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --codecov --output-path target/codecov.json
-          cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --html --output-dir target/coverage
-          cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$'
+          cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests?/.*\.rs|.*/tests?\.rs|.*testing.*/.*\.rs|.*/testing\.rs)$' --codecov --output-path target/codecov.json
+          cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests?/.*\.rs|.*/tests?\.rs|.*testing.*/.*\.rs|.*/testing\.rs)$' --html --output-dir target/coverage
+          cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests?/.*\.rs|.*/tests?\.rs|.*testing.*/.*\.rs|.*/testing\.rs)$'
 
       - name: Upload Coverage to CodeCov
         uses: codecov/codecov-action@v5

@@ -1,0 +1,3 @@
+{
+  "app": "WORK_DIR=$(pwd) && cd $WORK_DIR && go mod tidy && go run *.go"
+}

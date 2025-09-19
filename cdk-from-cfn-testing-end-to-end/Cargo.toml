@@ -1,0 +1,31 @@
+[package]
+name = "cdk-from-cfn-testing-end-to-end"
+version = "0.244.0"
+edition = "2021"
+
+[dependencies]
+cdk-from-cfn-testing = { path = "../cdk-from-cfn-testing" }
+aws-config = "^1.8.1"
+aws-sdk-cloudformation = "^1.83.0"
+aws-sdk-s3 = "^1.83.0"
+aws-smithy-types = "^1.2.0"
+aws-smithy-runtime-api = "^1.8.1"
+futures = "0.3"
+tokio = { version = "1", features = ["full"] }
+serde_json = "1.0"
+
+[features]
+default = ["golang", "java", "typescript", "python", "csharp", "end-to-end"]
+golang = []
+java = []
+typescript = []
+python = []
+csharp = []
+skip-clean = []
+end-to-end = []
+
+[profile.test]
+opt-level = 1        # Light optimization
+debug = false        # Keep debug info minimal  
+lto = false          # Disable LTO for faster compilation
+incremental = true   # Enable incremental compilation

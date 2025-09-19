@@ -1,0 +1,36 @@
+Differences found:
+- Missing key: Parameters
+  Expected:
+    {
+      "EnvironmentName": {
+        "AllowedValues": [
+          "dev",
+          "stage",
+          "prod"
+        ],
+        "Default": "dev",
+        "Description": "Environment used for this deployment.",
+        "Type": "String"
+      }
+    }
+
+Value mismatch at Resources.MyApi5xxErrorsAlarm.Properties.AlarmActions[0].Fn::ImportValue:
+  Expected:
+    {
+      "Fn::Sub": [
+        "${Environment}AlarmsTopicArn",
+        {
+          "Environment": {
+            "Ref": "EnvironmentName"
+          }
+        }
+      ]
+    }
+  Actual:
+    "devAlarmsTopicArn"
+
+Value mismatch at Resources.MyApi5xxErrorsAlarm.Properties.Threshold:
+  Expected:
+    "0.005"
+  Actual:
+    0.005
