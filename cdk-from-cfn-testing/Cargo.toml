@@ -1,0 +1,38 @@
+[package]
+name = "cdk-from-cfn-testing"
+version = "0.244.0"
+edition = "2021"
+description = "Testing utilities for cdk-from-cfn"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[dependencies]
+similar = "^2.6"
+zip = "^5.0.0"
+md5 = { version = "^0.7", optional = true }
+serde_json = "1.0"
+futures = "0.3"
+cdk-from-cfn-macros = { path = "../cdk-from-cfn-macros" }
+
+[build-dependencies]
+md5 = { version = "^0.7", optional = true }
+walkdir = "2.5.0"
+zip = "^5.0.0"
+
+[features]
+default = ["golang", "java", "typescript", "python", "csharp", "pre-install"]
+golang = []
+java = []
+typescript = []
+python = ["md5"]
+csharp = []
+update-snapshots = []
+skip-clean = []
+end-to-end = ["pre-install"]
+pre-install = ["md5"]
+
+[profile.test]
+opt-level = 1        # Light optimization
+debug = false        # Keep debug info minimal  
+lto = false          # Disable LTO for faster compilation
+incremental = true   # Enable incremental compilation

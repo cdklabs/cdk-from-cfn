@@ -4,8 +4,8 @@ use serde_yaml::Value;
 
 use super::*;
 
-// Bring in the json! macro
-include!("../../../tests/json.rs");
+// Use the json! macro from test_macros
+use crate::{json, json_internal_vec};
 
 #[test]
 fn intrinsic_base64() {

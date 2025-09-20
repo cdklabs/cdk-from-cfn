@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 use cdk_from_cfn::cdk::Schema;
 use cdk_from_cfn::ir::CloudformationProgramIr;
-use cdk_from_cfn::synthesizer::*;
 use cdk_from_cfn::CloudformationParseTree;
 use cdk_from_cfn::Error;
 use clap::{Arg, ArgAction, Command};
@@ -94,34 +93,17 @@ fn main() -> Result<(), Error> {
         output_file => Box::new(fs::File::create(output_file)?),
     };
 
-    let synthesizer: Box<dyn Synthesizer> = match matches
+    let language = matches
         .get_one::<String>("language")
         .map(String::as_str)
-        .unwrap_or(targets[0])
-    {
-        #[cfg(feature = "typescript")]
-        "typescript" => Box::new(Typescript {}),
-        #[cfg(feature = "golang")]
-        "go" => Box::<Golang>::default(),
-        #[cfg(feature = "python")]
-        "python" => Box::new(Python {}),
-        #[cfg(feature = "java")]
-        "java" => Box::<Java>::default(),
-        #[cfg(feature = "csharp")]
-        "csharp" => Box::<CSharp>::default(),
-        unsupported => {
-            return Err(Error::UnsupportedLanguageError {
-                language: unsupported.to_string(),
-            });
-        }
-    };
+        .unwrap_or(targets[0]);
 
     let stack_name = matches
         .get_one::<String>("stack-name")
         .map(String::as_str)
         .unwrap_or("NoctStack");
 
-    ir.synthesize(synthesizer.as_ref(), &mut output, stack_name)?;
+    ir.synthesize(language, &mut output, stack_name)?;
 
     Ok(())
 }

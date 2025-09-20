@@ -1,0 +1,180 @@
+Differences found:
+- Missing key: Conditions
+  Expected:
+    {
+      "HasDatabase": {
+        "Fn::Equals": [
+          {
+            "Ref": "DatabaseType"
+          },
+          "mysql"
+        ]
+      },
+      "IsProduction": {
+        "Fn::Equals": [
+          {
+            "Ref": "Environment"
+          },
+          "prod"
+        ]
+      },
+      "KeyPairProd": {
+        "Fn::Not": [
+          {
+            "Condition": "IsProduction"
+          }
+        ]
+      },
+      "UseEncryption": {
+        "Fn::And": [
+          {
+            "Condition": "IsProduction"
+          },
+          {
+            "Condition": "HasDatabase"
+          }
+        ]
+      },
+      "UsePrivateSecurityGroup": {
+        "Fn::Or": [
+          {
+            "Fn::Equals": [
+              {
+                "Ref": "SubnetType"
+              },
+              "Private1"
+            ]
+          },
+          {
+            "Fn::Equals": [
+              {
+                "Ref": "SubnetType"
+              },
+              "Private2"
+            ]
+          }
+        ]
+      }
+    }
+
+- Missing key: Mappings
+  Expected:
+    {
+      "RegionToAMI": {
+        "ap-southeast-1": {
+          "AMI": "ami-0c802847a7dd848c0"
+        },
+        "eu-west-1": {
+          "AMI": "ami-0c9c942bd7bf113a2"
+        },
+        "us-east-1": {
+          "AMI": "ami-0c02fb55956c7d316"
+        },
+        "us-east-2": {
+          "AMI": "ami-0900fe555666598a2"
+        },
+        "us-west-2": {
+          "AMI": "ami-008fe2fc65df48dac"
+        }
+      }
+    }
+
+- Missing key: Parameters
+  Expected:
+    {
+      "DatabaseType": {
+        "AllowedValues": [
+          "mysql",
+          "postgresql"
+        ],
+        "Default": "postgresql",
+        "Type": "String"
+      },
+      "EnableMonitoringParameter": {
+        "AllowedValues": [
+          "true",
+          "false"
+        ],
+        "Default": "false",
+        "Type": "String"
+      },
+      "EncryptedAmi": {
+        "Default": "ami-1234567890abcdef0",
+        "Type": "String"
+      },
+      "Environment": {
+        "AllowedValues": [
+          "dev",
+          "test",
+          "prod"
+        ],
+        "Default": "dev",
+        "Type": "String"
+      },
+      "SubnetType": {
+        "AllowedValues": [
+          "Private1",
+          "Private2"
+        ],
+        "Default": "Private1",
+        "Type": "String"
+      },
+      "UnencryptedAmi": {
+        "Default": "ami-0987654321fedcba0",
+        "Type": "String"
+      },
+      "UseEncryption": {
+        "AllowedValues": [
+          "true",
+          "false"
+        ],
+        "Default": "false",
+        "Type": "String"
+      }
+    }
+
+Value mismatch at Resources.MyApp.Properties.ImageId:
+  Expected:
+    {
+      "Fn::FindInMap": [
+        "RegionToAMI",
+        {
+          "Ref": "AWS::Region"
+        },
+        "AMI"
+      ]
+    }
+  Actual:
+    "ami-0c02fb55956c7d316"
+
+- Missing key: Resources.MyApp.Properties.SecurityGroups[0].Fn::If
+  Expected:
+    [
+      "UsePrivateSecurityGroup",
+      {
+        "Ref": "PrivateSecurityGroup"
+      },
+      {
+        "Ref": "PublicSecurityGroup"
+      }
+    ]
+
++ Extra key: Resources.MyApp.Properties.SecurityGroups[0].Ref
+  Actual:
+    "PrivateSecurityGroup"
+
+Value mismatch at Resources.MyApp.Properties.Tags[0].Value:
+  Expected:
+    {
+      "Fn::Select": [
+        1,
+        {
+          "Fn::Split": [
+            "-",
+            "My-EC2-Instance"
+          ]
+        }
+      ]
+    }
+  Actual:
+    "EC2"

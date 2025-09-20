@@ -1,0 +1,21 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "AlarmsTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "dev-alarms-topic"
+      }
+    }
+  },
+  "Outputs": {
+    "devAlarmsTopicArn": {
+      "Value": {
+        "Ref": "AlarmsTopic"
+      },
+      "Export": {
+        "Name": "devAlarmsTopicArn"
+      }
+    }
+  }
+}

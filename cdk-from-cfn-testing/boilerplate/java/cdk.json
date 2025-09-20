@@ -1,0 +1,3 @@
+{
+  "app": "export MAVEN_OPTS=\"-Dmaven.repo.local=${MAVEN_REPO:-$PROJECT_ROOT/cdk-from-cfn-testing/.shared_installations/.m2/repository}\" && mvn -e compile exec:java"
+}

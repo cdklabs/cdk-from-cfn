@@ -21,7 +21,7 @@ fix: (clippy "--fix --allow-dirty")
 	cargo fmt
 
 test-cov:
-		cargo llvm-cov --all-features --ignore-filename-regex '^(tests/.*\.rs|.*/tests\.rs)$' --no-fail-fast --lcov --output-path target/lcov.info
+		cargo llvm-cov --features update-snapshots,skip-clean --ignore-filename-regex '^(tests?/.*\.rs|.*/tests?\.rs|.*testing.*/.*\.rs|.*/testing\.rs)$' --no-fail-fast --lcov --output-path target/lcov.info
 
 install-tools:
 		cargo install cargo-llvm-cov

@@ -1,0 +1,32 @@
+// auto-generated
+package main
+
+import (
+	{{#if INCLUDE_ENV}}
+	"os"
+	{{/if}}
+	"github.com/aws/aws-cdk-go/awscdk/v2"
+	"github.com/aws/jsii-runtime-go"
+)
+
+func main() {
+	defer jsii.Close()
+
+	app := awscdk.NewApp(&awscdk.AppProps{
+		DefaultStackSynthesizer: awscdk.NewDefaultStackSynthesizer(&awscdk.DefaultStackSynthesizerProps{
+			GenerateBootstrapVersionRule: jsii.Bool(false),
+		}),
+	})
+
+	{{#if INCLUDE_ENV}}
+	region := os.Getenv("CDK_DEFAULT_REGION")
+	if region == "" {
+		region = os.Getenv("AWS_DEFAULT_REGION")
+	}
+	New{{STACK_CLASS_NAME}}(app, "{{STACK_NAME}}", &awscdk.StackProps{ Env: &awscdk.Environment{ Region: jsii.String(region) } })
+	{{else}}
+	New{{STACK_CLASS_NAME}}(app, "{{STACK_NAME}}", nil)
+	{{/if}}
+
+	app.Synth(nil)
+}

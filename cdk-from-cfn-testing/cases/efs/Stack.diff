@@ -1,0 +1,369 @@
+Differences found:
+- Missing key: Mappings
+  Expected:
+    {
+      "AWSInstanceType2Arch": {
+        "c1.medium": {
+          "Arch": "HVM64"
+        },
+        "c1.xlarge": {
+          "Arch": "HVM64"
+        },
+        "c3.2xlarge": {
+          "Arch": "HVM64"
+        },
+        "c3.4xlarge": {
+          "Arch": "HVM64"
+        },
+        "c3.8xlarge": {
+          "Arch": "HVM64"
+        },
+        "c3.large": {
+          "Arch": "HVM64"
+        },
+        "c3.xlarge": {
+          "Arch": "HVM64"
+        },
+        "c4.2xlarge": {
+          "Arch": "HVM64"
+        },
+        "c4.4xlarge": {
+          "Arch": "HVM64"
+        },
+        "c4.8xlarge": {
+          "Arch": "HVM64"
+        },
+        "c4.large": {
+          "Arch": "HVM64"
+        },
+        "c4.xlarge": {
+          "Arch": "HVM64"
+        },
+        "cc2.8xlarge": {
+          "Arch": "HVM64"
+        },
+        "cr1.8xlarge": {
+          "Arch": "HVM64"
+        },
+        "d2.2xlarge": {
+          "Arch": "HVM64"
+        },
+        "d2.4xlarge": {
+          "Arch": "HVM64"
+        },
+        "d2.8xlarge": {
+          "Arch": "HVM64"
+        },
+        "d2.xlarge": {
+          "Arch": "HVM64"
+        },
+        "g2.2xlarge": {
+          "Arch": "HVMG2"
+        },
+        "g2.8xlarge": {
+          "Arch": "HVMG2"
+        },
+        "hi1.4xlarge": {
+          "Arch": "HVM64"
+        },
+        "hs1.8xlarge": {
+          "Arch": "HVM64"
+        },
+        "i2.2xlarge": {
+          "Arch": "HVM64"
+        },
+        "i2.4xlarge": {
+          "Arch": "HVM64"
+        },
+        "i2.8xlarge": {
+          "Arch": "HVM64"
+        },
+        "i2.xlarge": {
+          "Arch": "HVM64"
+        },
+        "m1.large": {
+          "Arch": "HVM64"
+        },
+        "m1.medium": {
+          "Arch": "HVM64"
+        },
+        "m1.small": {
+          "Arch": "HVM64"
+        },
+        "m1.xlarge": {
+          "Arch": "HVM64"
+        },
+        "m2.2xlarge": {
+          "Arch": "HVM64"
+        },
+        "m2.4xlarge": {
+          "Arch": "HVM64"
+        },
+        "m2.xlarge": {
+          "Arch": "HVM64"
+        },
+        "m3.2xlarge": {
+          "Arch": "HVM64"
+        },
+        "m3.large": {
+          "Arch": "HVM64"
+        },
+        "m3.medium": {
+          "Arch": "HVM64"
+        },
+        "m3.xlarge": {
+          "Arch": "HVM64"
+        },
+        "m4.10xlarge": {
+          "Arch": "HVM64"
+        },
+        "m4.2xlarge": {
+          "Arch": "HVM64"
+        },
+        "m4.4xlarge": {
+          "Arch": "HVM64"
+        },
+        "m4.large": {
+          "Arch": "HVM64"
+        },
+        "m4.xlarge": {
+          "Arch": "HVM64"
+        },
+        "r3.2xlarge": {
+          "Arch": "HVM64"
+        },
+        "r3.4xlarge": {
+          "Arch": "HVM64"
+        },
+        "r3.8xlarge": {
+          "Arch": "HVM64"
+        },
+        "r3.large": {
+          "Arch": "HVM64"
+        },
+        "r3.xlarge": {
+          "Arch": "HVM64"
+        },
+        "t1.micro": {
+          "Arch": "HVM64"
+        },
+        "t2.large": {
+          "Arch": "HVM64"
+        },
+        "t2.medium": {
+          "Arch": "HVM64"
+        },
+        "t2.micro": {
+          "Arch": "HVM64"
+        },
+        "t2.nano": {
+          "Arch": "HVM64"
+        },
+        "t2.small": {
+          "Arch": "HVM64"
+        }
+      },
+      "AWSRegionArch2AMI": {
+        "ap-northeast-1": {
+          "HVM64": "ami-06cd52961ce9f0d85",
+          "HVMG2": "ami-053cdd503598e4a9d"
+        },
+        "ap-northeast-2": {
+          "HVM64": "ami-0a10b2721688ce9d2",
+          "HVMG2": "NOT_SUPPORTED"
+        },
+        "ap-northeast-3": {
+          "HVM64": "ami-0d98120a9fb693f07",
+          "HVMG2": "NOT_SUPPORTED"
+        },
+        "ap-south-1": {
+          "HVM64": "ami-0912f71e06545ad88",
+          "HVMG2": "ami-097b15e89dbdcfcf4"
+        },
+        "ap-southeast-1": {
+          "HVM64": "ami-08569b978cc4dfa10",
+          "HVMG2": "ami-0be9df32ae9f92309"
+        },
+        "ap-southeast-2": {
+          "HVM64": "ami-09b42976632b27e9b",
+          "HVMG2": "ami-0a9ce9fecc3d1daf8"
+        },
+        "ca-central-1": {
+          "HVM64": "ami-0b18956f",
+          "HVMG2": "NOT_SUPPORTED"
+        },
+        "cn-north-1": {
+          "HVM64": "ami-0a4eaf6c4454eda75",
+          "HVMG2": "NOT_SUPPORTED"
+        },
+        "cn-northwest-1": {
+          "HVM64": "ami-6b6a7d09",
+          "HVMG2": "NOT_SUPPORTED"
+        },
+        "eu-central-1": {
+          "HVM64": "ami-0233214e13e500f77",
+          "HVMG2": "ami-06223d46a6d0661c7"
+        },
+        "eu-west-1": {
+          "HVM64": "ami-047bb4163c506cd98",
+          "HVMG2": "ami-0a7c483d527806435"
+        },
+        "eu-west-2": {
+          "HVM64": "ami-f976839e",
+          "HVMG2": "NOT_SUPPORTED"
+        },
+        "eu-west-3": {
+          "HVM64": "ami-0ebc281c20e89ba4b",
+          "HVMG2": "NOT_SUPPORTED"
+        },
+        "sa-east-1": {
+          "HVM64": "ami-07b14488da8ea02a0",
+          "HVMG2": "NOT_SUPPORTED"
+        },
+        "us-east-1": {
+          "HVM64": "ami-0ff8a91507f77f867",
+          "HVMG2": "ami-0a584ac55a7631c0c"
+        },
+        "us-east-2": {
+          "HVM64": "ami-0b59bfac6be064b78",
+          "HVMG2": "NOT_SUPPORTED"
+        },
+        "us-west-1": {
+          "HVM64": "ami-0bdb828fd58c52235",
+          "HVMG2": "ami-066ee5fd4a9ef77f1"
+        },
+        "us-west-2": {
+          "HVM64": "ami-a0cfeed8",
+          "HVMG2": "ami-0e09505bc235aa82d"
+        }
+      }
+    }
+
+- Missing key: Parameters
+  Expected:
+    {
+      "AsgMaxSize": {
+        "Default": "2",
+        "Description": "Maximum size and initial desired capacity of Auto Scaling Group",
+        "Type": "String"
+      },
+      "InstanceType": {
+        "AllowedValues": [
+          "t1.micro",
+          "t2.nano",
+          "t2.micro",
+          "t2.small",
+          "t2.medium",
+          "t2.large",
+          "m1.small",
+          "m1.medium",
+          "m1.large",
+          "m1.xlarge",
+          "m2.xlarge",
+          "m2.2xlarge",
+          "m2.4xlarge",
+          "m3.medium",
+          "m3.large",
+          "m3.xlarge",
+          "m3.2xlarge",
+          "m4.large",
+          "m4.xlarge",
+          "m4.2xlarge",
+          "m4.4xlarge",
+          "m4.10xlarge",
+          "c1.medium",
+          "c1.xlarge",
+          "c3.large",
+          "c3.xlarge",
+          "c3.2xlarge",
+          "c3.4xlarge",
+          "c3.8xlarge",
+          "c4.large",
+          "c4.xlarge",
+          "c4.2xlarge",
+          "c4.4xlarge",
+          "c4.8xlarge",
+          "g2.2xlarge",
+          "g2.8xlarge",
+          "r3.large",
+          "r3.xlarge",
+          "r3.2xlarge",
+          "r3.4xlarge",
+          "r3.8xlarge",
+          "i2.xlarge",
+          "i2.2xlarge",
+          "i2.4xlarge",
+          "i2.8xlarge",
+          "d2.xlarge",
+          "d2.2xlarge",
+          "d2.4xlarge",
+          "d2.8xlarge",
+          "hi1.4xlarge",
+          "hs1.8xlarge",
+          "cr1.8xlarge",
+          "cc2.8xlarge",
+          "cg1.4xlarge"
+        ],
+        "ConstraintDescription": "must be a valid EC2 instance type.",
+        "Default": "t2.small",
+        "Description": "WebServer EC2 instance type",
+        "Type": "String"
+      },
+      "MountPoint": {
+        "Default": "myEFSvolume",
+        "Description": "The Linux mount point for the EFS volume",
+        "MinLength": "1",
+        "Type": "String"
+      },
+      "SSHLocation": {
+        "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+        "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x.",
+        "Default": "0.0.0.0/0",
+        "Description": "The IP address range that can be used to connect to the EC2 instances by using SSH",
+        "MaxLength": "18",
+        "MinLength": "9",
+        "Type": "String"
+      },
+      "VolumeName": {
+        "Default": "myEFSvolume",
+        "Description": "The name to be used for the EFS volume",
+        "MinLength": "1",
+        "Type": "String"
+      }
+    }
+
+Value mismatch at Resources.FileSystem.Properties.FileSystemTags[0].Value:
+  Expected:
+    {
+      "Ref": "VolumeName"
+    }
+  Actual:
+    "myEFSvolume"
+
+Value mismatch at Resources.InstanceSecurityGroup.Properties.SecurityGroupIngress[0].CidrIp:
+  Expected:
+    {
+      "Ref": "SSHLocation"
+    }
+  Actual:
+    "0.0.0.0/0"
+
+Value mismatch at Resources.InternetGateway.Properties.Tags[0].Value:
+  Expected:
+    {
+      "Ref": "AWS::StackName"
+    }
+  Actual:
+    "cdk-from-cfn-e2e-test-EfsStack"
+
+Value mismatch at Resources.VPC.Properties.EnableDnsHostnames:
+  Expected:
+    "true"
+  Actual:
+    true
+
+Value mismatch at Resources.VPC.Properties.EnableDnsSupport:
+  Expected:
+    "true"
+  Actual:
+    true

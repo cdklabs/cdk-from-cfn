@@ -63,21 +63,19 @@ where
 {
     #[derive(Deserialize)]
     #[serde(untagged)]
-    pub enum Transform<'a> {
-        String(&'a str),
+    pub enum Transform {
+        String(String),
         Vec(Vec<String>),
     }
 
     Ok(match Transform::deserialize(deserializer)? {
-        Transform::String(transform) => vec![transform.to_owned()],
+        Transform::String(transform) => vec![transform],
         Transform::Vec(transform) => transform,
     })
 }
 
 #[cfg(target_family = "wasm")]
 pub mod wasm {
-    use std::borrow::Cow;
-
     use cdk::Schema;
     use wasm_bindgen::prelude::*;
 
@@ -106,29 +104,15 @@ pub mod wasm {
     #[wasm_bindgen]
     pub fn transmute(template: &str, language: &str, stack_name: &str) -> Result<String, JsError> {
         let cfn_tree: CloudformationParseTree = serde_yaml::from_str(template)?;
-        let schema = Cow::Borrowed(Schema::builtin());
-        let ir = crate::ir::CloudformationProgramIr::from(cfn_tree, &schema)?;
+        let ir = crate::ir::CloudformationProgramIr::from(cfn_tree, Schema::builtin())?;
         let mut output = Vec::new();
 
-        let synthesizer: Box<dyn crate::synthesizer::Synthesizer> = match language {
-            #[cfg(feature = "typescript")]
-            "typescript" => Box::new(crate::synthesizer::Typescript {}),
-            #[cfg(feature = "golang")]
-            "go" => Box::<crate::synthesizer::Golang>::default(),
-            #[cfg(feature = "python")]
-            "python" => Box::new(crate::synthesizer::Python {}),
-            #[cfg(feature = "java")]
-            "java" => Box::<crate::synthesizer::Java>::default(),
-            #[cfg(feature = "csharp")]
-            "csharp" => Box::<crate::synthesizer::CSharp>::default(),
-            unsupported => {
-                return Err(JsError::from(Error::UnsupportedLanguageError {
-                    language: unsupported.to_string(),
-                }));
-            }
+        let lang = match language {
+            "go" => "golang",
+            other => other,
         };
 
-        ir.synthesize(synthesizer.as_ref(), &mut output, stack_name)?;
+        ir.synthesize(lang, &mut output, stack_name)?;
 
         String::from_utf8(output).map_err(Into::into)
     }

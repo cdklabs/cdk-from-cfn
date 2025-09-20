@@ -1,0 +1,117 @@
+Differences found:
+- Missing key: Parameters
+  Expected:
+    {
+      "Ec2VolumeAutoEnableIO": {
+        "AllowedValues": [
+          "false",
+          "true"
+        ],
+        "Default": "false",
+        "Type": "String"
+      },
+      "Ec2VolumeTagKey": {
+        "Default": "CostCenter",
+        "Type": "String"
+      }
+    }
+
+- Missing key: Resources.ConfigBucket.Properties.BucketName.Fn::Sub
+  Expected:
+    "cdk-from-cfn-e2e-test-config-bucket-${AWS::AccountId}-${AWS::Region}"
+
++ Extra key: Resources.ConfigBucket.Properties.BucketName.Fn::Join
+  Actual:
+    [
+      "",
+      [
+        "cdk-from-cfn-e2e-test-config-bucket-",
+        {
+          "Ref": "AWS::AccountId"
+        },
+        "-",
+        {
+          "Ref": "AWS::Region"
+        }
+      ]
+    ]
+
+Value mismatch at Resources.ConfigRuleForVolumeTags.DependsOn:
+  Expected:
+    "ConfigRecorder"
+  Actual:
+    [
+      "ConfigRecorder"
+    ]
+
+Value mismatch at Resources.Ec2Volume.Properties.AutoEnableIO:
+  Expected:
+    {
+      "Ref": "Ec2VolumeAutoEnableIO"
+    }
+  Actual:
+    false
+
+Value mismatch at Resources.Ec2Volume.Properties.Size:
+  Expected:
+    "5"
+  Actual:
+    5
+
+Value mismatch at Resources.Ec2Volume.Properties.Tags[0].Key:
+  Expected:
+    {
+      "Ref": "Ec2VolumeTagKey"
+    }
+  Actual:
+    "CostCenter"
+
+Value mismatch at Resources.VolumeAutoEnableIOComplianceCheck.Properties.Code.ZipFile:
+  Expected:
+    {
+      "Fn::Join": [
+        "\n",
+        [
+          "var aws  = require('aws-sdk');",
+          "var config = new aws.ConfigService();",
+          "var ec2 = new aws.EC2();",
+          "exports.handler = function(event, context) {",
+          "    compliance = evaluateCompliance(event, function(compliance, event) {",
+          "        var configurationItem = JSON.parse(event.invokingEvent).configurationItem;",
+          "        var putEvaluationsRequest = {",
+          "            Evaluations: [{",
+          "                ComplianceResourceType: configurationItem.resourceType,",
+          "                ComplianceResourceId: configurationItem.resourceId,",
+          "                ComplianceType: compliance,",
+          "                OrderingTimestamp: configurationItem.configurationItemCaptureTime",
+          "            }],",
+          "            ResultToken: event.resultToken",
+          "        };",
+          "        config.putEvaluations(putEvaluationsRequest, function(err, data) {",
+          "            if (err) context.fail(err);",
+          "            else context.succeed(data);",
+          "        });",
+          "    });",
+          "};",
+          "function evaluateCompliance(event, doReturn) {",
+          "    var configurationItem = JSON.parse(event.invokingEvent).configurationItem;",
+          "    var status = configurationItem.configurationItemStatus;",
+          "    if (configurationItem.resourceType !== 'AWS::EC2::Volume' || event.eventLeftScope || (status !== 'OK' && status !== 'ResourceDiscovered'))",
+          "        doReturn('NOT_APPLICABLE', event);",
+          "    else ec2.describeVolumeAttribute({VolumeId: configurationItem.resourceId, Attribute: 'autoEnableIO'}, function(err, data) {",
+          "        if (err) context.fail(err);",
+          "        else if (data.AutoEnableIO.Value) doReturn('COMPLIANT', event);",
+          "        else doReturn('NON_COMPLIANT', event);",
+          "    });",
+          "}"
+        ]
+      ]
+    }
+  Actual:
+    "var aws  = require('aws-sdk');\nvar config = new aws.ConfigService();\nvar ec2 = new aws.EC2();\nexports.handler = function(event, context) {\n    compliance = evaluateCompliance(event, function(compliance, event) {\n        var configurationItem = JSON.parse(event.invokingEvent).configurationItem;\n        var putEvaluationsRequest = {\n            Evaluations: [{\n                ComplianceResourceType: configurationItem.resourceType,\n                ComplianceResourceId: configurationItem.resourceId,\n                ComplianceType: compliance,\n                OrderingTimestamp: configurationItem.configurationItemCaptureTime\n            }],\n            ResultToken: event.resultToken\n        };\n        config.putEvaluations(putEvaluationsRequest, function(err, data) {\n            if (err) context.fail(err);\n            else context.succeed(data);\n        });\n    });\n};\nfunction evaluateCompliance(event, doReturn) {\n    var configurationItem = JSON.parse(event.invokingEvent).configurationItem;\n    var status = configurationItem.configurationItemStatus;\n    if (configurationItem.resourceType !== 'AWS::EC2::Volume' || event.eventLeftScope || (status !== 'OK' && status !== 'ResourceDiscovered'))\n        doReturn('NOT_APPLICABLE', event);\n    else ec2.describeVolumeAttribute({VolumeId: configurationItem.resourceId, Attribute: 'autoEnableIO'}, function(err, data) {\n        if (err) context.fail(err);\n        else if (data.AutoEnableIO.Value) doReturn('COMPLIANT', event);\n        else doReturn('NON_COMPLIANT', event);\n    });\n}"
+
+Value mismatch at Resources.VolumeAutoEnableIOComplianceCheck.Properties.Timeout:
+  Expected:
+    "30"
+  Actual:
+    30

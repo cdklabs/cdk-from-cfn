@@ -1,0 +1,136 @@
+Differences found:
+Value mismatch at Outputs.ClusterEndpoint.Value.Fn::GetAtt:
+  Expected:
+    "DBCluster.Endpoint"
+  Actual:
+    [
+      "DBCluster",
+      "Endpoint"
+    ]
+
+Value mismatch at Outputs.ClusterPort.Value.Fn::GetAtt:
+  Expected:
+    "DBCluster.Port"
+  Actual:
+    [
+      "DBCluster",
+      "Port"
+    ]
+
+- Missing key: Parameters.DBClusterName
+  Expected:
+    {
+      "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*",
+      "ConstraintDescription": "Must begin with a letter and contain only alphanumeric characters.",
+      "Default": "MyCluster",
+      "Description": "Cluster name",
+      "MaxLength": "64",
+      "MinLength": "1",
+      "Type": "String"
+    }
+
+- Missing key: Parameters.DBInstanceClass
+  Expected:
+    {
+      "AllowedValues": [
+        "db.t3.medium",
+        "db.r5.large",
+        "db.r5.xlarge",
+        "db.r5.2xlarge",
+        "db.r5.4xlarge",
+        "db.r5.12xlarge",
+        "db.r5.24xlarge"
+      ],
+      "ConstraintDescription": "Instance type must be of the ones supported for the region. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region",
+      "Default": "db.t3.medium",
+      "Description": "Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region",
+      "Type": "String"
+    }
+
+- Missing key: Parameters.DBInstanceName
+  Expected:
+    {
+      "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*",
+      "ConstraintDescription": "Must begin with a letter and contain only alphanumeric characters.",
+      "Default": "MyInstance",
+      "Description": "Instance name",
+      "MaxLength": "64",
+      "MinLength": "1",
+      "Type": "String"
+    }
+
+- Missing key: Parameters.MasterPassword.AllowedPattern
+  Expected:
+    "[a-zA-Z0-9]+"
+
+- Missing key: Parameters.MasterPassword.ConstraintDescription
+  Expected:
+    "must contain only alphanumeric characters."
+
+- Missing key: Parameters.MasterPassword.MaxLength
+  Expected:
+    "41"
+
+- Missing key: Parameters.MasterPassword.MinLength
+  Expected:
+    "1"
+
+Value mismatch at Parameters.MasterPassword.NoEcho:
+  Expected:
+    "true"
+  Actual:
+    true
+
+- Missing key: Parameters.MasterUser.AllowedPattern
+  Expected:
+    "[a-zA-Z][a-zA-Z0-9]*"
+
+- Missing key: Parameters.MasterUser.ConstraintDescription
+  Expected:
+    "Must begin with a letter and contain only alphanumeric characters."
+
+- Missing key: Parameters.MasterUser.MaxLength
+  Expected:
+    "16"
+
+- Missing key: Parameters.MasterUser.MinLength
+  Expected:
+    "1"
+
+Value mismatch at Parameters.MasterUser.NoEcho:
+  Expected:
+    "true"
+  Actual:
+    true
+
+Value mismatch at Resources.DBCluster.Properties.DBClusterIdentifier:
+  Expected:
+    {
+      "Ref": "DBClusterName"
+    }
+  Actual:
+    "MyCluster"
+
+Value mismatch at Resources.DBInstance.DependsOn:
+  Expected:
+    "DBCluster"
+  Actual:
+    [
+      "DBCluster"
+    ]
+
+Value mismatch at Resources.DBInstance.Properties.DBInstanceClass:
+  Expected:
+    {
+      "Ref": "DBInstanceClass"
+    }
+  Actual:
+    "db.t3.medium"
+
+Value mismatch at Resources.DBInstance.Properties.DBInstanceIdentifier:
+  Expected:
+    {
+      "Ref": "DBInstanceName"
+    }
+  Actual:
+    "MyInstance"
