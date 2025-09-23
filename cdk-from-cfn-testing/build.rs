@@ -64,8 +64,15 @@ fn install_python(shared_dir: &PathBuf) {
     let python_venv = shared_dir.join(".python-venv");
     if !python_venv.exists() {
         println!("cargo:warning=Creating Python venv");
-        Command::new("python3").args(["-m", "venv"]).arg(&python_venv).output().ok();
-        Command::new(python_venv.join("bin/pip")).args(["install", "-q", "-r", "boilerplate/python/requirements.txt"]).output().ok();
+        Command::new("python3")
+            .args(["-m", "venv"])
+            .arg(&python_venv)
+            .output()
+            .ok();
+        Command::new(python_venv.join("bin/pip"))
+            .args(["install", "-r", "boilerplate/python/requirements.txt"])
+            .output()
+            .ok();
     }
 }
 
@@ -115,8 +122,16 @@ fn install_typescript(shared_dir: &PathBuf) {
     let cdk_bin = shared_dir.join("node_modules/.bin/cdk");
     if !cdk_bin.exists() {
         println!("cargo:warning=Installing npm packages");
-        std::fs::copy("boilerplate/typescript/package.json", shared_dir.join("package.json")).ok();
-        Command::new("npm").args(["install", "--silent"]).current_dir(shared_dir).output().ok();
+        std::fs::copy(
+            "boilerplate/typescript/package.json",
+            shared_dir.join("package.json"),
+        )
+        .ok();
+        Command::new("npm")
+            .args(["install", "--prefer-offline", "--no-audit"])
+            .current_dir(shared_dir)
+            .output()
+            .ok();
     }
 }
 
@@ -157,4 +172,3 @@ fn zip_test_snapshots() -> io::Result<()> {
     println!("cargo:rustc-env=END_TO_END_SNAPSHOTS={}", out_file.display());
     Ok(())
 }
-
