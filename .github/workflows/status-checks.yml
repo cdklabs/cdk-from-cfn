@@ -100,6 +100,9 @@ jobs:
         run: |
           sudo rm -rf /tmp/.dotnet
 
+      - name: Clean npm cache
+        run: npm cache clean --force
+
       - name: Tests with Coverage
         run: just test-cov
 
