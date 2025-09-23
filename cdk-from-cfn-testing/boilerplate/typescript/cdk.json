@@ -1,3 +1,3 @@
 {
-  "app": "NODE_PATH=${NODE_PATH:-$PROJECT_ROOT/cdk-from-cfn-testing/.shared_installations/node_modules} npx ts-node --transpile-only ./app.ts"
+  "app": "NODE_PATH=${NODE_PATH:-$PROJECT_ROOT/cdk-from-cfn-testing/.shared_installations/node_modules} ${NODE_PATH:-$PROJECT_ROOT/cdk-from-cfn-testing/.shared_installations/node_modules}/.bin/ts-node --transpile-only ./app.ts"
 }

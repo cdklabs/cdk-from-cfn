@@ -100,9 +100,6 @@ jobs:
         run: |
           sudo rm -rf /tmp/.dotnet
 
-      - name: NPM Install 
-        run: npm install -g
-
       - name: Tests with Coverage
         run: just test-cov
 
