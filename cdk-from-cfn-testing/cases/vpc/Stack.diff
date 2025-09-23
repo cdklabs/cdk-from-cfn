@@ -1,0 +1,45 @@
+Differences found:
+Value mismatch at Resources.Subnet1.Properties.CidrBlock.Fn::Select[1].Fn::Cidr[0].Fn::GetAtt:
+  Expected:
+    "VPC.CidrBlock"
+  Actual:
+    [
+      "VPC",
+      "CidrBlock"
+    ]
+
+Value mismatch at Resources.Subnet1.Properties.CidrBlock.Fn::Select[1].Fn::Cidr[2]:
+  Expected:
+    8
+  Actual:
+    "8"
+
+Value mismatch at Resources.Subnet2.Properties.CidrBlock.Fn::Select[1].Fn::Cidr[0].Fn::GetAtt:
+  Expected:
+    "VPC.CidrBlock"
+  Actual:
+    [
+      "VPC",
+      "CidrBlock"
+    ]
+
+Value mismatch at Resources.Subnet2.Properties.CidrBlock.Fn::Select[1].Fn::Cidr[2]:
+  Expected:
+    8
+  Actual:
+    "8"
+
+Value mismatch at Resources.Subnet3.Properties.CidrBlock.Fn::Select[1].Fn::Cidr[0].Fn::GetAtt:
+  Expected:
+    "VPC.CidrBlock"
+  Actual:
+    [
+      "VPC",
+      "CidrBlock"
+    ]
+
+Value mismatch at Resources.Subnet3.Properties.CidrBlock.Fn::Select[1].Fn::Cidr[2]:
+  Expected:
+    8
+  Actual:
+    "8"

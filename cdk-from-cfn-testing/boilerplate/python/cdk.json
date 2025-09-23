@@ -1,0 +1,3 @@
+{
+  "app": "${PYTHON_EXECUTABLE:-$PROJECT_ROOT/cdk-from-cfn-testing/.shared_installations/.python-venv/bin/python3} app.py"
+}
