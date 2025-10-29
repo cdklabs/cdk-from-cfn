@@ -15,6 +15,11 @@ namespace SimpleStack
 
         public string LogDestinationBucketName { get; set; }
 
+        /// <summary>
+        /// A number parameter to test type generation
+        /// </summary>
+        public double? NumberParam { get; set; }
+
     }
 
     /// <summary>
@@ -48,6 +53,7 @@ namespace SimpleStack
                 Type = "AWS::SSM::Parameter::Value<String>",
                 Default = props.LogDestinationBucketName ?? "/logging/bucket/name",
             }).ValueAsString;
+            props.NumberParam ??= 42;
 
             // Mappings
             var booleans = new Dictionary<string, Dictionary<string,bool>> 
