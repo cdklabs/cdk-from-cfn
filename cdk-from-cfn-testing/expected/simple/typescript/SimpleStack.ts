@@ -13,11 +13,6 @@ export interface SimpleStackProps extends cdk.StackProps {
    * @default '/logging/bucket/name'
    */
   readonly logDestinationBucketName?: string;
-  /**
-   * A number parameter to test type generation
-   * @default 42
-   */
-  readonly numberParam?: number;
 }
 
 /**
@@ -49,7 +44,6 @@ export class SimpleStack extends cdk.Stack {
         type: 'AWS::SSM::Parameter::Value<String>',
         default: props.logDestinationBucketName?.toString() ?? '/logging/bucket/name',
       }).valueAsString,
-      numberParam: props.numberParam ?? 42,
     };
 
     // Mappings

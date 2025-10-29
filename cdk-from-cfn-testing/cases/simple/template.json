@@ -91,11 +91,6 @@
   "LogDestinationBucketName": {
    "Type": "AWS::SSM::Parameter::Value<String>",
    "Default": "/logging/bucket/name"
-  },
-  "NumberParam": {
-   "Type": "Number",
-   "Default": "42",
-   "Description": "A number parameter to test type generation"
   }
  },
  "Resources": {

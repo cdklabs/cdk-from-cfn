@@ -36,13 +36,12 @@ class SimpleStack extends Stack {
     }
 
     public SimpleStack(final Construct scope, final String id, final StackProps props) {
-        this(scope, id, props, null, null, null);
+        this(scope, id, props, null, null);
     }
 
     public SimpleStack(final Construct scope, final String id, final StackProps props,
             String bucketNamePrefix,
-            String logDestinationBucketName,
-            Number numberParam) {
+            String logDestinationBucketName) {
         super(scope, id, props);
 
         bucketNamePrefix = Optional.ofNullable(bucketNamePrefix).isPresent() ? bucketNamePrefix
@@ -55,8 +54,6 @@ class SimpleStack extends Stack {
                         .build()
                         .getValueAsString();
 
-        numberParam = Optional.ofNullable(numberParam).isPresent() ? numberParam
-                : 42;
         // Mappings
         final CfnMapping booleans = new CfnMapping(this, "booleans");
         booleans.setValue("True", "true", true);
