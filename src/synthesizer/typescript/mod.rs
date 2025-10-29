@@ -71,6 +71,7 @@ impl Synthesizer for Typescript {
                 "List<Number>" => "number[]",
                 t if t.contains("List") => "string[]",
                 "Boolean" => "boolean",
+                "Number" => "number",
                 _ => "string",
             };
             iface_props.line(format!(
