@@ -350,7 +350,6 @@ impl ConstructorParameter {
         let prop_type = match &self.constructor_type {
             t if t.contains("List") => "string[]",
             t if t == "Boolean" => "bool?",
-            t if t == "Number" => "double?",
             _ => "string",
         };
 

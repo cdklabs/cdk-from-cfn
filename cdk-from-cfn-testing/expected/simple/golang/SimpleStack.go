@@ -13,8 +13,6 @@ type SimpleStackProps struct {
 	/// The prefix for the bucket name
 	BucketNamePrefix *string
 	LogDestinationBucketName interface{/* AWS::SSM::Parameter::Value<String> */}
-	/// A number parameter to test type generation
-	NumberParam *float64
 }
 
 /// An example stack that uses many of the syntax elements permitted in a

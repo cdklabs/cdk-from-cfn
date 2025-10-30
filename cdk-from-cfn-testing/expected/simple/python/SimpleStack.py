@@ -20,7 +20,6 @@ class SimpleStack(Stack):
         type = 'AWS::SSM::Parameter::Value<String>',
         default = str(kwargs.get('logDestinationBucketName', '/logging/bucket/name')),
       ),
-      'numberParam': kwargs.get('numberParam', 42),
     }
 
     # Mappings
