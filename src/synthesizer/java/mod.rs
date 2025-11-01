@@ -103,6 +103,7 @@ impl<'a> Java<'a> {
                 "List<Number>" => "List<Number>",
                 t if t.contains("List") => "String[]",
                 "Boolean" => "Boolean",
+                "Number" => "Number",
                 _ => "String",
             };
 
@@ -225,6 +226,10 @@ impl<'a> Java<'a> {
                     prop_details.line(format!(".{value_as}();"));
                 }
                 Some(v) if prop.constructor_type == ("Boolean") => writer.line(format!(
+                    "{} = Optional.ofNullable({}).isPresent() ? {}\n{DOUBLE_INDENT}: {v};",
+                    prop.name, prop.name, prop.name
+                )),
+                Some(v) if prop.constructor_type == ("Number") => writer.line(format!(
                     "{} = Optional.ofNullable({}).isPresent() ? {}\n{DOUBLE_INDENT}: {v};",
                     prop.name, prop.name, prop.name
                 )),
