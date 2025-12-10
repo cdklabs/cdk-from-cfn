@@ -58,7 +58,7 @@ jobs:
 
       - name: Create Pull Request
         if: steps.update-file.outputs.updated == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           title: "chore: update rust version from ${{ steps.current-version.outputs.current-version }} to ${{ steps.rust-version.outputs.latest-version }}"
           branch: "automation/update-rust-${{ steps.rust-version.outputs.latest-version }}"
