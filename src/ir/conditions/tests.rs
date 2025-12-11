@@ -36,7 +36,7 @@ fn test_sorting() {
     let b = ConditionFunction::Not(ConditionValue::Condition("A".into()));
 
     let hash = IndexMap::from([("A".into(), a), ("B".into(), b)]);
-    let ordered = determine_order(&hash);
+    let ordered = determine_order(&hash).unwrap();
 
     assert_eq!(ordered, vec!["A", "B"]);
 }
