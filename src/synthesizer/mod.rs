@@ -62,7 +62,11 @@ impl CloudformationProgramIr {
             "python" => Box::new(Python {}),
             #[cfg(feature = "typescript")]
             "typescript" => Box::new(Typescript {}),
-            _ => panic!("Unsupported language: {}", language),
+            _ => {
+                return Err(Error::UnsupportedLanguageError {
+                    language: language.into(),
+                })
+            }
         };
         synthesizer.synthesize(self, into, stack_name)
     }
