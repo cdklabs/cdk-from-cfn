@@ -464,7 +464,7 @@ impl ResourceInstruction {
             instructions.push(instruction);
         }
 
-        Ok(order(instructions)?)
+        order(instructions)
     }
 
     fn generate_references(&mut self) {
