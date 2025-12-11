@@ -120,6 +120,14 @@ Value mismatch at Outputs.IsLarge.Value:
       "Type": "String"
     }
 
+- Missing key: Parameters.NumberParam
+  Expected:
+    {
+      "Default": "42",
+      "Description": "A number parameter to test type generation",
+      "Type": "Number"
+    }
+
 - Missing key: Resources.Bucket.Condition
   Expected:
     "IsUsEast1"

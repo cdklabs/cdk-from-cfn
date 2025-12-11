@@ -1,6 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use pretty_assertions::assert_eq;
 use serde_json::Value;
 
 use crate::{
@@ -9,21 +10,21 @@ use crate::{
 };
 
 /// Advanced JSON diff utility for CloudFormation template comparison.
-/// 
+///
 /// Provides semantic comparison of JSON structures with detailed reporting
 /// of differences, acceptable diff management, and multi-template validation.
 pub struct TemplateDiff;
 
 impl TemplateDiff {
     /// Generates a detailed diff report showing specific differences between JSON structures.
-    /// 
+    ///
     /// Recursively compares JSON values and produces human-readable output
     /// highlighting missing keys, extra keys, and value mismatches.
-    /// 
+    ///
     /// # Arguments
     /// * `expected` - Expected JSON structure
     /// * `actual` - Actual JSON structure
-    /// 
+    ///
     /// # Returns
     /// Formatted string describing all differences found
     pub fn report(expected: &Value, actual: &Value) -> String {
@@ -38,10 +39,10 @@ impl TemplateDiff {
     }
 
     /// Recursively traverses JSON structures to identify all differences.
-    /// 
+    ///
     /// Handles objects, arrays, and primitive values, tracking the path
     /// to each difference for detailed reporting.
-    /// 
+    ///
     /// # Arguments
     /// * `expected` - Expected JSON value
     /// * `actual` - Actual JSON value
@@ -99,11 +100,11 @@ impl TemplateDiff {
     }
 
     /// Constructs a dot-notation path for nested JSON keys.
-    /// 
+    ///
     /// # Arguments
     /// * `base` - Base path (empty for root level)
     /// * `key` - Key to append to the path
-    /// 
+    ///
     /// # Returns
     /// Dot-notation path string
     fn build_path(base: &str, key: &str) -> String {
@@ -115,10 +116,10 @@ impl TemplateDiff {
     }
 
     /// Formats JSON values for human-readable output.
-    /// 
+    ///
     /// # Arguments
     /// * `value` - JSON value to format
-    /// 
+    ///
     /// # Returns
     /// Pretty-printed JSON string with fallback to debug format
     fn pretty_print_json(value: &Value) -> String {
@@ -126,11 +127,11 @@ impl TemplateDiff {
     }
 
     /// Adds consistent indentation to multi-line text.
-    /// 
+    ///
     /// # Arguments
     /// * `text` - Text to indent
     /// * `spaces` - Number of spaces for indentation
-    /// 
+    ///
     /// # Returns
     /// Indented text with specified spacing
     fn indent(text: &str, spaces: usize) -> String {
@@ -142,7 +143,7 @@ impl TemplateDiff {
     }
 
     /// Records a missing key difference in the diff report.
-    /// 
+    ///
     /// # Arguments
     /// * `path` - Path to the missing key
     /// * `value` - Expected value that was missing
@@ -157,7 +158,7 @@ impl TemplateDiff {
     }
 
     /// Records an extra key difference in the diff report.
-    /// 
+    ///
     /// # Arguments
     /// * `path` - Path to the extra key
     /// * `value` - Actual value that was unexpected
@@ -172,7 +173,7 @@ impl TemplateDiff {
     }
 
     /// Records a value mismatch difference in the diff report.
-    /// 
+    ///
     /// # Arguments
     /// * `path` - Path to the mismatched value
     /// * `expected` - Expected value
@@ -195,18 +196,18 @@ impl TemplateDiff {
     }
 
     /// Performs semantic comparison of CloudFormation templates with acceptable diff support.
-    /// 
+    ///
     /// Normalizes both templates and compares them semantically. Supports acceptable
     /// diff files for known differences and snapshot updating during development.
-    /// 
+    ///
     /// # Arguments
     /// * `expected_content` - Expected template content
     /// * `actual_content` - Actual template content
     /// * `test_name` - Name of the test for diff file management
-    /// 
+    ///
     /// # Returns
     /// Success reason string describing the comparison result
-    /// 
+    ///
     /// # Panics
     /// Panics if templates differ and differences are not acceptable
     pub fn compare<'a>(
@@ -239,13 +240,13 @@ impl TemplateDiff {
     }
 
     /// Validates that multiple templates are semantically identical.
-    /// 
+    ///
     /// Compares the first template against all others to ensure consistency
     /// across different language implementations.
-    /// 
+    ///
     /// # Arguments
     /// * `templates` - Vector of (language, template_content) pairs
-    /// 
+    ///
     /// # Panics
     /// Panics if any template differs from the first one
     pub fn compare_multiple_templates(templates: &Vec<(String, String)>) {
@@ -269,14 +270,14 @@ impl TemplateDiff {
     }
 
     /// Normalizes template content for semantic comparison.
-    /// 
+    ///
     /// # Arguments
     /// * `content` - Template content to normalize
     /// * `context` - Context description for error reporting
-    /// 
+    ///
     /// # Returns
     /// Normalized JSON value ready for comparison
-    /// 
+    ///
     /// # Panics
     /// Panics if the content cannot be parsed as valid JSON
     pub fn normalize_content(content: &str, context: &str) -> Value {
@@ -290,14 +291,14 @@ impl TemplateDiff {
     }
 
     /// Checks if current differences match the acceptable diff file.
-    /// 
+    ///
     /// # Arguments
     /// * `test_name` - Name of the test to check
     /// * `current_diff` - Current diff content to validate
-    /// 
+    ///
     /// # Returns
     /// Success reason indicating acceptable differences
-    /// 
+    ///
     /// # Panics
     /// Panics if no acceptable diff exists or current diff doesn't match
     fn check_diff_acceptable(test_name: &str, current_diff: &str) -> SuccessReasons {
@@ -307,9 +308,11 @@ impl TemplateDiff {
             "❌ Template differences found (no acceptable diff file):\n{current_diff}"
         );
 
-        assert!(
-            acceptable_diff.unwrap().trim() == current_diff.trim(),
-            "❌ Template differences are not acceptable:\n{current_diff}"
+        // This is showing a diff of a diff. Mind bending!
+        assert_eq!(
+            acceptable_diff.unwrap().trim(),
+            current_diff.trim(),
+            "❌ Template differences are not acceptable:",
         );
 
         SuccessReasons::ACCEPTABLE
@@ -317,7 +320,7 @@ impl TemplateDiff {
 }
 
 /// Enumeration of possible success reasons for template comparison.
-/// 
+///
 /// Indicates why a template comparison succeeded, providing context
 /// for different validation scenarios.
 enum SuccessReasons {
@@ -331,7 +334,7 @@ enum SuccessReasons {
 
 impl SuccessReasons {
     /// Returns a human-readable description of the success reason.
-    /// 
+    ///
     /// # Returns
     /// Static string describing why the comparison succeeded
     fn as_str(&self) -> &'static str {
