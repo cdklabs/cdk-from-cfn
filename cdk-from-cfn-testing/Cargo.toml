@@ -13,6 +13,7 @@ md5 = { version = "^0.7", optional = true }
 serde_json = "1.0"
 futures = "0.3"
 cdk-from-cfn-macros = { path = "../cdk-from-cfn-macros" }
+pretty_assertions = "1.4.1"
 
 [build-dependencies]
 md5 = { version = "^0.7", optional = true }
@@ -33,6 +34,6 @@ pre-install = ["md5"]
 
 [profile.test]
 opt-level = 1        # Light optimization
-debug = false        # Keep debug info minimal  
+debug = false        # Keep debug info minimal
 lto = false          # Disable LTO for faster compilation
 incremental = true   # Enable incremental compilation

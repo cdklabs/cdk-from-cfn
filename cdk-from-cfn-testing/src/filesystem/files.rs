@@ -221,6 +221,7 @@ impl Files {
     /// Panics if the template cannot be read
     pub fn load_actual_synthesized_template(scope: &Scope, stack_name: &str) -> String {
         let path = Paths::synthesized_template_path(&scope.normalized, stack_name);
+        dbg!(&path);
         let result = Self::read(&path);
         assert!(
             result.is_ok(),
