@@ -48,7 +48,7 @@ impl CloudformationProgramIr {
         Ok(CloudformationProgramIr {
             description: parse_tree.description,
             transforms: parse_tree.transforms,
-            conditions: ConditionInstruction::from(parse_tree.conditions),
+            conditions: ConditionInstruction::from(parse_tree.conditions)?,
             imports: ImportInstruction::from(&parse_tree.resources)?,
             constructor: Constructor::from(parse_tree.parameters),
             mappings: MappingInstruction::from(parse_tree.mappings),

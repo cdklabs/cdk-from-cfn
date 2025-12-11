@@ -8,6 +8,7 @@ use super::reference::PseudoParameter;
 use crate::ir::reference::{Origin, Reference};
 use crate::parser::condition::{ConditionFunction, ConditionValue};
 use crate::util::Hasher;
+use crate::{CFCResult, Error};
 
 // ConditionInstructions are simple assignment + boolean
 // clauses, as conditions are based on those composite values.
@@ -21,19 +22,21 @@ pub struct ConditionInstruction {
 }
 
 impl ConditionInstruction {
-    pub(super) fn from(mut parse_tree: IndexMap<String, ConditionFunction, Hasher>) -> Vec<Self> {
-        let order: Vec<String> = determine_order(&parse_tree)
+    pub(super) fn from(
+        mut parse_tree: IndexMap<String, ConditionFunction, Hasher>,
+    ) -> CFCResult<Vec<Self>> {
+        let order: Vec<String> = determine_order(&parse_tree)?
             .into_iter()
             .map(ToString::to_string)
             .collect();
 
-        order
+        Ok(order
             .into_iter()
             .map(|name| {
                 let value = parse_tree.shift_remove(&name).unwrap().into_ir();
                 ConditionInstruction { name, value }
             })
-            .collect()
+            .collect())
     }
 }
 
@@ -131,7 +134,7 @@ impl ConditionValue {
  */
 pub fn determine_order<S>(
     conditions: &indexmap::IndexMap<String, ConditionFunction, S>,
-) -> Vec<&str> {
+) -> CFCResult<Vec<&str>> {
     let mut topo: TopologicalSort<&str> = TopologicalSort::new();
     // Identify condition dependencies
     for (name, value) in conditions {
@@ -143,14 +146,16 @@ pub fn determine_order<S>(
     while !topo.is_empty() {
         let mut list = topo.pop_all();
         if list.is_empty() {
-            panic!("There are cyclic deps in the conditions clauses")
+            return Err(Error::TemplateFormatError {
+                details: "cyclic references in the Conditions section".into(),
+            });
         }
         // Ensure consistent ordering in generated code...
         list.sort();
         sorted.extend(list);
     }
 
-    sorted
+    Ok(sorted)
 }
 
 impl ConditionFunction {

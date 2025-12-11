@@ -1,0 +1,13 @@
+{
+  "Resources": {
+    "Queue1": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": { "Ref": "Queue2222" }
+      }
+    },
+    "Queue2": {
+      "Type": "AWS::SQS::Queue"
+    }
+  }
+}

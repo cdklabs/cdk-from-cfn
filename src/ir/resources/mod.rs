@@ -9,7 +9,6 @@ use base64::Engine;
 use indexmap::IndexMap;
 use topological_sort::TopologicalSort;
 
-use crate::cdk::*;
 use crate::ir::reference::{Origin, Reference};
 use crate::ir::sub::{sub_parse_tree, SubValue};
 use crate::parser::resource::{
@@ -18,6 +17,7 @@ use crate::parser::resource::{
 use crate::primitives::WrapperF64;
 use crate::Error;
 use crate::Hasher;
+use crate::{cdk::*, CFCResult};
 
 use super::ReferenceOrigins;
 
@@ -464,7 +464,7 @@ impl ResourceInstruction {
             instructions.push(instruction);
         }
 
-        Ok(order(instructions))
+        Ok(order(instructions)?)
     }
 
     fn generate_references(&mut self) {
@@ -612,7 +612,7 @@ impl fmt::Display for ResourceType {
     }
 }
 
-fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruction> {
+fn order(resource_instructions: Vec<ResourceInstruction>) -> CFCResult<Vec<ResourceInstruction>> {
     let mut topo = TopologicalSort::new();
     let mut hash = HashMap::with_capacity(resource_instructions.len());
     for resource_instruction in resource_instructions {
@@ -631,16 +631,24 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> Vec<ResourceInstruc
     while !topo.is_empty() {
         let mut list = topo.pop_all();
         if list.is_empty() {
-            panic!("Cyclic dependency in your resources ")
+            return Err(Error::TemplateFormatError {
+                details: "cyclic references in the Resources section".into(),
+            });
         }
         // Ensures consistent ordering of generated code...
         list.sort();
-        sorted_instructions.extend(list.into_iter().map(|name| match hash.remove(&name) {
-            None => panic!("Attempted to reference or depend on a resource not defined in the CloudFormation template. Resource: {name}"),
-            Some(instruction) => instruction,
-        }));
+        sorted_instructions.extend(
+            list.into_iter()
+                .map(|name| match hash.remove(&name) {
+                    None => Err(Error::TemplateFormatError {
+                        details: format!("reference to an unknown logical id: {name}"),
+                    }),
+                    Some(instruction) => Ok(instruction),
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        );
     }
-    sorted_instructions
+    Ok(sorted_instructions)
 }
 
 pub(crate) fn find_references(resource: &ResourceIr) -> HashSet<String> {
