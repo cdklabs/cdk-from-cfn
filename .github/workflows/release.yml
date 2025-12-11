@@ -95,5 +95,5 @@ jobs:
       - name: Release
         if: steps.published.outputs.published == 'false'
         run: |-
-          npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_TOKEN }}
+          # Should use trusted publishing
           wasm-pack publish --tag latest
