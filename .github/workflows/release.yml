@@ -40,6 +40,9 @@ jobs:
   release_to_npm:
     name: Release to NPM
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v6
