@@ -21,3 +21,4 @@ node_modules/
 **/.venv/
 **/cdk.out/
 **/*working-dir/
+node_modules

@@ -47,7 +47,7 @@ fn test_ir_ordering() {
 
     let misordered = vec![later.clone(), ir_instruction.clone()];
 
-    let actual = order(misordered);
+    let actual = order(misordered).unwrap();
     assert_eq!(actual, vec![ir_instruction, later]);
 }
 

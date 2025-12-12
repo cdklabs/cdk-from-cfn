@@ -21,7 +21,16 @@ fix: (clippy "--fix --allow-dirty")
 	cargo fmt
 
 test-cov:
-		cargo llvm-cov --features update-snapshots,skip-clean --ignore-filename-regex '^(tests?/.*\.rs|.*/tests?\.rs|.*testing.*/.*\.rs|.*/testing\.rs)$' --no-fail-fast --lcov --output-path target/lcov.info
+		cargo llvm-cov --features update-snapshots,skip-clean --no-fail-fast --lcov --output-path target/lcov.info
 
 install-tools:
 		cargo install cargo-llvm-cov
+
+wasm-build:
+		wasm-pack build --all-features --target=nodejs --dev --out-name=index --out-dir=target/wasm-package
+
+wasm-test: wasm-build
+		cd wasm-tests && npm ci
+		rm -rf wasm-tests/node_modules/cdk-from-cfn
+		cp -R target/wasm-package wasm-tests/node_modules/cdk-from-cfn
+		cd wasm-tests && npm test

@@ -72,6 +72,6 @@ opt-level = 3
 
 [profile.test]
 opt-level = 1        # Light optimization
-debug = false        # Keep debug info minimal  
+debug = false        # Keep debug info minimal
 lto = false          # Disable LTO for faster compilation
 incremental = true   # Enable incremental compilation

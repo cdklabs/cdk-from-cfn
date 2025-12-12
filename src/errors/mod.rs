@@ -30,7 +30,12 @@ pub enum Error {
     TypeReferenceError { message: String },
     #[error("{message}")]
     PrimitiveError { message: String },
+
+    #[error("Template format error: {details}")]
+    TemplateFormatError { details: String },
 }
+
+pub type CFCResult<T> = std::result::Result<T, Error>;
 
 #[cfg(test)]
 mod tests;
