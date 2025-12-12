@@ -95,5 +95,6 @@ jobs:
       - name: Release
         if: steps.published.outputs.published == 'false'
         run: |-
-          # Should use trusted publishing
-          wasm-pack publish --tag latest
+          # Publish
+          npm --version
+          cd pkg && npm publish --tag latest
