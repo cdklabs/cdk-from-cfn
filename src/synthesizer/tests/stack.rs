@@ -4,6 +4,7 @@
 use crate::cdk::Schema;
 use crate::ir::CloudformationProgramIr;
 use crate::CloudformationParseTree;
+use crate::synthesizer::StackType;
 use cdk_from_cfn_testing::{Language, Stack};
 
 /// Trait for generating CDK stacks directly from CloudFormation templates using the IR (Intermediate Representation).
@@ -45,7 +46,7 @@ impl IrStack for Stack {
 
         let mut output = Vec::new();
         let ir_lang = Language::lang_arg(lang);
-        let result = ir.synthesize(ir_lang, &mut output, stack_name);
+        let result = ir.synthesize(ir_lang, &mut output, stack_name,StackType::default());
         assert!(
             result.is_ok(),
             "❌ Stack file could not be generated. An error occurred in the CloudformationProgramIr synthesis. {:?}", result.err()

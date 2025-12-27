@@ -4,6 +4,7 @@ use cdk_from_cfn::cdk::Schema;
 use cdk_from_cfn::ir::CloudformationProgramIr;
 use cdk_from_cfn::CloudformationParseTree;
 use cdk_from_cfn::Error;
+use cdk_from_cfn::synthesizer::StackType;
 use clap::{Arg, ArgAction, Command};
 use std::borrow::Cow;
 use std::{fs, io};
@@ -68,6 +69,15 @@ fn main() -> Result<(), Error> {
                 .short('s')
                 .action(ArgAction::Set),
         )
+        .arg(
+            Arg::new("stack-type")
+                .help("Sets the output class type: 'stack' or 'construct'")
+                .long("stack-type")
+                .short('t')
+                .default_value("stack")
+                .value_parser(["stack", "construct"])
+                .action(ArgAction::Set),
+        )
         .get_matches();
 
     let cfn_tree: CloudformationParseTree = {
@@ -103,7 +113,12 @@ fn main() -> Result<(), Error> {
         .map(String::as_str)
         .unwrap_or("NoctStack");
 
-    ir.synthesize(language, &mut output, stack_name)?;
+    let stack_type: StackType = matches
+        .get_one::<String>("stack-type")
+        .map(|s| s.parse().unwrap())
+        .unwrap_or_default();
+
+    ir.synthesize(language, &mut output, stack_name, stack_type)?;
 
     Ok(())
 }

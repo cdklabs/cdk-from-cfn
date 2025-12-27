@@ -45,6 +45,7 @@ impl Synthesizer for Golang<'_> {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
+        _stack_type: super::StackType,
     ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 

@@ -42,6 +42,7 @@ impl Synthesizer for CSharp<'_> {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
+        _stack_type: super::StackType,
     ) -> Result<(), Error> {
         // Initialize the code buffer in which all of the code will be generated
         let code = CodeBuffer::default();
