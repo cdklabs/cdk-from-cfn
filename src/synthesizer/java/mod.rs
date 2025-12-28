@@ -1,6 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-use super::Synthesizer;
+use super::{StackType, Synthesizer};
 use crate::cdk::{ItemType, Schema, TypeReference};
 use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
@@ -18,6 +18,22 @@ use voca_rs::case::{camel_case, pascal_case};
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("    ");
 const DOUBLE_INDENT: Cow<'static, str> = Cow::Borrowed("        ");
+
+impl StackType {
+    fn base_class_java(&self) -> &'static str {
+        match self {
+            StackType::Stack => "Stack",
+            StackType::Construct => "Construct",
+        }
+    }
+
+    fn add_transform_call_java(&self, transform: &str) -> String {
+        match self {
+            StackType::Stack => format!("this.addTransform(\"{transform}\");"),
+            StackType::Construct => format!("Stack.of(this).addTransform(\"{transform}\");"),
+        }
+    }
+}
 
 macro_rules! fill {
     ($code:ident; $leading:expr; $($lines:expr),* ; $trailing:expr) => {
@@ -127,56 +143,74 @@ impl<'a> Java<'a> {
         props: &[JavaConstructorParameter],
         writer: &CodeBuffer,
         stack_name: &str,
+        stack_type: StackType,
     ) -> Rc<CodeBuffer> {
-        fill!(writer;
-            format!("public {}(final Construct scope, final String id) {{", stack_name);
-            "super(scope, id, null);";
-            "}" );
+        match stack_type {
+            StackType::Stack => {
+                fill!(writer;
+                    format!("public {}(final Construct scope, final String id) {{", stack_name);
+                    "super(scope, id, null);";
+                    "}" );
 
-        writer.newline();
-        let definitions = writer.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some(
-                    format!(
-                        "public {stack_name}(final Construct scope, final String id, final StackProps props) {{",
-                    )
-                    .into(),
-                ),
-                trailing: Some("}".into()),
-                trailing_newline: true,
-            });
+                writer.newline();
+                let definitions = writer.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(
+                            format!(
+                                "public {stack_name}(final Construct scope, final String id, final StackProps props) {{",
+                            )
+                            .into(),
+                        ),
+                        trailing: Some("}".into()),
+                        trailing_newline: true,
+                    });
 
-        if props.is_empty() {
-            definitions.line("super(scope, id, props);");
-            definitions
-        } else {
-            definitions.line(format!(
-                "this(scope, id, props{});",
-                ", null".repeat(props.len())
-            ));
-
-            writer.newline();
-            let definitions_with_props = writer.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some(format!("public {stack_name}(final Construct scope, final String id, final StackProps props,").into()),
-                trailing: Some("}".into()),
-                trailing_newline: true,
-            });
-            let mut prop = props.iter().peekable();
-            while let Some(p) = prop.next() {
-                if prop.peek().is_none() {
-                    definitions_with_props
-                        .indent(INDENT)
-                        .line(format!("{} {}) {{", p.java_type, p.name));
+                if props.is_empty() {
+                    definitions.line("super(scope, id, props);");
+                    definitions
                 } else {
+                    definitions.line(format!(
+                        "this(scope, id, props{});",
+                        ", null".repeat(props.len())
+                    ));
+
+                    writer.newline();
+                    let definitions_with_props = writer.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(format!("public {stack_name}(final Construct scope, final String id, final StackProps props,").into()),
+                        trailing: Some("}".into()),
+                        trailing_newline: true,
+                    });
+                    let mut prop = props.iter().peekable();
+                    while let Some(p) = prop.next() {
+                        if prop.peek().is_none() {
+                            definitions_with_props
+                                .indent(INDENT)
+                                .line(format!("{} {}) {{", p.java_type, p.name));
+                        } else {
+                            definitions_with_props
+                                .indent(INDENT)
+                                .line(format!("{} {},", p.java_type, p.name));
+                        }
+                    }
+                    definitions_with_props.line("super(scope, id, props);");
+                    definitions_with_props.newline();
                     definitions_with_props
-                        .indent(INDENT)
-                        .line(format!("{} {},", p.java_type, p.name));
                 }
             }
-            definitions_with_props.line("super(scope, id, props);");
-            definitions_with_props.newline();
-            definitions_with_props
+            StackType::Construct => {
+                let definitions = writer.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some(
+                        format!("public {stack_name}(final Construct scope, final String id) {{").into(),
+                    ),
+                    trailing: Some("}".into()),
+                    trailing_newline: true,
+                });
+                definitions.line("super(scope, id);");
+                definitions.newline();
+                definitions
+            }
         }
     }
 
@@ -245,6 +279,7 @@ impl<'a> Java<'a> {
         resource: &ResourceInstruction,
         writer: &Rc<CodeBuffer>,
         schema: &Schema,
+        stack_type: StackType,
     ) -> Result<bool, Error> {
         let class = resource.resource_type.type_name();
         let res_name = &resource.name;
@@ -254,7 +289,7 @@ impl<'a> Java<'a> {
             let properties = writer.indent(DOUBLE_INDENT);
             for (name, prop) in &resource.properties {
                 properties.text(format!(".{}(", camel_case(name)));
-                emit_java(prop.clone(), &properties, Some(class), schema)?;
+                emit_java(prop.clone(), &properties, Some(class), schema, stack_type)?;
                 properties.text(")\n");
             }
             properties.line(".build()) : Optional.empty();");
@@ -267,7 +302,7 @@ impl<'a> Java<'a> {
             let properties = writer.indent(DOUBLE_INDENT);
             for (name, prop) in &resource.properties {
                 properties.text(format!(".{}(", camel_case(name)));
-                emit_java(prop.clone(), &properties, Some(class), schema)?;
+                emit_java(prop.clone(), &properties, Some(class), schema, stack_type)?;
                 properties.text(")\n");
             }
             properties.line(".build();");
@@ -275,11 +310,11 @@ impl<'a> Java<'a> {
         }
     }
 
-    fn write_transforms(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
+    fn write_transforms(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>, stack_type: StackType) {
         if !ir.transforms.is_empty() {
             writer.newline();
             for transform in &ir.transforms {
-                writer.line(format!("this.addTransform(\"{transform}\");"));
+                writer.line(stack_type.add_transform_call_java(transform));
             }
         }
     }
@@ -288,11 +323,12 @@ impl<'a> Java<'a> {
         ir: &CloudformationProgramIr,
         writer: &Rc<CodeBuffer>,
         schema: &Schema,
+        stack_type: StackType,
     ) -> Result<(), Error> {
         for resource in &ir.resources {
-            let maybe_undefined = Self::write_resource(resource, writer, schema)?;
+            let maybe_undefined = Self::write_resource(resource, writer, schema, stack_type)?;
             writer.newline();
-            Self::write_resource_attributes(resource, writer, maybe_undefined, schema)?;
+            Self::write_resource_attributes(resource, writer, maybe_undefined, schema, stack_type)?;
         }
         Ok(())
     }
@@ -302,6 +338,7 @@ impl<'a> Java<'a> {
         writer: &Rc<CodeBuffer>,
         maybe_undefined: bool,
         schema: &Schema,
+        stack_type: StackType,
     ) -> Result<(), Error> {
         let res_name = if maybe_undefined {
             format!(
@@ -321,7 +358,7 @@ impl<'a> Java<'a> {
                 ResourceIr::Object(_, entries) => {
                     for (name, value) in entries {
                         writer.text(format!("{res_name}.addMetadata(\"{name}\", "));
-                        emit_java(value.clone(), writer, None, schema)?;
+                        emit_java(value.clone(), writer, None, schema, stack_type)?;
                         writer.text(format!("){trailer}"));
                     }
                 }
@@ -372,7 +409,7 @@ impl<'a> Java<'a> {
 
         if let Some(update_policy) = &resource.update_policy {
             writer.text(format!("{res_name}.getCfnOptions().setUpdatePolicy("));
-            emit_java(update_policy.clone(), writer, None, schema)?;
+            emit_java(update_policy.clone(), writer, None, schema, stack_type)?;
             writer.text(format!("){trailer}"));
             extra_line = true;
         }
@@ -383,14 +420,14 @@ impl<'a> Java<'a> {
         Ok(())
     }
 
-    fn write_conditions(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>) {
+    fn write_conditions(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>, stack_type: StackType) {
         for condition in &ir.conditions {
             let name = &*condition.name;
             let val = &condition.value;
             writer.line(format!(
                 "Boolean {} = {};",
                 camel_case(name),
-                emit_conditions(val.clone())
+                emit_conditions(val.clone(), stack_type)
             ));
         }
         writer.newline();
@@ -434,13 +471,14 @@ impl<'a> Java<'a> {
         ir: &CloudformationProgramIr,
         writer: &Rc<CodeBuffer>,
         schema: &Schema,
+        stack_type: StackType,
     ) -> Result<(), Error> {
         for output in &ir.outputs {
             let var_name = camel_case(&output.name);
             let output_writer = match &output.condition {
                 None => {
                     writer.text(format!("this.{var_name} = "));
-                    emit_java(output.value.clone(), writer, None, schema)?;
+                    emit_java(output.value.clone(), writer, None, schema, stack_type)?;
                     writer.text(";\n");
                     let output_writer = writer.indent_with_options(IndentOptions {
                         indent: DOUBLE_INDENT,
@@ -464,7 +502,7 @@ impl<'a> Java<'a> {
                         camel_case(&output.name),
                         camel_case(cond)
                     ));
-                    emit_java(output.value.clone(), writer, None, schema)?;
+                    emit_java(output.value.clone(), writer, None, schema, stack_type)?;
                     writer.text(" : Optional.empty();\n");
                     let output_writer = writer.indent_with_options(IndentOptions {
                         indent: DOUBLE_INDENT,
@@ -491,7 +529,7 @@ impl<'a> Java<'a> {
             }
             if output.export.is_some() {
                 output_writer.text(".exportName(");
-                emit_java(output.export.clone().unwrap(), &output_writer, None, schema)?;
+                emit_java(output.export.clone().unwrap(), &output_writer, None, schema, stack_type)?;
                 output_writer.text(")\n");
             }
             writer.newline();
@@ -512,7 +550,7 @@ impl Synthesizer for Java<'_> {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
-        _stack_type: super::StackType,
+        stack_type: super::StackType,
     ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 
@@ -525,7 +563,7 @@ impl Synthesizer for Java<'_> {
 
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("class {stack_name} extends Stack {{").into()),
+            leading: Some(format!("class {stack_name} extends {} {{", stack_type.base_class_java()).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -533,14 +571,14 @@ impl Synthesizer for Java<'_> {
         let props = Self::emit_props(&ir);
         Self::write_output_fields(&ir, &class);
 
-        let definitions = Self::write_stack_definitions(&props, &class, stack_name);
+        let definitions = Self::write_stack_definitions(&props, &class, stack_name, stack_type);
         Self::write_props(&props, &definitions);
-        Self::write_transforms(&ir, &definitions);
+        Self::write_transforms(&ir, &definitions, stack_type);
 
         Self::write_mappings(&ir, &definitions);
-        Self::write_conditions(&ir, &definitions);
-        Self::write_resources(&ir, &definitions, self.schema)?;
-        Self::write_outputs(&ir, &definitions, self.schema)?;
+        Self::write_conditions(&ir, &definitions, stack_type);
+        Self::write_resources(&ir, &definitions, self.schema, stack_type)?;
+        Self::write_outputs(&ir, &definitions, self.schema, stack_type)?;
 
         Ok(code.write(into)?)
     }
@@ -574,51 +612,51 @@ impl ImportInstruction {
     }
 }
 
-fn emit_conditions(condition: ConditionIr) -> String {
+fn emit_conditions(condition: ConditionIr, stack_type: StackType) -> String {
     match condition {
-        ConditionIr::Ref(reference) => emit_reference(reference),
+        ConditionIr::Ref(reference) => emit_reference(reference, stack_type),
         ConditionIr::Str(str) => format!("{str:?}"),
         ConditionIr::Condition(x) => camel_case(&x),
         ConditionIr::And(list) => {
-            let and = get_condition(list, " && ");
+            let and = get_condition(list, " && ", stack_type);
             format!("({and})")
         }
         ConditionIr::Or(list) => {
-            let or = get_condition(list, " || ");
+            let or = get_condition(list, " || ", stack_type);
             format!("({or})")
         }
         ConditionIr::Not(cond) => {
             if cond.is_simple() {
-                format!("!{}", emit_conditions(*cond))
+                format!("!{}", emit_conditions(*cond, stack_type))
             } else {
-                format!("!({})", emit_conditions(*cond))
+                format!("!({})", emit_conditions(*cond, stack_type))
             }
         }
         ConditionIr::Equals(lhs, rhs) => {
             format!(
                 "{}.equals({})",
-                emit_conditions(*lhs),
-                emit_conditions(*rhs)
+                emit_conditions(*lhs, stack_type),
+                emit_conditions(*rhs, stack_type)
             )
         }
         ConditionIr::Map(_, tlk, slk) => {
             format!(
                 "Fn.map({}, {})",
-                emit_conditions(*tlk),
-                emit_conditions(*slk)
+                emit_conditions(*tlk, stack_type),
+                emit_conditions(*slk, stack_type)
             )
         }
         ConditionIr::Split(sep, l1) => {
-            let str = emit_conditions(l1.as_ref().clone());
+            let str = emit_conditions(l1.as_ref().clone(), stack_type);
             format!("Arrays.asList({str}.split(\"{sep}\"))")
         }
         ConditionIr::Select(index, str) => {
-            format!("Fn.select({index:?}, {})", emit_conditions(*str))
+            format!("Fn.select({index:?}, {})", emit_conditions(*str, stack_type))
         }
     }
 }
 
-fn emit_reference(reference: Reference) -> String {
+fn emit_reference(reference: Reference, stack_type: StackType) -> String {
     let origin = reference.origin;
     let name = reference.name;
     match origin {
@@ -652,28 +690,31 @@ fn emit_reference(reference: Reference) -> String {
                 )
             }
         }
-        Origin::PseudoParameter(param) => get_pseudo_param(param),
+        Origin::PseudoParameter(param) => get_pseudo_param(param, stack_type),
         Origin::CfnParameter | Origin::Parameter => camel_case(&name),
         Origin::Condition => name,
     }
 }
 
-fn get_pseudo_param(param: PseudoParameter) -> String {
+fn get_pseudo_param(param: PseudoParameter, stack_type: StackType) -> String {
+    let prefix = match stack_type {
+        StackType::Stack => "this",
+        StackType::Construct => "Stack.of(this)",
+    };
     match param {
-        PseudoParameter::Partition => "this.getPartition()",
-        PseudoParameter::Region => "this.getRegion()",
-        PseudoParameter::StackId => "this.getStackId()",
-        PseudoParameter::StackName => "this.getStackName()",
-        PseudoParameter::URLSuffix => "this.getUrlSuffix()",
-        PseudoParameter::AccountId => "this.getAccount()",
-        PseudoParameter::NotificationArns => "this.getNotificationArns()",
+        PseudoParameter::Partition => format!("{prefix}.getPartition()"),
+        PseudoParameter::Region => format!("{prefix}.getRegion()"),
+        PseudoParameter::StackId => format!("{prefix}.getStackId()"),
+        PseudoParameter::StackName => format!("{prefix}.getStackName()"),
+        PseudoParameter::URLSuffix => format!("{prefix}.getUrlSuffix()"),
+        PseudoParameter::AccountId => format!("{prefix}.getAccount()"),
+        PseudoParameter::NotificationArns => format!("{prefix}.getNotificationArns()"),
     }
-    .into()
 }
 
-fn get_condition(list: Vec<ConditionIr>, sep: &str) -> String {
+fn get_condition(list: Vec<ConditionIr>, sep: &str, stack_type: StackType) -> String {
     list.into_iter()
-        .map(emit_conditions)
+        .map(|c| emit_conditions(c, stack_type))
         .collect::<Vec<_>>()
         .join(sep)
 }
@@ -683,12 +724,13 @@ fn emit_tag_value(
     output: &CodeBuffer,
     class: Option<&str>,
     schema: &Schema,
+    stack_type: StackType,
 ) -> Result<(), Error> {
     match this {
         ResourceIr::Bool(bool) => Ok(output.text(format!("String.valueOf({bool})"))),
         ResourceIr::Double(number) => Ok(output.text(format!("String.valueOf({number})"))),
         ResourceIr::Number(number) => Ok(output.text(format!("String.valueOf({number})"))),
-        other => Ok(emit_java(other, output, class, schema)?),
+        other => Ok(emit_java(other, output, class, schema, stack_type)?),
     }
 }
 
@@ -697,6 +739,7 @@ fn emit_java(
     output: &CodeBuffer,
     class: Option<&str>,
     schema: &Schema,
+    stack_type: StackType,
 ) -> Result<(), Error> {
     match this {
         // Literal values
@@ -730,10 +773,10 @@ fn emit_java(
             let mut arr = array.iter().peekable();
             while let Some(resource) = arr.next() {
                 if arr.peek().is_none() {
-                    emit_java(resource.clone(), &arr_writer, class, schema)?;
+                    emit_java(resource.clone(), &arr_writer, class, schema, stack_type)?;
                     arr_writer.text(")");
                 } else {
-                    emit_java(resource.clone(), &arr_writer, class, schema)?;
+                    emit_java(resource.clone(), &arr_writer, class, schema, stack_type)?;
                     arr_writer.text(",\n");
                 }
             }
@@ -753,12 +796,12 @@ fn emit_java(
                         for (key, value) in &entries {
                             if key.eq_ignore_ascii_case("Key") {
                                 obj.text(".key(");
-                                emit_java(value.clone(), &obj, class, schema)?;
+                                emit_java(value.clone(), &obj, class, schema, stack_type)?;
                                 obj.text(")\n");
                             }
                             if key.eq_ignore_ascii_case("Value") {
                                 obj.text(".value(");
-                                emit_tag_value(value.clone(), &obj, class, schema)?;
+                                emit_tag_value(value.clone(), &obj, class, schema, stack_type)?;
                                 obj.text(")\n")
                             }
                         }
@@ -774,7 +817,7 @@ fn emit_java(
                         });
                         for (key, value) in &entries {
                             obj.text(format!(".{}(", camel_case(key)));
-                            emit_java(value.clone(), &obj, class, schema)?;
+                            emit_java(value.clone(), &obj, class, schema, stack_type)?;
                             obj.text(")\n");
                         }
                         Ok(())
@@ -786,7 +829,7 @@ fn emit_java(
                 let mut map = entries.iter().peekable();
                 while let Some((key, value)) = map.next() {
                     output.text(format!("\"{key}\", "));
-                    emit_java(value.clone(), output, class, schema)?;
+                    emit_java(value.clone(), output, class, schema, stack_type)?;
                     if map.peek().is_some() {
                         output.text(",\n");
                     } else {
@@ -813,16 +856,16 @@ fn emit_java(
             }
             other => {
                 output.text("Fn.base64(");
-                emit_java(other.clone(), output, class, schema)?;
+                emit_java(other.clone(), output, class, schema, stack_type)?;
                 output.text(")");
                 Ok(())
             }
         },
         ResourceIr::Cidr(cidr_block, count, mask) => {
             output.text("Fn.cidr(");
-            emit_java(*cidr_block, output, class, schema)?;
+            emit_java(*cidr_block, output, class, schema, stack_type)?;
             output.text(", ");
-            emit_java(*count, output, class, schema)?;
+            emit_java(*count, output, class, schema, stack_type)?;
             output.text(", ");
             match mask.as_ref() {
                 ResourceIr::Number(mask) => {
@@ -838,20 +881,20 @@ fn emit_java(
         }
         ResourceIr::GetAZs(region) => {
             output.text("Fn.getAzs(");
-            emit_java(*region, output, None, schema)?;
+            emit_java(*region, output, None, schema, stack_type)?;
             output.text(")");
             Ok(())
         }
         ResourceIr::If(cond_name, if_true, if_false) => {
             output.text(format!("{} ? ", camel_case(&cond_name)));
-            emit_java(*if_true, output, class, schema)?;
+            emit_java(*if_true, output, class, schema, stack_type)?;
             output.text(format!("\n{DOUBLE_INDENT}: "));
-            emit_java(*if_false, output, class, schema)?;
+            emit_java(*if_false, output, class, schema, stack_type)?;
             Ok(())
         }
         ResourceIr::ImportValue(import) => {
             output.text("Fn.importValue(");
-            emit_java(*import, output, None, schema)?;
+            emit_java(*import, output, None, schema, stack_type)?;
             output.text(")");
             Ok(())
         }
@@ -864,7 +907,7 @@ fn emit_java(
             });
             let mut l = list.iter().peekable();
             while let Some(item) = l.next() {
-                emit_java(item.clone(), &items, class, schema)?;
+                emit_java(item.clone(), &items, class, schema, stack_type)?;
                 if l.peek().is_some() {
                     items.text(",\n");
                 }
@@ -873,16 +916,16 @@ fn emit_java(
         }
         ResourceIr::Map(name, tlk, slk) => {
             output.text(format!("{}.findInMap(", camel_case(&name)));
-            emit_java(*tlk, output, class, schema)?;
+            emit_java(*tlk, output, class, schema, stack_type)?;
             output.text(", ");
-            emit_java(*slk, output, class, schema)?;
+            emit_java(*slk, output, class, schema, stack_type)?;
             output.text(")");
             Ok(())
         }
         ResourceIr::Select(idx, list) => match list.as_ref() {
             ResourceIr::Array(_, array) => {
                 if idx <= array.len() {
-                    emit_java(array[idx].clone(), output, class, schema)?;
+                    emit_java(array[idx].clone(), output, class, schema, stack_type)?;
                 } else {
                     output.text("null");
                 }
@@ -890,7 +933,7 @@ fn emit_java(
             }
             list => {
                 output.text(format!("Fn.select({idx}, "));
-                emit_java(list.clone(), output, class, schema)?;
+                emit_java(list.clone(), output, class, schema, stack_type)?;
                 output.text(")");
                 Ok(())
             }
@@ -902,7 +945,7 @@ fn emit_java(
             }
             other => {
                 output.text(format!("Fn.split({separator}, "));
-                emit_java(other.clone(), output, class, schema)?;
+                emit_java(other.clone(), output, class, schema, stack_type)?;
                 output.text(")");
                 Ok(())
             }
@@ -912,7 +955,7 @@ fn emit_java(
             while let Some(p) = part.next() {
                 match p {
                     ResourceIr::String(lit) => output.text(format!("\"{}\"", lit.clone())),
-                    other => emit_java(other.clone(), output, class, schema)?,
+                    other => emit_java(other.clone(), output, class, schema, stack_type)?,
                 }
                 if part.peek().is_some() {
                     output.text(" + ");
@@ -921,7 +964,7 @@ fn emit_java(
             Ok(())
         }
         ResourceIr::Ref(reference) => {
-            output.text(emit_reference(reference));
+            output.text(emit_reference(reference, stack_type));
             Ok(())
         }
     }
