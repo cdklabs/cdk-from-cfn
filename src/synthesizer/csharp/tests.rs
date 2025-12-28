@@ -12,6 +12,7 @@ use crate::{
         resources::ResourceIr,
     },
     primitives::WrapperF64,
+    synthesizer::StackType,
 };
 
 use super::CsharpEmitter;
@@ -24,7 +25,7 @@ fn test_fn_split() {
         "-".into(),
         Box::new(ResourceIr::String("My-EC2-Instance".into())),
     );
-    let result = resource_ir.emit_csharp(&output, &schema);
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack);
     assert_eq!((), result.unwrap());
 }
 
@@ -43,7 +44,7 @@ fn test_fn_split_other() {
             ],
         )),
     );
-    let result = resource_ir.emit_csharp(&output, &schema);
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack);
     assert_eq!((), result.unwrap());
 }
 
@@ -56,7 +57,7 @@ fn test_condition_ir_map() {
         Box::new(ConditionIr::Str("FirstLevelKey".into())),
         Box::new(ConditionIr::Str("SecondLevelKey".into())),
     );
-    condition_ir.emit_csharp(&output, &schema);
+    condition_ir.emit_csharp(&output, &schema, StackType::Stack);
 }
 
 #[test]
@@ -67,7 +68,7 @@ fn test_condition_ir_split() {
         "-".into(),
         Box::new(ConditionIr::Str("string-to-split".into())),
     );
-    condition_ir.emit_csharp(&output, &schema);
+    condition_ir.emit_csharp(&output, &schema, StackType::Stack);
 }
 
 #[test]
@@ -85,7 +86,7 @@ fn test_resource_ir_double() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Double(WrapperF64::new(2.0));
-    let result = resource_ir.emit_csharp(&output, &schema);
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack);
     assert_eq!((), result.unwrap());
 }
 
@@ -94,7 +95,7 @@ fn test_resource_ir_select() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Select(1, Box::new(ResourceIr::String("Not an array".into())));
-    let result = resource_ir.emit_csharp(&output, &schema);
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack);
     assert_eq!((), result.unwrap());
 }
 
@@ -107,7 +108,7 @@ fn test_resource_ir_cidr() {
         Box::new(ResourceIr::String("16".into())),
         Box::new(ResourceIr::String("255.255.255.0".into())),
     );
-    let result = resource_ir.emit_csharp(&output, &schema);
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack);
     assert_eq!((), result.unwrap());
 }
 
@@ -119,7 +120,7 @@ fn test_invalid_resource_object_structure() {
         TypeReference::Union(TypeUnion::Static(&[])),
         IndexMap::default(),
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     let expected = "Type reference Union(\n    Static(\n        [],\n    ),\n) not implemented for ResourceIr::Object";
     assert_eq!(expected, result.to_string());
 }
@@ -132,7 +133,7 @@ fn test_invalid_resource_object_primitive() {
         TypeReference::Primitive(Primitive::String),
         IndexMap::default(),
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     let expected =
         "Type reference Primitive(\n    String,\n) not implemented for ResourceIr::Object";
     assert_eq!(expected, result.to_string());
@@ -162,7 +163,7 @@ fn test_resource_ir_select_idx_greater_than_list_len() {
             vec![],
         )),
     );
-    let result = resource_ir.emit_csharp(&output, &schema);
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack);
     assert_eq!((), result.unwrap());
 }
 
@@ -175,7 +176,7 @@ fn test_resource_ir_cidr_null_mask() {
         Box::new(ResourceIr::String("16".into())),
         Box::new(ResourceIr::Null),
     );
-    let result = resource_ir.emit_csharp(&output, &schema);
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack);
     assert_eq!((), result.unwrap());
 }
 
@@ -190,7 +191,7 @@ fn test_output_instruction() {
         condition: Option::None,
         description: Option::None,
     };
-    let result = output_instruction.emit_csharp(&output, &schema);
+    let result = output_instruction.emit_csharp(&output, &schema, StackType::Stack);
     assert_eq!((), result.unwrap());
 }
 
@@ -205,7 +206,7 @@ fn test_resource_ir_array_error() {
             IndexMap::new(),
         )],
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -226,7 +227,7 @@ fn test_resource_ir_object_named_structure_error() {
             ),
         )]),
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -247,7 +248,7 @@ fn test_resource_ir_object_primitive_structure_error() {
             ),
         )]),
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -270,7 +271,7 @@ fn test_resource_ir_object_map_structure_error() {
             ),
         )]),
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -295,7 +296,7 @@ fn test_resource_ir_if_when_true_error() {
         )),
         Box::new(ResourceIr::Null),
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -320,7 +321,7 @@ fn test_resource_ir_if_when_false_error() {
             )]),
         )),
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -338,7 +339,7 @@ fn test_resource_ir_join_error() {
             IndexMap::new(),
         )],
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -356,7 +357,7 @@ fn test_resource_ir_split_error() {
             IndexMap::new(),
         )),
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -371,7 +372,7 @@ fn test_resource_ir_sub_error() {
         TypeReference::Union(TypeUnion::Vec(Vec::new())),
         IndexMap::new(),
     )]);
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -390,7 +391,7 @@ fn test_resource_ir_map_top_level_error() {
         )),
         Box::new(ResourceIr::Null),
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -409,7 +410,7 @@ fn test_resource_ir_map_second_level_error() {
             IndexMap::new(),
         )),
     );
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -424,7 +425,7 @@ fn test_resource_ir_base64_error() {
         TypeReference::Union(TypeUnion::Vec(Vec::new())),
         IndexMap::new(),
     )));
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -439,7 +440,7 @@ fn test_resource_ir_import_value_error() {
         TypeReference::Union(TypeUnion::Vec(Vec::new())),
         IndexMap::new(),
     )));
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -454,9 +455,91 @@ fn test_resource_ir_get_azs_error() {
         TypeReference::Union(TypeUnion::Vec(Vec::new())),
         IndexMap::new(),
     )));
-    let result = resource_ir.emit_csharp(&output, &schema).unwrap_err();
+    let result = resource_ir.emit_csharp(&output, &schema, StackType::Stack).unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Vec(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
     );
+}
+
+// Stack type integration tests
+use crate::ir::CloudformationProgramIr;
+use crate::CloudformationParseTree;
+
+const SIMPLE_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Test template",
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {"Fn::Sub": "${AWS::StackName}-bucket"}
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_stack_type_stack_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("csharp", &mut output, "TestStack", StackType::Stack).unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("public class TestStack : Stack"), "Should extend Stack");
+    assert!(code.contains("public class TestStackProps : StackProps"), "Props should extend StackProps");
+    assert!(code.contains(": base(scope, id, props)"), "Should call base with props");
+    assert!(code.contains("StackName"), "Should use StackName for pseudo-params");
+}
+
+#[test]
+fn test_stack_type_construct_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("csharp", &mut output, "TestStack", StackType::Construct).unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("public class TestStack : Construct"), "Should extend Construct");
+    assert!(!code.contains("public class TestStackProps : StackProps"), "Props should NOT extend StackProps");
+    assert!(code.contains(": base(scope, id)"), "Should call base without props");
+    assert!(code.contains("Stack.Of(this).StackName"), "Should use Stack.Of(this) for pseudo-params");
+}
+
+const TEMPLATE_WITH_TRANSFORM: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket"
+        }
+    }
+}"#;
+
+#[test]
+fn test_add_transform_stack_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_TRANSFORM).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("csharp", &mut output, "TestStack", StackType::Stack).unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("AddTransform(\"AWS::Serverless-2016-10-31\");"), "Stack mode should use AddTransform directly");
+    assert!(!code.contains("Stack.Of(this).AddTransform"), "Stack mode should NOT use Stack.Of(this)");
+}
+
+#[test]
+fn test_add_transform_construct_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_TRANSFORM).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("csharp", &mut output, "TestStack", StackType::Construct).unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("Stack.Of(this).AddTransform(\"AWS::Serverless-2016-10-31\");"), "Construct mode should use Stack.Of(this).AddTransform");
 }
