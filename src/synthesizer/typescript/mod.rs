@@ -56,6 +56,13 @@ impl StackType {
     fn needs_construct_import(&self) -> bool {
         matches!(self, StackType::Construct)
     }
+
+    fn add_transform_call(&self, transform: &str) -> String {
+        match self {
+            StackType::Stack => format!("this.addTransform('{transform}');"),
+            StackType::Construct => format!("cdk.Stack.of(this).addTransform('{transform}');"),
+        }
+    }
 }
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
@@ -258,7 +265,7 @@ impl Synthesizer for Typescript {
             ctor.line("// Transforms");
 
             for transform in &ir.transforms {
-                ctor.line(format!("this.addTransform('{transform}');"));
+                ctor.line(stack_type.add_transform_call(transform));
             }
         }
 

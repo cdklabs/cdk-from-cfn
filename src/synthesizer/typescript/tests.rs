@@ -84,3 +84,37 @@ fn test_stack_type_construct_mode() {
     assert!(code.contains("import { Construct } from 'constructs'"), "Should import Construct");
     assert!(code.contains("cdk.Stack.of(this).stackName"), "Should use cdk.Stack.of(this) for pseudo-params");
 }
+
+const TEMPLATE_WITH_TRANSFORM: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket"
+        }
+    }
+}"#;
+
+#[test]
+fn test_add_transform_stack_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_TRANSFORM).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::Stack).unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("this.addTransform('AWS::Serverless-2016-10-31')"), "Stack mode should use this.addTransform");
+}
+
+#[test]
+fn test_add_transform_construct_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_TRANSFORM).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::Construct).unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("cdk.Stack.of(this).addTransform('AWS::Serverless-2016-10-31')"), "Construct mode should use cdk.Stack.of(this).addTransform");
+}
