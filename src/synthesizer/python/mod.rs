@@ -19,7 +19,30 @@ use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case, snake_case};
 use voca_rs::Voca;
 
-use super::Synthesizer;
+use super::{StackType, Synthesizer};
+
+impl StackType {
+    fn base_class_py(&self) -> &'static str {
+        match self {
+            StackType::Stack => "Stack",
+            StackType::Construct => "Construct",
+        }
+    }
+
+    fn super_call_py(&self) -> &'static str {
+        match self {
+            StackType::Stack => "super().__init__(scope, construct_id, **kwargs)",
+            StackType::Construct => "super().__init__(scope, construct_id)",
+        }
+    }
+
+    fn add_transform_call_py(&self, transform: &str) -> String {
+        match self {
+            StackType::Stack => format!("Stack.add_transform(self, '{transform}')"),
+            StackType::Construct => format!("Stack.of(self).add_transform('{transform}')"),
+        }
+    }
+}
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
@@ -40,7 +63,7 @@ impl Synthesizer for Python {
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
         stack_name: &str,
-        _stack_type: super::StackType,
+        stack_type: super::StackType,
     ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 
@@ -51,7 +74,7 @@ impl Synthesizer for Python {
         }
         imports.line("from constructs import Construct");
 
-        let context = &mut PythonContext::with_imports(imports);
+        let context = &mut PythonContext::with_imports(imports, stack_type);
 
         if let Some(description) = &ir.description {
             let comment = code.pydoc();
@@ -59,7 +82,7 @@ impl Synthesizer for Python {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("class {stack_name}(Stack):").into()),
+            leading: Some(format!("class {stack_name}({}):", stack_type.base_class_py()).into()),
             trailing: Some("".into()),
             trailing_newline: true,
         });
@@ -74,7 +97,7 @@ impl Synthesizer for Python {
             trailing: Some("".into()),
             trailing_newline: true,
         });
-        ctor.line("super().__init__(scope, construct_id, **kwargs)");
+        ctor.line(stack_type.super_call_py());
 
         let have_default_or_special_type_params = &ir
             .constructor
@@ -157,7 +180,7 @@ impl Synthesizer for Python {
             ctor.line("# Transforms");
 
             for transform in &ir.transforms {
-                ctor.line(format!("Stack.add_transform(self, '{transform}')"))
+                ctor.line(stack_type.add_transform_call_py(transform))
             }
         }
 
@@ -168,7 +191,7 @@ impl Synthesizer for Python {
             ctor.line("# Conditions");
 
             for cond in &ir.conditions {
-                let synthed = synthesize_condition_recursive(&cond.value);
+                let synthed = synthesize_condition_recursive(&cond.value, stack_type);
                 ctor.line(format!("{} = {}", snake_case(&cond.name), synthed));
             }
         }
@@ -280,13 +303,15 @@ impl ImportInstruction {
 struct PythonContext {
     imports: Rc<CodeBuffer>,
     imports_base64: bool,
+    stack_type: StackType,
 }
 
 impl PythonContext {
-    const fn with_imports(imports: Rc<CodeBuffer>) -> Self {
+    const fn with_imports(imports: Rc<CodeBuffer>, stack_type: StackType) -> Self {
         Self {
             imports,
             imports_base64: false,
+            stack_type,
         }
     }
 
@@ -360,12 +385,12 @@ fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, M
     }
 }
 
-fn synthesize_condition_recursive(val: &ConditionIr) -> String {
+fn synthesize_condition_recursive(val: &ConditionIr, stack_type: StackType) -> String {
     match val {
         ConditionIr::And(x) => {
             let a: Vec<String> = x
                 .iter()
-                .map(synthesize_condition_recursive)
+                .map(|v| synthesize_condition_recursive(v, stack_type))
                 .map(|condition| snake_case(&condition))
                 .collect();
 
@@ -375,25 +400,25 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         ConditionIr::Equals(a, b) => {
             format!(
                 "{} == {}",
-                synthesize_condition_recursive(a.as_ref()),
-                synthesize_condition_recursive(b.as_ref())
+                synthesize_condition_recursive(a.as_ref(), stack_type),
+                synthesize_condition_recursive(b.as_ref(), stack_type)
             )
         }
         ConditionIr::Not(x) => {
             if x.is_simple() {
                 format!(
                     "not {}",
-                    snake_case(&synthesize_condition_recursive(x.as_ref()))
+                    snake_case(&synthesize_condition_recursive(x.as_ref(), stack_type))
                 )
             } else {
                 format!(
                     "not ({})",
-                    snake_case(&synthesize_condition_recursive(x.as_ref()))
+                    snake_case(&synthesize_condition_recursive(x.as_ref(), stack_type))
                 )
             }
         }
         ConditionIr::Or(x) => {
-            let a: Vec<String> = x.iter().map(synthesize_condition_recursive).collect();
+            let a: Vec<String> = x.iter().map(|v| synthesize_condition_recursive(v, stack_type)).collect();
 
             let inner = a.join(" or ");
             format!("({inner})")
@@ -402,17 +427,17 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
             format!("'{x}'")
         }
         ConditionIr::Condition(x) => snake_case(x),
-        ConditionIr::Ref(x) => x.to_python().into(),
+        ConditionIr::Ref(x) => x.to_python(stack_type).into(),
         ConditionIr::Map(named_resource, l1, l2) => {
             format!(
                 "{}[{}][{}]",
                 snake_case(named_resource),
-                synthesize_condition_recursive(l1.as_ref()),
-                synthesize_condition_recursive(l2.as_ref())
+                synthesize_condition_recursive(l1.as_ref(), stack_type),
+                synthesize_condition_recursive(l2.as_ref(), stack_type)
             )
         }
         ConditionIr::Split(sep, l1) => {
-            let str = synthesize_condition_recursive(l1.as_ref());
+            let str = synthesize_condition_recursive(l1.as_ref(), stack_type);
             format!(
                 "{str}.split('{sep}')",
                 str = str.escape_debug(),
@@ -420,14 +445,14 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
             )
         }
         ConditionIr::Select(index, l1) => {
-            let str = synthesize_condition_recursive(l1.as_ref());
+            let str = synthesize_condition_recursive(l1.as_ref(), stack_type);
             format!("cdk.Fn.select({index}, {str})")
         }
     }
 }
 
 impl Reference {
-    fn to_python(&self) -> Cow<'static, str> {
+    fn to_python(&self, stack_type: StackType) -> Cow<'static, str> {
         match &self.origin {
             Origin::CfnParameter => {
                 format!("props['{}'].value_as_string", camel_case(&self.name)).into()
@@ -437,14 +462,21 @@ impl Reference {
                 format!("{var}{chain}ref", var = camel_case(&self.name), chain = ".").into()
             }
             Origin::Condition => camel_case(&self.name).into(),
-            Origin::PseudoParameter(x) => match x {
-                PseudoParameter::Partition => "self.partition".into(),
-                PseudoParameter::Region => "self.region".into(),
-                PseudoParameter::StackId => "self.stack_id".into(),
-                PseudoParameter::StackName => "self.stack_name".into(),
-                PseudoParameter::URLSuffix => "self.url_suffix".into(),
-                PseudoParameter::AccountId => "self.account".into(),
-                PseudoParameter::NotificationArns => "self.notification_arns".into(),
+            Origin::PseudoParameter(x) => {
+                let prefix = if stack_type == StackType::Construct {
+                    "Stack.of(self)."
+                } else {
+                    "self."
+                };
+                match x {
+                    PseudoParameter::Partition => format!("{}partition", prefix).into(),
+                    PseudoParameter::Region => format!("{}region", prefix).into(),
+                    PseudoParameter::StackId => format!("{}stack_id", prefix).into(),
+                    PseudoParameter::StackName => format!("{}stack_name", prefix).into(),
+                    PseudoParameter::URLSuffix => format!("{}url_suffix", prefix).into(),
+                    PseudoParameter::AccountId => format!("{}account", prefix).into(),
+                    PseudoParameter::NotificationArns => format!("{}notification_arns", prefix).into(),
+                }
             },
             Origin::GetAttribute {
                 conditional: _,
@@ -720,7 +752,7 @@ fn emit_resource_ir(
         }
 
         // References
-        ResourceIr::Ref(reference) => output.text(reference.to_python()),
+        ResourceIr::Ref(reference) => output.text(reference.to_python(context.stack_type)),
     }
     if let Some(trailer) = trailer {
         output.text(trailer.to_owned())
