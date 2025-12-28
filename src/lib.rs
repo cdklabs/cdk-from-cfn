@@ -102,7 +102,12 @@ pub mod wasm {
     /// Transforms the provided template into a CDK application in the specified
     /// language.
     #[wasm_bindgen]
-    pub fn transmute(template: &str, language: &str, stack_name: &str) -> Result<String, JsError> {
+    pub fn transmute(
+        template: &str,
+        language: &str,
+        stack_name: &str,
+        stack_type: Option<String>,
+    ) -> Result<String, JsError> {
         let cfn_tree: CloudformationParseTree = serde_yaml::from_str(template)?;
         let ir = crate::ir::CloudformationProgramIr::from(cfn_tree, Schema::builtin())?;
         let mut output = Vec::new();
@@ -112,7 +117,13 @@ pub mod wasm {
             other => other,
         };
 
-        ir.synthesize(lang, &mut output, stack_name)?;
+        let stack_type_enum: crate::synthesizer::StackType = stack_type
+            .as_deref()
+            .unwrap_or("stack")
+            .parse()
+            .unwrap_or_default();
+
+        ir.synthesize(lang, &mut output, stack_name, stack_type_enum)?;
 
         String::from_utf8(output).map_err(Into::into)
     }
