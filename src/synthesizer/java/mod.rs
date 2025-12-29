@@ -202,7 +202,8 @@ impl<'a> Java<'a> {
                 let definitions = writer.indent_with_options(IndentOptions {
                     indent: INDENT,
                     leading: Some(
-                        format!("public {stack_name}(final Construct scope, final String id) {{").into(),
+                        format!("public {stack_name}(final Construct scope, final String id) {{")
+                            .into(),
                     ),
                     trailing: Some("}".into()),
                     trailing_newline: true,
@@ -310,7 +311,11 @@ impl<'a> Java<'a> {
         }
     }
 
-    fn write_transforms(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>, stack_type: StackType) {
+    fn write_transforms(
+        ir: &CloudformationProgramIr,
+        writer: &Rc<CodeBuffer>,
+        stack_type: StackType,
+    ) {
         if !ir.transforms.is_empty() {
             writer.newline();
             for transform in &ir.transforms {
@@ -420,7 +425,11 @@ impl<'a> Java<'a> {
         Ok(())
     }
 
-    fn write_conditions(ir: &CloudformationProgramIr, writer: &Rc<CodeBuffer>, stack_type: StackType) {
+    fn write_conditions(
+        ir: &CloudformationProgramIr,
+        writer: &Rc<CodeBuffer>,
+        stack_type: StackType,
+    ) {
         for condition in &ir.conditions {
             let name = &*condition.name;
             let val = &condition.value;
@@ -529,7 +538,13 @@ impl<'a> Java<'a> {
             }
             if output.export.is_some() {
                 output_writer.text(".exportName(");
-                emit_java(output.export.clone().unwrap(), &output_writer, None, schema, stack_type)?;
+                emit_java(
+                    output.export.clone().unwrap(),
+                    &output_writer,
+                    None,
+                    schema,
+                    stack_type,
+                )?;
                 output_writer.text(")\n");
             }
             writer.newline();
@@ -563,7 +578,13 @@ impl Synthesizer for Java<'_> {
 
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("class {stack_name} extends {} {{", stack_type.base_class_java()).into()),
+            leading: Some(
+                format!(
+                    "class {stack_name} extends {} {{",
+                    stack_type.base_class_java()
+                )
+                .into(),
+            ),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -651,7 +672,10 @@ fn emit_conditions(condition: ConditionIr, stack_type: StackType) -> String {
             format!("Arrays.asList({str}.split(\"{sep}\"))")
         }
         ConditionIr::Select(index, str) => {
-            format!("Fn.select({index:?}, {})", emit_conditions(*str, stack_type))
+            format!(
+                "Fn.select({index:?}, {})",
+                emit_conditions(*str, stack_type)
+            )
         }
     }
 }

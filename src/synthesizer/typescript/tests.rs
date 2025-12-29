@@ -60,13 +60,26 @@ fn test_stack_type_stack_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("typescript", &mut output, "TestStack", StackType::Stack).unwrap();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::Stack)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("extends cdk.Stack"), "Should extend cdk.Stack");
-    assert!(code.contains("scope: cdk.App"), "Should have scope: cdk.App");
-    assert!(code.contains("super(scope, id, props)"), "Should call super with props");
-    assert!(!code.contains("import { Construct }"), "Should not import Construct");
+    assert!(
+        code.contains("extends cdk.Stack"),
+        "Should extend cdk.Stack"
+    );
+    assert!(
+        code.contains("scope: cdk.App"),
+        "Should have scope: cdk.App"
+    );
+    assert!(
+        code.contains("super(scope, id, props)"),
+        "Should call super with props"
+    );
+    assert!(
+        !code.contains("import { Construct }"),
+        "Should not import Construct"
+    );
 }
 
 #[test]
@@ -75,14 +88,30 @@ fn test_stack_type_construct_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("typescript", &mut output, "TestStack", StackType::Construct).unwrap();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::Construct)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("extends Construct"), "Should extend Construct");
-    assert!(code.contains("scope: Construct"), "Should have scope: Construct");
-    assert!(code.contains("super(scope, id)"), "Should call super without props");
-    assert!(code.contains("import { Construct } from 'constructs'"), "Should import Construct");
-    assert!(code.contains("cdk.Stack.of(this).stackName"), "Should use cdk.Stack.of(this) for pseudo-params");
+    assert!(
+        code.contains("extends Construct"),
+        "Should extend Construct"
+    );
+    assert!(
+        code.contains("scope: Construct"),
+        "Should have scope: Construct"
+    );
+    assert!(
+        code.contains("super(scope, id)"),
+        "Should call super without props"
+    );
+    assert!(
+        code.contains("import { Construct } from 'constructs'"),
+        "Should import Construct"
+    );
+    assert!(
+        code.contains("cdk.Stack.of(this).stackName"),
+        "Should use cdk.Stack.of(this) for pseudo-params"
+    );
 }
 
 const TEMPLATE_WITH_TRANSFORM: &str = r#"{
@@ -101,10 +130,14 @@ fn test_add_transform_stack_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("typescript", &mut output, "TestStack", StackType::Stack).unwrap();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::Stack)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("this.addTransform('AWS::Serverless-2016-10-31')"), "Stack mode should use this.addTransform");
+    assert!(
+        code.contains("this.addTransform('AWS::Serverless-2016-10-31')"),
+        "Stack mode should use this.addTransform"
+    );
 }
 
 #[test]
@@ -113,8 +146,12 @@ fn test_add_transform_construct_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("typescript", &mut output, "TestStack", StackType::Construct).unwrap();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::Construct)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("cdk.Stack.of(this).addTransform('AWS::Serverless-2016-10-31')"), "Construct mode should use cdk.Stack.of(this).addTransform");
+    assert!(
+        code.contains("cdk.Stack.of(this).addTransform('AWS::Serverless-2016-10-31')"),
+        "Construct mode should use cdk.Stack.of(this).addTransform"
+    );
 }

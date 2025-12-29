@@ -89,7 +89,13 @@ impl Synthesizer for CSharp<'_> {
         // Props
         let stack_props_class = namespace.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("public class {stack_name}Props{}\n{{", stack_type.props_base_csharp()).into()),
+            leading: Some(
+                format!(
+                    "public class {stack_name}Props{}\n{{",
+                    stack_type.props_base_csharp()
+                )
+                .into(),
+            ),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -120,7 +126,13 @@ impl Synthesizer for CSharp<'_> {
         // Stack class definition
         let stack_class = namespace.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("public class {stack_name} : {}\n{{", stack_type.base_class_csharp()).into()),
+            leading: Some(
+                format!(
+                    "public class {stack_name} : {}\n{{",
+                    stack_type.base_class_csharp()
+                )
+                .into(),
+            ),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -140,8 +152,8 @@ impl Synthesizer for CSharp<'_> {
 
         // Constructor
         let ctor_base_call = match stack_type {
-            StackType::Stack => format!(" : base(scope, id, props)"),
-            StackType::Construct => format!(" : base(scope, id)"),
+            StackType::Stack => " : base(scope, id, props)".to_string(),
+            StackType::Construct => " : base(scope, id)".to_string(),
         };
         let ctor = stack_class.indent_with_options(IndentOptions {
             indent: INDENT,
@@ -390,7 +402,12 @@ impl ConstructorParameter {
 }
 
 trait CsharpEmitter {
-    fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema, stack_type: StackType) -> Result<(), Error>;
+    fn emit_csharp(
+        &self,
+        output: &CodeBuffer,
+        schema: &Schema,
+        stack_type: StackType,
+    ) -> Result<(), Error>;
 }
 
 impl ConditionIr {
@@ -495,7 +512,12 @@ impl Reference {
 }
 
 impl ResourceIr {
-    fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema, stack_type: StackType) -> Result<(), Error> {
+    fn emit_csharp(
+        &self,
+        output: &CodeBuffer,
+        schema: &Schema,
+        stack_type: StackType,
+    ) -> Result<(), Error> {
         match self {
             ResourceIr::Null => {
                 output.text("null");
@@ -733,7 +755,12 @@ impl ResourceIr {
 }
 
 impl CsharpEmitter for OutputInstruction {
-    fn emit_csharp(&self, output: &CodeBuffer, schema: &Schema, stack_type: StackType) -> Result<(), Error> {
+    fn emit_csharp(
+        &self,
+        output: &CodeBuffer,
+        schema: &Schema,
+        stack_type: StackType,
+    ) -> Result<(), Error> {
         let var_name = &self.name;
 
         if let Some(cond) = &self.condition {

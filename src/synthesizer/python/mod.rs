@@ -418,7 +418,10 @@ fn synthesize_condition_recursive(val: &ConditionIr, stack_type: StackType) -> S
             }
         }
         ConditionIr::Or(x) => {
-            let a: Vec<String> = x.iter().map(|v| synthesize_condition_recursive(v, stack_type)).collect();
+            let a: Vec<String> = x
+                .iter()
+                .map(|v| synthesize_condition_recursive(v, stack_type))
+                .collect();
 
             let inner = a.join(" or ");
             format!("({inner})")
@@ -475,9 +478,11 @@ impl Reference {
                     PseudoParameter::StackName => format!("{}stack_name", prefix).into(),
                     PseudoParameter::URLSuffix => format!("{}url_suffix", prefix).into(),
                     PseudoParameter::AccountId => format!("{}account", prefix).into(),
-                    PseudoParameter::NotificationArns => format!("{}notification_arns", prefix).into(),
+                    PseudoParameter::NotificationArns => {
+                        format!("{}notification_arns", prefix).into()
+                    }
                 }
-            },
+            }
             Origin::GetAttribute {
                 conditional: _,
                 attribute,

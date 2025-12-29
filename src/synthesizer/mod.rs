@@ -19,7 +19,10 @@ impl FromStr for StackType {
         match s {
             "stack" => Ok(StackType::Stack),
             "construct" => Ok(StackType::Construct),
-            _ => Err(format!("Invalid stack type: '{}'. Expected 'stack' or 'construct'", s)),
+            _ => Err(format!(
+                "Invalid stack type: '{}'. Expected 'stack' or 'construct'",
+                s
+            )),
         }
     }
 }

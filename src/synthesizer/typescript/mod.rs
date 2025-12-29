@@ -52,7 +52,6 @@ impl StackType {
         }
     }
 
-
     fn needs_construct_import(&self) -> bool {
         matches!(self, StackType::Construct)
     }
@@ -93,7 +92,11 @@ impl Synthesizer for Typescript {
         let iface_props = code.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(
-                format!("export interface {stack_name}Props{} {{", stack_type.props_extends()).into(),
+                format!(
+                    "export interface {stack_name}Props{} {{",
+                    stack_type.props_extends()
+                )
+                .into(),
             ),
             trailing: Some("}".into()),
             trailing_newline: true,
@@ -135,7 +138,13 @@ impl Synthesizer for Typescript {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("export class {stack_name} extends {} {{", stack_type.base_class()).into()),
+            leading: Some(
+                format!(
+                    "export class {stack_name} extends {} {{",
+                    stack_type.base_class()
+                )
+                .into(),
+            ),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -414,9 +423,11 @@ impl Reference {
                     PseudoParameter::StackName => format!("{}stackName", prefix).into(),
                     PseudoParameter::URLSuffix => format!("{}urlSuffix", prefix).into(),
                     PseudoParameter::AccountId => format!("{}account", prefix).into(),
-                    PseudoParameter::NotificationArns => format!("{}notificationArns", prefix).into(),
+                    PseudoParameter::NotificationArns => {
+                        format!("{}notificationArns", prefix).into()
+                    }
                 }
-            },
+            }
             Origin::GetAttribute {
                 conditional,
                 attribute,
@@ -772,7 +783,10 @@ fn emit_mappings(output: &CodeBuffer, mappings: &[MappingInstruction]) {
 fn synthesize_condition_recursive(val: &ConditionIr, stack_type: StackType) -> String {
     match val {
         ConditionIr::And(x) => {
-            let a: Vec<String> = x.iter().map(|v| synthesize_condition_recursive(v, stack_type)).collect();
+            let a: Vec<String> = x
+                .iter()
+                .map(|v| synthesize_condition_recursive(v, stack_type))
+                .collect();
 
             let inner = a.join(" && ");
             format!("({inner})")
@@ -786,13 +800,22 @@ fn synthesize_condition_recursive(val: &ConditionIr, stack_type: StackType) -> S
         }
         ConditionIr::Not(x) => {
             if x.is_simple() {
-                format!("!{}", synthesize_condition_recursive(x.as_ref(), stack_type))
+                format!(
+                    "!{}",
+                    synthesize_condition_recursive(x.as_ref(), stack_type)
+                )
             } else {
-                format!("!({})", synthesize_condition_recursive(x.as_ref(), stack_type))
+                format!(
+                    "!({})",
+                    synthesize_condition_recursive(x.as_ref(), stack_type)
+                )
             }
         }
         ConditionIr::Or(x) => {
-            let a: Vec<String> = x.iter().map(|v| synthesize_condition_recursive(v, stack_type)).collect();
+            let a: Vec<String> = x
+                .iter()
+                .map(|v| synthesize_condition_recursive(v, stack_type))
+                .collect();
 
             let inner = a.join(" || ");
             format!("({inner})")

@@ -42,7 +42,13 @@ fn test_resource_ir_bool() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Bool(true);
-    let result = emit_java(resource_ir, &output, Option::None, &schema, StackType::Stack);
+    let result = emit_java(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    );
     assert_eq!((), result.unwrap());
 }
 
@@ -51,7 +57,13 @@ fn test_resource_ir_number() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Number(10);
-    let result = emit_java(resource_ir, &output, Option::None, &schema, StackType::Stack);
+    let result = emit_java(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    );
     assert_eq!((), result.unwrap());
 }
 
@@ -60,7 +72,13 @@ fn test_resource_ir_double() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Double(WrapperF64::new(2.0));
-    let result = emit_java(resource_ir, &output, Option::None, &schema, StackType::Stack);
+    let result = emit_java(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    );
     assert_eq!((), result.unwrap());
 }
 
@@ -69,7 +87,13 @@ fn test_tag_value_resource_ir_bool() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Bool(true);
-    let result = emit_tag_value(resource_ir, &output, Option::None, &schema, StackType::Stack);
+    let result = emit_tag_value(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    );
     assert_eq!((), result.unwrap());
 }
 
@@ -78,7 +102,13 @@ fn test_tag_value_resource_ir_double() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Double(WrapperF64::new(2.0));
-    let result = emit_tag_value(resource_ir, &output, Option::None, &schema, StackType::Stack);
+    let result = emit_tag_value(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    );
     assert_eq!((), result.unwrap());
 }
 
@@ -87,7 +117,13 @@ fn test_tag_value_resource_ir_number() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Number(10);
-    let result = emit_tag_value(resource_ir, &output, Option::None, &schema, StackType::Stack);
+    let result = emit_tag_value(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    );
     assert_eq!((), result.unwrap());
 }
 
@@ -99,7 +135,14 @@ fn test_resource_ir_object_type_reference_error() {
         TypeReference::Union(TypeUnion::Static(&[])),
         IndexMap::new(),
     );
-    let result = emit_tag_value(resource_ir, &output, Option::None, &schema, StackType::Stack).unwrap_err();
+    let result = emit_tag_value(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    )
+    .unwrap_err();
     assert_eq!(
         "Type reference Union(\n    Static(\n        [],\n    ),\n) not implemented for ResourceIr::Object",
         result.to_string(),
@@ -118,7 +161,13 @@ fn test_resource_ir_select_idx_greater_than_list_len() {
             vec![],
         )),
     );
-    let result = emit_java(resource_ir, &output, Option::None, &schema, StackType::Stack);
+    let result = emit_java(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    );
     assert_eq!((), result.unwrap());
 }
 
@@ -127,7 +176,13 @@ fn test_resource_ir_split_non_string() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());
     let resource_ir = ResourceIr::Split("-".to_string(), Box::new(ResourceIr::Null));
-    let result = emit_java(resource_ir, &output, Option::None, &schema, StackType::Stack);
+    let result = emit_java(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    );
     assert_eq!((), result.unwrap());
 }
 
@@ -140,7 +195,13 @@ fn test_resource_ir_cidr_null_mask() {
         Box::new(ResourceIr::String("16".into())),
         Box::new(ResourceIr::Null),
     );
-    let result = emit_java(resource_ir, &output, Option::None, &schema, StackType::Stack);
+    let result = emit_java(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    );
     assert_eq!((), result.unwrap());
 }
 
@@ -153,10 +214,15 @@ fn test_resource_ir_cidr_string_mask() {
         Box::new(ResourceIr::String("16".into())),
         Box::new(ResourceIr::String("255.255.255.0".into())),
     );
-    let result = emit_java(resource_ir, &output, Option::None, &schema, StackType::Stack);
+    let result = emit_java(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        StackType::Stack,
+    );
     assert_eq!((), result.unwrap());
 }
-
 
 use crate::ir::CloudformationProgramIr;
 use crate::CloudformationParseTree;
@@ -180,11 +246,18 @@ fn test_stack_type_stack_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("java", &mut output, "TestStack", StackType::Stack).unwrap();
+    ir.synthesize("java", &mut output, "TestStack", StackType::Stack)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("class TestStack extends Stack"), "Should extend Stack");
-    assert!(code.contains("this.getStackName()"), "Should use this.getStackName() for pseudo-params");
+    assert!(
+        code.contains("class TestStack extends Stack"),
+        "Should extend Stack"
+    );
+    assert!(
+        code.contains("this.getStackName()"),
+        "Should use this.getStackName() for pseudo-params"
+    );
 }
 
 #[test]
@@ -193,12 +266,22 @@ fn test_stack_type_construct_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("java", &mut output, "TestStack", StackType::Construct).unwrap();
+    ir.synthesize("java", &mut output, "TestStack", StackType::Construct)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("class TestStack extends Construct"), "Should extend Construct");
-    assert!(code.contains("super(scope, id);"), "Should call super without props");
-    assert!(code.contains("Stack.of(this).getStackName()"), "Should use Stack.of(this) for pseudo-params");
+    assert!(
+        code.contains("class TestStack extends Construct"),
+        "Should extend Construct"
+    );
+    assert!(
+        code.contains("super(scope, id);"),
+        "Should call super without props"
+    );
+    assert!(
+        code.contains("Stack.of(this).getStackName()"),
+        "Should use Stack.of(this) for pseudo-params"
+    );
 }
 
 const TEMPLATE_WITH_TRANSFORM: &str = r#"{
@@ -217,10 +300,14 @@ fn test_add_transform_stack_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("java", &mut output, "TestStack", StackType::Stack).unwrap();
+    ir.synthesize("java", &mut output, "TestStack", StackType::Stack)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("this.addTransform(\"AWS::Serverless-2016-10-31\")"), "Stack mode should use this.addTransform");
+    assert!(
+        code.contains("this.addTransform(\"AWS::Serverless-2016-10-31\")"),
+        "Stack mode should use this.addTransform"
+    );
 }
 
 #[test]
@@ -229,8 +316,12 @@ fn test_add_transform_construct_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("java", &mut output, "TestStack", StackType::Construct).unwrap();
+    ir.synthesize("java", &mut output, "TestStack", StackType::Construct)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("Stack.of(this).addTransform(\"AWS::Serverless-2016-10-31\")"), "Construct mode should use Stack.of(this).addTransform");
+    assert!(
+        code.contains("Stack.of(this).addTransform(\"AWS::Serverless-2016-10-31\")"),
+        "Construct mode should use Stack.of(this).addTransform"
+    );
 }

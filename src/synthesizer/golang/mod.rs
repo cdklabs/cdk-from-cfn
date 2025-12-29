@@ -38,7 +38,9 @@ impl StackType {
     fn add_transform_call_golang(&self, transform: &str) -> String {
         match self {
             StackType::Stack => format!("stack.AddTransform(jsii.String(\"{transform}\"))"),
-            StackType::Construct => format!("cdk.Stack_Of(stack).AddTransform(jsii.String(\"{transform}\"))"),
+            StackType::Construct => {
+                format!("cdk.Stack_Of(stack).AddTransform(jsii.String(\"{transform}\"))")
+            }
         }
     }
 }

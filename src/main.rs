@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 use cdk_from_cfn::cdk::Schema;
 use cdk_from_cfn::ir::CloudformationProgramIr;
+use cdk_from_cfn::synthesizer::StackType;
 use cdk_from_cfn::CloudformationParseTree;
 use cdk_from_cfn::Error;
-use cdk_from_cfn::synthesizer::StackType;
 use clap::{Arg, ArgAction, Command};
 use std::borrow::Cow;
 use std::{fs, io};

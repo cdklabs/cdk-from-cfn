@@ -250,13 +250,23 @@ fn test_stack_type_stack_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("go", &mut output, "TestStack", StackType::Stack).unwrap();
+    ir.synthesize("go", &mut output, "TestStack", StackType::Stack)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("cdk.StackProps"), "Props should embed cdk.StackProps");
+    assert!(
+        code.contains("cdk.StackProps"),
+        "Props should embed cdk.StackProps"
+    );
     assert!(code.contains("cdk.Stack"), "Struct should embed cdk.Stack");
-    assert!(code.contains("cdk.NewStack(scope, &id, &sprops)"), "Should use cdk.NewStack");
-    assert!(code.contains("stack.StackName()"), "Should use stack.StackName() for pseudo-params");
+    assert!(
+        code.contains("cdk.NewStack(scope, &id, &sprops)"),
+        "Should use cdk.NewStack"
+    );
+    assert!(
+        code.contains("stack.StackName()"),
+        "Should use stack.StackName() for pseudo-params"
+    );
 }
 
 #[test]
@@ -265,13 +275,26 @@ fn test_stack_type_construct_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("go", &mut output, "TestStack", StackType::Construct).unwrap();
+    ir.synthesize("go", &mut output, "TestStack", StackType::Construct)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(!code.contains("cdk.StackProps"), "Props should NOT embed cdk.StackProps");
-    assert!(code.contains("constructs.Construct"), "Struct should embed constructs.Construct");
-    assert!(code.contains("constructs.NewConstruct(scope, &id)"), "Should use constructs.NewConstruct");
-    assert!(code.contains("cdk.Stack_Of(stack).StackName()"), "Should use cdk.Stack_Of(stack) for pseudo-params");
+    assert!(
+        !code.contains("cdk.StackProps"),
+        "Props should NOT embed cdk.StackProps"
+    );
+    assert!(
+        code.contains("constructs.Construct"),
+        "Struct should embed constructs.Construct"
+    );
+    assert!(
+        code.contains("constructs.NewConstruct(scope, &id)"),
+        "Should use constructs.NewConstruct"
+    );
+    assert!(
+        code.contains("cdk.Stack_Of(stack).StackName()"),
+        "Should use cdk.Stack_Of(stack) for pseudo-params"
+    );
 }
 
 const TEMPLATE_WITH_TRANSFORM: &str = r#"{
@@ -290,10 +313,14 @@ fn test_add_transform_stack_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("go", &mut output, "TestStack", StackType::Stack).unwrap();
+    ir.synthesize("go", &mut output, "TestStack", StackType::Stack)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("stack.AddTransform(jsii.String(\"AWS::Serverless-2016-10-31\"))"), "Stack mode should use stack.AddTransform");
+    assert!(
+        code.contains("stack.AddTransform(jsii.String(\"AWS::Serverless-2016-10-31\"))"),
+        "Stack mode should use stack.AddTransform"
+    );
 }
 
 #[test]
@@ -302,8 +329,14 @@ fn test_add_transform_construct_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("go", &mut output, "TestStack", StackType::Construct).unwrap();
+    ir.synthesize("go", &mut output, "TestStack", StackType::Construct)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("cdk.Stack_Of(stack).AddTransform(jsii.String(\"AWS::Serverless-2016-10-31\"))"), "Construct mode should use cdk.Stack_Of(stack).AddTransform");
+    assert!(
+        code.contains(
+            "cdk.Stack_Of(stack).AddTransform(jsii.String(\"AWS::Serverless-2016-10-31\"))"
+        ),
+        "Construct mode should use cdk.Stack_Of(stack).AddTransform"
+    );
 }

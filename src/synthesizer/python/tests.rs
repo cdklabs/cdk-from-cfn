@@ -56,12 +56,22 @@ fn test_stack_type_stack_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("python", &mut output, "TestStack", StackType::Stack).unwrap();
+    ir.synthesize("python", &mut output, "TestStack", StackType::Stack)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("class TestStack(Stack):"), "Should extend Stack");
-    assert!(code.contains("super().__init__(scope, construct_id, **kwargs)"), "Should call super with kwargs");
-    assert!(code.contains("self.stack_name"), "Should use self.stack_name for pseudo-params");
+    assert!(
+        code.contains("class TestStack(Stack):"),
+        "Should extend Stack"
+    );
+    assert!(
+        code.contains("super().__init__(scope, construct_id, **kwargs)"),
+        "Should call super with kwargs"
+    );
+    assert!(
+        code.contains("self.stack_name"),
+        "Should use self.stack_name for pseudo-params"
+    );
 }
 
 #[test]
@@ -70,13 +80,26 @@ fn test_stack_type_construct_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("python", &mut output, "TestStack", StackType::Construct).unwrap();
+    ir.synthesize("python", &mut output, "TestStack", StackType::Construct)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("class TestStack(Construct):"), "Should extend Construct");
-    assert!(code.contains("super().__init__(scope, construct_id)"), "Should call super without kwargs");
-    assert!(!code.contains("super().__init__(scope, construct_id, **kwargs)"), "Super call should not have kwargs");
-    assert!(code.contains("Stack.of(self).stack_name"), "Should use Stack.of(self) for pseudo-params");
+    assert!(
+        code.contains("class TestStack(Construct):"),
+        "Should extend Construct"
+    );
+    assert!(
+        code.contains("super().__init__(scope, construct_id)"),
+        "Should call super without kwargs"
+    );
+    assert!(
+        !code.contains("super().__init__(scope, construct_id, **kwargs)"),
+        "Super call should not have kwargs"
+    );
+    assert!(
+        code.contains("Stack.of(self).stack_name"),
+        "Should use Stack.of(self) for pseudo-params"
+    );
 }
 
 const TEMPLATE_WITH_TRANSFORM: &str = r#"{
@@ -95,10 +118,14 @@ fn test_add_transform_stack_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("python", &mut output, "TestStack", StackType::Stack).unwrap();
+    ir.synthesize("python", &mut output, "TestStack", StackType::Stack)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("Stack.add_transform(self, 'AWS::Serverless-2016-10-31')"), "Stack mode should use Stack.add_transform(self, ...)");
+    assert!(
+        code.contains("Stack.add_transform(self, 'AWS::Serverless-2016-10-31')"),
+        "Stack mode should use Stack.add_transform(self, ...)"
+    );
 }
 
 #[test]
@@ -107,8 +134,12 @@ fn test_add_transform_construct_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("python", &mut output, "TestStack", StackType::Construct).unwrap();
+    ir.synthesize("python", &mut output, "TestStack", StackType::Construct)
+        .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("Stack.of(self).add_transform('AWS::Serverless-2016-10-31')"), "Construct mode should use Stack.of(self).add_transform(...)");
+    assert!(
+        code.contains("Stack.of(self).add_transform('AWS::Serverless-2016-10-31')"),
+        "Construct mode should use Stack.of(self).add_transform(...)"
+    );
 }
