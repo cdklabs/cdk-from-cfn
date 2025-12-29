@@ -1,6 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 use std::borrow::Cow;
+use std::str::FromStr;
 
 use indexmap::IndexMap;
 
@@ -610,5 +611,37 @@ fn test_add_transform_construct_mode() {
     assert!(
         code.contains("Stack.Of(this).AddTransform(\"AWS::Serverless-2016-10-31\");"),
         "Construct mode should use Stack.Of(this).AddTransform"
+    );
+}
+
+#[test]
+fn test_stack_type_default_is_stack() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("csharp", &mut output, "TestStack", StackType::default())
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains(": Stack"), "Default should extend Stack");
+}
+
+#[test]
+fn test_stack_type_from_str_valid() {
+    assert_eq!(StackType::from_str("stack").unwrap(), StackType::Stack);
+    assert_eq!(
+        StackType::from_str("construct").unwrap(),
+        StackType::Construct
+    );
+}
+
+#[test]
+fn test_stack_type_from_str_invalid() {
+    let result = StackType::from_str("invalid");
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err(),
+        "Invalid stack type: 'invalid'. Expected 'stack' or 'construct'"
     );
 }

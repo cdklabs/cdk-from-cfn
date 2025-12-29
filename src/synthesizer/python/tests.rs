@@ -5,6 +5,7 @@ use crate::ir::CloudformationProgramIr;
 use crate::ir::{conditions::ConditionIr, importer::ImportInstruction};
 use crate::synthesizer::StackType;
 use crate::CloudformationParseTree;
+use std::str::FromStr;
 
 use super::synthesize_condition_recursive;
 
@@ -35,6 +36,20 @@ fn test_condition_ir_not_simple() {
     let condition_ir = ConditionIr::Not(Box::new(ConditionIr::Condition("condition".into())));
     let result = synthesize_condition_recursive(&condition_ir, StackType::Stack);
     assert_eq!("not (condition)", result);
+}
+
+#[test]
+fn test_condition_ir_map() {
+    let condition_ir = ConditionIr::Map(
+        "ConditionIrMap".into(),
+        Box::new(ConditionIr::Str("FirstLevelKey".into())),
+        Box::new(ConditionIr::Str("SecondLevelKey".into())),
+    );
+    let result = synthesize_condition_recursive(&condition_ir, StackType::Stack);
+    assert_eq!(
+        "condition_ir_map['FirstLevelKey']['SecondLevelKey']",
+        result
+    );
 }
 
 const SIMPLE_TEMPLATE: &str = r#"{
@@ -141,5 +156,40 @@ fn test_add_transform_construct_mode() {
     assert!(
         code.contains("Stack.of(self).add_transform('AWS::Serverless-2016-10-31')"),
         "Construct mode should use Stack.of(self).add_transform(...)"
+    );
+}
+
+#[test]
+fn test_stack_type_default_is_stack() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", StackType::default())
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("class TestStack(Stack):"),
+        "Default should extend Stack"
+    );
+}
+
+#[test]
+fn test_stack_type_from_str_valid() {
+    assert_eq!(StackType::from_str("stack").unwrap(), StackType::Stack);
+    assert_eq!(
+        StackType::from_str("construct").unwrap(),
+        StackType::Construct
+    );
+}
+
+#[test]
+fn test_stack_type_from_str_invalid() {
+    let result = StackType::from_str("invalid");
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err(),
+        "Invalid stack type: 'invalid'. Expected 'stack' or 'construct'"
     );
 }

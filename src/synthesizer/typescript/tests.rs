@@ -4,6 +4,7 @@ use super::*;
 use crate::cdk::Schema;
 use crate::ir::CloudformationProgramIr;
 use crate::CloudformationParseTree;
+use std::str::FromStr;
 
 #[test]
 fn pretty_name_fixes() {
@@ -153,5 +154,40 @@ fn test_add_transform_construct_mode() {
     assert!(
         code.contains("cdk.Stack.of(this).addTransform('AWS::Serverless-2016-10-31')"),
         "Construct mode should use cdk.Stack.of(this).addTransform"
+    );
+}
+
+#[test]
+fn test_stack_type_default_is_stack() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::default())
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("extends cdk.Stack"),
+        "Default should extend cdk.Stack"
+    );
+}
+
+#[test]
+fn test_stack_type_from_str_valid() {
+    assert_eq!(StackType::from_str("stack").unwrap(), StackType::Stack);
+    assert_eq!(
+        StackType::from_str("construct").unwrap(),
+        StackType::Construct
+    );
+}
+
+#[test]
+fn test_stack_type_from_str_invalid() {
+    let result = StackType::from_str("invalid");
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err(),
+        "Invalid stack type: 'invalid'. Expected 'stack' or 'construct'"
     );
 }
