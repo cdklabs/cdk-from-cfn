@@ -1,6 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 use super::*;
+use crate::cdk::Schema;
+use crate::ir::CloudformationProgramIr;
+use crate::CloudformationParseTree;
+use std::str::FromStr;
 
 #[test]
 fn pretty_name_fixes() {
@@ -35,5 +39,155 @@ fn test_alexa_organization() {
     assert_eq!(
         "import * as ask from 'aws-cdk-lib/alexa-ask';",
         result.unwrap()
+    );
+}
+
+const SIMPLE_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Test template",
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {"Fn::Sub": "${AWS::StackName}-bucket"}
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_stack_type_stack_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("extends cdk.Stack"),
+        "Should extend cdk.Stack"
+    );
+    assert!(
+        code.contains("scope: cdk.App"),
+        "Should have scope: cdk.App"
+    );
+    assert!(
+        code.contains("super(scope, id, props)"),
+        "Should call super with props"
+    );
+    assert!(
+        !code.contains("import { Construct }"),
+        "Should not import Construct"
+    );
+}
+
+#[test]
+fn test_stack_type_construct_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::Construct)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("extends Construct"),
+        "Should extend Construct"
+    );
+    assert!(
+        code.contains("scope: Construct"),
+        "Should have scope: Construct"
+    );
+    assert!(
+        code.contains("super(scope, id)"),
+        "Should call super without props"
+    );
+    assert!(
+        code.contains("import { Construct } from 'constructs'"),
+        "Should import Construct"
+    );
+    assert!(
+        code.contains("cdk.Stack.of(this).stackName"),
+        "Should use cdk.Stack.of(this) for pseudo-params"
+    );
+}
+
+const TEMPLATE_WITH_TRANSFORM: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket"
+        }
+    }
+}"#;
+
+#[test]
+fn test_add_transform_stack_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_TRANSFORM).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("this.addTransform('AWS::Serverless-2016-10-31')"),
+        "Stack mode should use this.addTransform"
+    );
+}
+
+#[test]
+fn test_add_transform_construct_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_TRANSFORM).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::Construct)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("cdk.Stack.of(this).addTransform('AWS::Serverless-2016-10-31')"),
+        "Construct mode should use cdk.Stack.of(this).addTransform"
+    );
+}
+
+#[test]
+fn test_stack_type_default_is_stack() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", StackType::default())
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("extends cdk.Stack"),
+        "Default should extend cdk.Stack"
+    );
+}
+
+#[test]
+fn test_stack_type_from_str_valid() {
+    assert_eq!(StackType::from_str("stack").unwrap(), StackType::Stack);
+    assert_eq!(
+        StackType::from_str("construct").unwrap(),
+        StackType::Construct
+    );
+}
+
+#[test]
+fn test_stack_type_from_str_invalid() {
+    let result = StackType::from_str("invalid");
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err(),
+        "Invalid stack type: 'invalid'. Expected 'stack' or 'construct'"
     );
 }
