@@ -1,6 +1,6 @@
 [package]
 name = "cdk-from-cfn"
-version = "0.265.0"
+version = "0.266.0"
 edition = "2021"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
 license = "MIT OR Apache-2.0"
@@ -61,7 +61,7 @@ phf_codegen = "^0.13.1"
 rustc-hash = { version = "2.1.1", optional = true }
 serde = { version = "^1.0.228", features = ["derive"] }
 serde-enum-str = "^0.4.0"
-serde_json = "^1.0.147"
+serde_json = "^1.0.148"
 serde_with = "^3.16.1"
 voca_rs = "^1.15.2"
 
