@@ -70,10 +70,9 @@ fn main() -> Result<(), Error> {
                 .action(ArgAction::Set),
         )
         .arg(
-            Arg::new("class-type")
-                .help("Sets the output class type: 'stack' or 'construct'")
-                .long("class-type")
-                .short('t')
+            Arg::new("as")
+                .help("Sets the output type: 'stack' or 'construct'")
+                .long("as")
                 .default_value("stack")
                 .value_parser(["stack", "construct"])
                 .action(ArgAction::Set),
@@ -114,7 +113,7 @@ fn main() -> Result<(), Error> {
         .unwrap_or("NoctStack");
 
     let class_type: ClassType = matches
-        .get_one::<String>("class-type")
+        .get_one::<String>("as")
         .map(|s| s.parse().unwrap())
         .unwrap_or_default();
 

@@ -11,23 +11,23 @@ cargo install cdk-from-cfn
 ## Usage
 
 ```console
-cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME> [--class-type <CLASS_TYPE>]
+cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME> [--as <stack|construct>]
 ```
 
 - `INPUT` is the input file path (STDIN by default).
 - `OUTPUT` is the output file path; if not specified, output will be printed on your command line (STDOUT by default).
-- `--class-type` (optional) specifies the output type: `stack` (default) or `construct`. Use `construct` to generate a reusable CDK construct instead of a standalone stack.
+- `--as` (optional) specifies the output type: `stack` (default) or `construct`. Use `construct` to generate a reusable CDK construct instead of a standalone stack.
 
 ### Class Type Option
 
-By default, cdk-from-cfn generates code that extends `Stack`. You can use the `--class-type` flag to generate a reusable `Construct` instead:
+By default, cdk-from-cfn generates code that extends `Stack`. You can use the `--as` flag to generate a reusable `Construct` instead:
 
 ```console
 # Generate a Stack (default)
-cdk-from-cfn template.json --language typescript --class-type stack
+cdk-from-cfn template.json --language typescript --as stack
 
 # Generate a Construct
-cdk-from-cfn template.json --language typescript --class-type construct
+cdk-from-cfn template.json --language typescript --as construct
 ```
 
 When using `construct` mode:
