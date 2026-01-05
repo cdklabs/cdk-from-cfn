@@ -3,7 +3,7 @@
 
 use crate::cdk::Schema;
 use crate::ir::CloudformationProgramIr;
-use crate::synthesizer::StackType;
+use crate::synthesizer::ClassType;
 use crate::CloudformationParseTree;
 use cdk_from_cfn_testing::{Language, Stack};
 
@@ -46,7 +46,7 @@ impl IrStack for Stack {
 
         let mut output = Vec::new();
         let ir_lang = Language::lang_arg(lang);
-        let result = ir.synthesize(ir_lang, &mut output, stack_name, StackType::default());
+        let result = ir.synthesize(ir_lang, &mut output, stack_name, ClassType::default());
         assert!(
             result.is_ok(),
             "❌ Stack file could not be generated. An error occurred in the CloudformationProgramIr synthesis. {:?}", result.err()

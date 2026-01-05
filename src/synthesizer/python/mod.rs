@@ -19,27 +19,27 @@ use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case, snake_case};
 use voca_rs::Voca;
 
-use super::{StackType, Synthesizer};
+use super::{ClassType, Synthesizer};
 
-impl StackType {
+impl ClassType {
     fn base_class_py(&self) -> &'static str {
         match self {
-            StackType::Stack => "Stack",
-            StackType::Construct => "Construct",
+            ClassType::Stack => "Stack",
+            ClassType::Construct => "Construct",
         }
     }
 
     fn super_call_py(&self) -> &'static str {
         match self {
-            StackType::Stack => "super().__init__(scope, construct_id, **kwargs)",
-            StackType::Construct => "super().__init__(scope, construct_id)",
+            ClassType::Stack => "super().__init__(scope, construct_id, **kwargs)",
+            ClassType::Construct => "super().__init__(scope, construct_id)",
         }
     }
 
     fn add_transform_call_py(&self, transform: &str) -> String {
         match self {
-            StackType::Stack => format!("Stack.add_transform(self, '{transform}')"),
-            StackType::Construct => format!("Stack.of(self).add_transform('{transform}')"),
+            ClassType::Stack => format!("Stack.add_transform(self, '{transform}')"),
+            ClassType::Construct => format!("Stack.of(self).add_transform('{transform}')"),
         }
     }
 }
@@ -63,7 +63,7 @@ impl Synthesizer for Python {
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
         stack_name: &str,
-        stack_type: super::StackType,
+        class_type: super::ClassType,
     ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 
@@ -74,7 +74,7 @@ impl Synthesizer for Python {
         }
         imports.line("from constructs import Construct");
 
-        let context = &mut PythonContext::with_imports(imports, stack_type);
+        let context = &mut PythonContext::with_imports(imports, class_type);
 
         if let Some(description) = &ir.description {
             let comment = code.pydoc();
@@ -82,7 +82,7 @@ impl Synthesizer for Python {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("class {stack_name}({}):", stack_type.base_class_py()).into()),
+            leading: Some(format!("class {stack_name}({}):", class_type.base_class_py()).into()),
             trailing: Some("".into()),
             trailing_newline: true,
         });
@@ -97,7 +97,7 @@ impl Synthesizer for Python {
             trailing: Some("".into()),
             trailing_newline: true,
         });
-        ctor.line(stack_type.super_call_py());
+        ctor.line(class_type.super_call_py());
 
         let have_default_or_special_type_params = &ir
             .constructor
@@ -180,7 +180,7 @@ impl Synthesizer for Python {
             ctor.line("# Transforms");
 
             for transform in &ir.transforms {
-                ctor.line(stack_type.add_transform_call_py(transform))
+                ctor.line(class_type.add_transform_call_py(transform))
             }
         }
 
@@ -191,7 +191,7 @@ impl Synthesizer for Python {
             ctor.line("# Conditions");
 
             for cond in &ir.conditions {
-                let synthed = synthesize_condition_recursive(&cond.value, stack_type);
+                let synthed = synthesize_condition_recursive(&cond.value, class_type);
                 ctor.line(format!("{} = {}", snake_case(&cond.name), synthed));
             }
         }
@@ -303,15 +303,15 @@ impl ImportInstruction {
 struct PythonContext {
     imports: Rc<CodeBuffer>,
     imports_base64: bool,
-    stack_type: StackType,
+    class_type: ClassType,
 }
 
 impl PythonContext {
-    const fn with_imports(imports: Rc<CodeBuffer>, stack_type: StackType) -> Self {
+    const fn with_imports(imports: Rc<CodeBuffer>, class_type: ClassType) -> Self {
         Self {
             imports,
             imports_base64: false,
-            stack_type,
+            class_type,
         }
     }
 
@@ -385,12 +385,12 @@ fn emit_inner_mapping(output: Rc<CodeBuffer>, inner_mapping: &IndexMap<String, M
     }
 }
 
-fn synthesize_condition_recursive(val: &ConditionIr, stack_type: StackType) -> String {
+fn synthesize_condition_recursive(val: &ConditionIr, class_type: ClassType) -> String {
     match val {
         ConditionIr::And(x) => {
             let a: Vec<String> = x
                 .iter()
-                .map(|v| synthesize_condition_recursive(v, stack_type))
+                .map(|v| synthesize_condition_recursive(v, class_type))
                 .map(|condition| snake_case(&condition))
                 .collect();
 
@@ -400,27 +400,27 @@ fn synthesize_condition_recursive(val: &ConditionIr, stack_type: StackType) -> S
         ConditionIr::Equals(a, b) => {
             format!(
                 "{} == {}",
-                synthesize_condition_recursive(a.as_ref(), stack_type),
-                synthesize_condition_recursive(b.as_ref(), stack_type)
+                synthesize_condition_recursive(a.as_ref(), class_type),
+                synthesize_condition_recursive(b.as_ref(), class_type)
             )
         }
         ConditionIr::Not(x) => {
             if x.is_simple() {
                 format!(
                     "not {}",
-                    snake_case(&synthesize_condition_recursive(x.as_ref(), stack_type))
+                    snake_case(&synthesize_condition_recursive(x.as_ref(), class_type))
                 )
             } else {
                 format!(
                     "not ({})",
-                    snake_case(&synthesize_condition_recursive(x.as_ref(), stack_type))
+                    snake_case(&synthesize_condition_recursive(x.as_ref(), class_type))
                 )
             }
         }
         ConditionIr::Or(x) => {
             let a: Vec<String> = x
                 .iter()
-                .map(|v| synthesize_condition_recursive(v, stack_type))
+                .map(|v| synthesize_condition_recursive(v, class_type))
                 .collect();
 
             let inner = a.join(" or ");
@@ -430,17 +430,17 @@ fn synthesize_condition_recursive(val: &ConditionIr, stack_type: StackType) -> S
             format!("'{x}'")
         }
         ConditionIr::Condition(x) => snake_case(x),
-        ConditionIr::Ref(x) => x.to_python(stack_type).into(),
+        ConditionIr::Ref(x) => x.to_python(class_type).into(),
         ConditionIr::Map(named_resource, l1, l2) => {
             format!(
                 "{}[{}][{}]",
                 snake_case(named_resource),
-                synthesize_condition_recursive(l1.as_ref(), stack_type),
-                synthesize_condition_recursive(l2.as_ref(), stack_type)
+                synthesize_condition_recursive(l1.as_ref(), class_type),
+                synthesize_condition_recursive(l2.as_ref(), class_type)
             )
         }
         ConditionIr::Split(sep, l1) => {
-            let str = synthesize_condition_recursive(l1.as_ref(), stack_type);
+            let str = synthesize_condition_recursive(l1.as_ref(), class_type);
             format!(
                 "{str}.split('{sep}')",
                 str = str.escape_debug(),
@@ -448,14 +448,14 @@ fn synthesize_condition_recursive(val: &ConditionIr, stack_type: StackType) -> S
             )
         }
         ConditionIr::Select(index, l1) => {
-            let str = synthesize_condition_recursive(l1.as_ref(), stack_type);
+            let str = synthesize_condition_recursive(l1.as_ref(), class_type);
             format!("cdk.Fn.select({index}, {str})")
         }
     }
 }
 
 impl Reference {
-    fn to_python(&self, stack_type: StackType) -> Cow<'static, str> {
+    fn to_python(&self, class_type: ClassType) -> Cow<'static, str> {
         match &self.origin {
             Origin::CfnParameter => {
                 format!("props['{}'].value_as_string", camel_case(&self.name)).into()
@@ -466,7 +466,7 @@ impl Reference {
             }
             Origin::Condition => camel_case(&self.name).into(),
             Origin::PseudoParameter(x) => {
-                let prefix = if stack_type == StackType::Construct {
+                let prefix = if class_type == ClassType::Construct {
                     "Stack.of(self)."
                 } else {
                     "self."
@@ -757,7 +757,7 @@ fn emit_resource_ir(
         }
 
         // References
-        ResourceIr::Ref(reference) => output.text(reference.to_python(context.stack_type)),
+        ResourceIr::Ref(reference) => output.text(reference.to_python(context.class_type)),
     }
     if let Some(trailer) = trailer {
         output.text(trailer.to_owned())

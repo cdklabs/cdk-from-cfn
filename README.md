@@ -11,23 +11,23 @@ cargo install cdk-from-cfn
 ## Usage
 
 ```console
-cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME> [--stack-type <STACK_TYPE>]
+cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME> [--class-type <CLASS_TYPE>]
 ```
 
 - `INPUT` is the input file path (STDIN by default).
 - `OUTPUT` is the output file path; if not specified, output will be printed on your command line (STDOUT by default).
-- `--stack-type` (optional) specifies the output type: `stack` (default) or `construct`. Use `construct` to generate a reusable CDK construct instead of a standalone stack.
+- `--class-type` (optional) specifies the output type: `stack` (default) or `construct`. Use `construct` to generate a reusable CDK construct instead of a standalone stack.
 
-### Stack Type Option
+### Class Type Option
 
-By default, cdk-from-cfn generates code that extends `Stack`. You can use the `--stack-type` flag to generate a reusable `Construct` instead:
+By default, cdk-from-cfn generates code that extends `Stack`. You can use the `--class-type` flag to generate a reusable `Construct` instead:
 
 ```console
 # Generate a Stack (default)
-cdk-from-cfn template.json --language typescript --stack-type stack
+cdk-from-cfn template.json --language typescript --class-type stack
 
 # Generate a Construct
-cdk-from-cfn template.json --language typescript --stack-type construct
+cdk-from-cfn template.json --language typescript --class-type construct
 ```
 
 When using `construct` mode:
@@ -52,7 +52,7 @@ cdk_from_cfn.transmute(template, language, stackName);
 cdk_from_cfn.transmute(template, language, stackName, 'construct');
 ```
 
-The `transmute` function accepts an optional fourth parameter `stackType`:
+The `transmute` function accepts an optional fourth parameter `classType`:
 - `'stack'` (default): generates code extending `Stack`
 - `'construct'`: generates code extending `Construct`
 

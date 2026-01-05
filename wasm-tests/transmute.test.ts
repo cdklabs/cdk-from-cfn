@@ -15,7 +15,7 @@ describe('with sqs template', async () => {
     // THEN - no exception
   });
 
-  test('transmute with stack_type=stack (default)', async () => {
+  test('transmute with class_type=stack (default)', async () => {
     // WHEN
     const output = cdk_from_cfn.transmute(tpl, 'typescript', 'SqsStack', 'stack');
 
@@ -25,9 +25,9 @@ describe('with sqs template', async () => {
     assert.ok(!output.includes("import { Construct } from 'constructs'"));
   });
 
-  test('transmute with stack_type=construct', async () => {
+  test('transmute with class_type=construct', async () => {
     // WHEN
-    const output = cdk_from_cfn.transmute(tpl, 'typescript', 'SqsStack', 'construct');
+    const output = cdk_from_cfn.transmute(tpl, 'typescript', 'SqsConstruct', 'construct');
 
     // THEN - generates Construct based code
     assert.ok(output.includes('extends Construct'));

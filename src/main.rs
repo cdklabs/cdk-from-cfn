@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 use cdk_from_cfn::cdk::Schema;
 use cdk_from_cfn::ir::CloudformationProgramIr;
-use cdk_from_cfn::synthesizer::StackType;
+use cdk_from_cfn::synthesizer::ClassType;
 use cdk_from_cfn::CloudformationParseTree;
 use cdk_from_cfn::Error;
 use clap::{Arg, ArgAction, Command};
@@ -70,9 +70,9 @@ fn main() -> Result<(), Error> {
                 .action(ArgAction::Set),
         )
         .arg(
-            Arg::new("stack-type")
+            Arg::new("class-type")
                 .help("Sets the output class type: 'stack' or 'construct'")
-                .long("stack-type")
+                .long("class-type")
                 .short('t')
                 .default_value("stack")
                 .value_parser(["stack", "construct"])
@@ -113,12 +113,12 @@ fn main() -> Result<(), Error> {
         .map(String::as_str)
         .unwrap_or("NoctStack");
 
-    let stack_type: StackType = matches
-        .get_one::<String>("stack-type")
+    let class_type: ClassType = matches
+        .get_one::<String>("class-type")
         .map(|s| s.parse().unwrap())
         .unwrap_or_default();
 
-    ir.synthesize(language, &mut output, stack_name, stack_type)?;
+    ir.synthesize(language, &mut output, stack_name, class_type)?;
 
     Ok(())
 }

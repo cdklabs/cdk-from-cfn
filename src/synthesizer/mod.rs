@@ -6,21 +6,21 @@ use std::str::FromStr;
 use crate::{ir::CloudformationProgramIr, Error};
 
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
-pub enum StackType {
+pub enum ClassType {
     #[default]
     Stack,
     Construct,
 }
 
-impl FromStr for StackType {
+impl FromStr for ClassType {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "stack" => Ok(StackType::Stack),
-            "construct" => Ok(StackType::Construct),
+            "stack" => Ok(ClassType::Stack),
+            "construct" => Ok(ClassType::Construct),
             _ => Err(format!(
-                "Invalid stack type: '{}'. Expected 'stack' or 'construct'",
+                "Invalid class type: '{}'. Expected 'stack' or 'construct'",
                 s
             )),
         }
@@ -63,7 +63,7 @@ pub trait Synthesizer {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
-        stack_type: StackType,
+        class_type: ClassType,
     ) -> Result<(), Error>;
 }
 
@@ -74,7 +74,7 @@ impl CloudformationProgramIr {
         language: &str,
         into: &mut impl io::Write,
         stack_name: &str,
-        stack_type: StackType,
+        class_type: ClassType,
     ) -> Result<(), Error> {
         let synthesizer: Box<dyn Synthesizer> = match language {
             #[cfg(feature = "csharp")]
@@ -93,7 +93,7 @@ impl CloudformationProgramIr {
                 })
             }
         };
-        synthesizer.synthesize(self, into, stack_name, stack_type)
+        synthesizer.synthesize(self, into, stack_name, class_type)
     }
 }
 

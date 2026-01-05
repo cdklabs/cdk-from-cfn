@@ -56,12 +56,12 @@ const SIMPLE_TEMPLATE: &str = r#"{
 }"#;
 
 #[test]
-fn test_stack_type_stack_mode() {
+fn test_class_type_stack_mode() {
     let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("typescript", &mut output, "TestStack", StackType::Stack)
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::Stack)
         .unwrap();
     let code = String::from_utf8(output).unwrap();
 
@@ -84,13 +84,18 @@ fn test_stack_type_stack_mode() {
 }
 
 #[test]
-fn test_stack_type_construct_mode() {
+fn test_class_type_construct_mode() {
     let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("typescript", &mut output, "TestStack", StackType::Construct)
-        .unwrap();
+    ir.synthesize(
+        "typescript",
+        &mut output,
+        "TestConstruct",
+        ClassType::Construct,
+    )
+    .unwrap();
     let code = String::from_utf8(output).unwrap();
 
     assert!(
@@ -131,7 +136,7 @@ fn test_add_transform_stack_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("typescript", &mut output, "TestStack", StackType::Stack)
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::Stack)
         .unwrap();
     let code = String::from_utf8(output).unwrap();
 
@@ -147,8 +152,13 @@ fn test_add_transform_construct_mode() {
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("typescript", &mut output, "TestStack", StackType::Construct)
-        .unwrap();
+    ir.synthesize(
+        "typescript",
+        &mut output,
+        "TestConstruct",
+        ClassType::Construct,
+    )
+    .unwrap();
     let code = String::from_utf8(output).unwrap();
 
     assert!(
@@ -158,12 +168,12 @@ fn test_add_transform_construct_mode() {
 }
 
 #[test]
-fn test_stack_type_default_is_stack() {
+fn test_class_type_default_is_stack() {
     let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
     let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
 
     let mut output = Vec::new();
-    ir.synthesize("typescript", &mut output, "TestStack", StackType::default())
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::default())
         .unwrap();
     let code = String::from_utf8(output).unwrap();
 
@@ -174,20 +184,20 @@ fn test_stack_type_default_is_stack() {
 }
 
 #[test]
-fn test_stack_type_from_str_valid() {
-    assert_eq!(StackType::from_str("stack").unwrap(), StackType::Stack);
+fn test_class_type_from_str_valid() {
+    assert_eq!(ClassType::from_str("stack").unwrap(), ClassType::Stack);
     assert_eq!(
-        StackType::from_str("construct").unwrap(),
-        StackType::Construct
+        ClassType::from_str("construct").unwrap(),
+        ClassType::Construct
     );
 }
 
 #[test]
-fn test_stack_type_from_str_invalid() {
-    let result = StackType::from_str("invalid");
+fn test_class_type_from_str_invalid() {
+    let result = ClassType::from_str("invalid");
     assert!(result.is_err());
     assert_eq!(
         result.unwrap_err(),
-        "Invalid stack type: 'invalid'. Expected 'stack' or 'construct'"
+        "Invalid class type: 'invalid'. Expected 'stack' or 'construct'"
     );
 }
