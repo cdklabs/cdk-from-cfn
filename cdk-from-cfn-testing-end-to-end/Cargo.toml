@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 cdk-from-cfn-testing = { path = "../cdk-from-cfn-testing" }
 aws-config = "^1.8.1"
-aws-sdk-cloudformation = "^1.83.0"
+aws-sdk-cloudformation = "^1.99.0"
 aws-sdk-s3 = "^1.83.0"
 aws-smithy-types = "^1.2.0"
 aws-smithy-runtime-api = "^1.8.1"
