@@ -44,7 +44,7 @@ serde_yaml = "^0.9.34"
 thiserror = "^2.0.17"
 topological-sort = "^0.2.2"
 voca_rs = "^1.15.2"
-wasm-bindgen = "^0.2.100"
+wasm-bindgen = "^0.2.106"
 
 [dev-dependencies]
 cdk-from-cfn-macros = { path = "cdk-from-cfn-macros" }
