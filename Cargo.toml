@@ -1,6 +1,6 @@
 [package]
 name = "cdk-from-cfn"
-version = "0.268.0"
+version = "0.269.0"
 edition = "2021"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
 license = "MIT OR Apache-2.0"
@@ -33,7 +33,7 @@ crate-type = ["cdylib", "lib"]
 base64 = "^0.22.1"
 clap = { version = "^4.5.54", features = ["cargo"] }
 console_error_panic_hook = { version = "0.1.1", optional = true }
-indexmap = { version = "^2.12.1", features = ["serde"] }
+indexmap = { version = "^2.13.0", features = ["serde"] }
 nom = "^8.0.0"
 phf = { version = "^0.13.1", features = ["macros"] }
 rustc-hash = { version = "2.1.1", optional = true }
@@ -44,7 +44,7 @@ serde_yaml = "^0.9.34"
 thiserror = "^2.0.17"
 topological-sort = "^0.2.2"
 voca_rs = "^1.15.2"
-wasm-bindgen = "^0.2.100"
+wasm-bindgen = "^0.2.106"
 
 [dev-dependencies]
 cdk-from-cfn-macros = { path = "cdk-from-cfn-macros" }
@@ -55,7 +55,7 @@ serial_test = "3.3"
 tokio = { version = "1", features = ["full"] }
 
 [build-dependencies]
-indexmap = "^2.12.1"
+indexmap = "^2.13.0"
 phf = { version = "^0.13.1", features = ["macros"] }
 phf_codegen = "^0.13.1"
 rustc-hash = { version = "2.1.1", optional = true }
