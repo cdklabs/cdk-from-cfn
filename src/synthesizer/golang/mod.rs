@@ -18,7 +18,32 @@ use std::io;
 use std::rc::Rc;
 use voca_rs::case::{camel_case, pascal_case, snake_case};
 
-use super::Synthesizer;
+use super::{ClassType, Synthesizer};
+
+impl ClassType {
+    fn base_struct_golang(&self) -> &'static str {
+        match self {
+            ClassType::Stack => "cdk.Stack",
+            ClassType::Construct => "constructs.Construct",
+        }
+    }
+
+    fn props_embed_golang(&self) -> &'static str {
+        match self {
+            ClassType::Stack => "cdk.StackProps",
+            ClassType::Construct => "",
+        }
+    }
+
+    fn add_transform_call_golang(&self, transform: &str) -> String {
+        match self {
+            ClassType::Stack => format!("stack.AddTransform(jsii.String(\"{transform}\"))"),
+            ClassType::Construct => {
+                format!("cdk.Stack_Of(stack).AddTransform(jsii.String(\"{transform}\"))")
+            }
+        }
+    }
+}
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("\t");
 const TERNARY: &str = "ifCondition";
@@ -45,6 +70,7 @@ impl Synthesizer for Golang<'_> {
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
         stack_name: &str,
+        class_type: super::ClassType,
     ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 
@@ -74,7 +100,10 @@ impl Synthesizer for Golang<'_> {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        props.line("cdk.StackProps"); // Extends cdk.StackProps
+        let props_embed = class_type.props_embed_golang();
+        if !props_embed.is_empty() {
+            props.line(props_embed); // Extends cdk.StackProps only in stack mode
+        }
         for param in &ir.constructor.inputs {
             if let Some(description) = &param.description {
                 props.indent("/// ".into()).line(description.to_owned());
@@ -92,7 +121,7 @@ impl Synthesizer for Golang<'_> {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        class.line("cdk.Stack");
+        class.line(class_type.base_struct_golang());
         for output in &ir.outputs {
             if let Some(description) = &output.description {
                 class.indent("/// ".into()).line(description.to_owned());
@@ -121,7 +150,7 @@ impl Synthesizer for Golang<'_> {
             let time = stdlib_imports.section(false);
             let blank = stdlib_imports.section(false);
             let ternary = code.section(false);
-            GoContext::new(self.schema, fmt, time, blank, ternary)
+            GoContext::new(self.schema, fmt, time, blank, ternary, class_type)
         };
 
         for mapping in &ir.mappings {
@@ -196,20 +225,27 @@ impl Synthesizer for Golang<'_> {
             }
             ctor.newline();
         }
-        ctor.line("var sprops cdk.StackProps");
-        let props_not_nil_block = ctor.indent_with_options(IndentOptions {
-            indent: INDENT,
-            leading: Some("if props != nil {".into()),
-            trailing: Some("}".into()),
-            trailing_newline: true,
-        });
-        props_not_nil_block.line("sprops = props.StackProps");
-        ctor.line("stack := cdk.NewStack(scope, &id, &sprops)");
+        match class_type {
+            ClassType::Stack => {
+                ctor.line("var sprops cdk.StackProps");
+                let props_not_nil_block = ctor.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some("if props != nil {".into()),
+                    trailing: Some("}".into()),
+                    trailing_newline: true,
+                });
+                props_not_nil_block.line("sprops = props.StackProps");
+                ctor.line("stack := cdk.NewStack(scope, &id, &sprops)");
+            }
+            ClassType::Construct => {
+                ctor.line("stack := constructs.NewConstruct(scope, &id)");
+            }
+        }
         ctor.newline();
 
         if !ir.transforms.is_empty() {
             for transform in &ir.transforms {
-                ctor.line(format!("stack.AddTransform(jsii.String(\"{transform}\"))"));
+                ctor.line(class_type.add_transform_call_golang(transform));
             }
             ctor.newline();
         }
@@ -300,7 +336,11 @@ impl Synthesizer for Golang<'_> {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        fields.line("Stack: stack,");
+        let base_field = match class_type {
+            ClassType::Stack => "Stack",
+            ClassType::Construct => "Construct",
+        };
+        fields.line(format!("{base_field}: stack,"));
         for output in &ir.outputs {
             fields.text(format!(
                 "{name}: ",
@@ -327,9 +367,16 @@ impl Synthesizer for Golang<'_> {
             "New{stack_name}(app, \"{}\", {stack_name}Props{{",
             split_stack_name[0]
         ));
-        main_block.indent(INDENT).line("cdk.StackProps{");
-        main_block.indent(INDENT).indent(INDENT).line("Env: env(),");
-        main_block.indent(INDENT).line("},");
+        match class_type {
+            ClassType::Stack => {
+                main_block.indent(INDENT).line("cdk.StackProps{");
+                main_block.indent(INDENT).indent(INDENT).line("Env: env(),");
+                main_block.indent(INDENT).line("},");
+            }
+            ClassType::Construct => {
+                // No StackProps in construct mode
+            }
+        }
         for param in &ir.constructor.inputs {
             if param.default_value.is_some() {
                 main_block.indent(INDENT).line(format!(
@@ -399,6 +446,7 @@ struct GoContext<'a> {
     has_time: bool,
     has_blank: bool,
     has_ternary: bool,
+    class_type: ClassType,
 }
 impl<'a> GoContext<'a> {
     const fn new(
@@ -407,6 +455,7 @@ impl<'a> GoContext<'a> {
         time: Rc<CodeBuffer>,
         blank: Rc<CodeBuffer>,
         ternary: Rc<CodeBuffer>,
+        class_type: ClassType,
     ) -> Self {
         Self {
             schema,
@@ -418,6 +467,7 @@ impl<'a> GoContext<'a> {
             has_time: false,
             has_blank: false,
             has_ternary: false,
+            class_type,
         }
     }
 
@@ -1005,6 +1055,10 @@ impl GolangEmitter for Reference {
                 name = golang_identifier(&self.name, IdentifierKind::Exported)
             )),
             Origin::PseudoParameter(pseudo) => {
+                let prefix = match context.class_type {
+                    ClassType::Stack => "stack",
+                    ClassType::Construct => "cdk.Stack_Of(stack)",
+                };
                 let pseudo = match pseudo {
                     PseudoParameter::AccountId => "Account",
                     PseudoParameter::Partition => "Partition",
@@ -1014,7 +1068,7 @@ impl GolangEmitter for Reference {
                     PseudoParameter::URLSuffix => "UrlSuffix",
                     PseudoParameter::NotificationArns => "NotificationArns",
                 };
-                output.text(format!("stack.{pseudo}()"));
+                output.text(format!("{prefix}.{pseudo}()"));
             }
         }
 
