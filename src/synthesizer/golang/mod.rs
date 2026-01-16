@@ -39,7 +39,7 @@ impl ClassType {
         match self {
             ClassType::Stack => format!("stack.AddTransform(jsii.String(\"{transform}\"))"),
             ClassType::Construct => {
-                format!("cdk.Stack_Of(stack).AddTransform(jsii.String(\"{transform}\"))")
+                format!("cdk.Stack_Of(construct).AddTransform(jsii.String(\"{transform}\"))")
             }
         }
     }
@@ -238,7 +238,7 @@ impl Synthesizer for Golang<'_> {
                 ctor.line("stack := cdk.NewStack(scope, &id, &sprops)");
             }
             ClassType::Construct => {
-                ctor.line("stack := constructs.NewConstruct(scope, &id)");
+                ctor.line("construct := constructs.NewConstruct(scope, &id)");
             }
         }
         ctor.newline();
@@ -285,7 +285,11 @@ impl Synthesizer for Golang<'_> {
                 trailing: Some(")".into()),
                 trailing_newline: true,
             });
-            params.line("stack,");
+            let scope_var = match class_type {
+                ClassType::Stack => "stack",
+                ClassType::Construct => "construct",
+            };
+            params.line(format!("{scope_var},"));
             params.line(format!("jsii.String({:?}),", resource.name));
             let props = params.indent_with_options(IndentOptions {
                 indent: INDENT,
@@ -336,11 +340,11 @@ impl Synthesizer for Golang<'_> {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        let base_field = match class_type {
-            ClassType::Stack => "Stack",
-            ClassType::Construct => "Construct",
+        let (base_field,scope_var) = match class_type {
+            ClassType::Stack => ("Stack", "stack"),
+            ClassType::Construct => ("Construct", "construct"),
         };
-        fields.line(format!("{base_field}: stack,"));
+        fields.line(format!("{base_field}: {scope_var},"));
         for output in &ir.outputs {
             fields.text(format!(
                 "{name}: ",
@@ -1057,7 +1061,7 @@ impl GolangEmitter for Reference {
             Origin::PseudoParameter(pseudo) => {
                 let prefix = match context.class_type {
                     ClassType::Stack => "stack",
-                    ClassType::Construct => "cdk.Stack_Of(stack)",
+                    ClassType::Construct => "cdk.Stack_Of(construct)",
                 };
                 let pseudo = match pseudo {
                     PseudoParameter::AccountId => "Account",

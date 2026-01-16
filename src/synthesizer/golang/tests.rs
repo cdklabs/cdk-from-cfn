@@ -293,8 +293,8 @@ fn test_class_type_construct_mode() {
         "Should use constructs.NewConstruct"
     );
     assert!(
-        code.contains("cdk.Stack_Of(stack).StackName()"),
-        "Should use cdk.Stack_Of(stack) for pseudo-params"
+        code.contains("cdk.Stack_Of(construct).StackName()"),
+        "Should use cdk.Stack_Of(construct) for pseudo-params"
     );
 }
 
@@ -336,7 +336,7 @@ fn test_add_transform_construct_mode() {
 
     assert!(
         code.contains(
-            "cdk.Stack_Of(stack).AddTransform(jsii.String(\"AWS::Serverless-2016-10-31\"))"
+            "cdk.Stack_Of(construct).AddTransform(jsii.String(\"AWS::Serverless-2016-10-31\"))"
         ),
         "Construct mode should use cdk.Stack_Of(stack).AddTransform"
     );
