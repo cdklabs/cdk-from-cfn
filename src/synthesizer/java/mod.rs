@@ -199,18 +199,63 @@ impl<'a> Java<'a> {
                 }
             }
             ClassType::Construct => {
-                let definitions = writer.indent_with_options(IndentOptions {
-                    indent: INDENT,
-                    leading: Some(
-                        format!("public {stack_name}(final Construct scope, final String id) {{")
+                if props.is_empty() {
+                    let definitions = writer.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(
+                            format!(
+                                "public {stack_name}(final Construct scope, final String id) {{"
+                            )
                             .into(),
-                    ),
-                    trailing: Some("}".into()),
-                    trailing_newline: true,
-                });
-                definitions.line("super(scope, id);");
-                definitions.newline();
-                definitions
+                        ),
+                        trailing: Some("}".into()),
+                        trailing_newline: true,
+                    });
+                    definitions.line("super(scope, id);");
+                    definitions.newline();
+                    definitions
+                } else {
+                    let no_props_ctor = writer.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(
+                            format!(
+                                "public {}(final Construct scope, final String id) {{",
+                                stack_name
+                            )
+                            .into(),
+                        ),
+                        trailing: Some("}".into()),
+                        trailing_newline: true,
+                    });
+                    no_props_ctor.line(format!("this(scope, id{});", ", null".repeat(props.len())));
+
+                    writer.newline();
+
+                    let definitions_with_props = writer.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(
+                            format!("public {stack_name}(final Construct scope, final String id,")
+                                .into(),
+                        ),
+                        trailing: Some("}".into()),
+                        trailing_newline: true,
+                    });
+                    let mut prop = props.iter().peekable();
+                    while let Some(p) = prop.next() {
+                        if prop.peek().is_none() {
+                            definitions_with_props
+                                .indent(INDENT)
+                                .line(format!("{} {}) {{", p.java_type, p.name));
+                        } else {
+                            definitions_with_props
+                                .indent(INDENT)
+                                .line(format!("{} {},", p.java_type, p.name));
+                        }
+                    }
+                    definitions_with_props.line("super(scope, id);");
+                    definitions_with_props.newline();
+                    definitions_with_props
+                }
             }
         }
     }
