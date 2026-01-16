@@ -340,7 +340,7 @@ impl Synthesizer for Golang<'_> {
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        let (base_field,scope_var) = match class_type {
+        let (base_field, scope_var) = match class_type {
             ClassType::Stack => ("Stack", "stack"),
             ClassType::Construct => ("Construct", "construct"),
         };
