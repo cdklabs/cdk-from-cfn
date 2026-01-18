@@ -361,3 +361,102 @@ fn test_class_type_from_str_invalid() {
         "Invalid class type: 'invalid'. Expected 'stack' or 'construct'"
     );
 }
+
+const TEMPLATE_WITH_PARAMS: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "BucketName": {
+            "Type": "String",
+            "Default": "my-bucket"
+        },
+        "EnableVersioning": {
+            "Type": "String",
+            "Default": "false"
+        }
+    },
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {"Ref": "BucketName"}
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_construct_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestConstruct", ClassType::Construct)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should extend Construct
+    assert!(
+        code.contains("class TestConstruct extends Construct"),
+        "Should extend Construct"
+    );
+
+    // Should have no-args constructor that delegates
+    assert!(
+        code.contains("public TestConstruct(final Construct scope, final String id) {"),
+        "Should have no-args constructor"
+    );
+    assert!(
+        code.contains("this(scope, id, null, null);"),
+        "No-args constructor should delegate with nulls for each prop"
+    );
+
+    // Should have constructor with props
+    assert!(
+        code.contains("public TestConstruct(final Construct scope, final String id,"),
+        "Should have props constructor signature"
+    );
+    assert!(
+        code.contains("String bucketName"),
+        "Should have bucketName parameter"
+    );
+    assert!(
+        code.contains("String enableVersioning"),
+        "Should have enableVersioning parameter"
+    );
+
+    // Props constructor should call super(scope, id) without StackProps
+    let super_calls: Vec<_> = code.match_indices("super(scope, id);").collect();
+    assert!(
+        !super_calls.is_empty(),
+        "Props constructor should call super(scope, id)"
+    );
+}
+
+#[test]
+fn test_stack_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should extend Stack
+    assert!(
+        code.contains("class TestStack extends Stack"),
+        "Should extend Stack"
+    );
+
+    // Should have StackProps in constructor
+    assert!(
+        code.contains("final StackProps props"),
+        "Stack mode should have StackProps parameter"
+    );
+
+    // Should call super with props
+    assert!(
+        code.contains("super(scope, id, props);"),
+        "Stack mode should call super with props"
+    );
+}
