@@ -376,3 +376,112 @@ fn test_class_type_from_str_invalid() {
         "Invalid class type: 'invalid'. Expected 'stack' or 'construct'"
     );
 }
+
+const TEMPLATE_WITH_PARAMS: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "BucketName": {
+            "Type": "String",
+            "Default": "my-bucket"
+        },
+        "EnableVersioning": {
+            "Type": "String",
+            "Default": "false"
+        }
+    },
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {"Ref": "BucketName"}
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_construct_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestConstruct", ClassType::Construct)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should embed constructs.Construct
+    assert!(
+        code.contains("constructs.Construct"),
+        "Struct should embed constructs.Construct"
+    );
+
+    // Should NOT have StackProps
+    assert!(
+        !code.contains("cdk.StackProps"),
+        "Construct mode should NOT have StackProps"
+    );
+
+    // Should have props struct with parameters
+    assert!(
+        code.contains("BucketName"),
+        "Should have BucketName in props"
+    );
+    assert!(
+        code.contains("EnableVersioning"),
+        "Should have EnableVersioning in props"
+    );
+
+    // Should use constructs.NewConstruct
+    assert!(
+        code.contains("constructs.NewConstruct(scope, &id)"),
+        "Should use constructs.NewConstruct"
+    );
+
+    // Resources should use construct variable
+    assert!(
+        code.contains("construct,"),
+        "Resources should use construct as scope"
+    );
+}
+
+#[test]
+fn test_stack_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should embed cdk.Stack
+    assert!(code.contains("cdk.Stack"), "Struct should embed cdk.Stack");
+
+    // Should have StackProps
+    assert!(
+        code.contains("cdk.StackProps"),
+        "Stack mode should have StackProps"
+    );
+
+    // Should have props struct with parameters
+    assert!(
+        code.contains("BucketName"),
+        "Should have BucketName in props"
+    );
+    assert!(
+        code.contains("EnableVersioning"),
+        "Should have EnableVersioning in props"
+    );
+
+    // Should use cdk.NewStack
+    assert!(
+        code.contains("cdk.NewStack(scope, &id, &sprops)"),
+        "Should use cdk.NewStack"
+    );
+
+    // Resources should use stack variable
+    assert!(
+        code.contains("stack,"),
+        "Resources should use stack as scope"
+    );
+}
