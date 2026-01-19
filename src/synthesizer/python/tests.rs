@@ -193,3 +193,91 @@ fn test_class_type_from_str_invalid() {
         "Invalid class type: 'invalid'. Expected 'stack' or 'construct'"
     );
 }
+
+const TEMPLATE_WITH_PARAMS: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "BucketName": {
+            "Type": "String",
+            "Default": "my-bucket"
+        },
+        "EnableVersioning": {
+            "Type": "String",
+            "Default": "false"
+        }
+    },
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {"Ref": "BucketName"}
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_construct_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestConstruct", ClassType::Construct)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should extend Construct
+    assert!(
+        code.contains("class TestConstruct(Construct):"),
+        "Should extend Construct"
+    );
+
+    // Should have parameters in props
+    assert!(
+        code.contains("bucketName"),
+        "Should have bucketName parameter"
+    );
+    assert!(
+        code.contains("enableVersioning"),
+        "Should have enableVersioning parameter"
+    );
+
+    // Should call super without kwargs
+    assert!(
+        code.contains("super().__init__(scope, construct_id)"),
+        "Should call super without kwargs"
+    );
+}
+
+#[test]
+fn test_stack_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should extend Stack
+    assert!(
+        code.contains("class TestStack(Stack):"),
+        "Should extend Stack"
+    );
+
+    // Should have parameters in props
+    assert!(
+        code.contains("bucketName"),
+        "Should have bucketName parameter"
+    );
+    assert!(
+        code.contains("enableVersioning"),
+        "Should have enableVersioning parameter"
+    );
+
+    // Should call super with kwargs
+    assert!(
+        code.contains("super().__init__(scope, construct_id, **kwargs)"),
+        "Should call super with kwargs"
+    );
+}
