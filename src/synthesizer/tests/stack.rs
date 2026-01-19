@@ -22,6 +22,17 @@ pub trait IrStack {
     /// # Returns
     /// Generated CDK code as bytes
     fn generate_stack(template: &str, lang: &str, stack_name: &str) -> Vec<u8>;
+
+    /// Generates CDK construct code from a CloudFormation template using the internal IR.
+    ///
+    /// # Arguments
+    /// * `template` - CloudFormation template as JSON/YAML string
+    /// * `lang` - Target programming language for CDK code
+    /// * `construct_name` - Name for the generated CDK construct
+    ///
+    /// # Returns
+    /// Generated CDK code as bytes
+    fn generate_construct(template: &str, lang: &str, construct_name: &str) -> Vec<u8>;
 }
 
 impl IrStack for Stack {
@@ -50,6 +61,36 @@ impl IrStack for Stack {
         assert!(
             result.is_ok(),
             "❌ Stack file could not be generated. An error occurred in the CloudformationProgramIr synthesis. {:?}", result.err()
+        );
+
+        output
+    }
+
+    /// Generates CDK construct code using the CloudformationProgramIr directly.
+    ///
+    /// Parses the CloudFormation template into the internal IR representation
+    /// and synthesizes CDK code for the specified language as a Construct.
+    ///
+    /// # Arguments
+    /// * `template` - CloudFormation template as JSON string
+    /// * `lang` - Target programming language for CDK code
+    /// * `construct_name` - Name for the generated CDK construct
+    ///
+    /// # Returns
+    /// Generated CDK code as bytes
+    ///
+    /// # Panics
+    /// Panics if template parsing fails or IR synthesis encounters an error
+    fn generate_construct(template: &str, lang: &str, construct_name: &str) -> Vec<u8> {
+        let cfn: CloudformationParseTree = serde_json::from_str(template).unwrap();
+        let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+        let mut output = Vec::new();
+        let ir_lang = Language::lang_arg(lang);
+        let result = ir.synthesize(ir_lang, &mut output, construct_name, ClassType::Construct);
+        assert!(
+            result.is_ok(),
+            "❌ Construct file could not be generated. An error occurred in the CloudformationProgramIr synthesis. {:?}", result.err()
         );
 
         output
