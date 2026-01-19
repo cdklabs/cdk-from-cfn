@@ -645,3 +645,103 @@ fn test_class_type_from_str_invalid() {
         "Invalid class type: 'invalid'. Expected 'stack' or 'construct'"
     );
 }
+
+const TEMPLATE_WITH_PARAMS: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "BucketName": {
+            "Type": "String",
+            "Default": "my-bucket"
+        },
+        "EnableVersioning": {
+            "Type": "String",
+            "Default": "false"
+        }
+    },
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {"Ref": "BucketName"}
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_construct_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("csharp", &mut output, "TestConstruct", ClassType::Construct)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should extend Construct
+    assert!(
+        code.contains("public class TestConstruct : Construct"),
+        "Should extend Construct"
+    );
+
+    // Should have props with parameters
+    assert!(
+        code.contains("BucketName"),
+        "Should have BucketName parameter"
+    );
+    assert!(
+        code.contains("EnableVersioning"),
+        "Should have EnableVersioning parameter"
+    );
+
+    // Should call base without props
+    assert!(
+        code.contains(": base(scope, id)"),
+        "Should call base without props"
+    );
+
+    // Props should NOT extend StackProps
+    assert!(
+        !code.contains("TestConstructProps : StackProps"),
+        "Construct props should NOT extend StackProps"
+    );
+}
+
+#[test]
+fn test_stack_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("csharp", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should extend Stack
+    assert!(
+        code.contains("public class TestStack : Stack"),
+        "Should extend Stack"
+    );
+
+    // Should have props with parameters
+    assert!(
+        code.contains("BucketName"),
+        "Should have BucketName parameter"
+    );
+    assert!(
+        code.contains("EnableVersioning"),
+        "Should have EnableVersioning parameter"
+    );
+
+    // Should call base with props
+    assert!(
+        code.contains(": base(scope, id, props)"),
+        "Should call base with props"
+    );
+
+    // Props should extend StackProps
+    assert!(
+        code.contains("TestStackProps : StackProps"),
+        "Stack props should extend StackProps"
+    );
+}
