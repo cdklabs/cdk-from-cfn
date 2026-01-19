@@ -201,3 +201,102 @@ fn test_class_type_from_str_invalid() {
         "Invalid class type: 'invalid'. Expected 'stack' or 'construct'"
     );
 }
+
+const TEMPLATE_WITH_PARAMS: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "BucketName": {
+            "Type": "String",
+            "Default": "my-bucket"
+        },
+        "EnableVersioning": {
+            "Type": "String",
+            "Default": "false"
+        }
+    },
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {"Ref": "BucketName"}
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_construct_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize(
+        "typescript",
+        &mut output,
+        "TestConstruct",
+        ClassType::Construct,
+    )
+    .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should extend Construct
+    assert!(
+        code.contains("extends Construct"),
+        "Should extend Construct"
+    );
+
+    // Should have props interface with parameters
+    assert!(
+        code.contains("bucketName"),
+        "Should have bucketName parameter"
+    );
+    assert!(
+        code.contains("enableVersioning"),
+        "Should have enableVersioning parameter"
+    );
+
+    // Should call super without props
+    assert!(
+        code.contains("super(scope, id)"),
+        "Should call super without props"
+    );
+
+    // Should import Construct
+    assert!(
+        code.contains("import { Construct } from 'constructs'"),
+        "Should import Construct"
+    );
+}
+
+#[test]
+fn test_stack_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should extend Stack
+    assert!(
+        code.contains("extends cdk.Stack"),
+        "Should extend cdk.Stack"
+    );
+
+    // Should have props interface with parameters
+    assert!(
+        code.contains("bucketName"),
+        "Should have bucketName parameter"
+    );
+    assert!(
+        code.contains("enableVersioning"),
+        "Should have enableVersioning parameter"
+    );
+
+    // Should call super with props
+    assert!(
+        code.contains("super(scope, id, props)"),
+        "Should call super with props"
+    );
+}
