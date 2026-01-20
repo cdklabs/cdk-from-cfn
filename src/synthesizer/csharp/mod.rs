@@ -64,7 +64,7 @@ impl Synthesizer for CSharp<'_> {
         &self,
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
-        stack_name: &str,
+        class_name: &str,
         class_type: super::ClassType,
     ) -> Result<(), Error> {
         // Initialize the code buffer in which all of the code will be generated
@@ -81,7 +81,7 @@ impl Synthesizer for CSharp<'_> {
         // Namespace definition
         let namespace = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("namespace {stack_name}\n{{").into()),
+            leading: Some(format!("namespace {class_name}\n{{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -91,7 +91,7 @@ impl Synthesizer for CSharp<'_> {
             indent: INDENT,
             leading: Some(
                 format!(
-                    "public class {stack_name}Props{}\n{{",
+                    "public class {class_name}Props{}\n{{",
                     class_type.props_base_csharp()
                 )
                 .into(),
@@ -128,7 +128,7 @@ impl Synthesizer for CSharp<'_> {
             indent: INDENT,
             leading: Some(
                 format!(
-                    "public class {stack_name} : {}\n{{",
+                    "public class {class_name} : {}\n{{",
                     class_type.base_class_csharp()
                 )
                 .into(),
@@ -158,7 +158,7 @@ impl Synthesizer for CSharp<'_> {
         let ctor = stack_class.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(format!(
-                "public {stack_name}(Construct scope, string id, {stack_name}Props props = null){ctor_base_call}\n{{"
+                "public {class_name}(Construct scope, string id, {class_name}Props props = null){ctor_base_call}\n{{"
             ).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
@@ -173,7 +173,7 @@ impl Synthesizer for CSharp<'_> {
             .collect::<Vec<&ConstructorParameter>>();
         if !have_default_or_special_type_params.is_empty() {
             ctor.line("// Applying default props");
-            ctor.line(format!("props ??= new {stack_name}Props();"));
+            ctor.line(format!("props ??= new {class_name}Props();"));
             for param in have_default_or_special_type_params {
                 let name = pascal_case(&param.name);
                 // example: AWS::EC2::Image::Id, List<AWS::EC2::VPC::Id>, AWS::SSM::Parameter::Value<List<String>>

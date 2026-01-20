@@ -107,7 +107,7 @@ fn main() -> Result<(), Error> {
         .map(String::as_str)
         .unwrap_or(targets[0]);
 
-    let stack_name = matches
+    let class_name = matches
         .get_one::<String>("stack-name")
         .map(String::as_str)
         .unwrap_or("NoctStack");
@@ -117,7 +117,7 @@ fn main() -> Result<(), Error> {
         .map(|s| s.parse().unwrap())
         .unwrap_or_default();
 
-    ir.synthesize(language, &mut output, stack_name, class_type)?;
+    ir.synthesize(language, &mut output, class_name, class_type)?;
 
     Ok(())
 }

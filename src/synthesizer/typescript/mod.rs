@@ -73,7 +73,7 @@ impl Synthesizer for Typescript {
         &self,
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
-        stack_name: &str,
+        class_name: &str,
         class_type: ClassType,
     ) -> Result<(), Error> {
         let code = CodeBuffer::default();
@@ -93,7 +93,7 @@ impl Synthesizer for Typescript {
             indent: INDENT,
             leading: Some(
                 format!(
-                    "export interface {stack_name}Props{} {{",
+                    "export interface {class_name}Props{} {{",
                     class_type.props_extends()
                 )
                 .into(),
@@ -140,7 +140,7 @@ impl Synthesizer for Typescript {
             indent: INDENT,
             leading: Some(
                 format!(
-                    "export class {stack_name} extends {} {{",
+                    "export class {class_name} extends {} {{",
                     class_type.base_class()
                 )
                 .into(),
@@ -180,7 +180,7 @@ impl Synthesizer for Typescript {
 
         let  ctor = class.indent_with_options(IndentOptions{
             indent: INDENT,
-            leading: Some(format!("public constructor(scope: {}, id: string, props: {stack_name}Props{default_empty}) {{", class_type.scope_type()).into()),
+            leading: Some(format!("public constructor(scope: {}, id: string, props: {class_name}Props{default_empty}) {{", class_type.scope_type()).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });

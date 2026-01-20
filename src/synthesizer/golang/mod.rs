@@ -69,7 +69,7 @@ impl Synthesizer for Golang<'_> {
         &self,
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
-        stack_name: &str,
+        class_name: &str,
         class_type: super::ClassType,
     ) -> Result<(), Error> {
         let code = CodeBuffer::default();
@@ -96,7 +96,7 @@ impl Synthesizer for Golang<'_> {
 
         let props = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("type {stack_name}Props struct {{").into()),
+            leading: Some(format!("type {class_name}Props struct {{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -117,7 +117,7 @@ impl Synthesizer for Golang<'_> {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("type {stack_name} struct {{").into()),
+            leading: Some(format!("type {class_name} struct {{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -137,7 +137,7 @@ impl Synthesizer for Golang<'_> {
             indent: INDENT,
             leading: Some(
                 format!(
-                    "func New{stack_name}(scope constructs.Construct, id string, props *{stack_name}Props) *{stack_name} {{"
+                    "func New{class_name}(scope constructs.Construct, id string, props *{class_name}Props) *{class_name} {{"
                 )
                 .into(),
             ),
@@ -336,7 +336,7 @@ impl Synthesizer for Golang<'_> {
 
         let fields = ctor.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("return &{stack_name}{{").into()),
+            leading: Some(format!("return &{class_name}{{").into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -366,10 +366,10 @@ impl Synthesizer for Golang<'_> {
         main_block.newline();
         main_block.line("app := cdk.NewApp(nil)");
         main_block.newline();
-        let split_stack_name: Vec<&str> = stack_name.split("Stack").collect();
+        let split_class_name: Vec<&str> = class_name.split("Stack").collect();
         main_block.line(format!(
-            "New{stack_name}(app, \"{}\", {stack_name}Props{{",
-            split_stack_name[0]
+            "New{class_name}(app, \"{}\", {class_name}Props{{",
+            split_class_name[0]
         ));
         match class_type {
             ClassType::Stack => {

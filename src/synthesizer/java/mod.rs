@@ -142,13 +142,13 @@ impl<'a> Java<'a> {
     fn write_stack_definitions(
         props: &[JavaConstructorParameter],
         writer: &CodeBuffer,
-        stack_name: &str,
+        class_name: &str,
         class_type: ClassType,
     ) -> Rc<CodeBuffer> {
         match class_type {
             ClassType::Stack => {
                 fill!(writer;
-                    format!("public {}(final Construct scope, final String id) {{", stack_name);
+                    format!("public {}(final Construct scope, final String id) {{", class_name);
                     "super(scope, id, null);";
                     "}" );
 
@@ -157,7 +157,7 @@ impl<'a> Java<'a> {
                         indent: INDENT,
                         leading: Some(
                             format!(
-                                "public {stack_name}(final Construct scope, final String id, final StackProps props) {{",
+                                "public {class_name}(final Construct scope, final String id, final StackProps props) {{",
                             )
                             .into(),
                         ),
@@ -177,7 +177,7 @@ impl<'a> Java<'a> {
                     writer.newline();
                     let definitions_with_props = writer.indent_with_options(IndentOptions {
                         indent: INDENT,
-                        leading: Some(format!("public {stack_name}(final Construct scope, final String id, final StackProps props,").into()),
+                        leading: Some(format!("public {class_name}(final Construct scope, final String id, final StackProps props,").into()),
                         trailing: Some("}".into()),
                         trailing_newline: true,
                     });
@@ -204,7 +204,7 @@ impl<'a> Java<'a> {
                         indent: INDENT,
                         leading: Some(
                             format!(
-                                "public {stack_name}(final Construct scope, final String id) {{"
+                                "public {class_name}(final Construct scope, final String id) {{"
                             )
                             .into(),
                         ),
@@ -220,7 +220,7 @@ impl<'a> Java<'a> {
                         leading: Some(
                             format!(
                                 "public {}(final Construct scope, final String id) {{",
-                                stack_name
+                                class_name
                             )
                             .into(),
                         ),
@@ -234,7 +234,7 @@ impl<'a> Java<'a> {
                     let definitions_with_props = writer.indent_with_options(IndentOptions {
                         indent: INDENT,
                         leading: Some(
-                            format!("public {stack_name}(final Construct scope, final String id,")
+                            format!("public {class_name}(final Construct scope, final String id,")
                                 .into(),
                         ),
                         trailing: Some("}".into()),
@@ -609,7 +609,7 @@ impl Synthesizer for Java<'_> {
         &self,
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
-        stack_name: &str,
+        class_name: &str,
         class_type: super::ClassType,
     ) -> Result<(), Error> {
         let code = CodeBuffer::default();
@@ -625,7 +625,7 @@ impl Synthesizer for Java<'_> {
             indent: INDENT,
             leading: Some(
                 format!(
-                    "class {stack_name} extends {} {{",
+                    "class {class_name} extends {} {{",
                     class_type.base_class_java()
                 )
                 .into(),
@@ -637,7 +637,7 @@ impl Synthesizer for Java<'_> {
         let props = Self::emit_props(&ir);
         Self::write_output_fields(&ir, &class);
 
-        let definitions = Self::write_stack_definitions(&props, &class, stack_name, class_type);
+        let definitions = Self::write_stack_definitions(&props, &class, class_name, class_type);
         Self::write_props(&props, &definitions);
         Self::write_transforms(&ir, &definitions, class_type);
 

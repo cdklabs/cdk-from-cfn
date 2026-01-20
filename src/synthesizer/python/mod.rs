@@ -62,7 +62,7 @@ impl Synthesizer for Python {
         &self,
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
-        stack_name: &str,
+        class_name: &str,
         class_type: super::ClassType,
     ) -> Result<(), Error> {
         let code = CodeBuffer::default();
@@ -82,7 +82,7 @@ impl Synthesizer for Python {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("class {stack_name}({}):", class_type.base_class_py()).into()),
+            leading: Some(format!("class {class_name}({}):", class_type.base_class_py()).into()),
             trailing: Some("".into()),
             trailing_newline: true,
         });

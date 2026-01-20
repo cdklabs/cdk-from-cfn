@@ -62,7 +62,7 @@ pub trait Synthesizer {
         &self,
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
-        stack_name: &str,
+        class_name: &str,
         class_type: ClassType,
     ) -> Result<(), Error>;
 }
@@ -73,7 +73,7 @@ impl CloudformationProgramIr {
         self,
         language: &str,
         into: &mut impl io::Write,
-        stack_name: &str,
+        class_name: &str,
         class_type: ClassType,
     ) -> Result<(), Error> {
         let synthesizer: Box<dyn Synthesizer> = match language {
@@ -93,7 +93,7 @@ impl CloudformationProgramIr {
                 })
             }
         };
-        synthesizer.synthesize(self, into, stack_name, class_type)
+        synthesizer.synthesize(self, into, class_name, class_type)
     }
 }
 

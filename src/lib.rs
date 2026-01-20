@@ -105,7 +105,7 @@ pub mod wasm {
     pub fn transmute(
         template: &str,
         language: &str,
-        stack_name: &str,
+        class_name: &str,
         class_type: Option<String>,
     ) -> Result<String, JsError> {
         let cfn_tree: CloudformationParseTree = serde_yaml::from_str(template)?;
@@ -123,7 +123,7 @@ pub mod wasm {
             .parse()
             .unwrap_or_default();
 
-        ir.synthesize(lang, &mut output, stack_name, class_type_enum)?;
+        ir.synthesize(lang, &mut output, class_name, class_type_enum)?;
 
         String::from_utf8(output).map_err(Into::into)
     }
