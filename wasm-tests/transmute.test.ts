@@ -36,6 +36,13 @@ describe('with sqs template', async () => {
     assert.ok(!output.includes('extends cdk.Stack'));
   });
 
+  test('exception, not panic: invalid class_type value', async () => {
+    // WHEN
+    assert.throws(() => {
+      cdk_from_cfn.transmute(tpl, 'typescript', 'SqsStack', 'invalid');
+    }, /Invalid class type/);
+  });
+
   test('exception, not panic: unsupported language', async () => {
     // WHEN
     assert.throws(() =>  {

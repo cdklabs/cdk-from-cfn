@@ -121,7 +121,7 @@ pub mod wasm {
             .as_deref()
             .unwrap_or("stack")
             .parse()
-            .unwrap_or_default();
+            .map_err(|e: String| JsError::new(&e))?;
 
         ir.synthesize(lang, &mut output, class_name, class_type_enum)?;
 
