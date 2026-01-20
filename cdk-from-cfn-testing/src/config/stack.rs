@@ -148,6 +148,105 @@ impl CdkFromCfnStack for Stack {
     }
 }
 
+/// Trait for generating CDK constructs from CloudFormation templates.
+/// 
+/// Provides the interface for converting CloudFormation templates into
+/// CDK construct code using the cdk-from-cfn tool with `--as construct` flag.
+pub trait CdkFromCfnConstruct {
+    /// Generates CDK construct code from a CloudFormation template.
+    /// 
+    /// # Arguments
+    /// * `template` - CloudFormation template as JSON/YAML string
+    /// * `lang` - Target programming language for CDK code
+    /// * `construct_name` - Name for the generated CDK construct
+    /// 
+    /// # Returns
+    /// Generated CDK code as bytes
+    fn generate_construct(template: &str, lang: &str, construct_name: &str) -> Vec<u8>;
+}
+
+impl CdkFromCfnConstruct for Stack {
+    /// Generates CDK construct code using the cdk-from-cfn binary with `--as construct`.
+    /// 
+    /// # Arguments
+    /// * `template` - CloudFormation template as JSON/YAML string
+    /// * `lang` - Target programming language for CDK code
+    /// * `construct_name` - Name for the generated CDK construct
+    /// 
+    /// # Returns
+    /// Generated CDK code as bytes
+    /// 
+    /// # Panics
+    /// Panics if the cdk-from-cfn tool execution fails or returns non-zero exit code
+    fn generate_construct(template: &str, lang: &str, construct_name: &str) -> Vec<u8> {
+        let mut child = match Command::new(&get_cdk_from_cfn_binary_path())
+            .args([
+                "-",
+                "--language",
+                Language::lang_arg(lang),
+                "--stack-name",
+                construct_name,
+                "--as",
+                "construct",
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+        {
+            Ok(child) => child,
+            Err(e) => panic!("Failed to execute cdk-from-cfn: {}", e),
+        };
+
+        if let Some(stdin) = child.stdin.as_mut() {
+            if let Err(e) = stdin.write_all(template.as_bytes()) {
+                panic!("Failed to write to stdin: {}", e);
+            }
+        }
+
+        let output = child.wait_with_output().expect("Failed to read output");
+
+        assert!(output.status.success(), 
+            "❌ Construct file could not be generated. {}", 
+            format!("An error occurred while running 'cdk-from-cfn --language {lang} --stack-name {construct_name} --as construct. {}: {:?}'", 
+                output.status.code().expect("Unknown Error"),
+                output.stderr)
+            );
+
+        output.stdout
+    }
+}
+
+/// Runs the cdk-from-cfn CLI with custom arguments.
+/// 
+/// # Arguments
+/// * `args` - Command line arguments to pass to the binary
+/// * `stdin_input` - Optional input to write to stdin
+/// 
+/// # Returns
+/// Tuple of (exit_code, stdout, stderr)
+pub fn run_cli_with_args(args: &[&str], stdin_input: Option<&str>) -> (Option<i32>, Vec<u8>, Vec<u8>) {
+    let mut child = match Command::new(&get_cdk_from_cfn_binary_path())
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(e) => panic!("Failed to execute cdk-from-cfn: {}", e),
+    };
+
+    if let Some(input) = stdin_input {
+        if let Some(stdin) = child.stdin.as_mut() {
+            let _ = stdin.write_all(input.as_bytes());
+        }
+    }
+
+    let output = child.wait_with_output().expect("Failed to read output");
+    (output.status.code(), output.stdout, output.stderr)
+}
+
 /// Determines the path to the cdk-from-cfn binary for the current build.
 /// 
 /// Attempts to locate the binary in the target directory based on the build
@@ -168,5 +267,5 @@ fn get_cdk_from_cfn_binary_path() -> PathBuf {
                 .map(|p| p.join(Paths::crate_name()))
         })
         .unwrap_or_else(|| PathBuf::from("target/debug/cdk-from-cfn"))
-    }
+}
 

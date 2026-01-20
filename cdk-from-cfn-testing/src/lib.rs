@@ -7,7 +7,10 @@ mod filesystem;
 mod synth;
 mod validation;
 
-pub use config::{EndToEndTestStack, Language, Scope, Stack};
+pub use config::{
+    run_cli_with_args, CdkFromCfnConstruct, CdkFromCfnStack, EndToEndTestStack, Language, Scope,
+    Stack,
+};
 pub use synth::{CdkAppTestCase, CdkAppTestGroup};
 
 // Re-export synth types
