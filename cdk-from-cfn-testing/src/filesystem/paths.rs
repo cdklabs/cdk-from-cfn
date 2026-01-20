@@ -137,31 +137,31 @@ impl Paths {
         Self::actual_dir_path(normalized).join(Language::app_name(lang))
     }
 
-    /// Returns the expected stack file path.
+    /// Returns the expected class file path.
     ///
     /// # Arguments
     /// * `test` - Name of the test
     /// * `lang` - Programming language
-    /// * `stack_name` - Name of the stack
+    /// * `class_name` - Name of the class
     ///
     /// # Returns
-    /// Path to the expected stack file
-    pub fn expected_stack_path(test: &str, lang: &str, stack_name: &str) -> PathBuf {
-        let filename = Language::stack_filename(lang, stack_name);
+    /// Path to the expected class file
+    pub fn expected_class_path(test: &str, lang: &str, class_name: &str) -> PathBuf {
+        let filename = Language::class_filename(lang, class_name);
         Self::expected_dir().join(test).join(lang).join(filename)
     }
 
-    /// Returns the actual stack file path.
+    /// Returns the actual class file path.
     ///
     /// # Arguments
     /// * `normalized` - Normalized test identifier
     /// * `lang` - Programming language
-    /// * `stack_name` - Name of the stack
+    /// * `class_name` - Name of the class
     ///
     /// # Returns
-    /// Path to the actual stack file
-    pub fn actual_stack_path(normalized: &str, lang: &str, stack_name: &str) -> PathBuf {
-        let filename = Language::stack_filename(lang, stack_name);
+    /// Path to the actual class file
+    pub fn actual_class_path(normalized: &str, lang: &str, class_name: &str) -> PathBuf {
+        let filename = Language::class_filename(lang, class_name);
         Self::actual_dir_path(normalized).join(filename)
     }
 

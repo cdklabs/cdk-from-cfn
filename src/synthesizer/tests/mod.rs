@@ -5,10 +5,10 @@
 use crate::ir_synthesizer_test;
 use cdk_from_cfn_macros::generate_ir_tests;
 #[cfg(test)]
-use cdk_from_cfn_testing::{Stack, StackTestCase};
+use cdk_from_cfn_testing::{ClassTestCase, Stack};
 
-mod stack;
+mod class;
 mod test;
-use stack::IrStack;
+use class::IrClass;
 
 generate_ir_tests!();

@@ -7,11 +7,11 @@ use crate::synthesizer::ClassType;
 use crate::CloudformationParseTree;
 use cdk_from_cfn_testing::{Language, Stack};
 
-/// Trait for generating CDK stacks directly from CloudFormation templates using the IR (Intermediate Representation).
+/// Trait for generating CDK classes directly from CloudFormation templates using the IR (Intermediate Representation).
 ///
 /// This trait provides an alternative to the binary-based approach by using the internal
-/// CloudformationProgramIr directly for stack generation, bypassing subprocess execution.
-pub trait IrStack {
+/// CloudformationProgramIr directly for code generation, bypassing subprocess execution.
+pub trait IrClass {
     /// Generates CDK stack code from a CloudFormation template using the internal IR.
     ///
     /// # Arguments
@@ -35,7 +35,7 @@ pub trait IrStack {
     fn generate_construct(template: &str, lang: &str, construct_name: &str) -> Vec<u8>;
 }
 
-impl IrStack for Stack {
+impl IrClass for Stack {
     /// Generates CDK stack code using the CloudformationProgramIr directly.
     ///
     /// Parses the CloudFormation template into the internal IR representation

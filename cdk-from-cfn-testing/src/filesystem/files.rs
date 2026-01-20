@@ -99,19 +99,19 @@ impl Files {
         }
     }
 
-    /// Loads the actual generated stack file for a test case.
+    /// Loads the actual generated class file for a test case.
     ///
     /// # Arguments
     /// * `scope` - Test scope containing language and test metadata
-    /// * `stack_name` - Name of the stack to load
+    /// * `class_name` - Name of the class to load
     ///
     /// # Returns
-    /// Contents of the actual stack file
+    /// Contents of the actual class file
     ///
     /// # Panics
     /// Panics if the file cannot be read
-    pub fn load_actual_stack(scope: &Scope, stack_name: &str) -> String {
-        let path = Paths::actual_stack_path(&scope.normalized, &scope.lang, stack_name);
+    pub fn load_actual_class(scope: &Scope, class_name: &str) -> String {
+        let path = Paths::actual_class_path(&scope.normalized, &scope.lang, class_name);
         let result = Self::read(&path);
         assert!(
             result.is_ok(),
@@ -122,7 +122,7 @@ impl Files {
         result.unwrap()
     }
 
-    /// Loads the expected stack file for a test case.
+    /// Loads the expected class file for a test case.
     ///
     /// Used when updating snapshots to load the current expected output.
     ///
@@ -131,18 +131,18 @@ impl Files {
     /// * `lang` - Programming language
     ///
     /// # Returns
-    /// Contents of the expected stack file
+    /// Contents of the expected class file
     ///
     /// # Panics
     /// Panics if the file cannot be found or read
     #[cfg_attr(not(feature = "update-snapshots"), allow(dead_code))]
-    pub fn load_expected_stack(test_name: &str, lang: &str) -> String {
+    pub fn load_expected_class(test_name: &str, lang: &str) -> String {
         let expected_dir = Paths::expected_dir().join(test_name).join(lang);
         let file_path = Self::find_single_file_recursive(&expected_dir);
         let result = Self::read(&file_path);
         assert!(
             result.is_ok(),
-            "❌ Failed to read expected stack file at {:?}: {}",
+            "❌ Failed to read expected class file at {:?}: {}",
             file_path.display(),
             result.err().unwrap(),
         );
@@ -180,31 +180,31 @@ impl Files {
         let result = find_file_recursive(dir);
         assert!(
             result.is_some(),
-            "❌ Failed to find expected stack file in directory: {}",
+            "❌ Failed to find expected class file in directory: {}",
             dir.display()
         );
         result.unwrap()
     }
 
-    /// Writes the expected stack file for a test case.
+    /// Writes the expected class file for a test case.
     ///
     /// # Arguments
     /// * `scope` - Test scope containing language and test metadata
-    /// * `stack_name` - Name of the stack
-    /// * `content` - Stack content to write
-    pub fn write_expected_stack(scope: &Scope, stack_name: &str, content: &str) {
-        let path = Paths::expected_stack_path(&scope.test, &scope.lang, stack_name);
+    /// * `class_name` - Name of the class
+    /// * `content` - class content to write
+    pub fn write_expected_class(scope: &Scope, class_name: &str, content: &str) {
+        let path = Paths::expected_class_path(&scope.test, &scope.lang, class_name);
         Self::write(&path, content);
     }
 
-    /// Writes the actual generated stack file for a test case.
+    /// Writes the actual generated class file for a test case.
     ///
     /// # Arguments
     /// * `scope` - Test scope containing language and test metadata
-    /// * `stack_name` - Name of the stack
-    /// * `content` - Stack content to write
-    pub fn write_actual_stack(scope: &Scope, stack_name: &str, content: &str) {
-        let path = Paths::actual_stack_path(&scope.normalized, &scope.lang, stack_name);
+    /// * `class_name` - Name of the class
+    /// * `content` - Class content to write
+    pub fn write_actual_class(scope: &Scope, class_name: &str, content: &str) {
+        let path = Paths::actual_class_path(&scope.normalized, &scope.lang, class_name);
         Self::write(&path, content);
     }
 
@@ -212,15 +212,15 @@ impl Files {
     ///
     /// # Arguments
     /// * `scope` - Test scope containing language and test metadata
-    /// * `stack_name` - Name of the stack
+    /// * `class_name` - Name of the class
     ///
     /// # Returns
     /// Contents of the synthesized CloudFormation template
     ///
     /// # Panics
     /// Panics if the template cannot be read
-    pub fn load_actual_synthesized_template(scope: &Scope, stack_name: &str) -> String {
-        let path = Paths::synthesized_template_path(&scope.normalized, stack_name);
+    pub fn load_actual_synthesized_template(scope: &Scope, class_name: &str) -> String {
+        let path = Paths::synthesized_template_path(&scope.normalized, class_name);
         let result = Self::read(&path);
         assert!(
             result.is_ok(),
@@ -311,7 +311,7 @@ impl Files {
 
 /// ZIP archive operations for extracting test case data.
 ///
-/// Provides methods to extract templates, stack files, and boilerplate code
+/// Provides methods to extract templates, class files, and boilerplate code
 /// from compressed test case archives.
 pub struct Zip;
 
@@ -338,7 +338,7 @@ impl Zip {
         result.unwrap()
     }
 
-    /// Extracts the dependency stack template for a test case, if it exists.
+    /// Extracts the dependency class template for a test case, if it exists.
     ///
     /// # Arguments
     /// * `test_name` - Name of the test case
@@ -350,33 +350,51 @@ impl Zip {
         result.ok()
     }
 
-    /// Extracts the expected stack file for a specific language.
+    /// Extracts the expected class file for a specific language.
     ///
     /// # Arguments
     /// * `test_name` - Name of the test case
     /// * `lang` - Programming language
+    /// * `class_name` - Name of the class (stack or construct)
     ///
     /// # Returns
-    /// Expected stack file content
+    /// Expected class file content
     ///
     /// # Panics
-    /// Panics if the stack file cannot be found or extracted
-    pub fn extract_stack_file(test_name: &str, lang: &str) -> String {
+    /// Panics if the class file cannot be found or extracted
+    pub fn extract_class_file(test_name: &str, lang: &str, class_name: &str) -> String {
         let archive = Self::open_zip_archive();
-        let dir_prefix = Paths::zip_expected_dir(test_name, lang);
-
-        let stack_file = archive
-            .file_names()
-            .find(|name| name.starts_with(&dir_prefix) && !name.ends_with('/'))
-            .unwrap_or_else(|| panic!("❌ No stack file found in directory {} in zip", dir_prefix))
-            .to_string();
-
-        let result = Self::extract_by_name(&stack_file, archive);
-        assert!(
-            result.is_ok(),
-            "❌ Failed to extract stack file: {}",
-            result.err().unwrap()
+        let expected_filename = crate::Language::class_filename(lang, class_name);
+        let expected_path = format!(
+            "{}{}",
+            Paths::zip_expected_dir(test_name, lang),
+            expected_filename
         );
+
+        let result = Self::extract_by_name(&expected_path, archive);
+        if result.is_err() {
+            // Fall back to finding any file in the directory (for backward compatibility)
+            let archive = Self::open_zip_archive();
+            let dir_prefix = Paths::zip_expected_dir(test_name, lang);
+            let class_file = archive
+                .file_names()
+                .find(|name| name.starts_with(&dir_prefix) && !name.ends_with('/'))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "❌ No class file found in directory {} in zip (looking for {})",
+                        dir_prefix, expected_filename
+                    )
+                })
+                .to_string();
+
+            let result = Self::extract_by_name(&class_file, Self::open_zip_archive());
+            assert!(
+                result.is_ok(),
+                "❌ Failed to extract class file: {}",
+                result.err().unwrap()
+            );
+            return result.unwrap();
+        }
         result.unwrap()
     }
 
