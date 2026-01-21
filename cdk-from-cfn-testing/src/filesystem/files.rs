@@ -149,43 +149,6 @@ impl Files {
         result.unwrap()
     }
 
-    /// Recursively finds a single file in a directory tree.
-    ///
-    /// # Arguments
-    /// * `dir` - Directory to search in
-    ///
-    /// # Returns
-    /// Path to the first file found
-    ///
-    /// # Panics
-    /// Panics if no file is found in the directory tree
-    #[cfg_attr(not(feature = "update-snapshots"), allow(dead_code))]
-    fn find_single_file_recursive(dir: &Path) -> PathBuf {
-        fn find_file_recursive(path: &Path) -> Option<PathBuf> {
-            if let Ok(entries) = read_dir(path) {
-                for entry in entries.flatten() {
-                    let entry_path = entry.path();
-                    if entry_path.is_file() {
-                        return Some(entry_path);
-                    } else if entry_path.is_dir() {
-                        if let Some(file) = find_file_recursive(&entry_path) {
-                            return Some(file);
-                        }
-                    }
-                }
-            }
-            None
-        }
-
-        let result = find_file_recursive(dir);
-        assert!(
-            result.is_some(),
-            "❌ Failed to find expected class file in directory: {}",
-            dir.display()
-        );
-        result.unwrap()
-    }
-
     /// Writes the expected class file for a test case.
     ///
     /// # Arguments
