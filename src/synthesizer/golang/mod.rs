@@ -314,7 +314,11 @@ impl Synthesizer for Golang<'_> {
                     indent: INDENT,
                     leading: Some(
                         format!(
-                            "cdk.NewCfnOutput(stack, jsii.String(\"CfnOutput{}\"), &cdk.CfnOutputProps{{",
+                            "cdk.NewCfnOutput({}, jsii.String(\"CfnOutput{}\"), &cdk.CfnOutputProps{{",
+                            match class_type {
+                                ClassType::Stack => "stack",
+                                ClassType::Construct => "construct",
+                            },
                             output.name
                         )
                         .into(),

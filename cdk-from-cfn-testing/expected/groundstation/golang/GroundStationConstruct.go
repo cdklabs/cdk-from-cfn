@@ -662,7 +662,7 @@ func NewGroundStationConstruct(scope constructs.Construct, id string, props *Gro
 		},
 	)
 
-	cdk.NewCfnOutput(stack, jsii.String("CfnOutputSnsTopicArn"), &cdk.CfnOutputProps{
+	cdk.NewCfnOutput(construct, jsii.String("CfnOutputSnsTopicArn"), &cdk.CfnOutputProps{
 		Key: jsii.String("SnsTopicArn"),
 		ExportName: jsii.String(fmt.Sprintf("%v-SnsTopicArn", cdk.Stack_Of(construct).StackName())),
 		Value: snsTopic.Ref(),
