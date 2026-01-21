@@ -143,9 +143,9 @@ impl Language {
     ///
     /// # Returns
     /// Complete file path for the stack file (e.g., "MyStack.ts", "my_stack.py")
-    pub fn stack_filename(lang: &str, stack_name: &str) -> String {
+    pub fn class_filename(lang: &str, class_name: &str) -> String {
         let stack_path = Self::get_property(lang, |config| config.stack_path);
-        stack_path.replace("{}", stack_name)
+        stack_path.replace("{}", class_name)
     }
 
     /// Returns a list of all enabled programming languages.

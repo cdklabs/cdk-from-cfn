@@ -3,57 +3,57 @@
 
 use similar::{ChangeTag, TextDiff};
 
-/// Text-based diff utility for comparing CDK stack files.
-/// 
+/// Text-based diff utility for comparing CDK class files.
+///
 /// Provides line-by-line comparison of generated CDK code against expected
 /// reference implementations, highlighting specific differences.
-pub struct StackDiff<'a> {
-    /// Expected stack content from reference implementation
-    expected_stack: &'a str,
-    /// Generated stack content from CDK conversion
-    generated_stack: &'a str,
+pub struct ClassDiff<'a> {
+    /// Expected class content from reference implementation
+    expected_class: &'a str,
+    /// Generated class content from CDK conversion
+    generated_class: &'a str,
 }
 
-impl<'a> StackDiff<'a> {
-    /// Creates a new stack diff comparison.
-    /// 
+impl<'a> ClassDiff<'a> {
+    /// Creates a new class diff comparison.
+    ///
     /// # Arguments
-    /// * `expected_stack` - Expected stack content
-    /// * `generated_stack` - Generated stack content
-    /// 
+    /// * `expected_class` - Expected class content
+    /// * `generated_class` - Generated class content
+    ///
     /// # Returns
-    /// A new `StackDiff` instance ready for comparison
-    pub fn new(expected_stack: &'a str, generated_stack: &'a str) -> Self {
+    /// A new `classDiff` instance ready for comparison
+    pub fn new(expected_class: &'a str, generated_class: &'a str) -> Self {
         Self {
-            expected_stack,
-            generated_stack,
+            expected_class,
+            generated_class,
         }
     }
 
-    /// Compares stack contents and reports differences if found.
-    /// 
+    /// Compares class contents and reports differences if found.
+    ///
     /// Performs exact string comparison and generates detailed diff output
-    /// showing added and removed lines if the stacks don't match.
-    /// 
+    /// showing added and removed lines if the classes don't match.
+    ///
     /// # Panics
-    /// Panics if the stacks don't match, displaying the detailed diff
+    /// Panics if the classes don't match, displaying the detailed diff
     pub fn compare_and_report(&self) {
         assert!(
-            self.expected_stack == self.generated_stack,
+            self.expected_class == self.generated_class,
             "{}",
             self.print()
         );
     }
 
     /// Generates a formatted diff report showing line-by-line differences.
-    /// 
+    ///
     /// Uses the `similar` crate to compute text differences and formats them
     /// with + and - prefixes for added and removed lines.
-    /// 
+    ///
     /// # Returns
     /// Formatted string containing the diff report
     fn print(&self) -> String {
-        let diff = TextDiff::from_lines(self.expected_stack, self.generated_stack);
+        let diff = TextDiff::from_lines(self.expected_class, self.generated_class);
         let differences: Vec<String> = diff
             .iter_all_changes()
             .filter_map(|change| match change.tag() {

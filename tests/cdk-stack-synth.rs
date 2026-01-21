@@ -70,9 +70,9 @@ macro_rules! cdk_stack_synth_test {
                     let scope = Scope::new(module_path!(), &lang);
                     let test = CdkAppTestCase::from_scope(&scope, &app);
 
-                    test.generated_stack_file_matches_expected();
+                    test.generated_class_file_matches_expected();
                     if test.did_synth {
-                        test.cdk_out_matches_cfn_stack_file();
+                        test.cdk_out_matches_cfn_class_file();
                         test.synthesized_apps_match_each_other();
                         #[cfg(feature = "end-to-end")]
                         end_to_end.run(&scope).await;
