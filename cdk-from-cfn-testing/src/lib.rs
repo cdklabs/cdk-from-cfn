@@ -88,7 +88,7 @@ impl<'a> ClassTestCase<'a> {
     /// A new `CLassTestCase` instance with loaded content
     pub fn from_scope(scope: &Scope, class_name: &'a str) -> Self {
         let expected_code = if cfg!(feature = "update-snapshots") {
-            Files::load_expected_class(&scope.test, &scope.lang)
+            Files::load_expected_class(&scope.test, &scope.lang, class_name)
         } else {
             Zip::extract_class_file(&scope.test, &scope.lang, class_name)
         };

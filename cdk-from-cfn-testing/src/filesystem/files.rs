@@ -129,6 +129,7 @@ impl Files {
     /// # Arguments
     /// * `test_name` - Name of the test case
     /// * `lang` - Programming language
+    /// * `class_name` - Name of the class (stack or construct)
     ///
     /// # Returns
     /// Contents of the expected class file
@@ -136,14 +137,13 @@ impl Files {
     /// # Panics
     /// Panics if the file cannot be found or read
     #[cfg_attr(not(feature = "update-snapshots"), allow(dead_code))]
-    pub fn load_expected_class(test_name: &str, lang: &str) -> String {
-        let expected_dir = Paths::expected_dir().join(test_name).join(lang);
-        let file_path = Self::find_single_file_recursive(&expected_dir);
-        let result = Self::read(&file_path);
+    pub fn load_expected_class(test_name: &str, lang: &str, class_name: &str) -> String {
+        let expected_path = Paths::expected_class_path(test_name, lang, class_name);
+        let result = Self::read(&expected_path);
         assert!(
             result.is_ok(),
             "❌ Failed to read expected class file at {:?}: {}",
-            file_path.display(),
+            expected_path.display(),
             result.err().unwrap(),
         );
         result.unwrap()
