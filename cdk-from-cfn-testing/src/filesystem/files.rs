@@ -335,29 +335,12 @@ impl Zip {
         );
 
         let result = Self::extract_by_name(&expected_path, archive);
-        if result.is_err() {
-            // Fall back to finding any file in the directory (for backward compatibility)
-            let archive = Self::open_zip_archive();
-            let dir_prefix = Paths::zip_expected_dir(test_name, lang);
-            let class_file = archive
-                .file_names()
-                .find(|name| name.starts_with(&dir_prefix) && !name.ends_with('/'))
-                .unwrap_or_else(|| {
-                    panic!(
-                        "❌ No class file found in directory {} in zip (looking for {})",
-                        dir_prefix, expected_filename
-                    )
-                })
-                .to_string();
-
-            let result = Self::extract_by_name(&class_file, Self::open_zip_archive());
-            assert!(
-                result.is_ok(),
-                "❌ Failed to extract class file: {}",
-                result.err().unwrap()
-            );
-            return result.unwrap();
-        }
+        assert!(
+            result.is_ok(),
+            "❌ Failed to extract class file {}: {}",
+            expected_path,
+            result.err().unwrap()
+        );
         result.unwrap()
     }
 
