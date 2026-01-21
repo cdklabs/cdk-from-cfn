@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use std::fs::{
-    create_dir_all, read_dir, read_to_string, remove_dir, remove_dir_all, remove_file, write, File,
+    create_dir_all, read_to_string, remove_dir, remove_dir_all, remove_file, write, File,
 };
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Mutex;
 
 use zip::read::ZipFile;
