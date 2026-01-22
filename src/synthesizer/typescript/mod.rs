@@ -21,7 +21,48 @@ use crate::parser::lookup_table::MappingInnerValue;
 use crate::util::Hasher;
 use crate::Error;
 
-use super::Synthesizer;
+use super::{ClassType, Synthesizer};
+
+impl ClassType {
+    fn base_class(&self) -> &'static str {
+        match self {
+            ClassType::Stack => "cdk.Stack",
+            ClassType::Construct => "Construct",
+        }
+    }
+
+    fn scope_type(&self) -> &'static str {
+        match self {
+            ClassType::Stack => "cdk.App",
+            ClassType::Construct => "Construct",
+        }
+    }
+
+    fn props_extends(&self) -> &'static str {
+        match self {
+            ClassType::Stack => " extends cdk.StackProps",
+            ClassType::Construct => "",
+        }
+    }
+
+    fn super_call(&self) -> &'static str {
+        match self {
+            ClassType::Stack => "super(scope, id, props);",
+            ClassType::Construct => "super(scope, id);",
+        }
+    }
+
+    fn needs_construct_import(&self) -> bool {
+        matches!(self, ClassType::Construct)
+    }
+
+    fn add_transform_call(&self, transform: &str) -> String {
+        match self {
+            ClassType::Stack => format!("this.addTransform('{transform}');"),
+            ClassType::Construct => format!("cdk.Stack.of(this).addTransform('{transform}');"),
+        }
+    }
+}
 
 const INDENT: Cow<'static, str> = Cow::Borrowed("  ");
 
@@ -32,7 +73,8 @@ impl Synthesizer for Typescript {
         &self,
         ir: CloudformationProgramIr,
         output: &mut dyn io::Write,
-        stack_name: &str,
+        class_name: &str,
+        class_type: ClassType,
     ) -> Result<(), Error> {
         let code = CodeBuffer::default();
 
@@ -41,12 +83,20 @@ impl Synthesizer for Typescript {
             imports.line(import.to_typescript()?)
         }
 
-        let context = &mut TypescriptContext::with_imports(imports);
+        if class_type.needs_construct_import() {
+            imports.line("import { Construct } from 'constructs';");
+        }
+
+        let context = &mut TypescriptContext::with_imports(imports, class_type);
 
         let iface_props = code.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(
-                format!("export interface {stack_name}Props extends cdk.StackProps {{").into(),
+                format!(
+                    "export interface {class_name}Props{} {{",
+                    class_type.props_extends()
+                )
+                .into(),
             ),
             trailing: Some("}".into()),
             trailing_newline: true,
@@ -88,7 +138,13 @@ impl Synthesizer for Typescript {
         }
         let class = code.indent_with_options(IndentOptions {
             indent: INDENT,
-            leading: Some(format!("export class {stack_name} extends cdk.Stack {{").into()),
+            leading: Some(
+                format!(
+                    "export class {class_name} extends {} {{",
+                    class_type.base_class()
+                )
+                .into(),
+            ),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
@@ -124,11 +180,11 @@ impl Synthesizer for Typescript {
 
         let  ctor = class.indent_with_options(IndentOptions{
             indent: INDENT,
-            leading: Some(format!("public constructor(scope: cdk.App, id: string, props: {stack_name}Props{default_empty}) {{").into()),
+            leading: Some(format!("public constructor(scope: {}, id: string, props: {class_name}Props{default_empty}) {{", class_type.scope_type()).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
-        ctor.line("super(scope, id, props);");
+        ctor.line(class_type.super_call());
 
         let have_default_or_special_type_params = &ir
             .constructor
@@ -218,7 +274,7 @@ impl Synthesizer for Typescript {
             ctor.line("// Transforms");
 
             for transform in &ir.transforms {
-                ctor.line(format!("this.addTransform('{transform}');"));
+                ctor.line(class_type.add_transform_call(transform));
             }
         }
 
@@ -229,7 +285,7 @@ impl Synthesizer for Typescript {
             ctor.line("// Conditions");
 
             for cond in &ir.conditions {
-                let synthed = synthesize_condition_recursive(&cond.value);
+                let synthed = synthesize_condition_recursive(&cond.value, class_type);
                 ctor.line(format!("const {} = {};", pretty_name(&cond.name), synthed));
             }
         }
@@ -321,12 +377,14 @@ impl ImportInstruction {
 struct TypescriptContext {
     imports: Rc<CodeBuffer>,
     imports_buffer: bool,
+    class_type: ClassType,
 }
 impl TypescriptContext {
-    const fn with_imports(imports: Rc<CodeBuffer>) -> Self {
+    const fn with_imports(imports: Rc<CodeBuffer>, class_type: ClassType) -> Self {
         Self {
             imports,
             imports_buffer: false,
+            class_type,
         }
     }
 
@@ -340,7 +398,7 @@ impl TypescriptContext {
 }
 
 impl Reference {
-    fn to_typescript(&self) -> Cow<'static, str> {
+    fn to_typescript(&self, class_type: ClassType) -> Cow<'static, str> {
         match &self.origin {
             Origin::CfnParameter | Origin::Parameter => {
                 format!("props.{}!", camel_case(&self.name)).into()
@@ -352,15 +410,24 @@ impl Reference {
             )
             .into(),
             Origin::Condition => camel_case(&self.name).into(),
-            Origin::PseudoParameter(x) => match x {
-                PseudoParameter::Partition => "this.partition".into(),
-                PseudoParameter::Region => "this.region".into(),
-                PseudoParameter::StackId => "this.stackId".into(),
-                PseudoParameter::StackName => "this.stackName".into(),
-                PseudoParameter::URLSuffix => "this.urlSuffix".into(),
-                PseudoParameter::AccountId => "this.account".into(),
-                PseudoParameter::NotificationArns => "this.notificationArns".into(),
-            },
+            Origin::PseudoParameter(x) => {
+                let prefix = if class_type == ClassType::Construct {
+                    "cdk.Stack.of(this)."
+                } else {
+                    "this."
+                };
+                match x {
+                    PseudoParameter::Partition => format!("{}partition", prefix).into(),
+                    PseudoParameter::Region => format!("{}region", prefix).into(),
+                    PseudoParameter::StackId => format!("{}stackId", prefix).into(),
+                    PseudoParameter::StackName => format!("{}stackName", prefix).into(),
+                    PseudoParameter::URLSuffix => format!("{}urlSuffix", prefix).into(),
+                    PseudoParameter::AccountId => format!("{}account", prefix).into(),
+                    PseudoParameter::NotificationArns => {
+                        format!("{}notificationArns", prefix).into()
+                    }
+                }
+            }
             Origin::GetAttribute {
                 conditional,
                 attribute,
@@ -669,7 +736,7 @@ fn emit_resource_ir(
         }
 
         // References
-        ResourceIr::Ref(reference) => output.text(reference.to_typescript()),
+        ResourceIr::Ref(reference) => output.text(reference.to_typescript(context.class_type)),
     }
 
     if let Some(trailer) = trailer {
@@ -713,10 +780,13 @@ fn emit_mappings(output: &CodeBuffer, mappings: &[MappingInstruction]) {
     }
 }
 
-fn synthesize_condition_recursive(val: &ConditionIr) -> String {
+fn synthesize_condition_recursive(val: &ConditionIr, class_type: ClassType) -> String {
     match val {
         ConditionIr::And(x) => {
-            let a: Vec<String> = x.iter().map(synthesize_condition_recursive).collect();
+            let a: Vec<String> = x
+                .iter()
+                .map(|v| synthesize_condition_recursive(v, class_type))
+                .collect();
 
             let inner = a.join(" && ");
             format!("({inner})")
@@ -724,19 +794,28 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
         ConditionIr::Equals(a, b) => {
             format!(
                 "{} === {}",
-                synthesize_condition_recursive(a.as_ref()),
-                synthesize_condition_recursive(b.as_ref())
+                synthesize_condition_recursive(a.as_ref(), class_type),
+                synthesize_condition_recursive(b.as_ref(), class_type)
             )
         }
         ConditionIr::Not(x) => {
             if x.is_simple() {
-                format!("!{}", synthesize_condition_recursive(x.as_ref()))
+                format!(
+                    "!{}",
+                    synthesize_condition_recursive(x.as_ref(), class_type)
+                )
             } else {
-                format!("!({})", synthesize_condition_recursive(x.as_ref()))
+                format!(
+                    "!({})",
+                    synthesize_condition_recursive(x.as_ref(), class_type)
+                )
             }
         }
         ConditionIr::Or(x) => {
-            let a: Vec<String> = x.iter().map(synthesize_condition_recursive).collect();
+            let a: Vec<String> = x
+                .iter()
+                .map(|v| synthesize_condition_recursive(v, class_type))
+                .collect();
 
             let inner = a.join(" || ");
             format!("({inner})")
@@ -745,17 +824,17 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
             format!("'{x}'")
         }
         ConditionIr::Condition(x) => pretty_name(x),
-        ConditionIr::Ref(x) => x.to_typescript().into(),
+        ConditionIr::Ref(x) => x.to_typescript(class_type).into(),
         ConditionIr::Map(named_resource, l1, l2) => {
             format!(
                 "{}[{}][{}]",
                 pretty_name(named_resource),
-                synthesize_condition_recursive(l1.as_ref()),
-                synthesize_condition_recursive(l2.as_ref())
+                synthesize_condition_recursive(l1.as_ref(), class_type),
+                synthesize_condition_recursive(l2.as_ref(), class_type)
             )
         }
         ConditionIr::Split(sep, l1) => {
-            let str = synthesize_condition_recursive(l1.as_ref());
+            let str = synthesize_condition_recursive(l1.as_ref(), class_type);
             format!(
                 "{str}.split('{sep}')",
                 str = str.escape_debug(),
@@ -763,7 +842,7 @@ fn synthesize_condition_recursive(val: &ConditionIr) -> String {
             )
         }
         ConditionIr::Select(index, l1) => {
-            let str = synthesize_condition_recursive(l1.as_ref());
+            let str = synthesize_condition_recursive(l1.as_ref(), class_type);
             format!("cdk.Fn.select({index}, {str})")
         }
     }

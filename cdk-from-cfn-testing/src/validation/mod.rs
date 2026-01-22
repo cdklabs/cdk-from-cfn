@@ -8,4 +8,4 @@ mod templates;
 use diff::TemplateDiff;
 pub use templates::Templates;
 
-pub use diff::StackDiff;
+pub use diff::ClassDiff;

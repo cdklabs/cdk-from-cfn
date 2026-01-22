@@ -9,4 +9,6 @@ mod stack;
 pub use environment::{Environment, TestName};
 pub use language::Language;
 pub use scope::Scope;
-pub use stack::{CdkFromCfnStack, EndToEndTestStack, Stack};
+pub use stack::{
+    run_cli_with_args, CdkFromCfnConstruct, CdkFromCfnStack, EndToEndTestStack, Stack,
+};

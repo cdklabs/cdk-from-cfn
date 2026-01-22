@@ -1,8 +1,31 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 use std::io;
+use std::str::FromStr;
 
 use crate::{ir::CloudformationProgramIr, Error};
+
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+pub enum ClassType {
+    #[default]
+    Stack,
+    Construct,
+}
+
+impl FromStr for ClassType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "stack" => Ok(ClassType::Stack),
+            "construct" => Ok(ClassType::Construct),
+            _ => Err(format!(
+                "Invalid class type: '{}'. Expected 'stack' or 'construct'",
+                s
+            )),
+        }
+    }
+}
 
 #[cfg(feature = "csharp")]
 mod csharp;
@@ -39,7 +62,8 @@ pub trait Synthesizer {
         &self,
         ir: CloudformationProgramIr,
         into: &mut dyn io::Write,
-        stack_name: &str,
+        class_name: &str,
+        class_type: ClassType,
     ) -> Result<(), Error>;
 }
 
@@ -49,7 +73,8 @@ impl CloudformationProgramIr {
         self,
         language: &str,
         into: &mut impl io::Write,
-        stack_name: &str,
+        class_name: &str,
+        class_type: ClassType,
     ) -> Result<(), Error> {
         let synthesizer: Box<dyn Synthesizer> = match language {
             #[cfg(feature = "csharp")]
@@ -68,7 +93,7 @@ impl CloudformationProgramIr {
                 })
             }
         };
-        synthesizer.synthesize(self, into, stack_name)
+        synthesizer.synthesize(self, into, class_name, class_type)
     }
 }
 

@@ -11,11 +11,29 @@ cargo install cdk-from-cfn
 ## Usage
 
 ```console
-cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME>
+cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME> [--as <stack|construct>]
 ```
 
 - `INPUT` is the input file path (STDIN by default).
 - `OUTPUT` is the output file path; if not specified, output will be printed on your command line (STDOUT by default).
+- `--as` (optional) specifies the output type: `stack` (default) or `construct`. Use `construct` to generate a reusable CDK construct instead of a standalone stack.
+
+### Class Type Option
+
+By default, cdk-from-cfn generates code that extends `Stack`. You can use the `--as` flag to generate a reusable `Construct` instead:
+
+```console
+# Generate a Stack (default)
+cdk-from-cfn template.json --language typescript --as stack
+
+# Generate a Construct
+cdk-from-cfn template.json --language typescript --as construct
+```
+
+When using `construct` mode:
+- The generated class extends `Construct` instead of `Stack`
+- Props interface does not extend `StackProps`
+- Pseudo-parameters like `AWS::StackName` use `Stack.of(this)` to access the parent stack
 
 ## Node.js Module Usage
 
@@ -27,9 +45,16 @@ import * as cdk_from_cfn from 'cdk-from-cfn';
 // get supported languages
 cdk_from_cfn.supported_languages();
 
-// transmute cfn template into cdk app
-cdk_from_cfn.transmute(template, language, stackName)
+// transmute cfn template into cdk app (generates a Stack by default)
+cdk_from_cfn.transmute(template, language, stackName);
+
+// transmute cfn template into a reusable Construct
+cdk_from_cfn.transmute(template, language, stackName, 'construct');
 ```
+
+The `transmute` function accepts an optional fourth parameter `classType`:
+- `'stack'` (default): generates code extending `Stack`
+- `'construct'`: generates code extending `Construct`
 
 ## Language and Feature support
 

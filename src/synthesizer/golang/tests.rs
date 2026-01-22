@@ -5,12 +5,14 @@ use indexmap::IndexMap;
 use super::*;
 
 use std::borrow::Cow;
+use std::str::FromStr;
 
 use crate::cdk::Schema;
 use crate::code::CodeBuffer;
 use crate::ir::conditions::ConditionIr;
 use crate::ir::importer::ImportInstruction;
 use crate::primitives::WrapperF64;
+use crate::synthesizer::ClassType;
 
 use super::GolangEmitter;
 
@@ -54,6 +56,7 @@ fn test_condition_ir_map() {
         output.section(false),
         output.section(false),
         output.section(false),
+        ClassType::Stack,
     );
     let result = condition_ir.emit_golang(context, &output, Some(","));
     assert_eq!((), result.unwrap());
@@ -70,6 +73,7 @@ fn test_resource_ir_double() {
         output.section(false),
         output.section(false),
         output.section(false),
+        ClassType::Stack,
     );
     let result = resource_ir.emit_golang(context, &output, Some(","));
     assert_eq!((), result.unwrap());
@@ -89,6 +93,7 @@ fn test_resource_ir_object_primitive_error() {
         output.section(false),
         output.section(false),
         output.section(false),
+        ClassType::Stack,
     );
     let result = resource_ir
         .emit_golang(context, &output, Option::None)
@@ -115,6 +120,7 @@ fn test_resource_ir_object_list_structure() {
         output.section(false),
         output.section(false),
         output.section(false),
+        ClassType::Stack,
     );
     let result = resource_ir.emit_golang(context, &output, Option::None);
     assert_eq!((), result.unwrap());
@@ -135,6 +141,7 @@ fn test_resource_ir_cidr_null_mask() {
         output.section(false),
         output.section(false),
         output.section(false),
+        ClassType::Stack,
     );
     let result = resource_ir.emit_golang(context, &output, Option::None);
     assert_eq!((), result.unwrap());
@@ -155,6 +162,7 @@ fn test_resource_ir_cidr_string_mask() {
         output.section(false),
         output.section(false),
         output.section(false),
+        ClassType::Stack,
     );
     let result = resource_ir.emit_golang(context, &output, Option::None);
     assert_eq!((), result.unwrap());
@@ -170,6 +178,7 @@ fn test_reference_with_trailer() {
         output.section(false),
         output.section(false),
         output.section(false),
+        ClassType::Stack,
     );
     let reference = Reference {
         origin: Origin::Condition {},
@@ -217,4 +226,262 @@ fn test_unknown_primitive() {
     let primitive = Primitive::Unknown;
     let result = primitive.as_golang(&schema);
     assert_eq!(Cow::from("cdk.IResolvable"), result);
+}
+
+// Class type integration tests
+use crate::ir::CloudformationProgramIr;
+use crate::CloudformationParseTree;
+
+const SIMPLE_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Test template",
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {"Fn::Sub": "${AWS::StackName}-bucket"}
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_class_type_stack_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("cdk.StackProps"),
+        "Props should embed cdk.StackProps"
+    );
+    assert!(code.contains("cdk.Stack"), "Struct should embed cdk.Stack");
+    assert!(
+        code.contains("cdk.NewStack(scope, &id, &sprops)"),
+        "Should use cdk.NewStack"
+    );
+    assert!(
+        code.contains("stack.StackName()"),
+        "Should use stack.StackName() for pseudo-params"
+    );
+}
+
+#[test]
+fn test_class_type_construct_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestConstruct", ClassType::Construct)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        !code.contains("cdk.StackProps"),
+        "Props should NOT embed cdk.StackProps"
+    );
+    assert!(
+        code.contains("constructs.Construct"),
+        "Struct should embed constructs.Construct"
+    );
+    assert!(
+        code.contains("constructs.NewConstruct(scope, &id)"),
+        "Should use constructs.NewConstruct"
+    );
+    assert!(
+        code.contains("cdk.Stack_Of(construct).StackName()"),
+        "Should use cdk.Stack_Of(construct) for pseudo-params"
+    );
+}
+
+const TEMPLATE_WITH_TRANSFORM: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket"
+        }
+    }
+}"#;
+
+#[test]
+fn test_add_transform_stack_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_TRANSFORM).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("stack.AddTransform(jsii.String(\"AWS::Serverless-2016-10-31\"))"),
+        "Stack mode should use stack.AddTransform"
+    );
+}
+
+#[test]
+fn test_add_transform_construct_mode() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_TRANSFORM).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestConstruct", ClassType::Construct)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains(
+            "cdk.Stack_Of(construct).AddTransform(jsii.String(\"AWS::Serverless-2016-10-31\"))"
+        ),
+        "Construct mode should use cdk.Stack_Of(stack).AddTransform"
+    );
+}
+
+#[test]
+fn test_class_type_default_is_stack() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SIMPLE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestStack", ClassType::default())
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("cdk.NewStack"),
+        "Default should use cdk.NewStack"
+    );
+}
+
+#[test]
+fn test_class_type_from_str_valid() {
+    assert_eq!(ClassType::from_str("stack").unwrap(), ClassType::Stack);
+    assert_eq!(
+        ClassType::from_str("construct").unwrap(),
+        ClassType::Construct
+    );
+}
+
+#[test]
+fn test_class_type_from_str_invalid() {
+    let result = ClassType::from_str("invalid");
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err(),
+        "Invalid class type: 'invalid'. Expected 'stack' or 'construct'"
+    );
+}
+
+const TEMPLATE_WITH_PARAMS: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "BucketName": {
+            "Type": "String",
+            "Default": "my-bucket"
+        },
+        "EnableVersioning": {
+            "Type": "String",
+            "Default": "false"
+        }
+    },
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {"Ref": "BucketName"}
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_construct_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestConstruct", ClassType::Construct)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should embed constructs.Construct
+    assert!(
+        code.contains("constructs.Construct"),
+        "Struct should embed constructs.Construct"
+    );
+
+    // Should NOT have StackProps
+    assert!(
+        !code.contains("cdk.StackProps"),
+        "Construct mode should NOT have StackProps"
+    );
+
+    // Should have props struct with parameters
+    assert!(
+        code.contains("BucketName"),
+        "Should have BucketName in props"
+    );
+    assert!(
+        code.contains("EnableVersioning"),
+        "Should have EnableVersioning in props"
+    );
+
+    // Should use constructs.NewConstruct
+    assert!(
+        code.contains("constructs.NewConstruct(scope, &id)"),
+        "Should use constructs.NewConstruct"
+    );
+
+    // Resources should use construct variable
+    assert!(
+        code.contains("construct,"),
+        "Resources should use construct as scope"
+    );
+}
+
+#[test]
+fn test_stack_mode_with_props() {
+    let cfn: CloudformationParseTree = serde_json::from_str(TEMPLATE_WITH_PARAMS).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Should embed cdk.Stack
+    assert!(code.contains("cdk.Stack"), "Struct should embed cdk.Stack");
+
+    // Should have StackProps
+    assert!(
+        code.contains("cdk.StackProps"),
+        "Stack mode should have StackProps"
+    );
+
+    // Should have props struct with parameters
+    assert!(
+        code.contains("BucketName"),
+        "Should have BucketName in props"
+    );
+    assert!(
+        code.contains("EnableVersioning"),
+        "Should have EnableVersioning in props"
+    );
+
+    // Should use cdk.NewStack
+    assert!(
+        code.contains("cdk.NewStack(scope, &id, &sprops)"),
+        "Should use cdk.NewStack"
+    );
+
+    // Resources should use stack variable
+    assert!(
+        code.contains("stack,"),
+        "Resources should use stack as scope"
+    );
 }

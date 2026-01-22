@@ -27,7 +27,7 @@ End-to-end validation that generated CDK code can be synthesized:
 ## Key Components
 
 ### Core Testing
-- **StackTestCase**: Main test case runner for comparing generated vs expected stack outputs
+- **ClassTestCase**: Main test case runner for comparing generated vs expected stack outputs
 - **StackDiff**: Compares and reports differences between stack files
 - **CdkAppTestCase**: Individual CDK application test execution
 - **CdkAppTestGroup**: Manages groups of CDK app tests across languages
