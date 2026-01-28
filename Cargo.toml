@@ -31,7 +31,7 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 base64 = "^0.22.1"
-clap = { version = "^4.5.54", features = ["cargo"] }
+clap = { version = "^4.5.55", features = ["cargo"] }
 console_error_panic_hook = { version = "0.1.1", optional = true }
 indexmap = { version = "^2.13.0", features = ["serde"] }
 nom = "^8.0.0"
