@@ -1049,11 +1049,21 @@ impl GolangEmitter for Reference {
             Origin::GetAttribute {
                 attribute,
                 conditional,
-            } => output.text(format!(
-                "{name}.Attr{attribute}()",
-                name = golang_identifier(&self.name, IdentifierKind::Unexported),
-                attribute = golang_identifier(attribute, IdentifierKind::Exported),
-            )),
+                is_custom_resource,
+            } => {
+                if *is_custom_resource {
+                    output.text(format!(
+                        "{name}.GetAtt(jsii.String(\"{attribute}\"))",
+                        name = golang_identifier(&self.name, IdentifierKind::Unexported),
+                    ))
+                } else {
+                    output.text(format!(
+                        "{name}.Attr{attribute}()",
+                        name = golang_identifier(&self.name, IdentifierKind::Unexported),
+                        attribute = golang_identifier(attribute, IdentifierKind::Exported),
+                    ))
+                }
+            }
             Origin::LogicalId { conditional } => output.text(format!(
                 "{name}.Ref()",
                 name = golang_identifier(&self.name, IdentifierKind::Unexported)

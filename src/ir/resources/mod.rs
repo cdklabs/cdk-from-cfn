@@ -230,6 +230,7 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                         Origin::GetAttribute {
                             attribute: attribute_name.replace('.', ""),
                             conditional: self.origins.is_conditional(&logical_name),
+                            is_custom_resource: false,
                         },
                     ))),
                     IntrinsicFunction::If {
@@ -352,6 +353,7 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                 Origin::GetAttribute {
                     attribute: attribute.into(),
                     conditional: self.origins.is_conditional(name),
+                    is_custom_resource: false,
                 },
             )
         } else {

@@ -431,12 +431,23 @@ impl Reference {
             Origin::GetAttribute {
                 conditional,
                 attribute,
-            } => format!(
-                "{var_name}{chain}attr{name}",
-                var_name = camel_case(&self.name),
-                chain = if *conditional { "?." } else { "." },
-                name = pascal_case(&attribute.replace('.', ""))
-            )
+                is_custom_resource,
+            } => {
+                if *is_custom_resource {
+                    format!(
+                        "{var_name}{chain}getAtt('{attribute}')",
+                        var_name = camel_case(&self.name),
+                        chain = if *conditional { "?." } else { "." },
+                    )
+                } else {
+                    format!(
+                        "{var_name}{chain}attr{name}",
+                        var_name = camel_case(&self.name),
+                        chain = if *conditional { "?." } else { "." },
+                        name = pascal_case(&attribute.replace('.', ""))
+                    )
+                }
+            }
             .into(),
         }
     }

@@ -28,6 +28,7 @@ pub enum Origin {
     GetAttribute {
         attribute: String,
         conditional: bool,
+        is_custom_resource: bool,
     },
     PseudoParameter(PseudoParameter),
 }
