@@ -529,7 +529,8 @@ fn emit_custom_resource(
             });
             for (name, value) in &reference.properties {
                 if name != "ServiceToken" {
-                    properties_block.text(format!("{}: ", pretty_name(name)));
+                    // Preserve original property names for custom resources (passed to Lambda as-is)
+                    properties_block.text(format!("{name}: "));
                     emit_resource_ir(context, &properties_block, value, Some(",\n"));
                 }
             }
@@ -578,7 +579,8 @@ fn emit_custom_resource(
             });
             for (name, value) in &reference.properties {
                 if name != "ServiceToken" {
-                    properties_block.text(format!("{}: ", pretty_name(name)));
+                    // Preserve original property names for custom resources (passed to Lambda as-is)
+                    properties_block.text(format!("{name}: "));
                     emit_resource_ir(context, &properties_block, value, Some(",\n"));
                 }
             }
