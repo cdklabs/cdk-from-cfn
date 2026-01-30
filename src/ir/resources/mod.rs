@@ -412,6 +412,17 @@ impl ResourceInstruction {
             let resource_type = ResourceType::parse(&attributes.resource_type)?;
             let resource_spec = schema.resource_type(&attributes.resource_type);
 
+            // Validate ServiceToken exists for Custom resources (required by CloudFormation)
+            if matches!(resource_type, ResourceType::Custom(_))
+                && !attributes.properties.contains_key("ServiceToken")
+            {
+                return Err(Error::ResourceInstructionError {
+                    message: format!(
+                        "Custom resource {resource_name} is missing required ServiceToken property"
+                    ),
+                });
+            }
+
             let metadata = if let Some(metadata) = attributes.metadata {
                 Some(ResourceTranslator::json(schema, origins).translate(metadata)?)
             } else {
