@@ -435,29 +435,36 @@ impl ResourceInstruction {
                 None
             };
 
+            let is_custom = matches!(resource_type, ResourceType::Custom(_));
+
             let mut properties =
                 IndexMap::with_capacity_and_hasher(attributes.properties.len(), Hasher::default());
             for (prop_name, prop) in attributes.properties {
-                let property_type = resource_spec.and_then(|spec| spec.property(&prop_name));
-                let property_type = property_type.map(|prop| prop.value_type);
-                if property_type.is_none() {
-                    let resource_type = format!(
-                        "{:#?}::{:#?}::{:#?}",
-                        resource_type.scope().to_uppercase(),
-                        resource_type.service(),
-                        resource_type.type_name(),
-                    )
-                    .replace('\"', "");
-                    return Err(Error::ResourceInstructionError {
-                        message: format!(
-                            "{prop_name} is not a valid property for resource {resource_name} of type {resource_type}"
-                        ),
-                    });
-                }
-                let translator = ResourceTranslator {
-                    schema,
-                    origins,
-                    value_type: property_type,
+                // Custom resources have no schema - treat all properties as JSON passthrough
+                let translator = if is_custom {
+                    ResourceTranslator::json(schema, origins)
+                } else {
+                    let property_type = resource_spec.and_then(|spec| spec.property(&prop_name));
+                    let property_type = property_type.map(|prop| prop.value_type);
+                    if property_type.is_none() {
+                        let resource_type = format!(
+                            "{:#?}::{:#?}::{:#?}",
+                            resource_type.scope().to_uppercase(),
+                            resource_type.service(),
+                            resource_type.type_name(),
+                        )
+                        .replace('\"', "");
+                        return Err(Error::ResourceInstructionError {
+                            message: format!(
+                                "{prop_name} is not a valid property for resource {resource_name} of type {resource_type}"
+                            ),
+                        });
+                    }
+                    ResourceTranslator {
+                        schema,
+                        origins,
+                        value_type: property_type,
+                    }
                 };
                 properties.insert(prop_name, translator.translate(prop)?);
             }
