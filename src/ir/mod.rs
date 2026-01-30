@@ -61,11 +61,13 @@ impl CloudformationProgramIr {
 #[derive(Debug)]
 struct ReferenceOrigins {
     origins: HashMap<String, Origin>,
+    custom_resources: std::collections::HashSet<String>,
 }
 
 impl ReferenceOrigins {
     fn new(parse_tree: &CloudformationParseTree) -> Self {
         let mut origins = HashMap::default();
+        let mut custom_resources = std::collections::HashSet::default();
 
         origins.extend(parse_tree.parameters.iter().map(|(name, param)| {
             if param
@@ -80,6 +82,10 @@ impl ReferenceOrigins {
         }));
 
         origins.extend(parse_tree.resources.iter().map(|(name, res)| {
+            // Track custom resources for GetAtt handling
+            if res.resource_type.starts_with("Custom::") {
+                custom_resources.insert(name.clone());
+            }
             (
                 name.clone(),
                 Origin::LogicalId {
@@ -88,7 +94,10 @@ impl ReferenceOrigins {
             )
         }));
 
-        Self { origins }
+        Self {
+            origins,
+            custom_resources,
+        }
     }
 
     fn for_ref(&self, ref_name: &str) -> Option<Origin> {
@@ -106,5 +115,9 @@ impl ReferenceOrigins {
                 _ => false,
             })
             .unwrap_or(false)
+    }
+
+    fn is_custom_resource(&self, logical_id: &str) -> bool {
+        self.custom_resources.contains(logical_id)
     }
 }

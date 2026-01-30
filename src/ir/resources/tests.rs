@@ -183,6 +183,7 @@ fn unknown_resource_type() {
 #[test]
 fn test_boolean_parse_error() {
     let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -201,6 +202,7 @@ fn test_boolean_parse_error() {
 #[test]
 fn test_number_parse_float() {
     let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -216,6 +218,7 @@ fn test_number_parse_float() {
 #[test]
 fn test_number_parse_error() {
     let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -231,6 +234,7 @@ fn test_number_parse_error() {
 #[test]
 fn test_sub_excess_map_error() {
     let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -249,6 +253,7 @@ fn test_sub_excess_map_error() {
 #[test]
 fn test_invalid_base_64() {
     let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -269,6 +274,7 @@ fn test_invalid_base_64() {
 #[test]
 fn test_invalid_select_index() {
     let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -287,6 +293,7 @@ fn test_invalid_select_index() {
 #[test]
 fn test_invalid_select_index_range_error() {
     let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -305,6 +312,7 @@ fn test_invalid_select_index_range_error() {
 #[test]
 fn test_select_index_int_error() {
     let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
