@@ -15,7 +15,7 @@ use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
-use crate::ir::resources::{ResourceInstruction, ResourceIr};
+use crate::ir::resources::{ResourceInstruction, ResourceIr, ResourceType};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::util::Hasher;
@@ -300,7 +300,11 @@ impl Synthesizer for Typescript {
             } else {
                 ctor.newline();
             }
-            emit_resource(context, &ctor, reference);
+            if matches!(reference.resource_type, ResourceType::Custom(_)) {
+                emit_custom_resource(context, &ctor, reference);
+            } else {
+                emit_resource(context, &ctor, reference);
+            }
         }
 
         if !ir.outputs.is_empty() {
@@ -475,6 +479,178 @@ fn emit_cfn_output(
         emit_resource_ir(context, &output, export, Some(",\n"));
     }
     output.line(format!("value: this.{var_name}!.toString(),"));
+}
+
+fn emit_custom_resource(
+    context: &mut TypescriptContext,
+    output: &CodeBuffer,
+    reference: &ResourceInstruction,
+) {
+    let var_name = pretty_name(&reference.name);
+    let resource_type_name = match &reference.resource_type {
+        ResourceType::Custom(name) => format!("Custom::{name}"),
+        _ => unreachable!("emit_custom_resource called with non-custom resource"),
+    };
+
+    // Extract ServiceToken and other properties
+    let service_token = reference.properties.get("ServiceToken");
+
+    let maybe_undefined = if let Some(cond) = &reference.condition {
+        output.line(format!(
+            "const {var_name} = {cond}",
+            cond = pretty_name(cond)
+        ));
+
+        let output = output.indent(INDENT);
+        output.line(
+            "? new cdk.CustomResource(this, '".to_owned()
+                + &reference.name.escape_debug().to_string()
+                + "', {",
+        );
+
+        let props_output = output.indent(INDENT);
+        if let Some(token) = service_token {
+            props_output.text("serviceToken: ");
+            emit_resource_ir(context, &props_output, token, Some(",\n"));
+        }
+        props_output.line(format!("resourceType: '{resource_type_name}',"));
+
+        // Emit properties (excluding ServiceToken)
+        let has_other_props = reference
+            .properties
+            .iter()
+            .any(|(k, _)| k != "ServiceToken");
+        if has_other_props {
+            let properties_block = props_output.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("properties: {".into()),
+                trailing: Some("},".into()),
+                trailing_newline: true,
+            });
+            for (name, value) in &reference.properties {
+                if name != "ServiceToken" {
+                    properties_block.text(format!("{}: ", pretty_name(name)));
+                    emit_resource_ir(context, &properties_block, value, Some(",\n"));
+                }
+            }
+        }
+
+        // Map DeletionPolicy to removalPolicy
+        if let Some(deletion_policy) = &reference.deletion_policy {
+            let removal_policy = match deletion_policy.to_string().as_str() {
+                "DELETE" => "cdk.RemovalPolicy.DESTROY",
+                "RETAIN" => "cdk.RemovalPolicy.RETAIN",
+                "SNAPSHOT" => "cdk.RemovalPolicy.SNAPSHOT",
+                "RETAIN_EXCEPT_ON_CREATE" => "cdk.RemovalPolicy.RETAIN_EXCEPT_ON_CREATE",
+                _ => "cdk.RemovalPolicy.DESTROY",
+            };
+            props_output.line(format!("removalPolicy: {removal_policy},"));
+        }
+
+        output.indent(INDENT).line("})");
+        output.line(": undefined;");
+
+        true
+    } else {
+        output.line(format!(
+            "const {var_name} = new cdk.CustomResource(this, '{}', {{",
+            reference.name.escape_debug()
+        ));
+
+        let props_output = output.indent(INDENT);
+        if let Some(token) = service_token {
+            props_output.text("serviceToken: ");
+            emit_resource_ir(context, &props_output, token, Some(",\n"));
+        }
+        props_output.line(format!("resourceType: '{resource_type_name}',"));
+
+        // Emit properties (excluding ServiceToken)
+        let has_other_props = reference
+            .properties
+            .iter()
+            .any(|(k, _)| k != "ServiceToken");
+        if has_other_props {
+            let properties_block = props_output.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some("properties: {".into()),
+                trailing: Some("},".into()),
+                trailing_newline: true,
+            });
+            for (name, value) in &reference.properties {
+                if name != "ServiceToken" {
+                    properties_block.text(format!("{}: ", pretty_name(name)));
+                    emit_resource_ir(context, &properties_block, value, Some(",\n"));
+                }
+            }
+        }
+
+        // Map DeletionPolicy to removalPolicy
+        if let Some(deletion_policy) = &reference.deletion_policy {
+            let removal_policy = match deletion_policy.to_string().as_str() {
+                "DELETE" => "cdk.RemovalPolicy.DESTROY",
+                "RETAIN" => "cdk.RemovalPolicy.RETAIN",
+                "SNAPSHOT" => "cdk.RemovalPolicy.SNAPSHOT",
+                "RETAIN_EXCEPT_ON_CREATE" => "cdk.RemovalPolicy.RETAIN_EXCEPT_ON_CREATE",
+                _ => "cdk.RemovalPolicy.DESTROY",
+            };
+            props_output.line(format!("removalPolicy: {removal_policy},"));
+        }
+
+        output.line("});");
+
+        false
+    };
+
+    // Handle metadata via escape hatch
+    if let Some(metadata) = &reference.metadata {
+        let accessor = if maybe_undefined {
+            format!("{var_name}?.node.defaultChild as cdk.CfnResource")
+        } else {
+            format!("{var_name}.node.defaultChild as cdk.CfnResource")
+        };
+        if maybe_undefined {
+            output.line(format!("if ({var_name} != null) {{"));
+            let indented = output.indent(INDENT);
+            let md = indented.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some(format!("({accessor}).cfnOptions.metadata = {{").into()),
+                trailing: Some("};".into()),
+                trailing_newline: true,
+            });
+            emit_resource_metadata(context, md, metadata);
+            output.line("}");
+        } else {
+            let md = output.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some(format!("({accessor}).cfnOptions.metadata = {{").into()),
+                trailing: Some("};".into()),
+                trailing_newline: true,
+            });
+            emit_resource_metadata(context, md, metadata);
+        }
+    }
+
+    // Handle DependsOn
+    if !reference.dependencies.is_empty() {
+        if maybe_undefined {
+            output.line(format!("if ({var_name} != null) {{"));
+            let indented = output.indent(INDENT);
+            for dependency in &reference.dependencies {
+                indented.line(format!(
+                    "{var_name}.node.addDependency({});",
+                    pretty_name(dependency)
+                ));
+            }
+            output.line("}");
+        } else {
+            for dependency in &reference.dependencies {
+                output.line(format!(
+                    "{var_name}.node.addDependency({});",
+                    pretty_name(dependency)
+                ));
+            }
+        }
+    }
 }
 
 fn emit_resource(
