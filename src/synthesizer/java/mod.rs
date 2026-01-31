@@ -743,8 +743,17 @@ fn emit_reference(reference: Reference, class_type: ClassType) -> String {
         Origin::GetAttribute {
             conditional,
             attribute,
+            is_custom_resource,
         } => {
-            if conditional {
+            if is_custom_resource && conditional {
+                format!(
+                    "Optional.of({}.isPresent() ? {}.get().getAtt(\"{attribute}\")\n{DOUBLE_INDENT}: Optional.empty())",
+                    camel_case(&name),
+                    camel_case(&name),
+                )
+            } else if is_custom_resource {
+                format!("{}.getAtt(\"{attribute}\")", camel_case(&name),)
+            } else if conditional {
                 format!(
                     "Optional.of({}.isPresent() ? {}.get().getAttr{}()\n{DOUBLE_INDENT}: Optional.empty())",
                     camel_case(&name),
