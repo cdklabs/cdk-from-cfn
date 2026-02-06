@@ -24,6 +24,11 @@ impl ImportInstruction {
         for (_, resource) in parse_tree {
             let type_name = &resource.resource_type;
 
+            // Skip Custom resources - they don't have CDK service modules
+            if type_name.starts_with("Custom::") {
+                continue;
+            }
+
             let (organization, service, _) = if let Some(triple) =
                 type_name.split_once("::").and_then(|(organization, rest)| {
                     rest.split_once("::")

@@ -480,11 +480,21 @@ impl Reference {
             Origin::GetAttribute {
                 attribute,
                 conditional: _,
-            } => output.text(format!(
-                "{}.Attr{}",
-                camel_case(&self.name),
-                attribute.replace('.', "")
-            )),
+                is_custom_resource,
+            } => {
+                if *is_custom_resource {
+                    output.text(format!(
+                        "{}.GetAtt(\"{attribute}\")",
+                        camel_case(&self.name),
+                    ))
+                } else {
+                    output.text(format!(
+                        "{}.Attr{}",
+                        camel_case(&self.name),
+                        attribute.replace('.', "")
+                    ))
+                }
+            }
             Origin::LogicalId { conditional: _ } => {
                 output.text(format!("{}.Ref", camel_case(&self.name.replace('.', ""))))
             }
