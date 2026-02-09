@@ -261,51 +261,62 @@ impl Synthesizer for Golang<'_> {
         }
 
         for resource in &ir.resources {
-            let ns =
-                golang_identifier(resource.resource_type.service(), IdentifierKind::ModuleName);
-            let class = resource.resource_type.type_name();
+            use crate::ir::resources::ResourceType;
 
-            let prefix = if ir.resources.iter().any(|other| {
-                other.name != resource.name && other.references.contains(&resource.name)
-            }) || ir
-                .outputs
-                .iter()
-                .any(|output| find_references(&output.value).contains(&resource.name))
-            {
-                format!(
-                    "{varname} := ",
-                    varname = golang_identifier(&resource.name, IdentifierKind::Unexported)
-                )
-            } else {
-                "".into()
-            };
-            let params = ctor.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some(format!("{prefix}{ns}.NewCfn{class}(").into()),
-                trailing: Some(")".into()),
-                trailing_newline: true,
-            });
-            let scope_var = match class_type {
-                ClassType::Stack => "stack",
-                ClassType::Construct => "construct",
-            };
-            params.line(format!("{scope_var},"));
-            params.line(format!("jsii.String({:?}),", resource.name));
-            let props = params.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some(format!("&{ns}.Cfn{class}Props{{").into()),
-                trailing: Some("},".into()),
-                trailing_newline: true,
-            });
-            for (name, value) in &resource.properties {
-                props.text(format!(
-                    "{}: ",
-                    golang_identifier(name, IdentifierKind::Exported)
-                ));
-                value.emit_golang(context, &props, None)?;
-                props.line(",");
+            match &resource.resource_type {
+                ResourceType::Custom(_) => {
+                    emit_custom_resource(context, &ctor, resource, class_type)?;
+                }
+                _ => {
+                    let ns = golang_identifier(
+                        resource.resource_type.service(),
+                        IdentifierKind::ModuleName,
+                    );
+                    let class = resource.resource_type.type_name();
+
+                    let prefix = if ir.resources.iter().any(|other| {
+                        other.name != resource.name && other.references.contains(&resource.name)
+                    }) || ir
+                        .outputs
+                        .iter()
+                        .any(|output| find_references(&output.value).contains(&resource.name))
+                    {
+                        format!(
+                            "{varname} := ",
+                            varname = golang_identifier(&resource.name, IdentifierKind::Unexported)
+                        )
+                    } else {
+                        "".into()
+                    };
+                    let params = ctor.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(format!("{prefix}{ns}.NewCfn{class}(").into()),
+                        trailing: Some(")".into()),
+                        trailing_newline: true,
+                    });
+                    let scope_var = match class_type {
+                        ClassType::Stack => "stack",
+                        ClassType::Construct => "construct",
+                    };
+                    params.line(format!("{scope_var},"));
+                    params.line(format!("jsii.String({:?}),", resource.name));
+                    let props = params.indent_with_options(IndentOptions {
+                        indent: INDENT,
+                        leading: Some(format!("&{ns}.Cfn{class}Props{{").into()),
+                        trailing: Some("},".into()),
+                        trailing_newline: true,
+                    });
+                    for (name, value) in &resource.properties {
+                        props.text(format!(
+                            "{}: ",
+                            golang_identifier(name, IdentifierKind::Exported)
+                        ));
+                        value.emit_golang(context, &props, None)?;
+                        props.line(",");
+                    }
+                    ctor.newline();
+                }
             }
-            ctor.newline();
         }
 
         for output in &ir.outputs {
@@ -442,6 +453,98 @@ impl Synthesizer for Golang<'_> {
 
         Ok(code.write(into)?)
     }
+}
+
+fn emit_custom_resource(
+    context: &mut GoContext,
+    output: &CodeBuffer,
+    resource: &ResourceInstruction,
+    class_type: ClassType,
+) -> Result<(), Error> {
+    use crate::ir::resources::ResourceType;
+
+    let var_name = golang_identifier(&resource.name, IdentifierKind::Unexported);
+    let resource_type_name = match &resource.resource_type {
+        ResourceType::Custom(name) => format!("Custom::{name}"),
+        _ => unreachable!("emit_custom_resource called with non-custom resource"),
+    };
+
+    // Extract ServiceToken property
+    let service_token = resource.properties.get("ServiceToken");
+
+    let scope_var = match class_type {
+        ClassType::Stack => "stack",
+        ClassType::Construct => "construct",
+    };
+
+    // Emit constructor
+    let params = output.indent_with_options(IndentOptions {
+        indent: INDENT,
+        leading: Some(
+            format!(
+                "{var_name} := awscdk.NewCfnCustomResource({scope_var}, jsii.String({:?}), &awscdk.CfnCustomResourceProps{{",
+                resource.name
+            )
+            .into(),
+        ),
+        trailing: Some("})".into()),
+        trailing_newline: true,
+    });
+
+    if let Some(token) = service_token {
+        params.text("ServiceToken: ");
+        token.emit_golang(context, &params, Some(","))?;
+    }
+
+    // Override the type from AWS::CloudFormation::CustomResource to Custom::XXX
+    output.line(format!(
+        "{var_name}.AddOverride(jsii.String(\"Type\"), jsii.String({resource_type_name:?}))"
+    ));
+
+    // Emit custom properties via AddPropertyOverride (excluding ServiceToken which is in constructor)
+    for (name, value) in &resource.properties {
+        if name != "ServiceToken" {
+            output.text(format!(
+                "{var_name}.AddPropertyOverride(jsii.String({name:?}), "
+            ));
+            value.emit_golang(context, output, None)?;
+            output.line(")");
+        }
+    }
+
+    // Handle DeletionPolicy
+    if let Some(deletion_policy) = &resource.deletion_policy {
+        output.line(format!(
+            "{var_name}.CfnOptions().SetDeletionPolicy(awscdk.CfnDeletionPolicy_{deletion_policy})"
+        ));
+    }
+
+    // Handle Metadata
+    if let Some(metadata) = &resource.metadata {
+        output.text(format!("{var_name}.CfnOptions().SetMetadata("));
+        metadata.emit_golang(context, output, None)?;
+        output.line(")");
+    }
+
+    // Handle UpdatePolicy
+    if let Some(update_policy) = &resource.update_policy {
+        output.text(format!("{var_name}.CfnOptions().SetUpdatePolicy("));
+        update_policy.emit_golang(context, output, None)?;
+        output.line(")");
+    }
+
+    // Handle DependsOn
+    if !resource.dependencies.is_empty() {
+        for dependency in &resource.dependencies {
+            output.line(format!(
+                "{var_name}.AddDependency({})",
+                golang_identifier(dependency, IdentifierKind::Unexported)
+            ));
+        }
+    }
+
+    output.newline();
+    Ok(())
 }
 
 struct GoContext<'a> {
