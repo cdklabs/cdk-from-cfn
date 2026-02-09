@@ -375,10 +375,22 @@ impl<'a> Java<'a> {
         schema: &Schema,
         class_type: ClassType,
     ) -> Result<(), Error> {
+        use crate::ir::resources::ResourceType;
+
         for resource in &ir.resources {
-            let maybe_undefined = Self::write_resource(resource, writer, schema, class_type)?;
-            writer.newline();
-            Self::write_resource_attributes(resource, writer, maybe_undefined, schema, class_type)?;
+            if matches!(resource.resource_type, ResourceType::Custom(_)) {
+                emit_custom_resource(resource, writer, schema, class_type)?;
+            } else {
+                let maybe_undefined = Self::write_resource(resource, writer, schema, class_type)?;
+                writer.newline();
+                Self::write_resource_attributes(
+                    resource,
+                    writer,
+                    maybe_undefined,
+                    schema,
+                    class_type,
+                )?;
+            }
         }
         Ok(())
     }
@@ -810,6 +822,134 @@ fn emit_tag_value(
         ResourceIr::Number(number) => Ok(output.text(format!("String.valueOf({number})"))),
         other => Ok(emit_java(other, output, class, schema, class_type)?),
     }
+}
+
+fn emit_custom_resource(
+    resource: &ResourceInstruction,
+    writer: &Rc<CodeBuffer>,
+    schema: &Schema,
+    class_type: ClassType,
+) -> Result<(), Error> {
+    use crate::ir::resources::ResourceType;
+
+    let var_name = name(&resource.name);
+    let resource_type_name = match &resource.resource_type {
+        ResourceType::Custom(n) => format!("Custom::{n}"),
+        _ => unreachable!("emit_custom_resource called with non-custom resource"),
+    };
+
+    // Extract ServiceToken property
+    let service_token = resource.properties.get("ServiceToken");
+
+    // Emit constructor using CfnCustomResource.Builder
+    let maybe_undefined = if let Some(cond) = &resource.condition {
+        writer.line(format!(
+            "Optional<CfnCustomResource> {var_name} = {} ? Optional.of(CfnCustomResource.Builder.create(this, \"{}\")",
+            camel_case(cond),
+            resource.name
+        ));
+        let properties = writer.indent(DOUBLE_INDENT);
+        if let Some(token) = service_token {
+            properties.text(".serviceToken(");
+            emit_java(token.clone(), &properties, None, schema, class_type)?;
+            properties.text(")\n");
+        }
+        properties.line(".build()) : Optional.empty();");
+        true
+    } else {
+        writer.line(format!(
+            "CfnCustomResource {var_name} = CfnCustomResource.Builder.create(this, \"{}\")",
+            resource.name
+        ));
+        let properties = writer.indent(DOUBLE_INDENT);
+        if let Some(token) = service_token {
+            properties.text(".serviceToken(");
+            emit_java(token.clone(), &properties, None, schema, class_type)?;
+            properties.text(")\n");
+        }
+        properties.line(".build();");
+        false
+    };
+    writer.newline();
+
+    // Build the variable access prefix (handles Optional wrapping for conditional resources)
+    let (res_name, trailer) = if maybe_undefined {
+        (
+            format!("{var_name}.ifPresent(_{var_name} -> _{var_name}",),
+            ");\n",
+        )
+    } else {
+        (var_name.clone(), ";\n")
+    };
+
+    // Override the type from AWS::CloudFormation::CustomResource to Custom::XXX
+    writer.text(format!(
+        "{res_name}.addOverride(\"Type\", \"{resource_type_name}\"){trailer}"
+    ));
+
+    // Emit custom properties via addPropertyOverride (excluding ServiceToken which is in constructor)
+    for (prop_name, value) in &resource.properties {
+        if prop_name != "ServiceToken" {
+            writer.text(format!("{res_name}.addPropertyOverride(\"{prop_name}\", "));
+            emit_java(value.clone(), writer, None, schema, class_type)?;
+            writer.text(format!("){trailer}"));
+        }
+    }
+
+    // Handle Metadata
+    if let Some(metadata) = &resource.metadata {
+        match metadata {
+            ResourceIr::Object(_, entries) => {
+                for (meta_name, value) in entries {
+                    writer.text(format!("{res_name}.addMetadata(\"{meta_name}\", "));
+                    emit_java(value.clone(), writer, None, schema, class_type)?;
+                    writer.text(format!("){trailer}"));
+                }
+            }
+            unsupported => {
+                writer.line(format!("/* {unsupported:?} */"));
+            }
+        }
+    }
+
+    // Handle DependsOn
+    for dependency in &resource.dependencies {
+        writer.text(format!(
+            "{res_name}.addDependency({}){trailer}",
+            camel_case(dependency),
+        ));
+    }
+
+    // Handle DeletionPolicy (Java uses RemovalPolicy, same as standard resources)
+    if let Some(deletion_policy) = &resource.deletion_policy {
+        match deletion_policy {
+            DeletionPolicy::Delete => {
+                writer.text(format!(
+                    "{res_name}.applyRemovalPolicy(RemovalPolicy.DESTROY){trailer}"
+                ));
+            }
+            DeletionPolicy::RetainExceptOnCreate => {
+                writer.text(format!(
+                    "{res_name}.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE){trailer}"
+                ));
+            }
+            _ => {
+                writer.text(format!(
+                    "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy}){trailer}"
+                ));
+            }
+        }
+    }
+
+    // Handle UpdatePolicy
+    if let Some(update_policy) = &resource.update_policy {
+        writer.text(format!("{res_name}.getCfnOptions().setUpdatePolicy("));
+        emit_java(update_policy.clone(), writer, None, schema, class_type)?;
+        writer.text(format!("){trailer}"));
+    }
+
+    writer.newline();
+    Ok(())
 }
 
 fn emit_java(
