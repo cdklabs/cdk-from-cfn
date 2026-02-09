@@ -492,7 +492,7 @@ fn emit_custom_resource(
         _ => unreachable!("emit_custom_resource called with non-custom resource"),
     };
 
-    // Extract ServiceToken and other properties
+    // Extract ServiceToken property
     let service_token = reference.properties.get("ServiceToken");
 
     let maybe_undefined = if let Some(cond) = &reference.condition {
@@ -503,7 +503,7 @@ fn emit_custom_resource(
 
         let output = output.indent(INDENT);
         output.line(
-            "? new cdk.CustomResource(this, '".to_owned()
+            "? new cdk.CfnCustomResource(this, '".to_owned()
                 + &reference.name.escape_debug().to_string()
                 + "', {",
         );
@@ -513,40 +513,6 @@ fn emit_custom_resource(
             props_output.text("serviceToken: ");
             emit_resource_ir(context, &props_output, token, Some(",\n"));
         }
-        props_output.line(format!("resourceType: '{resource_type_name}',"));
-
-        // Emit properties (excluding ServiceToken)
-        let has_other_props = reference
-            .properties
-            .iter()
-            .any(|(k, _)| k != "ServiceToken");
-        if has_other_props {
-            let properties_block = props_output.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some("properties: {".into()),
-                trailing: Some("},".into()),
-                trailing_newline: true,
-            });
-            for (name, value) in &reference.properties {
-                if name != "ServiceToken" {
-                    // Preserve original property names for custom resources (passed to Lambda as-is)
-                    properties_block.text(format!("{name}: "));
-                    emit_resource_ir(context, &properties_block, value, Some(",\n"));
-                }
-            }
-        }
-
-        // Map DeletionPolicy to removalPolicy
-        if let Some(deletion_policy) = &reference.deletion_policy {
-            let removal_policy = match deletion_policy.to_string().as_str() {
-                "DELETE" => "cdk.RemovalPolicy.DESTROY",
-                "RETAIN" => "cdk.RemovalPolicy.RETAIN",
-                "SNAPSHOT" => "cdk.RemovalPolicy.SNAPSHOT",
-                "RETAIN_EXCEPT_ON_CREATE" => "cdk.RemovalPolicy.RETAIN_EXCEPT_ON_CREATE",
-                _ => "cdk.RemovalPolicy.DESTROY",
-            };
-            props_output.line(format!("removalPolicy: {removal_policy},"));
-        }
 
         output.indent(INDENT).line("})");
         output.line(": undefined;");
@@ -554,7 +520,7 @@ fn emit_custom_resource(
         true
     } else {
         output.line(format!(
-            "const {var_name} = new cdk.CustomResource(this, '{}', {{",
+            "const {var_name} = new cdk.CfnCustomResource(this, '{}', {{",
             reference.name.escape_debug()
         ));
 
@@ -563,95 +529,37 @@ fn emit_custom_resource(
             props_output.text("serviceToken: ");
             emit_resource_ir(context, &props_output, token, Some(",\n"));
         }
-        props_output.line(format!("resourceType: '{resource_type_name}',"));
-
-        // Emit properties (excluding ServiceToken)
-        let has_other_props = reference
-            .properties
-            .iter()
-            .any(|(k, _)| k != "ServiceToken");
-        if has_other_props {
-            let properties_block = props_output.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some("properties: {".into()),
-                trailing: Some("},".into()),
-                trailing_newline: true,
-            });
-            for (name, value) in &reference.properties {
-                if name != "ServiceToken" {
-                    // Preserve original property names for custom resources (passed to Lambda as-is)
-                    properties_block.text(format!("{name}: "));
-                    emit_resource_ir(context, &properties_block, value, Some(",\n"));
-                }
-            }
-        }
-
-        // Map DeletionPolicy to removalPolicy
-        if let Some(deletion_policy) = &reference.deletion_policy {
-            let removal_policy = match deletion_policy.to_string().as_str() {
-                "DELETE" => "cdk.RemovalPolicy.DESTROY",
-                "RETAIN" => "cdk.RemovalPolicy.RETAIN",
-                "SNAPSHOT" => "cdk.RemovalPolicy.SNAPSHOT",
-                "RETAIN_EXCEPT_ON_CREATE" => "cdk.RemovalPolicy.RETAIN_EXCEPT_ON_CREATE",
-                _ => "cdk.RemovalPolicy.DESTROY",
-            };
-            props_output.line(format!("removalPolicy: {removal_policy},"));
-        }
 
         output.line("});");
 
         false
     };
 
-    // Handle metadata via escape hatch
-    if let Some(metadata) = &reference.metadata {
-        let accessor = if maybe_undefined {
-            format!("{var_name}?.node.defaultChild as cdk.CfnResource")
-        } else {
-            format!("{var_name}.node.defaultChild as cdk.CfnResource")
-        };
-        if maybe_undefined {
-            output.line(format!("if ({var_name} != null) {{"));
-            let indented = output.indent(INDENT);
-            let md = indented.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some(format!("({accessor}).cfnOptions.metadata = {{").into()),
-                trailing: Some("};".into()),
-                trailing_newline: true,
-            });
-            emit_resource_metadata(context, md, metadata);
-            output.line("}");
-        } else {
-            let md = output.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some(format!("({accessor}).cfnOptions.metadata = {{").into()),
-                trailing: Some("};".into()),
-                trailing_newline: true,
-            });
-            emit_resource_metadata(context, md, metadata);
+    // Override the type from AWS::CloudFormation::CustomResource to Custom::XXX
+    output.line(format!(
+        "{var_name}{chain}addOverride('Type', '{resource_type_name}');",
+        chain = if maybe_undefined { "?." } else { "." },
+    ));
+
+    // Emit custom properties via addPropertyOverride (excluding ServiceToken which is in constructor)
+    for (name, value) in &reference.properties {
+        if name != "ServiceToken" {
+            output.text(format!(
+                "{var_name}{chain}addPropertyOverride('{name}', ",
+                chain = if maybe_undefined { "?." } else { "." },
+            ));
+            emit_resource_ir(context, output, value, Some(");\n"));
         }
     }
 
-    // Handle DependsOn
-    if !reference.dependencies.is_empty() {
-        if maybe_undefined {
-            output.line(format!("if ({var_name} != null) {{"));
-            let indented = output.indent(INDENT);
-            for dependency in &reference.dependencies {
-                indented.line(format!(
-                    "{var_name}.node.addDependency({});",
-                    pretty_name(dependency)
-                ));
-            }
-            output.line("}");
-        } else {
-            for dependency in &reference.dependencies {
-                output.line(format!(
-                    "{var_name}.node.addDependency({});",
-                    pretty_name(dependency)
-                ));
-            }
-        }
+    // DeletionPolicy, Metadata, UpdatePolicy, DependsOn use same L1 patterns as standard resources
+    if maybe_undefined {
+        output.line(format!("if ({var_name} != null) {{"));
+        let indented = output.indent(INDENT);
+        emit_resource_attributes(context, &indented, reference, &var_name);
+        output.line("}");
+    } else {
+        emit_resource_attributes(context, output, reference, &var_name);
     }
 }
 
