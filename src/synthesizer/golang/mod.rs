@@ -1156,7 +1156,7 @@ impl GolangEmitter for Reference {
             } => {
                 if *is_custom_resource {
                     output.text(format!(
-                        "{name}.GetAtt(jsii.String(\"{attribute}\"))",
+                        "{name}.GetAtt(jsii.String(\"{attribute}\")).ToString()",
                         name = golang_identifier(&self.name, IdentifierKind::Unexported),
                     ))
                 } else {

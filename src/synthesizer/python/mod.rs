@@ -494,7 +494,7 @@ impl Reference {
             } => {
                 if *is_custom_resource {
                     format!(
-                        "{var_name}{chain}get_att('{attribute}')",
+                        "{var_name}{chain}get_att('{attribute}').to_string()",
                         var_name = camel_case(&self.name),
                         chain = ".",
                     )

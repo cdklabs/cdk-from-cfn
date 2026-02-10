@@ -439,7 +439,7 @@ impl Reference {
             } => {
                 if *is_custom_resource {
                     format!(
-                        "{var_name}{chain}getAtt('{attribute}')",
+                        "{var_name}{chain}getAtt('{attribute}').toString()",
                         var_name = camel_case(&self.name),
                         chain = if *conditional { "?." } else { "." },
                     )

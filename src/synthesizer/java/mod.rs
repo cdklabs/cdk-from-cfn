@@ -759,12 +759,12 @@ fn emit_reference(reference: Reference, class_type: ClassType) -> String {
         } => {
             if is_custom_resource && conditional {
                 format!(
-                    "Optional.of({}.isPresent() ? {}.get().getAtt(\"{attribute}\")\n{DOUBLE_INDENT}: Optional.empty())",
+                    "Optional.of({}.isPresent() ? {}.get().getAtt(\"{attribute}\").toString()\n{DOUBLE_INDENT}: Optional.empty())",
                     camel_case(&name),
                     camel_case(&name),
                 )
             } else if is_custom_resource {
-                format!("{}.getAtt(\"{attribute}\")", camel_case(&name),)
+                format!("{}.getAtt(\"{attribute}\").toString()", camel_case(&name),)
             } else if conditional {
                 format!(
                     "Optional.of({}.isPresent() ? {}.get().getAttr{}()\n{DOUBLE_INDENT}: Optional.empty())",

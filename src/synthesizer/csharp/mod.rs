@@ -569,7 +569,7 @@ impl Reference {
             } => {
                 if *is_custom_resource {
                     output.text(format!(
-                        "{}.GetAtt(\"{attribute}\")",
+                        "{}.GetAtt(\"{attribute}\").ToString()",
                         camel_case(&self.name),
                     ))
                 } else {
