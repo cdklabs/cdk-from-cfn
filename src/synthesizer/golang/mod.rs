@@ -482,7 +482,7 @@ fn emit_custom_resource(
         indent: INDENT,
         leading: Some(
             format!(
-                "{var_name} := awscdk.NewCfnCustomResource({scope_var}, jsii.String({:?}), &awscdk.CfnCustomResourceProps{{",
+                "{var_name} := cdk.NewCfnCustomResource({scope_var}, jsii.String({:?}), &cdk.CfnCustomResourceProps{{",
                 resource.name
             )
             .into(),
@@ -515,7 +515,7 @@ fn emit_custom_resource(
     // Handle DeletionPolicy
     if let Some(deletion_policy) = &resource.deletion_policy {
         output.line(format!(
-            "{var_name}.CfnOptions().SetDeletionPolicy(awscdk.CfnDeletionPolicy_{deletion_policy})"
+            "{var_name}.CfnOptions().SetDeletionPolicy(cdk.CfnDeletionPolicy_{deletion_policy})"
         ));
     }
 
