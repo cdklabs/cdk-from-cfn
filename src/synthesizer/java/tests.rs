@@ -626,6 +626,96 @@ fn test_custom_resource_deletion_policy_delete() {
     assert!(code.contains("myCustomResource.applyRemovalPolicy(RemovalPolicy.DESTROY)"));
 }
 
+const CUSTOM_RESOURCE_RETAIN_EXCEPT_ON_CREATE_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Cleanup",
+            "DeletionPolicy": "RetainExceptOnCreate",
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_deletion_policy_retain_except_on_create() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_RETAIN_EXCEPT_ON_CREATE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code
+        .contains("myCustomResource.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE)"));
+}
+
+const CUSTOM_RESOURCE_METADATA_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Setup",
+            "Metadata": {
+                "CostCenter": "12345",
+                "Environment": "production"
+            },
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_metadata() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_METADATA_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.addMetadata(\"CostCenter\","));
+    assert!(code.contains("myCustomResource.addMetadata(\"Environment\","));
+}
+
+const CUSTOM_RESOURCE_UPDATE_POLICY_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Setup",
+            "UpdatePolicy": {
+                "AutoScalingRollingUpdate": {
+                    "MinInstancesInService": 1
+                }
+            },
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_update_policy() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_UPDATE_POLICY_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.getCfnOptions().setUpdatePolicy("));
+}
+
 #[test]
 fn test_custom_resource_construct_mode() {
     let cfn: CloudformationParseTree =
