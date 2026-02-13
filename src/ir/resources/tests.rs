@@ -332,3 +332,114 @@ fn test_select_index_int_error() {
 fn create_property(name: &str, resource: ResourceIr) -> IndexMap<String, ResourceIr, Hasher> {
     IndexMap::from_iter([(name.into(), resource)])
 }
+
+// --- Custom Resource IR Tests ---
+
+use crate::parser::resource::ResourceAttributes;
+
+#[test]
+fn test_custom_resource_missing_service_token() {
+    let mut properties = IndexMap::default();
+    properties.insert(
+        "DatabaseName".to_string(),
+        ResourceValue::String("mydb".into()),
+    );
+
+    let mut parse_tree: IndexMap<String, ResourceAttributes, Hasher> = IndexMap::default();
+    parse_tree.insert(
+        "MyCustomResource".to_string(),
+        ResourceAttributes {
+            resource_type: "Custom::Setup".to_string(),
+            condition: None,
+            metadata: None,
+            update_policy: None,
+            deletion_policy: None,
+            depends_on: vec![],
+            properties,
+        },
+    );
+
+    let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
+        origins: HashMap::default(),
+    };
+
+    let result = ResourceInstruction::from(parse_tree, Schema::builtin(), &origins);
+    let err = result.unwrap_err();
+    assert!(err
+        .to_string()
+        .contains("missing required ServiceToken property"));
+}
+
+#[test]
+fn test_custom_resource_json_passthrough() {
+    let mut properties = IndexMap::default();
+    properties.insert(
+        "ServiceToken".to_string(),
+        ResourceValue::String("arn:aws:lambda:us-east-1:123456789:function:handler".into()),
+    );
+    properties.insert(
+        "StringProp".to_string(),
+        ResourceValue::String("hello".into()),
+    );
+    properties.insert("NumberProp".to_string(), ResourceValue::Number(42));
+
+    let mut parse_tree: IndexMap<String, ResourceAttributes, Hasher> = IndexMap::default();
+    parse_tree.insert(
+        "MyCustomResource".to_string(),
+        ResourceAttributes {
+            resource_type: "Custom::Setup".to_string(),
+            condition: None,
+            metadata: None,
+            update_policy: None,
+            deletion_policy: None,
+            depends_on: vec![],
+            properties,
+        },
+    );
+
+    let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::from(["MyCustomResource".to_string()]),
+        origins: HashMap::default(),
+    };
+
+    let result = ResourceInstruction::from(parse_tree, Schema::builtin(), &origins).unwrap();
+    assert_eq!(result[0].properties.len(), 3);
+    assert!(result[0].properties.contains_key("ServiceToken"));
+    assert!(result[0].properties.contains_key("StringProp"));
+    assert!(result[0].properties.contains_key("NumberProp"));
+}
+
+#[test]
+fn test_translate_ref_custom_resource_getatt() {
+    let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::from(["MyCustom".to_string()]),
+        origins: HashMap::default(),
+    };
+    let translator = ResourceTranslator {
+        schema: Schema::builtin(),
+        origins: &origins,
+        value_type: Some(TypeReference::Primitive(Primitive::String)),
+    };
+
+    let resource_value = ResourceValue::IntrinsicFunction(Box::new(IntrinsicFunction::GetAtt {
+        logical_name: "MyCustom".into(),
+        attribute_name: "Endpoint".into(),
+    }));
+    let result = translator.translate(resource_value).unwrap();
+
+    match result {
+        ResourceIr::Ref(reference) => match &reference.origin {
+            Origin::GetAttribute {
+                is_custom_resource,
+                attribute,
+                ..
+            } => {
+                assert!(is_custom_resource);
+                assert_eq!(attribute, "Endpoint");
+            }
+            other => panic!("Expected GetAttribute, got {:?}", other),
+        },
+        other => panic!("Expected Ref, got {:?}", other),
+    }
+}
