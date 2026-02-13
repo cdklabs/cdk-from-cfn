@@ -443,3 +443,74 @@ fn test_translate_ref_custom_resource_getatt() {
         other => panic!("Expected Ref, got {:?}", other),
     }
 }
+
+#[test]
+fn test_translate_ref_dotted_ref_custom_resource() {
+    let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::from(["MyCustom".to_string()]),
+        origins: HashMap::default(),
+    };
+    let translator = ResourceTranslator {
+        schema: Schema::builtin(),
+        origins: &origins,
+        value_type: Some(TypeReference::Primitive(Primitive::String)),
+    };
+
+    // Dotted Ref like {"Ref": "MyCustom.Endpoint"} goes through translate_ref's split_once path
+    let resource_value = ResourceValue::IntrinsicFunction(Box::new(IntrinsicFunction::Ref(
+        "MyCustom.Endpoint".into(),
+    )));
+    let result = translator.translate(resource_value).unwrap();
+
+    match result {
+        ResourceIr::Ref(reference) => {
+            assert_eq!(reference.name, "MyCustom");
+            match &reference.origin {
+                Origin::GetAttribute {
+                    is_custom_resource,
+                    attribute,
+                    ..
+                } => {
+                    assert!(is_custom_resource);
+                    assert_eq!(attribute, "Endpoint");
+                }
+                other => panic!("Expected GetAttribute, got {:?}", other),
+            }
+        }
+        other => panic!("Expected Ref, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_standard_resource_invalid_property() {
+    let mut properties = IndexMap::default();
+    properties.insert(
+        "FakeProperty".to_string(),
+        ResourceValue::String("value".into()),
+    );
+
+    let mut parse_tree: IndexMap<String, ResourceAttributes, Hasher> = IndexMap::default();
+    parse_tree.insert(
+        "MyBucket".to_string(),
+        ResourceAttributes {
+            resource_type: "AWS::S3::Bucket".to_string(),
+            condition: None,
+            metadata: None,
+            update_policy: None,
+            deletion_policy: None,
+            depends_on: vec![],
+            properties,
+        },
+    );
+
+    let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
+        origins: HashMap::default(),
+    };
+
+    let result = ResourceInstruction::from(parse_tree, Schema::builtin(), &origins);
+    let err = result.unwrap_err();
+    assert!(err
+        .to_string()
+        .contains("is not a valid property for resource MyBucket"));
+}
