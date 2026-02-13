@@ -281,3 +281,113 @@ fn test_stack_mode_with_props() {
         "Should call super with kwargs"
     );
 }
+
+// --- Custom Resource Tests ---
+
+const CUSTOM_RESOURCE_BASIC_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "BackingLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" }
+            }
+        },
+        "MyCustomResource": {
+            "Type": "Custom::DatabaseSetup",
+            "DeletionPolicy": "Retain",
+            "DependsOn": ["BackingLambda"],
+            "Properties": {
+                "ServiceToken": { "Fn::GetAtt": ["BackingLambda", "Arn"] },
+                "DatabaseName": "mydb",
+                "TableCount": 5
+            }
+        },
+        "ConsumerLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" },
+                "Environment": {
+                    "Variables": {
+                        "DB_ENDPOINT": { "Fn::GetAtt": ["MyCustomResource", "Endpoint"] }
+                    }
+                }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_basic() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_BASIC_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("cdk.CfnCustomResource(self, 'MyCustomResource',"));
+    assert!(code.contains("service_token = backingLambda.attr_arn,"));
+    assert!(code.contains("myCustomResource.add_override('Type', 'Custom::DatabaseSetup')"));
+    assert!(code.contains("myCustomResource.add_property_override('DatabaseName',"));
+    assert!(code.contains("myCustomResource.add_property_override('TableCount',"));
+    assert!(!code.contains("add_property_override('ServiceToken'"));
+}
+
+#[test]
+fn test_custom_resource_getatt() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_BASIC_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Custom resource GetAtt should use dynamic get_att().to_string()
+    assert!(code.contains("myCustomResource.get_att('Endpoint').to_string()"));
+    // Standard resource GetAtt should use typed accessor
+    assert!(code.contains("backingLambda.attr_arn"));
+}
+
+const CUSTOM_RESOURCE_CONDITIONAL_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Conditions": {
+        "IsProduction": { "Fn::Equals": ["prod", "prod"] }
+    },
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Setup",
+            "Condition": "IsProduction",
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_conditional() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_CONDITIONAL_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("cdk.CfnCustomResource(self, 'MyCustomResource',"));
+    assert!(code.contains("if is_production else None"));
+    assert!(code.contains("if (myCustomResource is not None):"));
+    assert!(code.contains("myCustomResource.add_override('Type', 'Custom::Setup')"));
+}

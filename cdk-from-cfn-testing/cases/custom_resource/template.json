@@ -1,0 +1,87 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Test Custom Resource conversion",
+    "Resources": {
+        "LambdaRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                }
+            }
+        },
+        "BackingLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaRole",
+                        "Arn"
+                    ]
+                },
+                "Code": {
+                    "ZipFile": "def handler(event, context):\n  return {'Status': 'SUCCESS', 'Data': {'Endpoint': 'test-endpoint'}}\n"
+                }
+            }
+        },
+        "MyCustomResource": {
+            "Type": "Custom::DatabaseSetup",
+            "DeletionPolicy": "Retain",
+            "DependsOn": [
+                "BackingLambda"
+            ],
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "BackingLambda",
+                        "Arn"
+                    ]
+                },
+                "DatabaseName": "mydb",
+                "TableCount": 5,
+                "EnableLogging": "true",
+                "Tags": [
+                    "prod",
+                    "critical"
+                ]
+            }
+        },
+        "ConsumerLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaRole",
+                        "Arn"
+                    ]
+                },
+                "Code": {
+                    "ZipFile": "def handler(event, context):\n  pass\n"
+                },
+                "Environment": {
+                    "Variables": {
+                        "DB_ENDPOINT": {
+                            "Fn::GetAtt": [
+                                "MyCustomResource",
+                                "Endpoint"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

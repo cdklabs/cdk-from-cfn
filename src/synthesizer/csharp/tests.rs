@@ -745,3 +745,66 @@ fn test_stack_mode_with_props() {
         "Stack props should extend StackProps"
     );
 }
+
+// --- Custom Resource Tests ---
+
+const CUSTOM_RESOURCE_METADATA_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Setup",
+            "Metadata": {
+                "CostCenter": "12345",
+                "Environment": "production"
+            },
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_metadata() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_METADATA_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("csharp", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.CfnOptions.Metadata ="));
+}
+
+const CUSTOM_RESOURCE_UPDATE_POLICY_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Setup",
+            "UpdatePolicy": {
+                "AutoScalingRollingUpdate": {
+                    "MinInstancesInService": 1
+                }
+            },
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_update_policy() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_UPDATE_POLICY_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("csharp", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.CfnOptions.UpdatePolicy ="));
+}
