@@ -558,8 +558,10 @@ fn emit_custom_resource(
         false
     };
 
-    // Override type, emit custom properties, and handle L1 attributes
-    // For conditional resources, all post-construction calls must be inside the None guard
+    // CfnCustomResource synthesizes as AWS::CloudFormation::CustomResource by default.
+    // Override the type to match the original Custom::XXX type from the input template.
+    // Skipped for AWS::CloudFormation::CustomResource since the type is already correct.
+    // For conditional resources, all post-construction calls must be inside the None guard.
     if maybe_undefined {
         output.line(format!("if ({var_name} is not None):"));
         let indented = output.indent(INDENT);

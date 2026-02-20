@@ -496,8 +496,9 @@ fn emit_custom_resource(
         token.emit_golang(context, &params, Some(","))?;
     }
 
-    // Override the type from AWS::CloudFormation::CustomResource to Custom::XXX
-    // Skip for AWS::CloudFormation::CustomResource since the type is already correct
+    // CfnCustomResource synthesizes as AWS::CloudFormation::CustomResource by default.
+    // Override the type to match the original Custom::XXX type from the input template.
+    // Skipped for AWS::CloudFormation::CustomResource since the type is already correct.
     if resource_type_name != CFN_CUSTOM_RESOURCE {
         let custom_type = format!("Custom::{resource_type_name}");
         output.line(format!(
