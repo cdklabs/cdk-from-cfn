@@ -8,6 +8,7 @@ const BATCH: &str = "batch";
 const BUCKET: &str = "bucket";
 const CLOUDWATCH: &str = "cloudwatch";
 const CONFIG: &str = "config";
+const CUSTOM_RESOURCE: &str = "custom_resource";
 const DOCUMENT_DB: &str = "documentdb";
 const EC2: &str = "ec2";
 const EC2_ENCRYPTION: &str = "ec2_encryption";
@@ -25,6 +26,7 @@ const TEST_DEFINITIONS: &[(&str, &str)] = &[
     (BUCKET, "BucketStack"),
     (CLOUDWATCH, "CloudwatchStack"),
     (CONFIG, "ConfigStack"),
+    (CUSTOM_RESOURCE, "CustomResourceStack"),
     (DOCUMENT_DB, "DocumentDbStack"),
     (EC2, "Ec2Stack"),
     (EC2_ENCRYPTION, "Ec2EncryptionStack"),
@@ -79,6 +81,7 @@ pub fn test_name_enum(_input: TokenStream) -> TokenStream {
             Bucket,
             Cloudwatch,
             Config,
+            CustomResource,
             DocumentDb,
             Ec2,
             Ec2Encryption,
@@ -99,6 +102,7 @@ pub fn test_name_enum(_input: TokenStream) -> TokenStream {
                     TestName::Bucket => #BUCKET,
                     TestName::Cloudwatch => #CLOUDWATCH,
                     TestName::Config => #CONFIG,
+                    TestName::CustomResource => #CUSTOM_RESOURCE,
                     TestName::DocumentDb => #DOCUMENT_DB,
                     TestName::Ec2 => #EC2,
                     TestName::Ec2Encryption => #EC2_ENCRYPTION,
@@ -122,6 +126,7 @@ pub fn test_name_enum(_input: TokenStream) -> TokenStream {
                     #BUCKET => TestName::Bucket,
                     #CLOUDWATCH => TestName::Cloudwatch,
                     #CONFIG => TestName::Config,
+                    #CUSTOM_RESOURCE => TestName::CustomResource,
                     #DOCUMENT_DB => TestName::DocumentDb,
                     #EC2 => TestName::Ec2,
                     #EC2_ENCRYPTION => TestName::Ec2Encryption,

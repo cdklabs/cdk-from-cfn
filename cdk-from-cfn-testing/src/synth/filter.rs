@@ -4,7 +4,7 @@
 use crate::config::{Language, TestName};
 
 /// Represents a GitHub issue that causes a test to be skipped.
-/// 
+///
 /// Contains issue number and description for tracking known problems
 /// that prevent certain language implementations from working correctly.
 #[derive(Clone, Copy)]
@@ -17,11 +17,11 @@ pub struct Issue {
 
 impl Issue {
     /// Creates a new issue reference.
-    /// 
+    ///
     /// # Arguments
     /// * `number` - GitHub issue number
     /// * `description` - Brief description of the issue
-    /// 
+    ///
     /// # Returns
     /// A new `Issue` instance
     pub const fn new(number: u16, description: &'static str) -> Self {
@@ -32,7 +32,7 @@ impl Issue {
     }
 
     /// Generates a clickable link to the GitHub issue.
-    /// 
+    ///
     /// # Returns
     /// Terminal-formatted clickable link to the issue
     pub fn as_link(&self) -> String {
@@ -45,7 +45,7 @@ impl Issue {
 }
 
 /// Configuration for skipping a specific language due to known issues.
-/// 
+///
 /// Associates a programming language with one or more GitHub issues
 /// that prevent the test from running successfully.
 #[derive(Clone)]
@@ -64,11 +64,11 @@ impl AsRef<str> for TestSkip {
 
 impl TestSkip {
     /// Creates a new test skip configuration.
-    /// 
+    ///
     /// # Arguments
     /// * `lang` - Programming language to skip
     /// * `issues` - List of issues causing the skip
-    /// 
+    ///
     /// # Returns
     /// A new `TestSkip` instance
     pub fn new(lang: &str, issues: Vec<Issue>) -> Self {
@@ -79,11 +79,11 @@ impl TestSkip {
     }
 
     /// Creates a test skip for a single language and issue.
-    /// 
+    ///
     /// # Arguments
     /// * `lang` - Programming language to skip
     /// * `issue` - Issue causing the skip
-    /// 
+    ///
     /// # Returns
     /// A new `TestSkip` instance
     fn single(lang: &str, issue: Issue) -> Self {
@@ -91,10 +91,10 @@ impl TestSkip {
     }
 
     /// Creates test skips for all languages due to a common issue.
-    /// 
+    ///
     /// # Arguments
     /// * `issue` - Issue affecting all languages
-    /// 
+    ///
     /// # Returns
     /// Vector of `TestSkip` instances for all enabled languages
     fn all(issue: Issue) -> Vec<Self> {
@@ -106,7 +106,7 @@ impl TestSkip {
 }
 
 /// Filter for determining which languages to skip or synthesize for a test.
-/// 
+///
 /// Processes skip lists and enabled languages to create filtered lists
 /// for synthesis and execution control.
 #[derive(Clone)]
@@ -123,14 +123,14 @@ pub struct TestFilter {
 
 impl TestFilter {
     /// Creates a new test filter from a skip list.
-    /// 
+    ///
     /// Filters the skip list to only include enabled languages and partitions
     /// all enabled languages into skip and synthesis lists.
-    /// 
+    ///
     /// # Arguments
     /// * `skip_list` - List of languages to skip with reasons
     /// * `test_name` - Name of the test being filtered
-    /// 
+    ///
     /// # Returns
     /// A new `TestFilter` instance
     pub fn new(skip_list: Vec<TestSkip>, test_name: &str) -> Self {
@@ -153,10 +153,10 @@ impl TestFilter {
     }
 
     /// Determines if a language should be synthesized.
-    /// 
+    ///
     /// # Arguments
     /// * `lang` - Programming language to check
-    /// 
+    ///
     /// # Returns
     /// `true` if the language should be synthesized, `false` if skipped
     pub fn should_synth(&self, lang: &str) -> bool {
@@ -164,10 +164,10 @@ impl TestFilter {
     }
 
     /// Prints skip reasons for filtered languages.
-    /// 
+    ///
     /// Outputs formatted messages explaining why each language is being skipped,
     /// including clickable links to relevant GitHub issues.
-    /// 
+    ///
     /// # Arguments
     /// * `context` - Context description (e.g., "CDK synth", "end-to-end test")
     pub fn print_skip_reasons(&self, context: &str) {
@@ -187,7 +187,7 @@ impl TestFilter {
 }
 
 /// Centralized skip list configuration for synthesis tests.
-/// 
+///
 /// Maintains known issues and skip configurations for different test cases
 /// across all supported programming languages.
 pub struct SkipSynthList;
@@ -226,13 +226,13 @@ impl SkipSynthList {
     );
 
     /// Returns the skip list for a specific test case.
-    /// 
+    ///
     /// Maps test names to their corresponding skip configurations,
     /// including the specific issues that cause each language to be skipped.
-    /// 
+    ///
     /// # Arguments
     /// * `test_name` - Name of the test case
-    /// 
+    ///
     /// # Returns
     /// Vector of skip configurations for the test
     pub fn get(test_name: &str) -> Vec<TestSkip> {
@@ -293,6 +293,13 @@ impl SkipSynthList {
                 skip!(Language::PYTHON, Self::I1025_PYTHON_PARAMETER_CASING),
                 skip!(Language::GOLANG, Self::I626_GO_COMPILATION),
             ],
+            TestName::CustomResource => {
+                vec![
+                    skip!(Language::CSHARP, Self::I1027_CSHARP_LAMBDA_SPACING),
+                    skip!(Language::GOLANG, Self::I626_GO_COMPILATION),
+                    skip!(Language::JAVA, Self::I1024_JAVA_UPDATE_REPLACE),
+                ]
+            }
             TestName::Bucket | TestName::Vpc => vec![],
         }
     }
