@@ -57,6 +57,18 @@
                 ]
             }
         },
+        "CfnCustomResource": {
+            "Type": "AWS::CloudFormation::CustomResource",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "BackingLambda",
+                        "Arn"
+                    ]
+                },
+                "Region": "us-west-2"
+            }
+        },
         "ConsumerLambda": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
@@ -77,6 +89,12 @@
                             "Fn::GetAtt": [
                                 "MyCustomResource",
                                 "Endpoint"
+                            ]
+                        },
+                        "CFN_RESULT": {
+                            "Fn::GetAtt": [
+                                "CfnCustomResource",
+                                "Result"
                             ]
                         }
                     }

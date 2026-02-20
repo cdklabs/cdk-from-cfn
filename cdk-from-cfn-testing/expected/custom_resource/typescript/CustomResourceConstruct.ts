@@ -38,6 +38,11 @@ export class CustomResourceConstruct extends Construct {
       },
     });
 
+    const cfnCustomResource = new cdk.CfnCustomResource(this, 'CfnCustomResource', {
+      serviceToken: backingLambda.attrArn,
+    });
+    cfnCustomResource.addPropertyOverride('Region', 'us-west-2');
+
     const myCustomResource = new cdk.CfnCustomResource(this, 'MyCustomResource', {
       serviceToken: backingLambda.attrArn,
     });
@@ -62,6 +67,7 @@ export class CustomResourceConstruct extends Construct {
       environment: {
         variables: {
           'DB_ENDPOINT': myCustomResource.getAtt('Endpoint').toString(),
+          'CFN_RESULT': cfnCustomResource.getAtt('Result').toString(),
         },
       },
     });

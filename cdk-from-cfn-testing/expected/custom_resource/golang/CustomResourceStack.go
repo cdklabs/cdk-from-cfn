@@ -56,6 +56,11 @@ func NewCustomResourceStack(scope constructs.Construct, id string, props *Custom
 		},
 	)
 
+	cfnCustomResource := cdk.NewCfnCustomResource(stack, jsii.String("CfnCustomResource"), &cdk.CfnCustomResourceProps{
+		ServiceToken: backingLambda.AttrArn(),
+	})
+	cfnCustomResource.AddPropertyOverride(jsii.String("Region"), jsii.String("us-west-2"))
+
 	myCustomResource := cdk.NewCfnCustomResource(stack, jsii.String("MyCustomResource"), &cdk.CfnCustomResourceProps{
 		ServiceToken: backingLambda.AttrArn(),
 	})
@@ -83,6 +88,7 @@ func NewCustomResourceStack(scope constructs.Construct, id string, props *Custom
 			Environment: &EnvironmentProperty{
 				Variables: map[string]interface{} {
 					"DB_ENDPOINT": myCustomResource.GetAtt(jsii.String("Endpoint")).ToString(),
+					"CFN_RESULT": cfnCustomResource.GetAtt(jsii.String("Result")).ToString(),
 				},
 			},
 		},

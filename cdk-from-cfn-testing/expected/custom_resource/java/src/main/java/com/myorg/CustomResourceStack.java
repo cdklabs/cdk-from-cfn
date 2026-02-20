@@ -40,6 +40,12 @@ class CustomResourceStack extends Stack {
                         .build())
                 .build();
 
+        CfnCustomResource cfnCustomResource = CfnCustomResource.Builder.create(this, "CfnCustomResource")
+                .serviceToken(backingLambda.getAttrArn())
+                .build();
+
+        cfnCustomResource.addPropertyOverride("Region", "us-west-2");
+
         CfnCustomResource myCustomResource = CfnCustomResource.Builder.create(this, "MyCustomResource")
                 .serviceToken(backingLambda.getAttrArn())
                 .build();
@@ -65,7 +71,8 @@ class CustomResourceStack extends Stack {
                         """)
                         .build())
                 .environment(CfnFunction.EnvironmentProperty.builder()
-                        .variables(Map.of("DB_ENDPOINT", myCustomResource.getAtt("Endpoint").toString()))
+                        .variables(Map.of("DB_ENDPOINT", myCustomResource.getAtt("Endpoint").toString(),
+                        "CFN_RESULT", cfnCustomResource.getAtt("Result").toString()))
                         .build())
                 .build();
 

@@ -36,6 +36,11 @@ class CustomResourceConstruct(Construct):
           },
         )
 
+    cfnCustomResource = cdk.CfnCustomResource(self, 'CfnCustomResource',
+      service_token = backingLambda.attr_arn,
+      )
+    cfnCustomResource.add_property_override('Region', 'us-west-2')
+
     myCustomResource = cdk.CfnCustomResource(self, 'MyCustomResource',
       service_token = backingLambda.attr_arn,
       )
@@ -60,6 +65,7 @@ class CustomResourceConstruct(Construct):
           environment = {
             'variables': {
               'DB_ENDPOINT': myCustomResource.get_att('Endpoint').to_string(),
+              'CFN_RESULT': cfnCustomResource.get_att('Result').to_string(),
             },
           },
         )

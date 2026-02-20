@@ -50,6 +50,11 @@ namespace CustomResourceConstruct
                     ",
                 },
             });
+            var cfnCustomResource = new CfnCustomResource(this, "CfnCustomResource", new CfnCustomResourceProps
+            {
+                ServiceToken = backingLambda.AttrArn,
+            });
+            cfnCustomResource.AddPropertyOverride("Region", "us-west-2");
             var myCustomResource = new CfnCustomResource(this, "MyCustomResource", new CfnCustomResourceProps
             {
                 ServiceToken = backingLambda.AttrArn,
@@ -81,6 +86,7 @@ namespace CustomResourceConstruct
                     Variables = new Dictionary<string, string>
                     {
                         { "DB_ENDPOINT", myCustomResource.GetAtt("Endpoint").ToString()},
+                        { "CFN_RESULT", cfnCustomResource.GetAtt("Result").ToString()},
                     },
                 },
             });
