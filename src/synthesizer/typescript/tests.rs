@@ -409,3 +409,65 @@ fn test_custom_resource_conditional() {
     assert!(code.contains(": undefined;"));
     assert!(code.contains("?.addOverride('Type', 'Custom::Setup');"));
 }
+
+// --- AWS::CloudFormation::CustomResource Tests ---
+
+const CFN_CUSTOM_RESOURCE_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "BackingLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" }
+            }
+        },
+        "MyCustomResource": {
+            "Type": "AWS::CloudFormation::CustomResource",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "ServiceToken": { "Fn::GetAtt": ["BackingLambda", "Arn"] },
+                "DatabaseName": "mydb"
+            }
+        },
+        "ConsumerLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" },
+                "Environment": {
+                    "Variables": {
+                        "RESULT": { "Fn::GetAtt": ["MyCustomResource", "Endpoint"] }
+                    }
+                }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_cfn_custom_resource_no_type_override() {
+    let cfn: CloudformationParseTree = serde_json::from_str(CFN_CUSTOM_RESOURCE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("new cdk.CfnCustomResource(this, 'MyCustomResource', {"));
+    assert!(code.contains("serviceToken: backingLambda.attrArn,"));
+    assert!(code.contains("myCustomResource.addPropertyOverride('DatabaseName',"));
+    // Should NOT have addOverride('Type', ...) since type is already correct
+    assert!(!code.contains("addOverride('Type',"));
+    // Should NOT import aws-cloudformation
+    assert!(!code.contains("aws-cloudformation"));
+    // GetAtt should use dynamic lookup
+    assert!(code.contains("myCustomResource.getAtt('Endpoint').toString()"));
+    // DeletionPolicy should still work
+    assert!(code.contains("cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.RETAIN"));
+}

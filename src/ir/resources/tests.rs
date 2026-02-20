@@ -514,3 +514,86 @@ fn test_standard_resource_invalid_property() {
         .to_string()
         .contains("is not a valid property for resource MyBucket"));
 }
+
+// --- AWS::CloudFormation::CustomResource Tests ---
+
+use crate::ir::resources::CFN_CUSTOM_RESOURCE;
+
+#[test]
+fn test_cfn_custom_resource_parses_as_custom() {
+    let result = ResourceType::parse("AWS::CloudFormation::CustomResource").unwrap();
+    assert_eq!(result, ResourceType::Custom(CFN_CUSTOM_RESOURCE.into()),);
+}
+
+#[test]
+fn test_cfn_custom_resource_missing_service_token() {
+    let mut properties = IndexMap::default();
+    properties.insert(
+        "DatabaseName".to_string(),
+        ResourceValue::String("mydb".into()),
+    );
+
+    let mut parse_tree: IndexMap<String, ResourceAttributes, Hasher> = IndexMap::default();
+    parse_tree.insert(
+        "MyCustomResource".to_string(),
+        ResourceAttributes {
+            resource_type: "AWS::CloudFormation::CustomResource".to_string(),
+            condition: None,
+            metadata: None,
+            update_policy: None,
+            deletion_policy: None,
+            depends_on: vec![],
+            properties,
+        },
+    );
+
+    let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::default(),
+        origins: HashMap::default(),
+    };
+
+    let result = ResourceInstruction::from(parse_tree, Schema::builtin(), &origins);
+    let err = result.unwrap_err();
+    assert!(err
+        .to_string()
+        .contains("missing required ServiceToken property"));
+}
+
+#[test]
+fn test_cfn_custom_resource_json_passthrough() {
+    let mut properties = IndexMap::default();
+    properties.insert(
+        "ServiceToken".to_string(),
+        ResourceValue::String("arn:aws:lambda:us-east-1:123456789:function:handler".into()),
+    );
+    properties.insert(
+        "CustomProp".to_string(),
+        ResourceValue::String("hello".into()),
+    );
+    properties.insert("NumberProp".to_string(), ResourceValue::Number(42));
+
+    let mut parse_tree: IndexMap<String, ResourceAttributes, Hasher> = IndexMap::default();
+    parse_tree.insert(
+        "MyCustomResource".to_string(),
+        ResourceAttributes {
+            resource_type: "AWS::CloudFormation::CustomResource".to_string(),
+            condition: None,
+            metadata: None,
+            update_policy: None,
+            deletion_policy: None,
+            depends_on: vec![],
+            properties,
+        },
+    );
+
+    let origins = ReferenceOrigins {
+        custom_resources: std::collections::HashSet::from(["MyCustomResource".to_string()]),
+        origins: HashMap::default(),
+    };
+
+    let result = ResourceInstruction::from(parse_tree, Schema::builtin(), &origins).unwrap();
+    assert_eq!(result[0].properties.len(), 3);
+    assert!(result[0].properties.contains_key("ServiceToken"));
+    assert!(result[0].properties.contains_key("CustomProp"));
+    assert!(result[0].properties.contains_key("NumberProp"));
+}

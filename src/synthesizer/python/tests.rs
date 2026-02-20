@@ -391,3 +391,59 @@ fn test_custom_resource_conditional() {
     assert!(code.contains("if (myCustomResource is not None):"));
     assert!(code.contains("myCustomResource.add_override('Type', 'Custom::Setup')"));
 }
+
+// --- AWS::CloudFormation::CustomResource Tests ---
+
+const CFN_CUSTOM_RESOURCE_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "BackingLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" }
+            }
+        },
+        "MyCustomResource": {
+            "Type": "AWS::CloudFormation::CustomResource",
+            "Properties": {
+                "ServiceToken": { "Fn::GetAtt": ["BackingLambda", "Arn"] },
+                "DatabaseName": "mydb"
+            }
+        },
+        "ConsumerLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" },
+                "Environment": {
+                    "Variables": {
+                        "RESULT": { "Fn::GetAtt": ["MyCustomResource", "Endpoint"] }
+                    }
+                }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_cfn_custom_resource_no_type_override() {
+    let cfn: CloudformationParseTree = serde_json::from_str(CFN_CUSTOM_RESOURCE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("cdk.CfnCustomResource(self, 'MyCustomResource',"));
+    assert!(code.contains("service_token = backingLambda.attr_arn,"));
+    assert!(code.contains("myCustomResource.add_property_override('DatabaseName',"));
+    assert!(!code.contains("add_override('Type',"));
+    assert!(!code.contains("aws_cloudformation"));
+    assert!(code.contains("myCustomResource.get_att('Endpoint').to_string()"));
+}
