@@ -6,7 +6,7 @@ use crate::code::{CodeBuffer, IndentOptions};
 use crate::ir::conditions::ConditionIr;
 use crate::ir::importer::ImportInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
-use crate::ir::resources::{ResourceInstruction, ResourceIr};
+use crate::ir::resources::{ResourceInstruction, ResourceIr, CFN_CUSTOM_RESOURCE};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::parser::resource::DeletionPolicy;
@@ -834,7 +834,7 @@ fn emit_custom_resource(
 
     let var_name = name(&resource.name);
     let resource_type_name = match &resource.resource_type {
-        ResourceType::Custom(n) => format!("Custom::{n}"),
+        ResourceType::Custom(n) => n.clone(),
         _ => unreachable!("emit_custom_resource called with non-custom resource"),
     };
 
@@ -883,9 +883,13 @@ fn emit_custom_resource(
     };
 
     // Override the type from AWS::CloudFormation::CustomResource to Custom::XXX
-    writer.text(format!(
-        "{res_name}.addOverride(\"Type\", \"{resource_type_name}\"){trailer}"
-    ));
+    // Skip for AWS::CloudFormation::CustomResource since the type is already correct
+    if resource_type_name != CFN_CUSTOM_RESOURCE {
+        let custom_type = format!("Custom::{resource_type_name}");
+        writer.text(format!(
+            "{res_name}.addOverride(\"Type\", \"{custom_type}\"){trailer}"
+        ));
+    }
 
     // Emit custom properties via addPropertyOverride (excluding ServiceToken which is in constructor)
     for (prop_name, value) in &resource.properties {

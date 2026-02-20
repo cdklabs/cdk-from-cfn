@@ -504,6 +504,10 @@ pub enum ResourceType {
     Custom(String),
 }
 
+/// The full type name for AWS::CloudFormation::CustomResource, used to normalize
+/// it into the Custom resource pipeline during parsing.
+pub const CFN_CUSTOM_RESOURCE: &str = "AWS::CloudFormation::CustomResource";
+
 impl ResourceType {
     fn parse(from: &str) -> Result<Self, Error> {
         let mut parts = from.split("::");
@@ -592,6 +596,12 @@ impl ResourceType {
                         ),
                     });
                 }
+
+                // Normalize AWS::CloudFormation::CustomResource into the Custom pipeline
+                if service == "CloudFormation" && type_name == "CustomResource" {
+                    return Ok(Self::Custom(CFN_CUSTOM_RESOURCE.into()));
+                }
+
                 Ok(Self::AWS { service, type_name })
             }
             other => Err(Error::ResourceTypeError {

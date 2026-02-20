@@ -83,7 +83,9 @@ impl ReferenceOrigins {
 
         origins.extend(parse_tree.resources.iter().map(|(name, res)| {
             // Track custom resources for GetAtt handling
-            if res.resource_type.starts_with("Custom::") {
+            if res.resource_type.starts_with("Custom::")
+                || res.resource_type == "AWS::CloudFormation::CustomResource"
+            {
                 custom_resources.insert(name.clone());
             }
             (

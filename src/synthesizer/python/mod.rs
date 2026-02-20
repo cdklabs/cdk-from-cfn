@@ -8,7 +8,7 @@ use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::MappingInstruction;
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
-use crate::ir::resources::{ResourceInstruction, ResourceIr, ResourceType};
+use crate::ir::resources::{ResourceInstruction, ResourceIr, ResourceType, CFN_CUSTOM_RESOURCE};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::Error;
@@ -519,7 +519,7 @@ fn emit_custom_resource(
 ) {
     let var_name = camel_case(&reference.name);
     let resource_type_name = match &reference.resource_type {
-        ResourceType::Custom(name) => format!("Custom::{name}"),
+        ResourceType::Custom(name) => name.clone(),
         _ => unreachable!("emit_custom_resource called with non-custom resource"),
     };
 
@@ -563,9 +563,11 @@ fn emit_custom_resource(
     if maybe_undefined {
         output.line(format!("if ({var_name} is not None):"));
         let indented = output.indent(INDENT);
-        indented.line(format!(
-            "{var_name}.add_override('Type', '{resource_type_name}')"
-        ));
+        if resource_type_name != CFN_CUSTOM_RESOURCE {
+            indented.line(format!(
+                "{var_name}.add_override('Type', 'Custom::{resource_type_name}')"
+            ));
+        }
         for (name, value) in &reference.properties {
             if name != "ServiceToken" {
                 indented.text(format!("{var_name}.add_property_override('{name}', "));
@@ -574,9 +576,11 @@ fn emit_custom_resource(
         }
         emit_resource_attributes(context, &indented, reference, &var_name);
     } else {
-        output.line(format!(
-            "{var_name}.add_override('Type', '{resource_type_name}')"
-        ));
+        if resource_type_name != CFN_CUSTOM_RESOURCE {
+            output.line(format!(
+                "{var_name}.add_override('Type', 'Custom::{resource_type_name}')"
+            ));
+        }
         for (name, value) in &reference.properties {
             if name != "ServiceToken" {
                 output.text(format!("{var_name}.add_property_override('{name}', "));
