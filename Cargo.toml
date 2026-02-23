@@ -51,7 +51,7 @@ cdk-from-cfn-macros = { path = "cdk-from-cfn-macros" }
 cdk-from-cfn-testing = { path = "cdk-from-cfn-testing", features = ["golang", "java", "typescript", "python", "csharp"] }
 cdk-from-cfn-testing-end-to-end = { path = "cdk-from-cfn-testing-end-to-end", features = ["golang", "java", "typescript", "python", "csharp"] }
 futures = "0.3"
-serial_test = "3.3"
+serial_test = "3.4"
 tokio = { version = "1", features = ["full"] }
 
 [build-dependencies]
