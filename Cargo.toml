@@ -1,6 +1,6 @@
 [package]
 name = "cdk-from-cfn"
-version = "0.283.0"
+version = "0.284.0"
 edition = "2021"
 description = "Turn AWS CloudFormation templates into AWS CDK applications"
 license = "MIT OR Apache-2.0"
@@ -51,7 +51,7 @@ cdk-from-cfn-macros = { path = "cdk-from-cfn-macros" }
 cdk-from-cfn-testing = { path = "cdk-from-cfn-testing", features = ["golang", "java", "typescript", "python", "csharp"] }
 cdk-from-cfn-testing-end-to-end = { path = "cdk-from-cfn-testing-end-to-end", features = ["golang", "java", "typescript", "python", "csharp"] }
 futures = "0.3"
-serial_test = "3.3"
+serial_test = "3.4"
 tokio = { version = "1", features = ["full"] }
 
 [build-dependencies]
