@@ -603,7 +603,7 @@ impl ResourceType {
                     });
                 }
 
-                // Normalize AWS::CloudFormation::CustomResource into the Custom pipeline
+                // Normalize AWS::CloudFormation::CustomResource into Custom::<name>
                 if service == "CloudFormation" && type_name == "CustomResource" {
                     return Ok(Self::Custom(CFN_CUSTOM_RESOURCE.into()));
                 }

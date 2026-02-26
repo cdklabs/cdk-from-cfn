@@ -25,7 +25,7 @@ impl ImportInstruction {
             let type_name = &resource.resource_type;
 
             // Skip Custom resources - they don't have CDK service modules.
-            // AWS::CloudFormation::CustomResource is normalized into the Custom pipeline
+            // AWS::CloudFormation::CustomResource is normalized into Custom::<name>
             // and uses cdk.CfnCustomResource from core, so no service import is needed.
             if type_name.starts_with("Custom::")
                 || type_name == "AWS::CloudFormation::CustomResource"
