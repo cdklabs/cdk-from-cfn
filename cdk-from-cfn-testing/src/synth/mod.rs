@@ -119,7 +119,7 @@ impl<'a> Synthesizer<'a> {
 
         let result = Command::new(&cdk_path)
             .args([
-                "synth-trial",
+                "synth",
                 "--no-path-metadata",
                 "--no-version-reporting",
                 "--no-notices",

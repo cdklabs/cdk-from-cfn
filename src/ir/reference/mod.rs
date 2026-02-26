@@ -23,6 +23,7 @@ pub enum Origin {
     Parameter,
     LogicalId {
         conditional: bool,
+        is_custom_resource: bool,
     },
     Condition,
     GetAttribute {

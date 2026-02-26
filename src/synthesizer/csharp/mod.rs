@@ -585,7 +585,7 @@ impl Reference {
                     ))
                 }
             }
-            Origin::LogicalId { conditional: _ } => {
+            Origin::LogicalId { conditional: _, .. } => {
                 output.text(format!("{}.Ref", camel_case(&self.name.replace('.', ""))))
             }
             Origin::CfnParameter | Origin::Parameter => {

@@ -741,7 +741,7 @@ fn emit_reference(reference: Reference, class_type: ClassType) -> String {
     let origin = reference.origin;
     let name = reference.name;
     match origin {
-        Origin::LogicalId { conditional } => {
+        Origin::LogicalId { conditional, .. } => {
             if conditional {
                 format!(
                     "Optional.of({}.isPresent() ? {}.get().getRef()\n{DOUBLE_INDENT}: Optional.empty())",

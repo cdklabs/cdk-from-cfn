@@ -40,7 +40,10 @@ fn test_ir_ordering() {
             "something",
             ResourceIr::Ref(Reference::new(
                 "A",
-                Origin::LogicalId { conditional: false },
+                Origin::LogicalId {
+                    conditional: false,
+                    is_custom_resource: false,
+                },
             )),
         ),
     };
@@ -66,7 +69,10 @@ fn test_ref_links() {
             "something",
             ResourceIr::Ref(Reference::new(
                 "bar",
-                Origin::LogicalId { conditional: false },
+                Origin::LogicalId {
+                    conditional: false,
+                    is_custom_resource: false,
+                },
             )),
         ),
     };
@@ -183,7 +189,6 @@ fn unknown_resource_type() {
 #[test]
 fn test_boolean_parse_error() {
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -202,7 +207,6 @@ fn test_boolean_parse_error() {
 #[test]
 fn test_number_parse_float() {
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -218,7 +222,6 @@ fn test_number_parse_float() {
 #[test]
 fn test_number_parse_error() {
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -234,7 +237,6 @@ fn test_number_parse_error() {
 #[test]
 fn test_sub_excess_map_error() {
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -253,7 +255,6 @@ fn test_sub_excess_map_error() {
 #[test]
 fn test_invalid_base_64() {
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -274,7 +275,6 @@ fn test_invalid_base_64() {
 #[test]
 fn test_invalid_select_index() {
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -293,7 +293,6 @@ fn test_invalid_select_index() {
 #[test]
 fn test_invalid_select_index_range_error() {
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -312,7 +311,6 @@ fn test_invalid_select_index_range_error() {
 #[test]
 fn test_select_index_int_error() {
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
     let translator = ResourceTranslator {
@@ -360,7 +358,6 @@ fn test_custom_resource_missing_service_token() {
     );
 
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
 
@@ -399,8 +396,13 @@ fn test_custom_resource_json_passthrough() {
     );
 
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::from(["MyCustomResource".to_string()]),
-        origins: HashMap::default(),
+        origins: HashMap::from([(
+            "MyCustomResource".to_string(),
+            Origin::LogicalId {
+                conditional: false,
+                is_custom_resource: true,
+            },
+        )]),
     };
 
     let result = ResourceInstruction::from(parse_tree, Schema::builtin(), &origins).unwrap();
@@ -413,8 +415,13 @@ fn test_custom_resource_json_passthrough() {
 #[test]
 fn test_translate_ref_custom_resource_getatt() {
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::from(["MyCustom".to_string()]),
-        origins: HashMap::default(),
+        origins: HashMap::from([(
+            "MyCustom".to_string(),
+            Origin::LogicalId {
+                conditional: false,
+                is_custom_resource: true,
+            },
+        )]),
     };
     let translator = ResourceTranslator {
         schema: Schema::builtin(),
@@ -447,8 +454,13 @@ fn test_translate_ref_custom_resource_getatt() {
 #[test]
 fn test_translate_ref_dotted_ref_custom_resource() {
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::from(["MyCustom".to_string()]),
-        origins: HashMap::default(),
+        origins: HashMap::from([(
+            "MyCustom".to_string(),
+            Origin::LogicalId {
+                conditional: false,
+                is_custom_resource: true,
+            },
+        )]),
     };
     let translator = ResourceTranslator {
         schema: Schema::builtin(),
@@ -504,7 +516,6 @@ fn test_standard_resource_invalid_property() {
     );
 
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
 
@@ -548,7 +559,6 @@ fn test_cfn_custom_resource_missing_service_token() {
     );
 
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::default(),
         origins: HashMap::default(),
     };
 
@@ -587,8 +597,13 @@ fn test_cfn_custom_resource_json_passthrough() {
     );
 
     let origins = ReferenceOrigins {
-        custom_resources: std::collections::HashSet::from(["MyCustomResource".to_string()]),
-        origins: HashMap::default(),
+        origins: HashMap::from([(
+            "MyCustomResource".to_string(),
+            Origin::LogicalId {
+                conditional: false,
+                is_custom_resource: true,
+            },
+        )]),
     };
 
     let result = ResourceInstruction::from(parse_tree, Schema::builtin(), &origins).unwrap();

@@ -465,7 +465,7 @@ impl Reference {
                 format!("props['{}'].value_as_string", camel_case(&self.name)).into()
             }
             Origin::Parameter => format!("props['{}']", camel_case(&self.name)).into(),
-            Origin::LogicalId { conditional: _ } => {
+            Origin::LogicalId { conditional: _, .. } => {
                 format!("{var}{chain}ref", var = camel_case(&self.name), chain = ".").into()
             }
             Origin::Condition => camel_case(&self.name).into(),

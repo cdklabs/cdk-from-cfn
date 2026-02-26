@@ -1172,7 +1172,7 @@ impl GolangEmitter for Reference {
                     ))
                 }
             }
-            Origin::LogicalId { conditional } => output.text(format!(
+            Origin::LogicalId { conditional, .. } => output.text(format!(
                 "{name}.Ref()",
                 name = golang_identifier(&self.name, IdentifierKind::Unexported)
             )),

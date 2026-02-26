@@ -407,7 +407,7 @@ impl Reference {
             Origin::CfnParameter | Origin::Parameter => {
                 format!("props.{}!", camel_case(&self.name)).into()
             }
-            Origin::LogicalId { conditional } => format!(
+            Origin::LogicalId { conditional, .. } => format!(
                 "{var}{chain}ref",
                 var = camel_case(&self.name),
                 chain = if *conditional { "?." } else { "." }

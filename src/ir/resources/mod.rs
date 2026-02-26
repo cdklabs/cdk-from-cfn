@@ -357,7 +357,13 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                 },
             )
         } else {
-            Reference::new(x, Origin::LogicalId { conditional: false })
+            Reference::new(
+                x,
+                Origin::LogicalId {
+                    conditional: false,
+                    is_custom_resource: false,
+                },
+            )
         }
     }
 
