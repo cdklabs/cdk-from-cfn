@@ -230,6 +230,7 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                         Origin::GetAttribute {
                             attribute: attribute_name.replace('.', ""),
                             conditional: self.origins.is_conditional(&logical_name),
+                            is_custom_resource: self.origins.is_custom_resource(&logical_name),
                         },
                     ))),
                     IntrinsicFunction::If {
@@ -352,10 +353,17 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                 Origin::GetAttribute {
                     attribute: attribute.into(),
                     conditional: self.origins.is_conditional(name),
+                    is_custom_resource: self.origins.is_custom_resource(name),
                 },
             )
         } else {
-            Reference::new(x, Origin::LogicalId { conditional: false })
+            Reference::new(
+                x,
+                Origin::LogicalId {
+                    conditional: false,
+                    is_custom_resource: false,
+                },
+            )
         }
     }
 
@@ -410,6 +418,17 @@ impl ResourceInstruction {
             let resource_type = ResourceType::parse(&attributes.resource_type)?;
             let resource_spec = schema.resource_type(&attributes.resource_type);
 
+            // Validate ServiceToken exists for Custom resources (required by CloudFormation)
+            if matches!(resource_type, ResourceType::Custom(_))
+                && !attributes.properties.contains_key("ServiceToken")
+            {
+                return Err(Error::ResourceInstructionError {
+                    message: format!(
+                        "Custom resource {resource_name} is missing required ServiceToken property"
+                    ),
+                });
+            }
+
             let metadata = if let Some(metadata) = attributes.metadata {
                 Some(ResourceTranslator::json(schema, origins).translate(metadata)?)
             } else {
@@ -422,29 +441,36 @@ impl ResourceInstruction {
                 None
             };
 
+            let is_custom = matches!(resource_type, ResourceType::Custom(_));
+
             let mut properties =
                 IndexMap::with_capacity_and_hasher(attributes.properties.len(), Hasher::default());
             for (prop_name, prop) in attributes.properties {
-                let property_type = resource_spec.and_then(|spec| spec.property(&prop_name));
-                let property_type = property_type.map(|prop| prop.value_type);
-                if property_type.is_none() {
-                    let resource_type = format!(
-                        "{:#?}::{:#?}::{:#?}",
-                        resource_type.scope().to_uppercase(),
-                        resource_type.service(),
-                        resource_type.type_name(),
-                    )
-                    .replace('\"', "");
-                    return Err(Error::ResourceInstructionError {
-                        message: format!(
-                            "{prop_name} is not a valid property for resource {resource_name} of type {resource_type}"
-                        ),
-                    });
-                }
-                let translator = ResourceTranslator {
-                    schema,
-                    origins,
-                    value_type: property_type,
+                // Custom resources have no schema - treat all properties as JSON passthrough
+                let translator = if is_custom {
+                    ResourceTranslator::json(schema, origins)
+                } else {
+                    let property_type = resource_spec.and_then(|spec| spec.property(&prop_name));
+                    let property_type = property_type.map(|prop| prop.value_type);
+                    if property_type.is_none() {
+                        let resource_type = format!(
+                            "{:#?}::{:#?}::{:#?}",
+                            resource_type.scope().to_uppercase(),
+                            resource_type.service(),
+                            resource_type.type_name(),
+                        )
+                        .replace('\"', "");
+                        return Err(Error::ResourceInstructionError {
+                            message: format!(
+                                "{prop_name} is not a valid property for resource {resource_name} of type {resource_type}"
+                            ),
+                        });
+                    }
+                    ResourceTranslator {
+                        schema,
+                        origins,
+                        value_type: property_type,
+                    }
                 };
                 properties.insert(prop_name, translator.translate(prop)?);
             }
@@ -483,6 +509,10 @@ pub enum ResourceType {
     // A custom resource type (Custom::<something>)
     Custom(String),
 }
+
+/// The full type name for AWS::CloudFormation::CustomResource, used to normalize
+/// it into the Custom resource pipeline during parsing.
+pub const CFN_CUSTOM_RESOURCE: &str = "AWS::CloudFormation::CustomResource";
 
 impl ResourceType {
     fn parse(from: &str) -> Result<Self, Error> {
@@ -572,6 +602,12 @@ impl ResourceType {
                         ),
                     });
                 }
+
+                // Normalize AWS::CloudFormation::CustomResource into Custom::<name>
+                if service == "CloudFormation" && type_name == "CustomResource" {
+                    return Ok(Self::Custom(CFN_CUSTOM_RESOURCE.into()));
+                }
+
                 Ok(Self::AWS { service, type_name })
             }
             other => Err(Error::ResourceTypeError {

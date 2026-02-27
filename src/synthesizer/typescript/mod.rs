@@ -15,7 +15,7 @@ use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::{MappingInstruction, OutputType};
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
-use crate::ir::resources::{ResourceInstruction, ResourceIr};
+use crate::ir::resources::{ResourceInstruction, ResourceIr, ResourceType, CFN_CUSTOM_RESOURCE};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::util::Hasher;
@@ -300,7 +300,11 @@ impl Synthesizer for Typescript {
             } else {
                 ctor.newline();
             }
-            emit_resource(context, &ctor, reference);
+            if matches!(reference.resource_type, ResourceType::Custom(_)) {
+                emit_custom_resource(context, &ctor, reference);
+            } else {
+                emit_resource(context, &ctor, reference);
+            }
         }
 
         if !ir.outputs.is_empty() {
@@ -403,7 +407,7 @@ impl Reference {
             Origin::CfnParameter | Origin::Parameter => {
                 format!("props.{}!", camel_case(&self.name)).into()
             }
-            Origin::LogicalId { conditional } => format!(
+            Origin::LogicalId { conditional, .. } => format!(
                 "{var}{chain}ref",
                 var = camel_case(&self.name),
                 chain = if *conditional { "?." } else { "." }
@@ -431,12 +435,23 @@ impl Reference {
             Origin::GetAttribute {
                 conditional,
                 attribute,
-            } => format!(
-                "{var_name}{chain}attr{name}",
-                var_name = camel_case(&self.name),
-                chain = if *conditional { "?." } else { "." },
-                name = pascal_case(&attribute.replace('.', ""))
-            )
+                is_custom_resource,
+            } => {
+                if *is_custom_resource {
+                    format!(
+                        "{var_name}{chain}getAtt('{attribute}').toString()",
+                        var_name = camel_case(&self.name),
+                        chain = if *conditional { "?." } else { "." },
+                    )
+                } else {
+                    format!(
+                        "{var_name}{chain}attr{name}",
+                        var_name = camel_case(&self.name),
+                        chain = if *conditional { "?." } else { "." },
+                        name = pascal_case(&attribute.replace('.', ""))
+                    )
+                }
+            }
             .into(),
         }
     }
@@ -464,6 +479,92 @@ fn emit_cfn_output(
         emit_resource_ir(context, &output, export, Some(",\n"));
     }
     output.line(format!("value: this.{var_name}!.toString(),"));
+}
+
+fn emit_custom_resource(
+    context: &mut TypescriptContext,
+    output: &CodeBuffer,
+    reference: &ResourceInstruction,
+) {
+    let var_name = pretty_name(&reference.name);
+    let resource_type_name = match &reference.resource_type {
+        ResourceType::Custom(name) => name.clone(),
+        _ => unreachable!("emit_custom_resource called with non-custom resource"),
+    };
+
+    // Extract ServiceToken property
+    let service_token = reference.properties.get("ServiceToken");
+
+    let maybe_undefined = if let Some(cond) = &reference.condition {
+        output.line(format!(
+            "const {var_name} = {cond}",
+            cond = pretty_name(cond)
+        ));
+
+        let output = output.indent(INDENT);
+        output.line(
+            "? new cdk.CfnCustomResource(this, '".to_owned()
+                + &reference.name.escape_debug().to_string()
+                + "', {",
+        );
+
+        let props_output = output.indent(INDENT);
+        if let Some(token) = service_token {
+            props_output.text("serviceToken: ");
+            emit_resource_ir(context, &props_output, token, Some(",\n"));
+        }
+
+        output.indent(INDENT).line("})");
+        output.line(": undefined;");
+
+        true
+    } else {
+        output.line(format!(
+            "const {var_name} = new cdk.CfnCustomResource(this, '{}', {{",
+            reference.name.escape_debug()
+        ));
+
+        let props_output = output.indent(INDENT);
+        if let Some(token) = service_token {
+            props_output.text("serviceToken: ");
+            emit_resource_ir(context, &props_output, token, Some(",\n"));
+        }
+
+        output.line("});");
+
+        false
+    };
+
+    // CfnCustomResource synthesizes as AWS::CloudFormation::CustomResource by default.
+    // Override the type to match the original Custom::XXX type from the input template.
+    // Skipped for AWS::CloudFormation::CustomResource since the type is already correct.
+    if resource_type_name != CFN_CUSTOM_RESOURCE {
+        output.line(format!(
+            "{var_name}{chain}addOverride('Type', 'Custom::{resource_type_name}');",
+            chain = if maybe_undefined { "?." } else { "." },
+        ));
+    }
+
+    // Emit custom properties via addPropertyOverride (excluding ServiceToken which is in constructor)
+    for (name, value) in &reference.properties {
+        if name != "ServiceToken" {
+            output.text(format!(
+                "{var_name}{chain}addPropertyOverride('{name}', ",
+                chain = if maybe_undefined { "?." } else { "." },
+            ));
+            emit_resource_ir(context, output, value, Some(");\n"));
+        }
+    }
+
+    // DeletionPolicy, Metadata, UpdatePolicy, DependsOn use same L1 patterns as standard resources
+    if maybe_undefined {
+        output.line(format!("if ({var_name} != null) {{"));
+        let indented = output.indent(INDENT);
+        emit_resource_attributes(context, &indented, reference, &var_name);
+        output.line("}");
+    } else {
+        emit_resource_attributes(context, output, reference, &var_name);
+    }
 }
 
 fn emit_resource(

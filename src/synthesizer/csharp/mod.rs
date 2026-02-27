@@ -8,7 +8,7 @@ use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::OutputType;
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
-use crate::ir::resources::ResourceIr;
+use crate::ir::resources::{ResourceInstruction, ResourceIr, ResourceType, CFN_CUSTOM_RESOURCE};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::Error;
@@ -327,21 +327,25 @@ impl Synthesizer for CSharp<'_> {
         ctor.newline();
         ctor.line("// Resources");
         for resource in &ir.resources {
-            let class = resource.resource_type.type_name();
-            let resource_constructor = ctor.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some(format!("var {var_name} = new Cfn{class}(this, \"{construct_id}\", new Cfn{class}Props\n{{", 
-                    var_name = camel_case(&resource.name),
-                    construct_id = resource.name,
-                ).into()),
-                trailing: Some("});".into()),
-                trailing_newline: true,
-            });
-            for (name, value) in &resource.properties {
-                resource_constructor.text(format!("{name} = ", name = pascal_case(name)));
-                value.emit_csharp(&resource_constructor, self.schema, class_type)?;
-                resource_constructor.text(",");
-                resource_constructor.newline();
+            if matches!(resource.resource_type, ResourceType::Custom(_)) {
+                emit_custom_resource(&ctor, resource, self.schema, class_type)?;
+            } else {
+                let class = resource.resource_type.type_name();
+                let resource_constructor = ctor.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some(format!("var {var_name} = new Cfn{class}(this, \"{construct_id}\", new Cfn{class}Props\n{{", 
+                        var_name = camel_case(&resource.name),
+                        construct_id = resource.name,
+                    ).into()),
+                    trailing: Some("});".into()),
+                    trailing_newline: true,
+                });
+                for (name, value) in &resource.properties {
+                    resource_constructor.text(format!("{name} = ", name = pascal_case(name)));
+                    value.emit_csharp(&resource_constructor, self.schema, class_type)?;
+                    resource_constructor.text(",");
+                    resource_constructor.newline();
+                }
             }
         }
 
@@ -357,6 +361,92 @@ impl Synthesizer for CSharp<'_> {
 
         Ok(code.write(into)?)
     }
+}
+
+fn emit_custom_resource(
+    output: &CodeBuffer,
+    resource: &ResourceInstruction,
+    schema: &Schema,
+    class_type: ClassType,
+) -> Result<(), Error> {
+    let var_name = camel_case(&resource.name);
+    let resource_type_name = match &resource.resource_type {
+        ResourceType::Custom(name) => name.clone(),
+        _ => unreachable!("emit_custom_resource called with non-custom resource"),
+    };
+
+    // Extract ServiceToken property
+    let service_token = resource.properties.get("ServiceToken");
+
+    // Emit constructor using CfnCustomResource
+    let resource_constructor = output.indent_with_options(IndentOptions {
+        indent: INDENT,
+        leading: Some(
+            format!(
+                "var {var_name} = new CfnCustomResource(this, \"{construct_id}\", new CfnCustomResourceProps\n{{",
+                construct_id = resource.name,
+            )
+            .into(),
+        ),
+        trailing: Some("});".into()),
+        trailing_newline: true,
+    });
+    if let Some(token) = service_token {
+        resource_constructor.text("ServiceToken = ");
+        token.emit_csharp(&resource_constructor, schema, class_type)?;
+        resource_constructor.text(",");
+        resource_constructor.newline();
+    }
+
+    // CfnCustomResource synthesizes as AWS::CloudFormation::CustomResource by default.
+    // Override the type to match the original Custom::XXX type from the input template.
+    // Skipped for AWS::CloudFormation::CustomResource since the type is already correct.
+    if resource_type_name != CFN_CUSTOM_RESOURCE {
+        let custom_type = format!("Custom::{resource_type_name}");
+        output.line(format!(
+            "{var_name}.AddOverride(\"Type\", \"{custom_type}\");"
+        ));
+    }
+
+    // Emit custom properties via AddPropertyOverride (excluding ServiceToken which is in constructor)
+    for (name, value) in &resource.properties {
+        if name != "ServiceToken" {
+            output.text(format!("{var_name}.AddPropertyOverride(\"{name}\", "));
+            value.emit_csharp(output, schema, class_type)?;
+            output.line(");");
+        }
+    }
+
+    // Handle DeletionPolicy
+    if let Some(deletion_policy) = &resource.deletion_policy {
+        output.line(format!(
+            "{var_name}.CfnOptions.DeletionPolicy = CfnDeletionPolicy.{deletion_policy};"
+        ));
+    }
+
+    // Handle Metadata
+    if let Some(metadata) = &resource.metadata {
+        output.text(format!("{var_name}.CfnOptions.Metadata = "));
+        metadata.emit_csharp(output, schema, class_type)?;
+        output.line(";");
+    }
+
+    // Handle UpdatePolicy
+    if let Some(update_policy) = &resource.update_policy {
+        output.text(format!("{var_name}.CfnOptions.UpdatePolicy = "));
+        update_policy.emit_csharp(output, schema, class_type)?;
+        output.line(";");
+    }
+
+    // Handle DependsOn
+    for dependency in &resource.dependencies {
+        output.line(format!(
+            "{var_name}.AddDependency({});",
+            camel_case(dependency)
+        ));
+    }
+
+    Ok(())
 }
 
 impl ImportInstruction {
@@ -480,12 +570,22 @@ impl Reference {
             Origin::GetAttribute {
                 attribute,
                 conditional: _,
-            } => output.text(format!(
-                "{}.Attr{}",
-                camel_case(&self.name),
-                attribute.replace('.', "")
-            )),
-            Origin::LogicalId { conditional: _ } => {
+                is_custom_resource,
+            } => {
+                if *is_custom_resource {
+                    output.text(format!(
+                        "{}.GetAtt(\"{attribute}\").ToString()",
+                        camel_case(&self.name),
+                    ))
+                } else {
+                    output.text(format!(
+                        "{}.Attr{}",
+                        camel_case(&self.name),
+                        attribute.replace('.', "")
+                    ))
+                }
+            }
+            Origin::LogicalId { conditional: _, .. } => {
                 output.text(format!("{}.Ref", camel_case(&self.name.replace('.', ""))))
             }
             Origin::CfnParameter | Origin::Parameter => {

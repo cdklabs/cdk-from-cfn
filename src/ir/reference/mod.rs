@@ -23,11 +23,13 @@ pub enum Origin {
     Parameter,
     LogicalId {
         conditional: bool,
+        is_custom_resource: bool,
     },
     Condition,
     GetAttribute {
         attribute: String,
         conditional: bool,
+        is_custom_resource: bool,
     },
     PseudoParameter(PseudoParameter),
 }

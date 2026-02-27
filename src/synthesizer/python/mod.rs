@@ -8,7 +8,7 @@ use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::MappingInstruction;
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::reference::{Origin, PseudoParameter, Reference};
-use crate::ir::resources::{ResourceInstruction, ResourceIr};
+use crate::ir::resources::{ResourceInstruction, ResourceIr, ResourceType, CFN_CUSTOM_RESOURCE};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
 use crate::Error;
@@ -206,7 +206,11 @@ impl Synthesizer for Python {
             } else {
                 ctor.newline();
             }
-            emit_resource(context, &ctor, reference);
+            if matches!(reference.resource_type, ResourceType::Custom(_)) {
+                emit_custom_resource(context, &ctor, reference);
+            } else {
+                emit_resource(context, &ctor, reference);
+            }
         }
 
         if !ir.outputs.is_empty() {
@@ -461,7 +465,7 @@ impl Reference {
                 format!("props['{}'].value_as_string", camel_case(&self.name)).into()
             }
             Origin::Parameter => format!("props['{}']", camel_case(&self.name)).into(),
-            Origin::LogicalId { conditional: _ } => {
+            Origin::LogicalId { conditional: _, .. } => {
                 format!("{var}{chain}ref", var = camel_case(&self.name), chain = ".").into()
             }
             Origin::Condition => camel_case(&self.name).into(),
@@ -486,14 +490,106 @@ impl Reference {
             Origin::GetAttribute {
                 conditional: _,
                 attribute,
-            } => format!(
-                "{var_name}{chain}attr_{name}",
-                var_name = camel_case(&self.name),
-                chain = ".",
-                name = snake_case(attribute)
-            )
+                is_custom_resource,
+            } => {
+                if *is_custom_resource {
+                    format!(
+                        "{var_name}{chain}get_att('{attribute}').to_string()",
+                        var_name = camel_case(&self.name),
+                        chain = ".",
+                    )
+                } else {
+                    format!(
+                        "{var_name}{chain}attr_{name}",
+                        var_name = camel_case(&self.name),
+                        chain = ".",
+                        name = snake_case(attribute)
+                    )
+                }
+            }
             .into(),
         }
+    }
+}
+
+fn emit_custom_resource(
+    context: &mut PythonContext,
+    output: &CodeBuffer,
+    reference: &ResourceInstruction,
+) {
+    let var_name = camel_case(&reference.name);
+    let resource_type_name = match &reference.resource_type {
+        ResourceType::Custom(name) => name.clone(),
+        _ => unreachable!("emit_custom_resource called with non-custom resource"),
+    };
+
+    // Extract ServiceToken property
+    let service_token = reference.properties.get("ServiceToken");
+
+    let maybe_undefined = if let Some(cond) = &reference.condition {
+        output.line(format!(
+            "{var_name} = cdk.CfnCustomResource(self, '{}',",
+            reference.name.escape_debug()
+        ));
+
+        let props_output = output.indent(INDENT);
+        if let Some(token) = service_token {
+            props_output.text("service_token = ");
+            emit_resource_ir(context, &props_output, token, Some(",\n"));
+        }
+
+        props_output.line(format!(") if {} else None", snake_case(cond)));
+
+        true
+    } else {
+        output.line(format!(
+            "{var_name} = cdk.CfnCustomResource(self, '{}',",
+            reference.name.escape_debug()
+        ));
+
+        let props_output = output.indent(INDENT);
+        if let Some(token) = service_token {
+            props_output.text("service_token = ");
+            emit_resource_ir(context, &props_output, token, Some(",\n"));
+        }
+
+        props_output.line(")");
+
+        false
+    };
+
+    // CfnCustomResource synthesizes as AWS::CloudFormation::CustomResource by default.
+    // Override the type to match the original Custom::XXX type from the input template.
+    // Skipped for AWS::CloudFormation::CustomResource since the type is already correct.
+    // For conditional resources, all post-construction calls must be inside the None guard.
+    if maybe_undefined {
+        output.line(format!("if ({var_name} is not None):"));
+        let indented = output.indent(INDENT);
+        if resource_type_name != CFN_CUSTOM_RESOURCE {
+            indented.line(format!(
+                "{var_name}.add_override('Type', 'Custom::{resource_type_name}')"
+            ));
+        }
+        for (name, value) in &reference.properties {
+            if name != "ServiceToken" {
+                indented.text(format!("{var_name}.add_property_override('{name}', "));
+                emit_resource_ir(context, &indented, value, Some(")\n"));
+            }
+        }
+        emit_resource_attributes(context, &indented, reference, &var_name);
+    } else {
+        if resource_type_name != CFN_CUSTOM_RESOURCE {
+            output.line(format!(
+                "{var_name}.add_override('Type', 'Custom::{resource_type_name}')"
+            ));
+        }
+        for (name, value) in &reference.properties {
+            if name != "ServiceToken" {
+                output.text(format!("{var_name}.add_property_override('{name}', "));
+                emit_resource_ir(context, output, value, Some(")\n"));
+            }
+        }
+        emit_resource_attributes(context, output, reference, &var_name);
     }
 }
 
