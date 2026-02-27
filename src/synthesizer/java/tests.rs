@@ -460,3 +460,360 @@ fn test_stack_mode_with_props() {
         "Stack mode should call super with props"
     );
 }
+
+// --- Custom Resource Tests ---
+
+const CUSTOM_RESOURCE_BASIC_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "BackingLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" }
+            }
+        },
+        "MyCustomResource": {
+            "Type": "Custom::DatabaseSetup",
+            "DeletionPolicy": "Retain",
+            "DependsOn": ["BackingLambda"],
+            "Properties": {
+                "ServiceToken": { "Fn::GetAtt": ["BackingLambda", "Arn"] },
+                "DatabaseName": "mydb",
+                "TableCount": 5
+            }
+        },
+        "ConsumerLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" },
+                "Environment": {
+                    "Variables": {
+                        "DB_ENDPOINT": { "Fn::GetAtt": ["MyCustomResource", "Endpoint"] }
+                    }
+                }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_basic() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_BASIC_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("CfnCustomResource myCustomResource = CfnCustomResource.Builder.create(this, \"MyCustomResource\")"));
+    assert!(code.contains(".serviceToken(backingLambda.getAttrArn())"));
+    assert!(code.contains(".build();"));
+    assert!(code.contains("myCustomResource.addOverride(\"Type\", \"Custom::DatabaseSetup\")"));
+    assert!(code.contains("myCustomResource.addPropertyOverride(\"DatabaseName\","));
+    assert!(code.contains("myCustomResource.addPropertyOverride(\"TableCount\","));
+    assert!(!code.contains("addPropertyOverride(\"ServiceToken\""));
+}
+
+#[test]
+fn test_custom_resource_deletion_policy() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_BASIC_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.applyRemovalPolicy(RemovalPolicy.RETAIN)"));
+}
+
+#[test]
+fn test_custom_resource_depends_on() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_BASIC_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.addDependency(backingLambda)"));
+}
+
+#[test]
+fn test_custom_resource_getatt_uses_dynamic_lookup() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_BASIC_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // Custom resource GetAtt should use dynamic getAtt().toString()
+    assert!(code.contains("myCustomResource.getAtt(\"Endpoint\").toString()"));
+    // Standard resource GetAtt should use typed accessor
+    assert!(code.contains("backingLambda.getAttrArn()"));
+}
+
+const CUSTOM_RESOURCE_CONDITIONAL_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Conditions": {
+        "IsProduction": { "Fn::Equals": ["prod", "prod"] }
+    },
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Setup",
+            "Condition": "IsProduction",
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_conditional() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_CONDITIONAL_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("Optional<CfnCustomResource>"));
+    assert!(code.contains("Optional.of(CfnCustomResource.Builder.create("));
+    assert!(code.contains("Optional.empty()"));
+}
+
+const CUSTOM_RESOURCE_DELETE_POLICY_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Cleanup",
+            "DeletionPolicy": "Delete",
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_deletion_policy_delete() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_DELETE_POLICY_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.applyRemovalPolicy(RemovalPolicy.DESTROY)"));
+}
+
+const CUSTOM_RESOURCE_RETAIN_EXCEPT_ON_CREATE_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Cleanup",
+            "DeletionPolicy": "RetainExceptOnCreate",
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_deletion_policy_retain_except_on_create() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_RETAIN_EXCEPT_ON_CREATE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code
+        .contains("myCustomResource.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE)"));
+}
+
+const CUSTOM_RESOURCE_METADATA_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Setup",
+            "Metadata": {
+                "CostCenter": "12345",
+                "Environment": "production"
+            },
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_metadata() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_METADATA_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.addMetadata(\"CostCenter\","));
+    assert!(code.contains("myCustomResource.addMetadata(\"Environment\","));
+}
+
+const CUSTOM_RESOURCE_UPDATE_POLICY_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Setup",
+            "UpdatePolicy": {
+                "AutoScalingRollingUpdate": {
+                    "MinInstancesInService": 1
+                }
+            },
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_update_policy() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_UPDATE_POLICY_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.getCfnOptions().setUpdatePolicy("));
+}
+
+#[test]
+fn test_custom_resource_construct_mode() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_BASIC_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestConstruct", ClassType::Construct)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("class TestConstruct extends Construct"));
+    assert!(code.contains("CfnCustomResource myCustomResource = CfnCustomResource.Builder.create(this, \"MyCustomResource\")"));
+}
+
+#[test]
+fn test_emit_reference_custom_resource_getatt() {
+    let reference = Reference::new(
+        "MyCustom",
+        Origin::GetAttribute {
+            attribute: "Endpoint".to_string(),
+            conditional: false,
+            is_custom_resource: true,
+        },
+    );
+    let result = emit_reference(reference, ClassType::Stack);
+    assert_eq!(result, "myCustom.getAtt(\"Endpoint\").toString()");
+}
+
+#[test]
+fn test_emit_reference_custom_resource_getatt_conditional() {
+    let reference = Reference::new(
+        "MyCustom",
+        Origin::GetAttribute {
+            attribute: "Endpoint".to_string(),
+            conditional: true,
+            is_custom_resource: true,
+        },
+    );
+    let result = emit_reference(reference, ClassType::Stack);
+    assert!(
+        result.contains("myCustom.isPresent() ? myCustom.get().getAtt(\"Endpoint\").toString()")
+    );
+    assert!(result.contains("Optional.empty()"));
+}
+
+// --- AWS::CloudFormation::CustomResource Tests ---
+
+const CFN_CUSTOM_RESOURCE_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "BackingLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" }
+            }
+        },
+        "MyCustomResource": {
+            "Type": "AWS::CloudFormation::CustomResource",
+            "Properties": {
+                "ServiceToken": { "Fn::GetAtt": ["BackingLambda", "Arn"] },
+                "DatabaseName": "mydb"
+            }
+        },
+        "ConsumerLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" },
+                "Environment": {
+                    "Variables": {
+                        "RESULT": { "Fn::GetAtt": ["MyCustomResource", "Endpoint"] }
+                    }
+                }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_cfn_custom_resource_no_type_override() {
+    let cfn: CloudformationParseTree = serde_json::from_str(CFN_CUSTOM_RESOURCE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("CfnCustomResource myCustomResource = CfnCustomResource.Builder.create(this, \"MyCustomResource\")"));
+    assert!(code.contains(".serviceToken(backingLambda.getAttrArn())"));
+    assert!(code.contains("myCustomResource.addPropertyOverride(\"DatabaseName\","));
+    assert!(!code.contains("addOverride(\"Type\","));
+    assert!(!code.contains("aws.cloudformation"));
+    assert!(code.contains("myCustomResource.getAtt(\"Endpoint\").toString()"));
+}

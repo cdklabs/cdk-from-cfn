@@ -80,10 +80,13 @@ impl ReferenceOrigins {
         }));
 
         origins.extend(parse_tree.resources.iter().map(|(name, res)| {
+            let is_custom_resource = res.resource_type.starts_with("Custom::")
+                || res.resource_type == "AWS::CloudFormation::CustomResource";
             (
                 name.clone(),
                 Origin::LogicalId {
                     conditional: res.condition.is_some(),
+                    is_custom_resource,
                 },
             )
         }));
@@ -102,7 +105,18 @@ impl ReferenceOrigins {
     fn is_conditional(&self, logical_id: &str) -> bool {
         self.for_ref(logical_id)
             .map(|orig| match orig {
-                Origin::LogicalId { conditional } => conditional,
+                Origin::LogicalId { conditional, .. } => conditional,
+                _ => false,
+            })
+            .unwrap_or(false)
+    }
+
+    fn is_custom_resource(&self, logical_id: &str) -> bool {
+        self.for_ref(logical_id)
+            .map(|orig| match orig {
+                Origin::LogicalId {
+                    is_custom_resource, ..
+                } => is_custom_resource,
                 _ => false,
             })
             .unwrap_or(false)

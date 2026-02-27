@@ -21,7 +21,7 @@ use crate::{
 };
 
 /// CDK synthesis orchestrator for generating CloudFormation templates.
-/// 
+///
 /// Manages the CDK synthesis process including workspace setup, environment configuration,
 /// and execution of the CDK CLI to generate CloudFormation templates from CDK code.
 pub struct Synthesizer<'a> {
@@ -35,11 +35,11 @@ pub struct Synthesizer<'a> {
 
 impl<'a> Synthesizer<'a> {
     /// Creates a new CDK synthesizer for the specified scope and region.
-    /// 
+    ///
     /// # Arguments
     /// * `scope` - Test scope containing language and test metadata
     /// * `region` - AWS region for synthesis environment
-    /// 
+    ///
     /// # Returns
     /// A new `Synthesizer` instance
     pub fn new(scope: &'a Scope, region: &'a str) -> Self {
@@ -49,13 +49,13 @@ impl<'a> Synthesizer<'a> {
             temp_dir: None,
         }
     }
-    
+
     /// Executes CDK synthesis to generate CloudFormation templates.
-    /// 
+    ///
     /// Sets up the working directory, runs CDK synthesis with appropriate environment
     /// variables, and cleans up temporary files. Handles language-specific requirements
     /// like C# temporary directory setup.
-    /// 
+    ///
     /// # Panics
     /// Panics if CDK synthesis fails or produces errors
     pub fn synth(&mut self) {
@@ -91,10 +91,10 @@ impl<'a> Synthesizer<'a> {
     }
 
     /// Sets up a working directory for synthesis, if needed.
-    /// 
+    ///
     /// Creates a temporary directory for C# projects to handle build artifacts
     /// and avoid conflicts. Other languages use the actual directory directly.
-    /// 
+    ///
     /// # Returns
     /// Optional path to temporary directory (C# only)
     fn setup_working_directory(&self) -> Option<PathBuf> {
@@ -105,13 +105,13 @@ impl<'a> Synthesizer<'a> {
         }
     }
     /// Executes the CDK synthesis command with appropriate environment setup.
-    /// 
+    ///
     /// Configures environment variables for shared installations, language-specific
     /// tools, and AWS region settings before running CDK synthesis.
-    /// 
+    ///
     /// # Returns
     /// Command output from CDK synthesis
-    /// 
+    ///
     /// # Panics
     /// Panics if the CDK command cannot be executed
     fn run_cdk_synth(&self) -> Output {
@@ -160,15 +160,15 @@ impl<'a> Synthesizer<'a> {
 // Paths that are unique to cdk synth
 impl Paths {
     /// Returns the shared installations directory path.
-    /// 
+    ///
     /// # Returns
     /// Path to shared language installations and tools
     fn shared_installations_dir() -> PathBuf {
         PathBuf::from(option_env!("SHARED_INSTALLATIONS_DIR").unwrap())
     }
-    
+
     /// Returns the Python executable path from shared installations.
-    /// 
+    ///
     /// # Returns
     /// Path to the Python3 executable in the shared virtual environment
     fn python_executable() -> PathBuf {
@@ -179,7 +179,7 @@ impl Paths {
     }
 
     /// Returns the shared Node.js modules directory path.
-    /// 
+    ///
     /// # Returns
     /// Path to shared node_modules directory
     fn shared_node_modules() -> PathBuf {
@@ -187,7 +187,7 @@ impl Paths {
     }
 
     /// Returns the Go module cache directory path.
-    /// 
+    ///
     /// # Returns
     /// Path to Go module cache for dependency management
     fn go_mod_cache() -> PathBuf {
@@ -195,7 +195,7 @@ impl Paths {
     }
 
     /// Returns the Maven repository directory path.
-    /// 
+    ///
     /// # Returns
     /// Path to Maven local repository for Java dependencies
     fn maven_repository() -> PathBuf {
@@ -203,7 +203,7 @@ impl Paths {
     }
 
     /// Returns the CDK CLI executable path.
-    /// 
+    ///
     /// # Returns
     /// Path to the CDK binary in shared Node.js installations
     fn cdk_path() -> PathBuf {
@@ -217,13 +217,13 @@ impl Paths {
 // Files that are unique to cdk synth
 impl Files {
     /// Sets up a temporary directory for C# synthesis.
-    /// 
+    ///
     /// Creates a unique temporary directory, cleans build artifacts from the source,
     /// and copies the source files to the temporary location for isolated builds.
-    /// 
+    ///
     /// # Arguments
     /// * `scope` - Test scope containing test metadata
-    /// 
+    ///
     /// # Returns
     /// Result containing the temporary directory path or error
     pub fn setup_temp_directory(scope: &Scope) -> Result<PathBuf, Box<dyn Error>> {
@@ -254,14 +254,14 @@ impl Files {
     }
 
     /// Cleans up temporary directory and copies synthesis results back.
-    /// 
+    ///
     /// Copies the CDK output directory from the temporary location back to the
     /// original directory, then removes the temporary directory.
-    /// 
+    ///
     /// # Arguments
     /// * `temp_dir` - Temporary directory to clean up
     /// * `scope` - Test scope containing test metadata
-    /// 
+    ///
     /// # Returns
     /// Result indicating success or error
     pub fn cleanup_temp_directory(temp_dir: &Path, scope: &Scope) -> Result<(), Box<dyn Error>> {

@@ -485,3 +485,106 @@ fn test_stack_mode_with_props() {
         "Resources should use stack as scope"
     );
 }
+
+// --- Custom Resource Tests ---
+
+const CUSTOM_RESOURCE_METADATA_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Setup",
+            "Metadata": {
+                "CostCenter": "12345",
+                "Environment": "production"
+            },
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_metadata() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_METADATA_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.CfnOptions().SetMetadata("));
+}
+
+const CUSTOM_RESOURCE_UPDATE_POLICY_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MyCustomResource": {
+            "Type": "Custom::Setup",
+            "UpdatePolicy": {
+                "AutoScalingRollingUpdate": {
+                    "MinInstancesInService": 1
+                }
+            },
+            "Properties": {
+                "ServiceToken": "arn:aws:lambda:us-east-1:123456789:function:handler"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_custom_resource_update_policy() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CUSTOM_RESOURCE_UPDATE_POLICY_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("myCustomResource.CfnOptions().SetUpdatePolicy("));
+}
+
+// --- AWS::CloudFormation::CustomResource Tests ---
+
+const CFN_CUSTOM_RESOURCE_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "BackingLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Runtime": "python3.9",
+                "Handler": "index.handler",
+                "Role": "arn:aws:iam::123456789:role/role",
+                "Code": { "S3Bucket": "bucket", "S3Key": "key.zip" }
+            }
+        },
+        "MyCustomResource": {
+            "Type": "AWS::CloudFormation::CustomResource",
+            "Properties": {
+                "ServiceToken": { "Fn::GetAtt": ["BackingLambda", "Arn"] },
+                "DatabaseName": "mydb"
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_cfn_custom_resource_no_type_override() {
+    let cfn: CloudformationParseTree = serde_json::from_str(CFN_CUSTOM_RESOURCE_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("go", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("cdk.NewCfnCustomResource("));
+    assert!(code.contains("AddPropertyOverride(jsii.String(\"DatabaseName\"),"));
+    assert!(!code.contains("AddOverride(jsii.String(\"Type\"),"));
+    assert!(!code.contains("awscloudformation"));
+}
