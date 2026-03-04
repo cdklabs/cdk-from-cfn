@@ -39272,7 +39272,7 @@
       },
       "golang": {
         "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsecs",
-        "package": "awsecs",
+        "package": "ecs",
         "name": "CfnCapacityProvider"
       },
       "java": {
@@ -39290,8 +39290,19 @@
         "name": "AutoScalingGroupProvider",
         "valueType": {
           "named": "AWS::ECS::CapacityProvider.AutoScalingGroupProvider"
-        },
-        "required": true
+        }
+      },
+      "ClusterName": {
+        "name": "ClusterName",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ManagedInstancesProvider": {
+        "name": "ManagedInstancesProvider",
+        "valueType": {
+          "named": "AWS::ECS::CapacityProvider.ManagedInstancesProvider"
+        }
       },
       "Name": {
         "name": "Name",
@@ -39321,7 +39332,7 @@
       },
       "golang": {
         "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsecs",
-        "package": "awsecs",
+        "package": "ecs",
         "name": "CfnCluster"
       },
       "java": {
@@ -39406,7 +39417,7 @@
       },
       "golang": {
         "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsecs",
-        "package": "awsecs",
+        "package": "ecs",
         "name": "CfnClusterCapacityProviderAssociations"
       },
       "java": {
@@ -39426,8 +39437,7 @@
           "listOf": {
             "primitive": "string"
           }
-        },
-        "required": true
+        }
       },
       "Cluster": {
         "name": "Cluster",
@@ -39447,6 +39457,246 @@
       }
     }
   },
+  "AWS::ECS::ExpressGatewayService": {
+    "construct": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-ecs",
+        "name": "CfnExpressGatewayService"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.ECS",
+        "name": "CfnExpressGatewayService"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsecs",
+        "package": "ecs",
+        "name": "CfnExpressGatewayService"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.ecs",
+        "name": "CfnExpressGatewayService"
+      },
+      "python": {
+        "module": "aws_cdk.aws_ecs",
+        "name": "CfnExpressGatewayService"
+      }
+    },
+    "attributes": {
+      "ActiveConfigurations": {
+        "name": "ActiveConfigurations",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::ECS::ExpressGatewayService.ExpressGatewayServiceConfiguration"
+          }
+        }
+      },
+      "CreatedAt": {
+        "name": "CreatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ECSManagedResourceArns": {
+        "name": "ECSManagedResourceArns",
+        "valueType": {
+          "named": "AWS::ECS::ExpressGatewayService.ECSManagedResourceArns"
+        }
+      },
+      "ECSManagedResourceArns.AutoScaling": {
+        "name": "ECSManagedResourceArns.AutoScaling",
+        "valueType": {
+          "named": "AWS::ECS::ExpressGatewayService.AutoScalingArns"
+        }
+      },
+      "ECSManagedResourceArns.AutoScaling.ApplicationAutoScalingPolicies": {
+        "name": "ECSManagedResourceArns.AutoScaling.ApplicationAutoScalingPolicies",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "ECSManagedResourceArns.AutoScaling.ScalableTarget": {
+        "name": "ECSManagedResourceArns.AutoScaling.ScalableTarget",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ECSManagedResourceArns.IngressPath": {
+        "name": "ECSManagedResourceArns.IngressPath",
+        "valueType": {
+          "named": "AWS::ECS::ExpressGatewayService.IngressPathArns"
+        }
+      },
+      "ECSManagedResourceArns.IngressPath.CertificateArn": {
+        "name": "ECSManagedResourceArns.IngressPath.CertificateArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ECSManagedResourceArns.IngressPath.ListenerArn": {
+        "name": "ECSManagedResourceArns.IngressPath.ListenerArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ECSManagedResourceArns.IngressPath.ListenerRuleArn": {
+        "name": "ECSManagedResourceArns.IngressPath.ListenerRuleArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ECSManagedResourceArns.IngressPath.LoadBalancerArn": {
+        "name": "ECSManagedResourceArns.IngressPath.LoadBalancerArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ECSManagedResourceArns.IngressPath.LoadBalancerSecurityGroups": {
+        "name": "ECSManagedResourceArns.IngressPath.LoadBalancerSecurityGroups",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "ECSManagedResourceArns.IngressPath.TargetGroupArns": {
+        "name": "ECSManagedResourceArns.IngressPath.TargetGroupArns",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "ECSManagedResourceArns.LogGroups": {
+        "name": "ECSManagedResourceArns.LogGroups",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "ECSManagedResourceArns.MetricAlarms": {
+        "name": "ECSManagedResourceArns.MetricAlarms",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "ECSManagedResourceArns.ServiceSecurityGroups": {
+        "name": "ECSManagedResourceArns.ServiceSecurityGroups",
+        "valueType": {
+          "listOf": {
+            "primitive": "string"
+          }
+        }
+      },
+      "Endpoint": {
+        "name": "Endpoint",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ServiceArn": {
+        "name": "ServiceArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Status": {
+        "name": "Status",
+        "valueType": {
+          "named": "AWS::ECS::ExpressGatewayService.ExpressGatewayServiceStatus"
+        }
+      },
+      "UpdatedAt": {
+        "name": "UpdatedAt",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    },
+    "properties": {
+      "Cluster": {
+        "name": "Cluster",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Cpu": {
+        "name": "Cpu",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "ExecutionRoleArn": {
+        "name": "ExecutionRoleArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "HealthCheckPath": {
+        "name": "HealthCheckPath",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "InfrastructureRoleArn": {
+        "name": "InfrastructureRoleArn",
+        "valueType": {
+          "primitive": "string"
+        },
+        "required": true
+      },
+      "Memory": {
+        "name": "Memory",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "NetworkConfiguration": {
+        "name": "NetworkConfiguration",
+        "valueType": {
+          "named": "AWS::ECS::ExpressGatewayService.ExpressGatewayServiceNetworkConfiguration"
+        }
+      },
+      "PrimaryContainer": {
+        "name": "PrimaryContainer",
+        "valueType": {
+          "named": "AWS::ECS::ExpressGatewayService.ExpressGatewayContainer"
+        },
+        "required": true
+      },
+      "ScalingTarget": {
+        "name": "ScalingTarget",
+        "valueType": {
+          "named": "AWS::ECS::ExpressGatewayService.ExpressGatewayScalingTarget"
+        }
+      },
+      "ServiceName": {
+        "name": "ServiceName",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
+      "Tags": {
+        "name": "Tags",
+        "valueType": {
+          "listOf": {
+            "named": "CfnTag"
+          }
+        }
+      },
+      "TaskRoleArn": {
+        "name": "TaskRoleArn",
+        "valueType": {
+          "primitive": "string"
+        }
+      }
+    }
+  },
   "AWS::ECS::PrimaryTaskSet": {
     "construct": {
       "typescript": {
@@ -39459,7 +39709,7 @@
       },
       "golang": {
         "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsecs",
-        "package": "awsecs",
+        "package": "ecs",
         "name": "CfnPrimaryTaskSet"
       },
       "java": {
@@ -39508,7 +39758,7 @@
       },
       "golang": {
         "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsecs",
-        "package": "awsecs",
+        "package": "ecs",
         "name": "CfnService"
       },
       "java": {
@@ -39535,6 +39785,12 @@
       }
     },
     "properties": {
+      "AvailabilityZoneRebalancing": {
+        "name": "AvailabilityZoneRebalancing",
+        "valueType": {
+          "primitive": "string"
+        }
+      },
       "CapacityProviderStrategy": {
         "name": "CapacityProviderStrategy",
         "valueType": {
@@ -39577,6 +39833,12 @@
         "name": "EnableExecuteCommand",
         "valueType": {
           "primitive": "boolean"
+        }
+      },
+      "ForceNewDeployment": {
+        "name": "ForceNewDeployment",
+        "valueType": {
+          "named": "AWS::ECS::Service.ForceNewDeployment"
         }
       },
       "HealthCheckGracePeriodSeconds": {
@@ -39686,6 +39948,14 @@
             "named": "AWS::ECS::Service.ServiceVolumeConfiguration"
           }
         }
+      },
+      "VpcLatticeConfigurations": {
+        "name": "VpcLatticeConfigurations",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::ECS::Service.VpcLatticeConfiguration"
+          }
+        }
       }
     }
   },
@@ -39701,7 +39971,7 @@
       },
       "golang": {
         "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsecs",
-        "package": "awsecs",
+        "package": "ecs",
         "name": "CfnTaskDefinition"
       },
       "java": {
@@ -39734,6 +40004,12 @@
         "name": "Cpu",
         "valueType": {
           "primitive": "string"
+        }
+      },
+      "EnableFaultInjection": {
+        "name": "EnableFaultInjection",
+        "valueType": {
+          "primitive": "boolean"
         }
       },
       "EphemeralStorage": {
@@ -39850,7 +40126,7 @@
       },
       "golang": {
         "module": "github.com/aws/aws-cdk-go/awscdk/v2/awsecs",
-        "package": "awsecs",
+        "package": "ecs",
         "name": "CfnTaskSet"
       },
       "java": {
@@ -39871,6 +40147,14 @@
       }
     },
     "properties": {
+      "CapacityProviderStrategy": {
+        "name": "CapacityProviderStrategy",
+        "valueType": {
+          "listOf": {
+            "named": "AWS::ECS::TaskSet.CapacityProviderStrategyItem"
+          }
+        }
+      },
       "Cluster": {
         "name": "Cluster",
         "valueType": {
