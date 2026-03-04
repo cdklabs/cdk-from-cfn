@@ -106,8 +106,20 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                 Ok(ResourceIr::String(s))
             }
             ResourceValue::Array(parse_resource_vec) => {
+                // For union types containing a List variant, extract the list's
+                // item type so array elements get properly typed translation.
                 let item_type = match &self.value_type {
                     Some(TypeReference::List(item_type)) => Some(item_type.deref().clone()),
+                    Some(TypeReference::Union(variants)) => {
+                        // Find the first List variant in the union
+                        variants
+                            .iter()
+                            .find_map(|v| match v {
+                                TypeReference::List(item_type) => Some(item_type.deref().clone()),
+                                _ => None,
+                            })
+                            .or_else(|| self.value_type.clone())
+                    }
                     value_type => value_type.clone(),
                 };
                 let array_ir = {
@@ -127,8 +139,17 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                 Ok(ResourceIr::Array(item_type.unwrap_or_default(), array_ir))
             }
             ResourceValue::Object(o) => {
+                let resolved_type = match &self.value_type {
+                    Some(TypeReference::Union(variants)) => {
+                        let resolved = Self::resolve_union_for_object(variants, &o, self.schema);
+                        Some(resolved)
+                    }
+                    other => other.clone(),
+                };
+
                 let mut is_resource_ir_array = false;
-                let property_bag: Box<dyn PropertyBag> = match &self.value_type {
+                let resolved_for_ir = resolved_type.clone();
+                let property_bag: Box<dyn PropertyBag> = match &resolved_type {
                     Some(TypeReference::Named(name)) => {
                         Box::new(self.schema.type_named(name).cloned().unwrap())
                     }
@@ -163,11 +184,11 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                 }
 
                 let resource_ir =
-                    ResourceIr::Object(self.value_type.clone().unwrap_or_default(), new_hash);
+                    ResourceIr::Object(resolved_for_ir.clone().unwrap_or_default(), new_hash);
 
                 if is_resource_ir_array {
                     return Ok(ResourceIr::Array(
-                        self.value_type.clone().unwrap_or_default(),
+                        resolved_for_ir.unwrap_or_default(),
                         Vec::from([resource_ir]),
                     ));
                 }
@@ -374,6 +395,103 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
             origins: self.origins,
             value_type: Some(value_type),
         }
+    }
+
+    /// Resolves a union type to the best concrete type for an Object value.
+    ///
+    /// When multiple Named types exist in the union, resolution uses two
+    /// strategies:
+    ///
+    /// 1. Discriminator matching for SAM event sources: SAM event objects have
+    ///    a "Type" field (e.g. "Api", "S3", "SQS") that identifies which event
+    ///    type they are. We match this value against Named variant names
+    ///    (e.g. "Api" matches "ApiEventProperty"). This handles the
+    ///    AWS::Serverless::Function event union (14 Named types) and the
+    ///    AWS::Serverless::StateMachine event union (4 Named types)
+    ///    independently.
+    /// 2. Property key scoring for everything else: counts how many of the
+    ///    object's keys exist as properties in each Named type's schema, and
+    ///    picks the highest match. Handles cases like ContainerProperties vs
+    ///    MultiNodeContainerProperties where there's no discriminator field.
+    /// 3. Priority fallback for single-Named or non-Named unions: if there's
+    ///    only one Named type, use it directly. Otherwise fall through
+    ///    Named > Map (widest value type) > Json.
+    fn resolve_union_for_object(
+        variants: &[TypeReference],
+        obj: &IndexMap<String, ResourceValue, Hasher>,
+        schema: &Schema,
+    ) -> TypeReference {
+        let named_variants: Vec<&TypeReference> = variants
+            .iter()
+            .filter(|v| matches!(v, TypeReference::Named(_)))
+            .collect();
+
+        if named_variants.len() > 1 {
+            // discriminator field matching
+            if let Some(ResourceValue::String(type_value)) = obj.get("Type") {
+                for variant in &named_variants {
+                    if let TypeReference::Named(name) = variant {
+                        // Match "Api" against "...ApiEvent", "...ApiEventProperty", etc.
+                        let simple_name = name.rsplit('.').next().unwrap_or(name);
+                        if simple_name.starts_with(type_value.as_str())
+                            || simple_name.contains(type_value.as_str())
+                        {
+                            return (*variant).clone();
+                        }
+                    }
+                }
+            }
+
+            // property key scoring
+            let obj_keys: HashSet<&str> = obj.keys().map(|k| k.as_str()).collect();
+            let mut best: Option<(&TypeReference, usize)> = None;
+
+            for variant in &named_variants {
+                if let TypeReference::Named(name) = variant {
+                    if let Some(data_type) = schema.type_named(name) {
+                        let match_count = obj_keys
+                            .iter()
+                            .filter(|k| data_type.property(k).is_some())
+                            .count();
+                        if best.is_none() || match_count > best.unwrap().1 {
+                            best = Some((variant, match_count));
+                        }
+                    }
+                }
+            }
+
+            if let Some((best_variant, _)) = best {
+                return (*best_variant).clone();
+            }
+        }
+
+        // Single Named, or fallback priority: Named > Map (widest) > Json
+        named_variants
+            .first()
+            .cloned()
+            .or_else(|| {
+                // For multiple Map variants, pick the one with the widest value
+                // type (union > primitive) to avoid rejecting valid values.
+                let maps: Vec<&TypeReference> = variants
+                    .iter()
+                    .filter(|v| matches!(v, TypeReference::Map(_)))
+                    .collect();
+                if maps.len() > 1 {
+                    maps.iter()
+                        .find(|v| matches!(v, TypeReference::Map(item) if matches!(item.deref(), TypeReference::Union(_))))
+                        .or_else(|| maps.first())
+                        .cloned()
+                } else {
+                    maps.first().cloned()
+                }
+            })
+            .or_else(|| {
+                variants
+                    .iter()
+                    .find(|v| matches!(v, TypeReference::Primitive(Primitive::Json)))
+            })
+            .cloned()
+            .unwrap_or(TypeReference::Primitive(Primitive::Json))
     }
 }
 
