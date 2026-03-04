@@ -421,7 +421,17 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
         obj: &IndexMap<String, ResourceValue, Hasher>,
         schema: &Schema,
     ) -> TypeReference {
-        let named_variants: Vec<&TypeReference> = variants
+        // Flatten nested unions into a single list of concrete variants.
+        // e.g. unionOf: [unionOf: [json, Named(Foo)], json] → [json, Named(Foo), json]
+        let flattened: Vec<TypeReference> = variants
+            .iter()
+            .flat_map(|v| match v {
+                TypeReference::Union(inner) => inner.to_vec(),
+                other => vec![other.clone()],
+            })
+            .collect();
+
+        let named_variants: Vec<&TypeReference> = flattened
             .iter()
             .filter(|v| matches!(v, TypeReference::Named(_)))
             .collect();
@@ -468,11 +478,11 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
         // Single Named, or fallback priority: Named > Map (widest) > Json
         named_variants
             .first()
-            .cloned()
+            .map(|v| (*v).clone())
             .or_else(|| {
                 // For multiple Map variants, pick the one with the widest value
                 // type (union > primitive) to avoid rejecting valid values.
-                let maps: Vec<&TypeReference> = variants
+                let maps: Vec<&TypeReference> = flattened
                     .iter()
                     .filter(|v| matches!(v, TypeReference::Map(_)))
                     .collect();
@@ -480,17 +490,17 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     maps.iter()
                         .find(|v| matches!(v, TypeReference::Map(item) if matches!(item.deref(), TypeReference::Union(_))))
                         .or_else(|| maps.first())
-                        .cloned()
+                        .map(|v| (*v).clone())
                 } else {
-                    maps.first().cloned()
+                    maps.first().map(|v| (*v).clone())
                 }
             })
             .or_else(|| {
-                variants
+                flattened
                     .iter()
                     .find(|v| matches!(v, TypeReference::Primitive(Primitive::Json)))
+                    .cloned()
             })
-            .cloned()
             .unwrap_or(TypeReference::Primitive(Primitive::Json))
     }
 }
