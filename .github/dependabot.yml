@@ -14,3 +14,10 @@ updates:
     - auto-approve
     schedule:
       interval: daily
+
+  - package-ecosystem: rust-toolchain
+    directory: /
+    labels:
+      - auto-approve
+    schedule:
+      interval: daily
