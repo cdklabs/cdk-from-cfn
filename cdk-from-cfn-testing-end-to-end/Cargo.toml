@@ -5,9 +5,9 @@ edition = "2021"
 
 [dependencies]
 cdk-from-cfn-testing = { path = "../cdk-from-cfn-testing" }
-aws-config = "^1.8.1"
-aws-sdk-cloudformation = "^1.99.0"
-aws-sdk-s3 = "^1.112.0"
+aws-config = { version = "^1.8.1", default-features = false, features = ["default-https-client", "rt-tokio", "credentials-process", "sso"] }
+aws-sdk-cloudformation = { version = "^1.99.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
+aws-sdk-s3 = { version = "^1.112.0", default-features = false, features = ["default-https-client", "rt-tokio", "sigv4a"] }
 aws-smithy-types = "^1.2.0"
 aws-smithy-runtime-api = "^1.8.1"
 futures = "0.3"
