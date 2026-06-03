@@ -721,7 +721,7 @@ dependencies = [
 
 [[package]]
 name = "cdk-from-cfn"
-version = "0.302.0"
+version = "0.303.0"
 dependencies = [
  "base64",
  "cdk-from-cfn-macros",
