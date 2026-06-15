@@ -85,6 +85,28 @@ fn function_not() {
 }
 
 #[test]
+fn function_not_nested_shorthand() {
+    // Regression: a shorthand-tagged intrinsic nested under `!Not` previously
+    // failed to deserialize with "untagged and internally tagged enums do not
+    // support enum input", because the `Not` operand was an untagged enum.
+    let expected = Box::new(ConditionFunction::Not(ConditionValue::Function(Box::new(
+        ConditionFunction::Equals(
+            ConditionValue::Ref("Foo".into()),
+            ConditionValue::String("bar".into()),
+        ),
+    ))));
+
+    assert_eq!(
+        expected,
+        serde_yaml::from_str("!Not [!Equals [!Ref Foo, bar]]").unwrap(),
+    );
+    assert_eq!(
+        expected,
+        serde_yaml::from_str("Fn::Not: [{Fn::Equals: [{Ref: Foo}, bar]}]").unwrap(),
+    );
+}
+
+#[test]
 fn condition_function_and() {
     let expected = ConditionValue::Function(Box::new(ConditionFunction::And(vec![
         ConditionValue::String("true".into()),
