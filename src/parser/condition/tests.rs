@@ -107,6 +107,52 @@ fn function_not_nested_shorthand() {
 }
 
 #[test]
+fn function_not_bare_operand_delegates_to_condition_value() {
+    // A bare (non-list) `Fn::Not` operand is handled by delegating to
+    // ConditionValue, which covers the scalar / map / enum visitor arms.
+    let not = |v| Box::new(ConditionFunction::Not(v));
+
+    // scalars -> ConditionValue::String
+    assert_eq!(
+        not(ConditionValue::String("foo".into())),
+        serde_yaml::from_str("!Not foo").unwrap(),
+    );
+    assert_eq!(
+        not(ConditionValue::String("-5".into())),
+        serde_yaml::from_str("!Not -5").unwrap(),
+    );
+    assert_eq!(
+        not(ConditionValue::String("5".into())),
+        serde_yaml::from_str("!Not 5").unwrap(),
+    );
+    assert_eq!(
+        not(ConditionValue::String("1.5".into())),
+        serde_yaml::from_str("!Not 1.5").unwrap(),
+    );
+
+    // map form (visit_map) and shorthand-tag form (visit_enum)
+    let equals = ConditionValue::Function(Box::new(ConditionFunction::Equals(
+        ConditionValue::String("a".into()),
+        ConditionValue::String("b".into()),
+    )));
+    assert_eq!(
+        not(equals.clone()),
+        serde_yaml::from_str(r#"Fn::Not: {Fn::Equals: ["a", "b"]}"#).unwrap(),
+    );
+    assert_eq!(
+        not(equals),
+        serde_yaml::from_str(r#"Fn::Not: !Equals ["a", "b"]"#).unwrap(),
+    );
+}
+
+#[test]
+fn function_not_rejects_malformed_operand_lists() {
+    // `Fn::Not` takes exactly one operand: neither zero nor more than one.
+    serde_yaml::from_str::<Box<ConditionFunction>>("!Not []").unwrap_err();
+    serde_yaml::from_str::<Box<ConditionFunction>>("!Not [true, false]").unwrap_err();
+}
+
+#[test]
 fn condition_function_and() {
     let expected = ConditionValue::Function(Box::new(ConditionFunction::And(vec![
         ConditionValue::String("true".into()),

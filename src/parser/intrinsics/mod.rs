@@ -255,7 +255,11 @@ impl<'de> serde::Deserialize<'de> for SubPayload {
                 };
                 // The second element (the variables map) is optional.
                 let variables: Option<ResourceValue> = seq.next_element()?;
-                while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
+                // `Fn::Sub` is `template` or `[template, variables]`; a third
+                // element means a malformed template, so surface it.
+                if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
+                    return Err(A::Error::invalid_length(3, &self));
+                }
                 Ok(SubPayload(template, variables))
             }
         }

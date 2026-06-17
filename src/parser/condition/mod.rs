@@ -283,29 +283,41 @@ impl<'de> serde::Deserialize<'de> for Singleton {
                     Some(value) => value,
                     None => return Err(A::Error::invalid_length(0, &self)),
                 };
-                // `Fn::Not` takes exactly one operand; drain any extras.
-                while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
+                // `Fn::Not` takes exactly one operand; a trailing element means
+                // a malformed template, so surface it instead of dropping it.
+                if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
+                    return Err(A::Error::invalid_length(2, &self));
+                }
                 Ok(value)
             }
 
-            // Bare (non-list) scalar forms mirror ConditionValue's own handling.
+            // Every non-list form delegates to `ConditionValue` so the two
+            // deserializers can't drift apart.
             fn visit_str<E: Error>(self, val: &str) -> Result<Self::Value, E> {
-                Ok(ConditionValue::String(val.into()))
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::StrDeserializer::new(val),
+                )
             }
             fn visit_bool<E: Error>(self, val: bool) -> Result<Self::Value, E> {
-                Ok(ConditionValue::String(val.to_string()))
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::BoolDeserializer::new(val),
+                )
             }
             fn visit_i64<E: Error>(self, val: i64) -> Result<Self::Value, E> {
-                Ok(ConditionValue::String(val.to_string()))
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::I64Deserializer::new(val),
+                )
             }
             fn visit_u64<E: Error>(self, val: u64) -> Result<Self::Value, E> {
-                Ok(ConditionValue::String(val.to_string()))
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::U64Deserializer::new(val),
+                )
             }
             fn visit_f64<E: Error>(self, val: f64) -> Result<Self::Value, E> {
-                Ok(ConditionValue::String(val.to_string()))
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::F64Deserializer::new(val),
+                )
             }
-
-            // Bare (non-list) tagged/map forms delegate to ConditionValue.
             fn visit_map<A: serde::de::MapAccess<'de>>(
                 self,
                 map: A,

@@ -373,6 +373,16 @@ fn intrinsic_sub_shorthand_tagged_variable() {
 }
 
 #[test]
+fn intrinsic_sub_rejects_malformed_element_lists() {
+    // `Fn::Sub` is `template` or `[template, variables]`: not empty, and not 3+.
+    ResourceValue::from_value(serde_yaml::from_str(r#"!Sub []"#).unwrap()).unwrap_err();
+    ResourceValue::from_value(
+        serde_yaml::from_str(r#"!Sub ["${Foo}", { Foo: !Ref Bar }, "extra"]"#).unwrap(),
+    )
+    .unwrap_err();
+}
+
+#[test]
 fn intrinsic_ref() {
     const LOGICAL_NAME: &str = "LogicalName";
 
