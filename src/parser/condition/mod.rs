@@ -249,19 +249,96 @@ impl<'de> serde::Deserialize<'de> for ConditionValue {
     }
 }
 
-#[derive(serde::Deserialize)]
-#[serde(untagged)]
-enum Singleton {
-    Value(ConditionValue),
-    SingletonTuple((ConditionValue,)),
-}
+// `Fn::Not` takes its operand either as a bare condition value or wrapped in a
+// single-element list. This was previously modeled with `#[serde(untagged)]`,
+// but serde's untagged deserialization buffers the input through `Content` and
+// then refuses enum input ("untagged and internally tagged enums do not support
+// enum input"). serde_yaml surfaces shorthand tags such as `!Equals` AS enum
+// input, so `!Not [!Equals [...]]` failed to parse. Deserializing the inner
+// `ConditionValue` directly — it has its own visitor that understands tags —
+// avoids the buffering entirely.
+struct Singleton(ConditionValue);
 
 impl Singleton {
     fn unwrap(self) -> ConditionValue {
-        match self {
-            Self::Value(value) => value,
-            Self::SingletonTuple((value,)) => value,
+        self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Singleton {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct SingletonVisitor;
+        impl<'de> serde::de::Visitor<'de> for SingletonVisitor {
+            type Value = ConditionValue;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a condition value or a single-element list containing one")
+            }
+
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(
+                self,
+                mut seq: A,
+            ) -> Result<Self::Value, A::Error> {
+                let value: ConditionValue = match seq.next_element()? {
+                    Some(value) => value,
+                    None => return Err(A::Error::invalid_length(0, &self)),
+                };
+                // `Fn::Not` takes exactly one operand; a trailing element means
+                // a malformed template, so surface it instead of dropping it.
+                if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
+                    return Err(A::Error::invalid_length(2, &self));
+                }
+                Ok(value)
+            }
+
+            // Every non-list form delegates to `ConditionValue` so the two
+            // deserializers can't drift apart.
+            fn visit_str<E: Error>(self, val: &str) -> Result<Self::Value, E> {
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::StrDeserializer::new(val),
+                )
+            }
+            fn visit_bool<E: Error>(self, val: bool) -> Result<Self::Value, E> {
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::BoolDeserializer::new(val),
+                )
+            }
+            fn visit_i64<E: Error>(self, val: i64) -> Result<Self::Value, E> {
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::I64Deserializer::new(val),
+                )
+            }
+            fn visit_u64<E: Error>(self, val: u64) -> Result<Self::Value, E> {
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::U64Deserializer::new(val),
+                )
+            }
+            fn visit_f64<E: Error>(self, val: f64) -> Result<Self::Value, E> {
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::F64Deserializer::new(val),
+                )
+            }
+            fn visit_map<A: serde::de::MapAccess<'de>>(
+                self,
+                map: A,
+            ) -> Result<Self::Value, A::Error> {
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::MapAccessDeserializer::new(map),
+                )
+            }
+            fn visit_enum<A: serde::de::EnumAccess<'de>>(
+                self,
+                data: A,
+            ) -> Result<Self::Value, A::Error> {
+                <ConditionValue as serde::Deserialize>::deserialize(
+                    serde::de::value::EnumAccessDeserializer::new(data),
+                )
+            }
         }
+
+        deserializer
+            .deserialize_any(SingletonVisitor)
+            .map(Singleton)
     }
 }
 

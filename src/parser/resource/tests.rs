@@ -351,6 +351,38 @@ fn intrinsic_sub() {
 }
 
 #[test]
+fn intrinsic_sub_shorthand_tagged_variable() {
+    // Regression: a `Fn::Sub` whose variables map contains a shorthand-tagged
+    // intrinsic (`!Ref`) previously failed to deserialize with "untagged and
+    // internally tagged enums do not support enum input", because the Sub
+    // payload was an untagged enum.
+    assert_eq!(
+        ResourceValue::from_value(
+            serde_yaml::from_str(r#"!Sub ["${Foo}", { Foo: !Ref Bar }]"#).unwrap()
+        )
+        .unwrap(),
+        IntrinsicFunction::Sub {
+            string: "${Foo}".into(),
+            replaces: Some(ResourceValue::Object(IndexMap::from_iter([(
+                "Foo".to_string(),
+                IntrinsicFunction::Ref("Bar".to_string()).into(),
+            )]))),
+        }
+        .into(),
+    );
+}
+
+#[test]
+fn intrinsic_sub_rejects_malformed_element_lists() {
+    // `Fn::Sub` is `template` or `[template, variables]`: not empty, and not 3+.
+    ResourceValue::from_value(serde_yaml::from_str(r#"!Sub []"#).unwrap()).unwrap_err();
+    ResourceValue::from_value(
+        serde_yaml::from_str(r#"!Sub ["${Foo}", { Foo: !Ref Bar }, "extra"]"#).unwrap(),
+    )
+    .unwrap_err();
+}
+
+#[test]
 fn intrinsic_ref() {
     const LOGICAL_NAME: &str = "LogicalName";
 

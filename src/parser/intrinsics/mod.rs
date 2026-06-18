@@ -214,20 +214,56 @@ impl StringOrPair {
     }
 }
 
-#[derive(Debug, serde::Deserialize)]
-#[serde(untagged)]
-enum SubPayload {
-    String(String),
-    SingletonList((String,)),
-    StringAndObject(String, Option<ResourceValue>),
-}
+// `Fn::Sub` is either a bare template string or `[template, {variables}]`. This
+// was previously modeled with `#[serde(untagged)]`, which buffers through
+// `Content` and then refuses enum input ("untagged and internally tagged enums
+// do not support enum input"). A variables map whose values are shorthand tags
+// (`!Ref`, `!GetAtt`, ...) is exactly such enum input, so it failed to parse.
+// Deserializing the parts directly (ResourceValue handles tags) avoids buffering.
+struct SubPayload(String, Option<ResourceValue>);
 
 impl SubPayload {
     fn into_pair(self) -> (String, Option<ResourceValue>) {
-        match self {
-            Self::String(string) => (string, None),
-            Self::SingletonList((string,)) => (string, None),
-            Self::StringAndObject(string, object) => (string, object),
+        (self.0, self.1)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SubPayload {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct SubVisitor;
+        impl<'de> serde::de::Visitor<'de> for SubVisitor {
+            type Value = SubPayload;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a Sub template string or a [template, variables] list")
+            }
+
+            fn visit_str<E: Error>(self, val: &str) -> Result<Self::Value, E> {
+                Ok(SubPayload(val.to_string(), None))
+            }
+            fn visit_string<E: Error>(self, val: String) -> Result<Self::Value, E> {
+                Ok(SubPayload(val, None))
+            }
+
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(
+                self,
+                mut seq: A,
+            ) -> Result<Self::Value, A::Error> {
+                let template: String = match seq.next_element()? {
+                    Some(template) => template,
+                    None => return Err(A::Error::invalid_length(0, &self)),
+                };
+                // The second element (the variables map) is optional.
+                let variables: Option<ResourceValue> = seq.next_element()?;
+                // `Fn::Sub` is `template` or `[template, variables]`; a third
+                // element means a malformed template, so surface it.
+                if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
+                    return Err(A::Error::invalid_length(3, &self));
+                }
+                Ok(SubPayload(template, variables))
+            }
         }
+
+        deserializer.deserialize_any(SubVisitor)
     }
 }
