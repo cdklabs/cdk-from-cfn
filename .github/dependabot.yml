@@ -14,6 +14,10 @@ updates:
     - auto-approve
     schedule:
       interval: daily
+    groups:
+      phf:
+        patterns:
+        - "phf*"
 
   - package-ecosystem: rust-toolchain
     directory: /
