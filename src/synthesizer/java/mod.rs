@@ -551,14 +551,14 @@ impl<'a> Java<'a> {
                         leading: Some(
                             format!(
                                 "CfnOutput.Builder.create(this, \"CfnOutput{}\")",
-                                &output.name
+                                output.name
                             )
                             .into(),
                         ),
                         trailing: Some(format!("{DOUBLE_INDENT}.build();").into()),
                         trailing_newline: true,
                     });
-                    output_writer.line(format!(".key(\"{}\")", &output.name));
+                    output_writer.line(format!(".key(\"{}\")", output.name));
                     output_writer.line(format!(".value(this.{var_name}.toString())"));
                     output_writer
                 }
@@ -575,14 +575,14 @@ impl<'a> Java<'a> {
                         leading: Some(
                             format!(
                                 "this.{var_name}.ifPresent(_{var_name} -> CfnOutput.Builder.create(this, \"CfnOutput{}\")",
-                                &output.name
+                                output.name
                             )
                             .into(),
                         ),
                         trailing: Some(format!("{DOUBLE_INDENT}.build());").into()),
                         trailing_newline: true,
                     });
-                    output_writer.line(format!(".key(\"{}\")", &output.name));
+                    output_writer.line(format!(".key(\"{}\")", output.name));
                     output_writer.line(format!(".value(_{var_name}.toString())"));
                     output_writer
                 }
