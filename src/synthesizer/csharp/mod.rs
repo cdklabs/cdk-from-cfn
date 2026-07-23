@@ -585,7 +585,7 @@ impl Reference {
                     ))
                 }
             }
-            Origin::LogicalId { conditional: _, .. } => {
+            Origin::LogicalId { .. } => {
                 output.text(format!("{}.Ref", camel_case(&self.name.replace('.', ""))))
             }
             Origin::CfnParameter | Origin::Parameter => {
@@ -908,7 +908,7 @@ impl OutputInstruction {
             leading: Some(
                 format!(
                     "new CfnOutput(this, \"CfnOutput{}\", new CfnOutputProps {{",
-                    &self.name
+                    self.name
                 )
                 .into(),
             ),
@@ -916,7 +916,7 @@ impl OutputInstruction {
             trailing_newline: true,
         });
 
-        output.line(format!("Key = \"{}\",", &self.name));
+        output.line(format!("Key = \"{}\",", self.name));
         if let Some(description) = &self.description {
             output.line(format!("Description = \"{}\",", description.escape_debug()));
         }

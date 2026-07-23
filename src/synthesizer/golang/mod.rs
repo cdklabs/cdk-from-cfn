@@ -760,8 +760,7 @@ impl ImportInstruction {
 
         Ok(format!(
             "{} \"{}\"",
-            &self
-                .service
+            self.service
                 .as_ref()
                 .unwrap_or(&"cdk".to_string())
                 .to_lowercase(),
