@@ -665,7 +665,7 @@ fn order(resource_instructions: Vec<ResourceInstruction>) -> CFCResult<Vec<Resou
 
     let mut sorted_instructions = Vec::with_capacity(hash.len());
     while !topo.is_empty() {
-        let mut list = topo.pop_all();
+        let mut list: Vec<_> = topo.pop_batch();
         if list.is_empty() {
             return Err(Error::TemplateFormatError {
                 details: "cyclic references in the Resources section".into(),
