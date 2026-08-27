@@ -144,7 +144,7 @@ pub fn determine_order<S>(
 
     let mut sorted = Vec::with_capacity(conditions.len());
     while !topo.is_empty() {
-        let mut list = topo.pop_all();
+        let mut list: Vec<_> = topo.pop_batch();
         if list.is_empty() {
             return Err(Error::TemplateFormatError {
                 details: "cyclic references in the Conditions section".into(),
