@@ -471,3 +471,55 @@ fn test_cfn_custom_resource_no_type_override() {
     // DeletionPolicy should still work
     assert!(code.contains("cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.RETAIN"));
 }
+
+const CLOUDFRONT_GRPC_CONFIG_TEMPLATE: &str = r#"{
+    "Resources": {
+        "Distribution": {
+            "Type": "AWS::CloudFront::Distribution",
+            "Properties": {
+                "DistributionConfig": {
+                    "Enabled": true,
+                    "Origins": [{
+                        "Id": "origin",
+                        "DomainName": "example.com",
+                        "CustomOriginConfig": {
+                            "OriginProtocolPolicy": "https-only"
+                        }
+                    }],
+                    "DefaultCacheBehavior": {
+                        "TargetOriginId": "origin",
+                        "ViewerProtocolPolicy": "redirect-to-https",
+                        "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                        "GrpcConfig": {
+                            "Enabled": false
+                        }
+                    },
+                    "CacheBehaviors": [{
+                        "PathPattern": "/api/*",
+                        "TargetOriginId": "origin",
+                        "ViewerProtocolPolicy": "redirect-to-https",
+                        "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                        "GrpcConfig": {
+                            "Enabled": true
+                        }
+                    }]
+                }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_cloudfront_grpc_config() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CLOUDFRONT_GRPC_CONFIG_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("grpcConfig: {\n          enabled: false,"));
+    assert!(code.contains("grpcConfig: {\n            enabled: true,"));
+}
