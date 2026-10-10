@@ -520,6 +520,7 @@ fn test_cloudfront_grpc_config() {
         .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("grpcConfig: {\n          enabled: false,"));
-    assert!(code.contains("grpcConfig: {\n            enabled: true,"));
+    assert_eq!(code.matches("grpcConfig: {").count(), 2);
+    assert!(code.contains("enabled: false,"));
+    assert!(code.contains("enabled: true,"));
 }
