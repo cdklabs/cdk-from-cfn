@@ -31832,6 +31832,12 @@
           }
         }
       },
+      "GrpcConfig": {
+        "name": "GrpcConfig",
+        "valueType": {
+          "named": "AWS::CloudFront::Distribution.GrpcConfig"
+        }
+      },
       "LambdaFunctionAssociations": {
         "name": "LambdaFunctionAssociations",
         "valueType": {
@@ -32152,6 +32158,12 @@
           "listOf": {
             "named": "AWS::CloudFront::Distribution.FunctionAssociation"
           }
+        }
+      },
+      "GrpcConfig": {
+        "name": "GrpcConfig",
+        "valueType": {
+          "named": "AWS::CloudFront::Distribution.GrpcConfig"
         }
       },
       "LambdaFunctionAssociations": {
@@ -32527,6 +32539,40 @@
         "name": "RestrictionType",
         "valueType": {
           "primitive": "string"
+        },
+        "required": true
+      }
+    }
+  },
+  "AWS::CloudFront::Distribution.GrpcConfigProperty": {
+    "name": {
+      "typescript": {
+        "module": "aws-cdk-lib/aws-cloudfront",
+        "name": "CfnDistribution.GrpcConfigProperty"
+      },
+      "csharp": {
+        "namespace": "Amazon.CDK.AWS.CloudFront",
+        "name": "CfnDistribution.GrpcConfigProperty"
+      },
+      "golang": {
+        "module": "github.com/aws/aws-cdk-go/awscdk/v2/awscloudfront",
+        "package": "awscloudfront",
+        "name": "CfnDistribution_GrpcConfigProperty"
+      },
+      "java": {
+        "package": "software.amazon.awscdk.services.cloudfront",
+        "name": "CfnDistribution.GrpcConfigProperty"
+      },
+      "python": {
+        "module": "aws_cdk.aws_cloudfront",
+        "name": "CfnDistribution.GrpcConfigProperty"
+      }
+    },
+    "properties": {
+      "Enabled": {
+        "name": "Enabled",
+        "valueType": {
+          "primitive": "boolean"
         },
         "required": true
       }
