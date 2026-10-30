@@ -400,7 +400,13 @@ impl Zip {
                 file_result.err().unwrap()
             );
             let file = file_result.unwrap();
-            let path = file.name();
+            let name_result = file.name();
+            assert!(
+                name_result.is_ok(),
+                "❌ Failed to read zip entry name: {}",
+                name_result.err().unwrap()
+            );
+            let path = name_result.unwrap().into_owned();
 
             if let Some(start) = path.find(&pattern) {
                 if !path.ends_with('/') {
