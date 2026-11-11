@@ -70,7 +70,115 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
         }
     }
 
+    /// Picks the member of a union type that `value` should be translated as.
+    ///
+    /// The schema writes a property whose type changed as `[current, previous]`.
+    /// AWS CDK keeps the previous (original) type for backwards compatibility,
+    /// so that is the type its L1 constructs accept: the last member that can
+    /// hold the value. Every property in the schema has at most one previous
+    /// type today. Strings, tags and alternative structs (SAM event sources)
+    /// are handled separately below.
+    fn resolve_union(
+        &self,
+        members: &[TypeReference],
+        value: &ResourceValue,
+    ) -> Option<TypeReference> {
+        let fitting: Vec<&TypeReference> = members
+            .iter()
+            .filter(|member| Self::can_hold(member, value))
+            .collect();
+
+        let structs: Vec<&TypeReference> = fitting
+            .iter()
+            .copied()
+            .filter(|member| matches!(member, TypeReference::Named(_)))
+            .collect();
+
+        let chosen = match value {
+            ResourceValue::Object(object) if structs.len() > 1 => {
+                let declared_keys = |member: &TypeReference| match member {
+                    TypeReference::Named(name) => self.schema.type_named(name).map_or(0, |data| {
+                        object
+                            .keys()
+                            .filter(|key| data.property(key).is_some())
+                            .count()
+                    }),
+                    _ => 0,
+                };
+                // Ties (e.g. SAM `Api` vs `HttpApi` events) need the sibling
+                // `Type` field to resolve: cdklabs/cdk-from-cfn#624.
+                structs
+                    .into_iter()
+                    .max_by_key(|member| declared_keys(member))
+            }
+            ResourceValue::String(_) => fitting
+                .iter()
+                .copied()
+                .rfind(|member| Self::holds_text(member))
+                .or_else(|| fitting.last().copied()),
+            _ => fitting
+                .iter()
+                .copied()
+                .find(|member| Self::is_tag(member))
+                .or_else(|| fitting.last().copied()),
+        }?;
+
+        match chosen {
+            TypeReference::Union(inner) => self.resolve_union(inner, value),
+            member => Some(member.clone()),
+        }
+    }
+
+    /// Whether a value of this shape can be translated as `member`.
+    fn can_hold(member: &TypeReference, value: &ResourceValue) -> bool {
+        match member {
+            TypeReference::Union(inner) => inner.iter().any(|m| Self::can_hold(m, value)),
+            TypeReference::Primitive(Primitive::Json) => true,
+            TypeReference::Named(_) | TypeReference::Map(_) => {
+                matches!(value, ResourceValue::Object(_))
+            }
+            TypeReference::List(_) => matches!(value, ResourceValue::Array(_)),
+            TypeReference::Primitive(_) => matches!(value, ResourceValue::String(_)),
+        }
+    }
+
+    fn holds_text(member: &TypeReference) -> bool {
+        match member {
+            TypeReference::Union(inner) => inner.iter().any(Self::holds_text),
+            TypeReference::Primitive(Primitive::String | Primitive::Json) => true,
+            _ => false,
+        }
+    }
+
+    fn is_tag(member: &TypeReference) -> bool {
+        match member {
+            TypeReference::Named(name) => name == "CfnTag",
+            TypeReference::List(item) => Self::is_tag(item),
+            _ => false,
+        }
+    }
+
     pub(super) fn translate(&self, resource_value: ResourceValue) -> Result<ResourceIr, Error> {
+        if let Some(TypeReference::Union(members)) = &self.value_type {
+            if matches!(
+                resource_value,
+                ResourceValue::Object(_) | ResourceValue::Array(_) | ResourceValue::String(_)
+            ) {
+                let member = self
+                    .resolve_union(members, &resource_value)
+                    .ok_or_else(|| Error::ResourceTranslationError {
+                        message: format!(
+                            "no member of {members:?} can hold the value {resource_value:?}"
+                        ),
+                    })?;
+                return Self {
+                    value_type: Some(member),
+                    ..*self
+                }
+                .translate(resource_value);
+            }
+        }
+
         match resource_value {
             ResourceValue::Null => Ok(ResourceIr::Null),
             ResourceValue::Bool(b) => Ok(ResourceIr::Bool(b)),
