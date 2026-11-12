@@ -612,3 +612,178 @@ fn test_cfn_custom_resource_json_passthrough() {
     assert!(result[0].properties.contains_key("CustomProp"));
     assert!(result[0].properties.contains_key("NumberProp"));
 }
+
+mod union_types {
+    use std::borrow::Cow;
+
+    use super::*;
+    use crate::cdk::{ItemType, TypeUnion};
+    use crate::Error;
+
+    const VERSIONING: &str = "AWS::S3::Bucket.VersioningConfiguration";
+
+    fn named(name: &'static str) -> TypeReference {
+        TypeReference::Named(Cow::Borrowed(name))
+    }
+
+    fn list(item: TypeReference) -> TypeReference {
+        TypeReference::List(ItemType::from(item))
+    }
+
+    fn union(members: Vec<TypeReference>) -> TypeReference {
+        TypeReference::Union(TypeUnion::Vec(members))
+    }
+
+    fn json() -> TypeReference {
+        TypeReference::Primitive(Primitive::Json)
+    }
+
+    fn object(entries: &[(&str, &str)]) -> ResourceValue {
+        ResourceValue::Object(
+            entries
+                .iter()
+                .map(|(k, v)| (k.to_string(), ResourceValue::String(v.to_string())))
+                .collect(),
+        )
+    }
+
+    fn translate(value_type: TypeReference, value: ResourceValue) -> Result<ResourceIr, Error> {
+        let origins = ReferenceOrigins {
+            origins: HashMap::default(),
+        };
+        ResourceTranslator {
+            schema: Schema::builtin(),
+            origins: &origins,
+            value_type: Some(value_type),
+        }
+        .translate(value)
+    }
+
+    fn object_type(ir: ResourceIr) -> TypeReference {
+        match ir {
+            ResourceIr::Object(value_type, _) => value_type,
+            other => panic!("expected an object, got {other:?}"),
+        }
+    }
+
+    // Type history `[current, original]`: AWS CDK still exposes the original type.
+    #[test]
+    fn struct_replacing_json_is_translated_as_json() {
+        let ir = translate(
+            union(vec![named(VERSIONING), json()]),
+            object(&[("Status", "Enabled")]),
+        )
+        .unwrap();
+        assert_eq!(json(), object_type(ir));
+    }
+
+    #[test]
+    fn json_replacing_struct_is_translated_as_the_struct() {
+        let ir = translate(
+            union(vec![json(), named(VERSIONING)]),
+            object(&[("Status", "Enabled")]),
+        )
+        .unwrap();
+        assert_eq!(named(VERSIONING), object_type(ir));
+    }
+
+    #[test]
+    fn nested_union_is_resolved_per_value() {
+        let value_type = union(vec![
+            union(vec![TypeReference::Primitive(Primitive::String), json()]),
+            json(),
+        ]);
+        let ir = translate(value_type.clone(), object(&[("maxDays", "90")])).unwrap();
+        assert_eq!(json(), object_type(ir));
+
+        let ir = translate(value_type, ResourceValue::String("text".into())).unwrap();
+        assert_eq!(ResourceIr::String("text".into()), ir);
+    }
+
+    #[test]
+    fn string_stays_text_when_a_member_holds_text() {
+        // AWS::ControlTower::EnabledControl.EnabledControlParameter.Value
+        let value_type = union(vec![
+            list(json()),
+            TypeReference::Primitive(Primitive::String),
+            TypeReference::Primitive(Primitive::Number),
+            json(),
+            TypeReference::Primitive(Primitive::Boolean),
+        ]);
+        for text in ["text", "5", "true"] {
+            let ir = translate(value_type.clone(), ResourceValue::String(text.into())).unwrap();
+            assert_eq!(ResourceIr::String(text.into()), ir);
+        }
+    }
+
+    #[test]
+    fn string_is_parsed_when_no_member_holds_text() {
+        let number = TypeReference::Primitive(Primitive::Number);
+        let ir = translate(
+            union(vec![number.clone(), number]),
+            ResourceValue::String("5".into()),
+        )
+        .unwrap();
+        assert_eq!(ResourceIr::Number(5), ir);
+    }
+
+    #[test]
+    fn tags_are_translated_as_cfn_tag() {
+        let ir = translate(
+            union(vec![list(named("CfnTag")), list(json())]),
+            ResourceValue::Array(vec![object(&[("Key", "k"), ("Value", "v")])]),
+        )
+        .unwrap();
+        match ir {
+            ResourceIr::Array(item_type, items) => {
+                assert_eq!(named("CfnTag"), item_type);
+                assert_eq!(named("CfnTag"), object_type(items[0].clone()));
+            }
+            other => panic!("expected an array, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn array_uses_the_list_member() {
+        let ir = translate(
+            union(vec![named(VERSIONING), list(named(VERSIONING))]),
+            ResourceValue::Array(vec![object(&[("Status", "Enabled")])]),
+        )
+        .unwrap();
+        assert!(matches!(ir, ResourceIr::Array(ref t, _) if *t == named(VERSIONING)));
+    }
+
+    // Alternative structs (SAM event sources): AWS CDK accepts every member.
+    #[test]
+    fn alternative_structs_are_matched_by_declared_keys() {
+        let events = union(vec![
+            named("AWS::Serverless::Function.SQSEvent"),
+            named("AWS::Serverless::Function.ApiEvent"),
+            named("AWS::Serverless::Function.ScheduleEvent"),
+        ]);
+        let ir = translate(
+            events.clone(),
+            object(&[("Queue", "arn"), ("BatchSize", "5")]),
+        );
+        assert_eq!(
+            named("AWS::Serverless::Function.SQSEvent"),
+            object_type(ir.unwrap())
+        );
+
+        let ir = translate(events, object(&[("Schedule", "rate(1 day)")]));
+        assert_eq!(
+            named("AWS::Serverless::Function.ScheduleEvent"),
+            object_type(ir.unwrap())
+        );
+    }
+
+    #[test]
+    fn value_no_member_can_hold_is_an_error() {
+        let error = translate(
+            union(vec![TypeReference::Primitive(Primitive::Number)]),
+            object(&[("Status", "Enabled")]),
+        )
+        .unwrap_err();
+        assert!(error.to_string().starts_with("no member of"), "{error}");
+    }
+}
