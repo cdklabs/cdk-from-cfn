@@ -32,18 +32,18 @@ crate-type = ["cdylib", "lib"]
 [dependencies]
 base64 = "^0.23.0"
 clap = { version = "^4.6.1", features = ["cargo"] }
-console_error_panic_hook = { version = "0.1.1", optional = true }
 indexmap = { version = "^2.14.0", features = ["serde"] }
 nom = "^8.0.0"
 phf = { version = "^0.14.0", features = ["macros"] }
-rustc-hash = { version = "2.1.2", optional = true }
 serde = { version = "^1.0.228", features = ["derive"] }
 serde-enum-str = "^0.5.0"
-serde_json = "1.0"
 serde_yaml = "^0.9.34"
 thiserror = "^2.0.18"
 topological-sort = "^0.3.1"
 voca_rs = "^1.15.2"
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+console_error_panic_hook = { version = "0.1.1", optional = true }
 wasm-bindgen = "^0.2.106"
 
 [dev-dependencies]
@@ -51,18 +51,16 @@ cdk-from-cfn-macros = { path = "cdk-from-cfn-macros" }
 cdk-from-cfn-testing = { path = "cdk-from-cfn-testing", features = ["golang", "java", "typescript", "python", "csharp"] }
 cdk-from-cfn-testing-end-to-end = { path = "cdk-from-cfn-testing-end-to-end", features = ["golang", "java", "typescript", "python", "csharp"] }
 futures = "0.3"
+serde_json = "1.0"
 serial_test = "4.0"
 tokio = { version = "1", features = ["full"] }
 
 [build-dependencies]
-indexmap = "^2.14.0"
 phf = { version = "^0.14.0", features = ["macros"] }
 phf_codegen = "^0.14.0"
-rustc-hash = { version = "2.1.2", optional = true }
 serde = { version = "^1.0.228", features = ["derive"] }
 serde-enum-str = "^0.5.0"
 serde_json = "^1.0.150"
-serde_with = "^3.21.0"
 voca_rs = "^1.15.2"
 
 [profile.release]
