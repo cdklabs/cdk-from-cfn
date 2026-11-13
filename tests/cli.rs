@@ -9,7 +9,14 @@
 //! - Explicit --as construct mode
 //! - Invalid command handling
 
+use std::path::Path;
+
 use cdk_from_cfn_testing::{run_cli_with_args, CdkFromCfnConstruct, CdkFromCfnStack, Stack};
+
+/// Path to the cdk-from-cfn binary, built by Cargo for these tests.
+fn bin() -> &'static Path {
+    Path::new(env!("CARGO_BIN_EXE_cdk-from-cfn"))
+}
 
 const TEST_TEMPLATE: &str = r#"{
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -68,6 +75,7 @@ const TEST_TEMPLATE: &str = r#"{
 #[test]
 fn test_cli_default_mode_generates_stack() {
     let (exit_code, stdout, _stderr) = run_cli_with_args(
+        bin(),
         &["-", "--language", "typescript", "--stack-name", "TestStack"],
         Some(TEST_TEMPLATE),
     );
@@ -106,6 +114,7 @@ fn test_cli_default_mode_generates_stack() {
 #[test]
 fn test_cli_explicit_stack_mode() {
     let (exit_code, stdout, _stderr) = run_cli_with_args(
+        bin(),
         &[
             "-",
             "--language",
@@ -142,6 +151,7 @@ fn test_cli_explicit_stack_mode() {
 #[test]
 fn test_cli_construct_mode() {
     let (exit_code, stdout, _stderr) = run_cli_with_args(
+        bin(),
         &[
             "-",
             "--language",
@@ -192,6 +202,7 @@ fn test_cli_construct_mode() {
 #[test]
 fn test_cli_invalid_as_value() {
     let (exit_code, _stdout, stderr) = run_cli_with_args(
+        bin(),
         &[
             "-",
             "--language",
@@ -222,6 +233,7 @@ fn test_cli_invalid_as_value() {
 #[test]
 fn test_cli_invalid_language() {
     let (exit_code, _stdout, stderr) = run_cli_with_args(
+        bin(),
         &[
             "-",
             "--language",
@@ -245,7 +257,7 @@ fn test_cli_invalid_language() {
 /// Test CdkFromCfnStack trait generates stack code
 #[test]
 fn test_cdk_from_cfn_stack_trait() {
-    let output = Stack::generate_stack(TEST_TEMPLATE, "typescript", "TestStack");
+    let output = Stack::generate_stack(bin(), TEST_TEMPLATE, "typescript", "TestStack");
     let code = String::from_utf8(output).expect("Output should be valid UTF-8");
 
     assert!(
@@ -258,7 +270,7 @@ fn test_cdk_from_cfn_stack_trait() {
 /// Test CdkFromCfnConstruct trait generates construct code
 #[test]
 fn test_cdk_from_cfn_construct_trait() {
-    let output = Stack::generate_construct(TEST_TEMPLATE, "typescript", "TestConstruct");
+    let output = Stack::generate_construct(bin(), TEST_TEMPLATE, "typescript", "TestConstruct");
     let code = String::from_utf8(output).expect("Output should be valid UTF-8");
 
     assert!(

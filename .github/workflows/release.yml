@@ -11,6 +11,9 @@ env:
   RELEASE_BRANCH: release
   MERGEBACK_BRANCH: github-actions/mergeback
 
+permissions:
+  contents: read
+
 jobs:
   create_mergeback:
     name: Create the merge-back PR
@@ -51,7 +54,7 @@ jobs:
           token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@main
+        uses: actions/setup-node@v7
         with:
           node-version: lts/*
 

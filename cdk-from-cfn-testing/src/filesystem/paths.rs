@@ -60,14 +60,6 @@ impl Paths {
         current_dir().unwrap_or_else(|e| panic!("Failed to get current directory: {}", e))
     }
 
-    /// Returns the current crate name as a path.
-    ///
-    /// # Returns
-    /// Path containing the crate name
-    pub fn crate_name() -> PathBuf {
-        PathBuf::from(Self::project_root().file_name().unwrap())
-    }
-
     /// Returns the testing crate directory path.
     ///
     /// # Returns
