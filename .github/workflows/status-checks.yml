@@ -113,7 +113,7 @@ jobs:
           cargo llvm-cov report --hide-instantiations --ignore-filename-regex '^(tests?/.*\.rs|.*/tests?\.rs|.*testing.*/.*\.rs|.*/testing\.rs)$'
 
       - name: Upload Coverage to CodeCov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           use_oidc: true
           fail_ci_if_error: true
@@ -130,7 +130,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v2
 
       - name: Setup Node.js
-        uses: actions/setup-node@main
+        uses: actions/setup-node@v7
         with:
           node-version: lts/*
 
