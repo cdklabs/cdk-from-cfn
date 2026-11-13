@@ -11,6 +11,9 @@ env:
   RELEASE_BRANCH: release
   MERGEBACK_BRANCH: github-actions/mergeback
 
+permissions:
+  contents: read
+
 jobs:
   create_mergeback:
     name: Create the merge-back PR

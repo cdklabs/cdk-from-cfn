@@ -9,6 +9,9 @@ on:
       - release
 name: status-checks
 
+permissions:
+  contents: read
+
 jobs:
   lint_and_format:
     name: Lint and Format
