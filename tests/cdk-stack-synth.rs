@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use std::path::Path;
+
 use cdk_from_cfn_macros::generate_cdk_tests;
 use cdk_from_cfn_testing::{CdkAppTestCase, CdkAppTestGroup, Language, Scope, SkipSynthList};
 #[cfg(feature = "end-to-end")]
@@ -25,7 +27,12 @@ macro_rules! cdk_stack_synth_test {
 
                 eprintln!("🚀 Starting test group: {}", test_name);
                 // Installs everything
-                let app = CdkAppTestCase::new(module_path!(), $stack_name, $skip_cdk_synth);
+                let app = CdkAppTestCase::new(
+                    Path::new(env!("CARGO_BIN_EXE_cdk-from-cfn")),
+                    module_path!(),
+                    $stack_name,
+                    $skip_cdk_synth,
+                );
 
                 #[cfg(feature = "end-to-end")]
                 let end_to_end = EndToEndTest::generate(&app).await;

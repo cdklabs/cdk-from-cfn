@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::{env::var, io::Write, path::PathBuf, process::{Command, Stdio}};
+use std::{io::Write, path::Path, process::{Command, Stdio}};
 
 use crate::{filesystem::{Files, Paths, Zip}, Language};
 
@@ -85,13 +85,14 @@ pub trait CdkFromCfnStack {
     /// Generates CDK stack code from a CloudFormation template.
     /// 
     /// # Arguments
+    /// * `bin` - Path to the cdk-from-cfn binary
     /// * `template` - CloudFormation template as JSON/YAML string
     /// * `lang` - Target programming language for CDK code
     /// * `stack_name` - Name for the generated CDK stack
     /// 
     /// # Returns
     /// Generated CDK code as bytes
-    fn generate_stack(template: &str, lang: &str, stack_name: &str) -> Vec<u8>;
+    fn generate_stack(bin: &Path, template: &str, lang: &str, stack_name: &str) -> Vec<u8>;
 }
 
 impl CdkFromCfnStack for Stack {
@@ -101,6 +102,7 @@ impl CdkFromCfnStack for Stack {
     /// template into CDK code for the specified language.
     /// 
     /// # Arguments
+    /// * `bin` - Path to the cdk-from-cfn binary
     /// * `template` - CloudFormation template as JSON/YAML string
     /// * `lang` - Target programming language for CDK code
     /// * `stack_name` - Name for the generated CDK stack
@@ -110,8 +112,8 @@ impl CdkFromCfnStack for Stack {
     /// 
     /// # Panics
     /// Panics if the cdk-from-cfn tool execution fails or returns non-zero exit code
-    fn generate_stack(template: &str, lang: &str, stack_name: &str) -> Vec<u8> {
-        let mut child = match Command::new(&get_cdk_from_cfn_binary_path())
+    fn generate_stack(bin: &Path, template: &str, lang: &str, stack_name: &str) -> Vec<u8> {
+        let mut child = match Command::new(bin)
             .args([
                 "-",
                 "--language",
@@ -156,19 +158,21 @@ pub trait CdkFromCfnConstruct {
     /// Generates CDK construct code from a CloudFormation template.
     /// 
     /// # Arguments
+    /// * `bin` - Path to the cdk-from-cfn binary
     /// * `template` - CloudFormation template as JSON/YAML string
     /// * `lang` - Target programming language for CDK code
     /// * `construct_name` - Name for the generated CDK construct
     /// 
     /// # Returns
     /// Generated CDK code as bytes
-    fn generate_construct(template: &str, lang: &str, construct_name: &str) -> Vec<u8>;
+    fn generate_construct(bin: &Path, template: &str, lang: &str, construct_name: &str) -> Vec<u8>;
 }
 
 impl CdkFromCfnConstruct for Stack {
     /// Generates CDK construct code using the cdk-from-cfn binary with `--as construct`.
     /// 
     /// # Arguments
+    /// * `bin` - Path to the cdk-from-cfn binary
     /// * `template` - CloudFormation template as JSON/YAML string
     /// * `lang` - Target programming language for CDK code
     /// * `construct_name` - Name for the generated CDK construct
@@ -178,8 +182,8 @@ impl CdkFromCfnConstruct for Stack {
     /// 
     /// # Panics
     /// Panics if the cdk-from-cfn tool execution fails or returns non-zero exit code
-    fn generate_construct(template: &str, lang: &str, construct_name: &str) -> Vec<u8> {
-        let mut child = match Command::new(&get_cdk_from_cfn_binary_path())
+    fn generate_construct(bin: &Path, template: &str, lang: &str, construct_name: &str) -> Vec<u8> {
+        let mut child = match Command::new(bin)
             .args([
                 "-",
                 "--language",
@@ -220,13 +224,14 @@ impl CdkFromCfnConstruct for Stack {
 /// Runs the cdk-from-cfn CLI with custom arguments.
 /// 
 /// # Arguments
+/// * `bin` - Path to the cdk-from-cfn binary
 /// * `args` - Command line arguments to pass to the binary
 /// * `stdin_input` - Optional input to write to stdin
 /// 
 /// # Returns
 /// Tuple of (exit_code, stdout, stderr)
-pub fn run_cli_with_args(args: &[&str], stdin_input: Option<&str>) -> (Option<i32>, Vec<u8>, Vec<u8>) {
-    let mut child = match Command::new(&get_cdk_from_cfn_binary_path())
+pub fn run_cli_with_args(bin: &Path, args: &[&str], stdin_input: Option<&str>) -> (Option<i32>, Vec<u8>, Vec<u8>) {
+    let mut child = match Command::new(bin)
         .args(args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -246,26 +251,3 @@ pub fn run_cli_with_args(args: &[&str], stdin_input: Option<&str>) -> (Option<i3
     let output = child.wait_with_output().expect("Failed to read output");
     (output.status.code(), output.stdout, output.stderr)
 }
-
-/// Determines the path to the cdk-from-cfn binary for the current build.
-/// 
-/// Attempts to locate the binary in the target directory based on the build
-/// environment, falling back to a default path if necessary.
-/// 
-/// # Returns
-/// Path to the cdk-from-cfn binary
-fn get_cdk_from_cfn_binary_path() -> PathBuf {
-    // OUT_DIR is target/debug/build/{crate}-{hash}/out
-    // We need target/<potentially-something>/debug
-    var("OUT_DIR")
-        .ok()
-        .and_then(|out_dir| {
-            PathBuf::from(out_dir)
-                .parent()? // remove /out
-                .parent()? // remove /{crate}-{hash}
-                .parent() // remove /build
-                .map(|p| p.join(Paths::crate_name()))
-        })
-        .unwrap_or_else(|| PathBuf::from("target/debug/cdk-from-cfn"))
-}
-
