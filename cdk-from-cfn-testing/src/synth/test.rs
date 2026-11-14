@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use std::path::Path;
+
 use crate::bootstrap::Install;
 use crate::config::{CdkFromCfnStack, Environment};
 use crate::filesystem::Files;
@@ -47,6 +49,7 @@ impl<'a> CdkAppTestCase<'a> {
     /// creates application files, and performs CDK synthesis for non-skipped languages.
     ///
     /// # Arguments
+    /// * `bin` - Path to the cdk-from-cfn binary
     /// * `test_path` - Path identifying the test case
     /// * `stack_name` - Name of the stack to generate
     /// * `skip_list` - List of languages to skip with reasons
@@ -54,6 +57,7 @@ impl<'a> CdkAppTestCase<'a> {
     /// # Returns
     /// A new `CdkAppTestGroup` with all languages processed
     pub fn new(
+        bin: &Path,
         test_path: &str,
         stack_name: &'a str,
         skip_list: Vec<TestSkip>,
@@ -71,7 +75,9 @@ impl<'a> CdkAppTestCase<'a> {
                 test_path,
                 &lang,
                 stack_name,
-                &<Stack as CdkFromCfnStack>::generate_stack,
+                |template: &str, lang: &str, name: &str| {
+                    <Stack as CdkFromCfnStack>::generate_stack(bin, template, lang, name)
+                },
             );
 
             if test_filter.should_synth(&lang) {

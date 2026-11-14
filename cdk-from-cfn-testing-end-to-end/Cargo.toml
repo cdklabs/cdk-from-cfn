@@ -10,7 +10,6 @@ aws-sdk-cloudformation = { version = "^1.99.0", default-features = false, featur
 aws-sdk-s3 = { version = "^1.112.0", default-features = false, features = ["default-https-client", "rt-tokio", "sigv4a"] }
 aws-smithy-types = "^1.2.0"
 aws-smithy-runtime-api = "^1.8.1"
-futures = "0.3"
 tokio = { version = "1", features = ["full"] }
 serde_json = "1.0"
 
