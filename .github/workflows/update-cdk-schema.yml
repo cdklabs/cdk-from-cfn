@@ -1,0 +1,41 @@
+name: Update CDK Schema
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: "0 9 * * 1"
+  # Allow manual triggering
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  update-cdk-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # Dependabot keeps this tag current, and each generator release ships the
+      # latest @aws-cdk/aws-service-spec.
+      - name: Regenerate the patched CDK schema
+        uses: cdklabs/cdk-patched-schema-generator@v0.0.321
+        with:
+          output-path: src/specification
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          title: "feat: update the patched CDK schema"
+          commit-message: "feat: update the patched CDK schema"
+          branch: "automation/update-cdk-schema"
+          labels: "auto-approve"
+          delete-branch: true
+          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+          body: |
+            This automated PR regenerates `src/specification` with [cdk-patched-schema-generator](https://github.com/cdklabs/cdk-patched-schema-generator), so cdk-from-cfn supports the latest CloudFormation resource types and properties.
+
+            ---
+
+            This PR was created by the [Update CDK Schema workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
