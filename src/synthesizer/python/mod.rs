@@ -562,7 +562,14 @@ fn emit_custom_resource(
     // Override the type to match the original Custom::XXX type from the input template.
     // Skipped for AWS::CloudFormation::CustomResource since the type is already correct.
     // For conditional resources, all post-construction calls must be inside the None guard.
-    if maybe_undefined {
+    if maybe_undefined
+        && (resource_type_name != CFN_CUSTOM_RESOURCE
+            || reference
+                .properties
+                .keys()
+                .any(|name| name != "ServiceToken")
+            || has_resource_attributes(reference))
+    {
         output.line(format!("if ({var_name} is not None):"));
         let indented = output.indent(INDENT);
         if resource_type_name != CFN_CUSTOM_RESOURCE {
@@ -634,13 +641,20 @@ fn emit_resource(
         false
     };
 
-    if maybe_undefined {
+    if maybe_undefined && has_resource_attributes(reference) {
         output.line(format!("if ({var_name} is not None):"));
         let indented = output.indent(INDENT);
         emit_resource_attributes(context, &indented, reference, &var_name);
     } else {
         emit_resource_attributes(context, output, reference, &var_name);
     }
+}
+
+fn has_resource_attributes(reference: &ResourceInstruction) -> bool {
+    reference.metadata.is_some()
+        || reference.update_policy.is_some()
+        || reference.deletion_policy.is_some()
+        || !reference.dependencies.is_empty()
 }
 
 fn emit_resource_attributes(
