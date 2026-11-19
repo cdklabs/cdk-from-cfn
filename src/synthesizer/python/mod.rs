@@ -395,7 +395,6 @@ fn synthesize_condition_recursive(val: &ConditionIr, class_type: ClassType) -> S
             let a: Vec<String> = x
                 .iter()
                 .map(|v| synthesize_condition_recursive(v, class_type))
-                .map(|condition| snake_case(&condition))
                 .collect();
 
             let inner = a.join(" and ");
@@ -412,12 +411,12 @@ fn synthesize_condition_recursive(val: &ConditionIr, class_type: ClassType) -> S
             if x.is_simple() {
                 format!(
                     "not {}",
-                    snake_case(&synthesize_condition_recursive(x.as_ref(), class_type))
+                    synthesize_condition_recursive(x.as_ref(), class_type)
                 )
             } else {
                 format!(
                     "not ({})",
-                    snake_case(&synthesize_condition_recursive(x.as_ref(), class_type))
+                    synthesize_condition_recursive(x.as_ref(), class_type)
                 )
             }
         }
@@ -434,7 +433,11 @@ fn synthesize_condition_recursive(val: &ConditionIr, class_type: ClassType) -> S
             format!("'{x}'")
         }
         ConditionIr::Condition(x) => snake_case(x),
-        ConditionIr::Ref(x) => x.to_python(class_type).into(),
+        ConditionIr::Ref(x) => match x.origin {
+            // references to other conditions are plain python variables
+            Origin::Condition => snake_case(&x.to_python(class_type)),
+            _ => x.to_python(class_type).into(),
+        },
         ConditionIr::Map(named_resource, l1, l2) => {
             format!(
                 "{}[{}][{}]",

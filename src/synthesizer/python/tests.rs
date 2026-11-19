@@ -447,3 +447,39 @@ fn test_cfn_custom_resource_no_type_override() {
     assert!(!code.contains("aws_cloudformation"));
     assert!(code.contains("myCustomResource.get_att('Endpoint').to_string()"));
 }
+
+// --- Condition tests ---
+
+const NOT_EQUALS_PARAM_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "PolicyName": { "Type": "String" }
+    },
+    "Conditions": {
+        "ShouldEnable": {
+            "Fn::Not": [{ "Fn::Equals": [{ "Ref": "PolicyName" }, "NONE"] }]
+        }
+    },
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Condition": "ShouldEnable"
+        }
+    }
+}"#;
+
+#[test]
+fn test_not_equals_with_parameter_reference() {
+    let cfn: CloudformationParseTree = serde_json::from_str(NOT_EQUALS_PARAM_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("should_enable = not (props['policyName'] == 'NONE')"),
+        "Should reference the parameter through props, got:\n{code}"
+    );
+}
