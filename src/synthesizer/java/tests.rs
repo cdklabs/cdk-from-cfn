@@ -817,3 +817,47 @@ fn test_cfn_custom_resource_no_type_override() {
     assert!(!code.contains("aws.cloudformation"));
     assert!(code.contains("myCustomResource.getAtt(\"Endpoint\").toString()"));
 }
+
+const CONDITIONAL_DEPENDS_ON_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "Env": { "Type": "String" }
+    },
+    "Conditions": {
+        "IsProd": { "Fn::Equals": [{ "Ref": "Env" }, "prod"] }
+    },
+    "Resources": {
+        "ResourceA": { "Type": "AWS::SQS::Queue", "Condition": "IsProd" },
+        "ResourceB": { "Type": "AWS::SQS::Queue", "Condition": "IsProd", "DependsOn": "ResourceA" },
+        "ResourceC": { "Type": "AWS::SQS::Queue", "DependsOn": "ResourceA" },
+        "ResourceD": { "Type": "AWS::SQS::Queue", "Condition": "IsProd", "DependsOn": "ResourceC" },
+        "ResourceE": { "Type": "AWS::SQS::Queue", "DependsOn": "ResourceC" }
+    }
+}"#;
+
+#[test]
+fn test_depends_on_unwraps_conditional_resources() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(CONDITIONAL_DEPENDS_ON_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    // conditional resource depending on a conditional resource
+    assert!(code.contains(
+        "resourceB.ifPresent(_resourceB -> resourceA.ifPresent(_resourceA -> _resourceB.addDependency(_resourceA)));"
+    ));
+    // unconditional resource depending on a conditional resource
+    assert!(
+        code.contains("resourceA.ifPresent(_resourceA -> resourceC.addDependency(_resourceA));")
+    );
+    // conditional resource depending on an unconditional resource
+    assert!(
+        code.contains("resourceD.ifPresent(_resourceD -> _resourceD.addDependency(resourceC));")
+    );
+    // both unconditional
+    assert!(code.contains("resourceE.addDependency(resourceC);"));
+}

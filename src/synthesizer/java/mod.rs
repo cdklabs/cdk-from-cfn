@@ -12,6 +12,7 @@ use crate::parser::lookup_table::MappingInnerValue;
 use crate::parser::resource::DeletionPolicy;
 use crate::Error;
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::rc::Rc;
 use std::{io, vec};
 use voca_rs::case::{camel_case, pascal_case};
@@ -377,9 +378,18 @@ impl<'a> Java<'a> {
     ) -> Result<(), Error> {
         use crate::ir::resources::ResourceType;
 
+        // Conditional resources are declared as `Optional<...>` and have to be unwrapped
+        // before they can be passed to `addDependency`.
+        let conditional_resources: HashSet<&str> = ir
+            .resources
+            .iter()
+            .filter(|resource| resource.condition.is_some())
+            .map(|resource| resource.name.as_str())
+            .collect();
+
         for resource in &ir.resources {
             if matches!(resource.resource_type, ResourceType::Custom(_)) {
-                emit_custom_resource(resource, writer, schema, class_type)?;
+                emit_custom_resource(resource, writer, schema, class_type, &conditional_resources)?;
             } else {
                 let maybe_undefined = Self::write_resource(resource, writer, schema, class_type)?;
                 writer.newline();
@@ -389,6 +399,7 @@ impl<'a> Java<'a> {
                     maybe_undefined,
                     schema,
                     class_type,
+                    &conditional_resources,
                 )?;
             }
         }
@@ -401,6 +412,7 @@ impl<'a> Java<'a> {
         maybe_undefined: bool,
         schema: &Schema,
         class_type: ClassType,
+        conditional_resources: &HashSet<&str>,
     ) -> Result<(), Error> {
         let res_name = if maybe_undefined {
             format!(
@@ -431,12 +443,14 @@ impl<'a> Java<'a> {
             extra_line = true;
         }
 
-        for dependency in &resource.dependencies {
-            writer.text(format!(
-                "{res_name}.addDependency({}){}",
-                camel_case(dependency),
-                trailer
-            ));
+        if !resource.dependencies.is_empty() {
+            emit_dependencies(
+                writer,
+                &camel_case(&resource.name),
+                maybe_undefined,
+                &resource.dependencies,
+                conditional_resources,
+            );
             extra_line = true;
         }
 
@@ -824,11 +838,49 @@ fn emit_tag_value(
     }
 }
 
+/// Emits one `addDependency` call per `DependsOn` entry of a resource.
+///
+/// Conditional resources are `Optional<...>` variables, so when either side of the
+/// dependency is conditional it is unwrapped with `ifPresent` first.
+fn emit_dependencies(
+    writer: &Rc<CodeBuffer>,
+    resource_var: &str,
+    resource_is_conditional: bool,
+    dependencies: &[String],
+    conditional_resources: &HashSet<&str>,
+) {
+    for dependency in dependencies {
+        let dependency_var = camel_case(dependency);
+        let mut prefix = String::new();
+        let mut suffix = String::new();
+
+        let source = if resource_is_conditional {
+            prefix.push_str(&format!("{resource_var}.ifPresent(_{resource_var} -> "));
+            suffix.push(')');
+            format!("_{resource_var}")
+        } else {
+            resource_var.to_string()
+        };
+        let target = if conditional_resources.contains(dependency.as_str()) {
+            prefix.push_str(&format!("{dependency_var}.ifPresent(_{dependency_var} -> "));
+            suffix.push(')');
+            format!("_{dependency_var}")
+        } else {
+            dependency_var
+        };
+
+        writer.text(format!(
+            "{prefix}{source}.addDependency({target}){suffix};\n"
+        ));
+    }
+}
+
 fn emit_custom_resource(
     resource: &ResourceInstruction,
     writer: &Rc<CodeBuffer>,
     schema: &Schema,
     class_type: ClassType,
+    conditional_resources: &HashSet<&str>,
 ) -> Result<(), Error> {
     use crate::ir::resources::ResourceType;
 
@@ -918,12 +970,13 @@ fn emit_custom_resource(
     }
 
     // Handle DependsOn
-    for dependency in &resource.dependencies {
-        writer.text(format!(
-            "{res_name}.addDependency({}){trailer}",
-            camel_case(dependency),
-        ));
-    }
+    emit_dependencies(
+        writer,
+        &var_name,
+        maybe_undefined,
+        &resource.dependencies,
+        conditional_resources,
+    );
 
     // Handle DeletionPolicy (Java uses RemovalPolicy, same as standard resources)
     if let Some(deletion_policy) = &resource.deletion_policy {
