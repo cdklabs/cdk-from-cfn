@@ -126,7 +126,7 @@ impl Synthesizer for Python {
                         leading: Some(
                             format!(
                                 "'{name}': cdk.CfnParameter(self, '{}', ",
-                                camel_case(&param.name)
+                                pascal_case(&param.name)
                             )
                             .into(),
                         ),
