@@ -62,11 +62,20 @@ fn main() -> Result<(), Error> {
                 .action(ArgAction::Set),
         )
         .arg(
+            Arg::new("name")
+                .help("Sets the name of the generated stack or construct class")
+                .required(false)
+                .long("name")
+                .short('s')
+                .action(ArgAction::Set),
+        )
+        .arg(
             Arg::new("stack-name")
-                .help("Sets the name of the stack")
+                .help("Deprecated: use --name instead")
                 .required(false)
                 .long("stack-name")
-                .short('s')
+                .hide(true)
+                .conflicts_with("name")
                 .action(ArgAction::Set),
         )
         .arg(
@@ -107,8 +116,13 @@ fn main() -> Result<(), Error> {
         .map(String::as_str)
         .unwrap_or(targets[0]);
 
+    if matches.contains_id("stack-name") {
+        eprintln!("warning: --stack-name is deprecated and will be removed in a future release; use --name instead");
+    }
+
     let class_name = matches
-        .get_one::<String>("stack-name")
+        .get_one::<String>("name")
+        .or_else(|| matches.get_one::<String>("stack-name"))
         .map(String::as_str)
         .unwrap_or("NoctStack");
 
