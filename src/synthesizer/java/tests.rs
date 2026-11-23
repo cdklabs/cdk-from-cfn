@@ -84,6 +84,34 @@ fn test_resource_ir_double() {
 }
 
 #[test]
+fn test_resource_ir_string_escapes_double_quotes() {
+    // Values like the CFN::Init metadata in issue #615 contain embedded double
+    // quotes (e.g. `'{ "Namespace": "EFS" }'`). Java string literals must escape
+    // those quotes, or the generated source fails to compile with "unclosed
+    // string literal".
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::String(r#"say "hello""#.to_string());
+    let result = emit_java(
+        resource_ir,
+        &output,
+        Option::None,
+        &schema,
+        ClassType::Stack,
+    );
+    assert_eq!((), result.unwrap());
+
+    let mut bytes = Vec::new();
+    output.write(&mut bytes).unwrap();
+    let code = String::from_utf8(bytes).unwrap();
+
+    assert_eq!(
+        code, "\"say \\\"hello\\\"\"",
+        "double quotes inside string literals must be escaped, got invalid Java: {code}"
+    );
+}
+
+#[test]
 fn test_tag_value_resource_ir_bool() {
     let output = CodeBuffer::default();
     let schema = Cow::Borrowed(Schema::builtin());

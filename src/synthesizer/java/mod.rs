@@ -1034,7 +1034,7 @@ fn emit_java(
             if text.lines().count() > 1 {
                 output.text(format!("\"\"\"\n{text}\"\"\""))
             } else {
-                output.text(format!("\"{text}\""))
+                output.text(format!("\"{}\"", escape_java_string(&text)))
             }
             Ok(())
         }
@@ -1252,6 +1252,18 @@ fn name(key: &str) -> String {
         .chars()
         .filter(|c| c.is_alphanumeric())
         .collect()
+}
+
+/// Escapes a string so it can be embedded in a single-line Java `"..."` literal.
+///
+/// Unlike `str::escape_debug`, this leaves single quotes untouched, since
+/// they need no escaping inside a double-quoted Java string.
+fn escape_java_string(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
 }
 
 pub struct JavaConstructorParameter {
