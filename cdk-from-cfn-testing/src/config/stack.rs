@@ -119,7 +119,7 @@ impl CdkFromCfnStack for Stack {
                 "--language",
                 // Accounts for golang/go usage. We allow different versions in different places
                 Language::lang_arg(lang),
-                "--stack-name",
+                "--name",
                 stack_name,
             ])
             .stdin(Stdio::piped())
@@ -141,7 +141,7 @@ impl CdkFromCfnStack for Stack {
 
         assert!(output.status.success(), 
             "❌ Stack file could not be generated. {}", 
-            format!("An error occurred while running 'cdk-from-cfn --language {lang} --stack-name {stack_name}. {}: {:?}'", 
+            format!("An error occurred while running 'cdk-from-cfn --language {lang} --name {stack_name}. {}: {:?}'", 
                 output.status.code().expect("Unknown Error"),
                 output.stderr)
             );
@@ -188,7 +188,7 @@ impl CdkFromCfnConstruct for Stack {
                 "-",
                 "--language",
                 Language::lang_arg(lang),
-                "--stack-name",
+                "--name",
                 construct_name,
                 "--as",
                 "construct",
@@ -212,7 +212,7 @@ impl CdkFromCfnConstruct for Stack {
 
         assert!(output.status.success(), 
             "❌ Construct file could not be generated. {}", 
-            format!("An error occurred while running 'cdk-from-cfn --language {lang} --stack-name {construct_name} --as construct. {}: {:?}'", 
+            format!("An error occurred while running 'cdk-from-cfn --language {lang} --name {construct_name} --as construct. {}: {:?}'", 
                 output.status.code().expect("Unknown Error"),
                 output.stderr)
             );
