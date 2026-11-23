@@ -49,7 +49,7 @@ class EfsConstruct extends Construct {
         mountPoint = Optional.ofNullable(mountPoint).isPresent() ? mountPoint
                 : "myEFSvolume";
         // Mappings
-        final CfnMapping awsInstanceType2Arch = new CfnMapping(this, "awsInstanceType2Arch");
+        final CfnMapping awsInstanceType2Arch = new CfnMapping(this, "AWSInstanceType2Arch");
         awsInstanceType2Arch.setValue("t1.micro", "Arch", "HVM64");
         awsInstanceType2Arch.setValue("t2.nano", "Arch", "HVM64");
         awsInstanceType2Arch.setValue("t2.micro", "Arch", "HVM64");
@@ -104,7 +104,7 @@ class EfsConstruct extends Construct {
         awsInstanceType2Arch.setValue("cr1.8xlarge", "Arch", "HVM64");
         awsInstanceType2Arch.setValue("cc2.8xlarge", "Arch", "HVM64");
 
-        final CfnMapping awsRegionArch2Ami = new CfnMapping(this, "awsRegionArch2Ami");
+        final CfnMapping awsRegionArch2Ami = new CfnMapping(this, "AWSRegionArch2AMI");
         awsRegionArch2Ami.setValue("us-east-1", "HVM64", "ami-0ff8a91507f77f867");
         awsRegionArch2Ami.setValue("us-east-1", "HVMG2", "ami-0a584ac55a7631c0c");
         awsRegionArch2Ami.setValue("us-west-2", "HVM64", "ami-a0cfeed8");
