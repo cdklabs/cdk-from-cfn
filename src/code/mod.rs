@@ -40,6 +40,13 @@ impl CodeBuffer {
         content.push(CodeBufferContent::String(text.into(), false));
     }
 
+    /// Adds text into the buffer without any indentation, for the inside of
+    /// multi-line string literals whose content must not change.
+    pub fn raw_text(&self, text: impl Into<Cow<'static, str>>) {
+        let mut content = self.content.borrow_mut();
+        content.push(CodeBufferContent::Raw(text.into()));
+    }
+
     /// Creates a new indented sub-buffer at the current position.
     #[inline]
     pub fn indent(&self, indent: Cow<'static, str>) -> Rc<CodeBuffer> {
@@ -133,6 +140,7 @@ pub struct IndentOptions {
 
 enum CodeBufferContent {
     String(Cow<'static, str>, bool),
+    Raw(Cow<'static, str>),
     Buffer(Rc<CodeBuffer>),
 }
 
@@ -153,6 +161,7 @@ impl CodeBufferContent {
                     write!(writer, "{string}")
                 }
             }
+            Self::Raw(string) => writer.write_raw(string.as_bytes()),
             Self::Buffer(buffer) => buffer.inner_write(writer),
         }
     }
@@ -188,6 +197,16 @@ impl<'a> IndentedWriter<'a> {
         let result = cb(&mut delegate);
         self.after_newline = delegate.after_newline;
         result
+    }
+
+    /// Writes `buf` as-is, without any indentation.
+    fn write_raw(&mut self, buf: &[u8]) -> io::Result<()> {
+        if buf.is_empty() {
+            return Ok(());
+        }
+        self.writer.write_all(buf)?;
+        self.after_newline = buf.ends_with(b"\n");
+        Ok(())
     }
 }
 

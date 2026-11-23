@@ -77,32 +77,6 @@ impl TestSkip {
             issues,
         }
     }
-
-    /// Creates a test skip for a single language and issue.
-    ///
-    /// # Arguments
-    /// * `lang` - Programming language to skip
-    /// * `issue` - Issue causing the skip
-    ///
-    /// # Returns
-    /// A new `TestSkip` instance
-    fn single(lang: &str, issue: Issue) -> Self {
-        Self::new(lang, vec![issue])
-    }
-
-    /// Creates test skips for all languages due to a common issue.
-    ///
-    /// # Arguments
-    /// * `issue` - Issue affecting all languages
-    ///
-    /// # Returns
-    /// Vector of `TestSkip` instances for all enabled languages
-    fn all(issue: Issue) -> Vec<Self> {
-        Language::get_enabled_languages()
-            .into_iter()
-            .map(|lang| Self::single(&lang, issue))
-            .collect()
-    }
 }
 
 /// Filter for determining which languages to skip or synthesize for a test.
@@ -224,6 +198,10 @@ impl SkipSynthList {
         1029,
         "parameter sharing name with condition causes conflict",
     );
+    const I1153_TYPESCRIPT_FIND_IN_MAP_TOKEN_KEY: Issue = Issue::new(
+        1153,
+        "Fn::FindInMap with a token key is looked up at synth time",
+    );
 
     /// Returns the skip list for a specific test case.
     ///
@@ -273,7 +251,16 @@ impl SkipSynthList {
             ],
             // Due to permissions issues this template will never deploy, but it's an interesting use case for this problem
             // Once this synths we should add functionality to synth but skip deploy.
-            TestName::Groundstation => TestSkip::all(Self::I1028_ALL_SPECIAL_CHARACTER_HANDLING),
+            TestName::Groundstation => vec![
+                skip!(Language::CSHARP, Self::I1028_ALL_SPECIAL_CHARACTER_HANDLING),
+                skip!(Language::GOLANG, Self::I1028_ALL_SPECIAL_CHARACTER_HANDLING),
+                skip!(Language::JAVA, Self::I1028_ALL_SPECIAL_CHARACTER_HANDLING),
+                skip!(Language::PYTHON, Self::I1028_ALL_SPECIAL_CHARACTER_HANDLING),
+                skip!(
+                    Language::TYPESCRIPT,
+                    Self::I1153_TYPESCRIPT_FIND_IN_MAP_TOKEN_KEY
+                ),
+            ],
             TestName::ResourceWJsonTypeProperties => {
                 vec![skip!(Language::GOLANG, Self::I626_GO_COMPILATION)]
             }
