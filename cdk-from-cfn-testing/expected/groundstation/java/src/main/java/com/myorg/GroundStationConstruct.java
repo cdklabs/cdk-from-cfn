@@ -95,7 +95,7 @@ class GroundStationConstruct extends Construct {
                 .bucketName(groundStationS3DataDeliveryBucketName)
                 .build();
 
-        groundStationS3DataDeliveryBucket.applyRemovalPolicy(RemovalPolicy.RETAIN);
+        groundStationS3DataDeliveryBucket.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.RETAIN);
 
         CfnRole groundStationS3DataDeliveryRole = CfnRole.Builder.create(this, "GroundStationS3DataDeliveryRole")
                 .assumeRolePolicyDocument(Map.of("Statement", Arrays.asList(

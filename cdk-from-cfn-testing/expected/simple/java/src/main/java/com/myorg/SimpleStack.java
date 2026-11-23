@@ -100,7 +100,7 @@ class SimpleStack extends Stack {
                 .visibilityTimeout(120)
                 .build();
 
-        queue.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE);
+        queue.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.RETAIN_EXCEPT_ON_CREATE);
 
         Optional<CfnBucket> bucket = isUsEast1 ? Optional.of(CfnBucket.Builder.create(this, "Bucket")
                 .accessControl("Private")
@@ -123,7 +123,7 @@ class SimpleStack extends Stack {
 
         bucket.ifPresent(_bucket -> _bucket.addMetadata("CostCenter", 1337));
         bucket.ifPresent(_bucket -> _bucket.addDependency(queue));
-        bucket.ifPresent(_bucket -> _bucket.applyRemovalPolicy(RemovalPolicy.DESTROY));
+        bucket.ifPresent(_bucket -> _bucket.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.DELETE));
 
         this.bucketArn = isUsEast1 ? Optional.of(bucket.isPresent() ? bucket.get().getAttrArn()
                 : Optional.empty()) : Optional.empty();

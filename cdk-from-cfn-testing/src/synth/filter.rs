@@ -181,7 +181,6 @@ impl SkipSynthList {
         1023,
         "missing cfn options: metadata, dependencies, update policy, and deletion policy",
     );
-    const I1024_JAVA_UPDATE_REPLACE: Issue = Issue::new(1024, "extra UpdateReplacePolicy key");
     const I1025_PYTHON_PARAMETER_CASING: Issue = Issue::new(
         1025,
         "parameter casing issue - camelCase instead of PascalCase",
@@ -234,7 +233,6 @@ impl SkipSynthList {
                     Self::I1022_CSHARP_MISSING_OUTPUTS,
                     Self::I1023_CSHARP_MISSING_CFN_OPTIONS
                 ),
-                skip!(Language::JAVA, Self::I1024_JAVA_UPDATE_REPLACE),
                 skip!(Language::GOLANG, Self::I626_GO_COMPILATION),
             ],
             TestName::Ec2 => vec![skip!(Language::GOLANG, Self::I626_GO_COMPILATION)],
@@ -271,11 +269,7 @@ impl SkipSynthList {
             }
             TestName::Simple => vec![
                 skip!(Language::CSHARP, Self::I1023_CSHARP_MISSING_CFN_OPTIONS),
-                skip!(
-                    Language::JAVA,
-                    Self::I1026_JAVA_MAPPING_CASING,
-                    Self::I1024_JAVA_UPDATE_REPLACE
-                ),
+                skip!(Language::JAVA, Self::I1026_JAVA_MAPPING_CASING),
                 skip!(Language::PYTHON, Self::I1025_PYTHON_PARAMETER_CASING),
                 skip!(Language::GOLANG, Self::I626_GO_COMPILATION),
             ],
@@ -283,7 +277,6 @@ impl SkipSynthList {
                 vec![
                     skip!(Language::CSHARP, Self::I1027_CSHARP_LAMBDA_SPACING),
                     skip!(Language::GOLANG, Self::I626_GO_COMPILATION),
-                    skip!(Language::JAVA, Self::I1024_JAVA_UPDATE_REPLACE),
                 ]
             }
             TestName::Bucket | TestName::Vpc => vec![],

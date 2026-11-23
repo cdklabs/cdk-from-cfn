@@ -84,7 +84,7 @@ class DocumentDbStack extends Stack {
                 .engineVersion("4.0.0")
                 .build();
 
-        dbCluster.applyRemovalPolicy(RemovalPolicy.DESTROY);
+        dbCluster.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.DELETE);
 
         CfnDBInstance dbInstance = CfnDBInstance.Builder.create(this, "DBInstance")
                 .dbClusterIdentifier(dbCluster.getRef())

@@ -58,7 +58,7 @@ class CustomResourceStack extends Stack {
                 "prod",
                 "critical"));
         myCustomResource.addDependency(backingLambda);
-        myCustomResource.applyRemovalPolicy(RemovalPolicy.RETAIN);
+        myCustomResource.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.RETAIN);
 
         CfnFunction consumerLambda = CfnFunction.Builder.create(this, "ConsumerLambda")
                 .runtime("python3.9")

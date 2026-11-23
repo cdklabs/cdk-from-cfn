@@ -588,7 +588,8 @@ fn test_custom_resource_deletion_policy() {
         .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("myCustomResource.applyRemovalPolicy(RemovalPolicy.RETAIN)"));
+    assert!(code
+        .contains("myCustomResource.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.RETAIN)"));
 }
 
 #[test]
@@ -678,7 +679,8 @@ fn test_custom_resource_deletion_policy_delete() {
         .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code.contains("myCustomResource.applyRemovalPolicy(RemovalPolicy.DESTROY)"));
+    assert!(code
+        .contains("myCustomResource.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.DELETE)"));
 }
 
 const CUSTOM_RESOURCE_RETAIN_EXCEPT_ON_CREATE_TEMPLATE: &str = r#"{
@@ -705,8 +707,9 @@ fn test_custom_resource_deletion_policy_retain_except_on_create() {
         .unwrap();
     let code = String::from_utf8(output).unwrap();
 
-    assert!(code
-        .contains("myCustomResource.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE)"));
+    assert!(code.contains(
+        "myCustomResource.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.RETAIN_EXCEPT_ON_CREATE)"
+    ));
 }
 
 const CUSTOM_RESOURCE_METADATA_TEMPLATE: &str = r#"{
@@ -915,4 +918,33 @@ fn test_depends_on_unwraps_conditional_resources() {
     );
     // both unconditional
     assert!(code.contains("resourceE.addDependency(resourceC);"));
+}
+
+const SNAPSHOT_DELETION_POLICY_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Volume": {
+            "Type": "AWS::EC2::Volume",
+            "DeletionPolicy": "Snapshot",
+            "Properties": {
+                "AvailabilityZone": "us-east-1a",
+                "Size": 10
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_resource_deletion_policy_snapshot() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(SNAPSHOT_DELETION_POLICY_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("volume.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.SNAPSHOT)"));
+    assert!(!code.contains("applyRemovalPolicy"));
 }
