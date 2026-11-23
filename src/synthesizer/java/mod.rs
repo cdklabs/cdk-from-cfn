@@ -98,7 +98,7 @@ impl<'a> Java<'a> {
         map.line("// Mappings");
         for mapping in &ir.mappings {
             let name = camel_case(&mapping.name);
-            let id = pascal_case(&mapping.name);
+            let id = &mapping.name;
             map.line(format!(
                 "final CfnMapping {name} = new CfnMapping(this, \"{id}\");"
             ));

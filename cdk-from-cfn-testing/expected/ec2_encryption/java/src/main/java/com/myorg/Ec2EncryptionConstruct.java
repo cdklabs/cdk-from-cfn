@@ -41,7 +41,7 @@ class Ec2EncryptionConstruct extends Construct {
         enableMonitoringParameter = Optional.ofNullable(enableMonitoringParameter).isPresent() ? enableMonitoringParameter
                 : false;
         // Mappings
-        final CfnMapping regionToAmi = new CfnMapping(this, "RegionToAmi");
+        final CfnMapping regionToAmi = new CfnMapping(this, "RegionToAMI");
         regionToAmi.setValue("us-east-1", "AMI", "ami-0c02fb55956c7d316");
         regionToAmi.setValue("us-west-2", "AMI", "ami-008fe2fc65df48dac");
         regionToAmi.setValue("eu-west-1", "AMI", "ami-0c9c942bd7bf113a2");

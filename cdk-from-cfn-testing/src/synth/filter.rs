@@ -257,7 +257,6 @@ impl SkipSynthList {
                     Self::I1023_CSHARP_MISSING_CFN_OPTIONS
                 ),
                 skip!(Language::JAVA, Self::I1024_JAVA_UPDATE_REPLACE),
-                skip!(Language::PYTHON, Self::I1025_PYTHON_PARAMETER_CASING),
                 skip!(Language::GOLANG, Self::I626_GO_COMPILATION),
             ],
             TestName::Ec2 => vec![skip!(Language::GOLANG, Self::I626_GO_COMPILATION)],
