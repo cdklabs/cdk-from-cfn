@@ -108,6 +108,10 @@ namespace GroundStationStack
                 ["eu-central-1"] = new Dictionary<string, string> {["ami"] = "ami-0adbcf08fdd664fed", },
                 ["sa-east-1"] = new Dictionary<string, string> {["ami"] = "ami-0c5cdf1548242305d", },
             };
+            {
+                var cfnMapping = new CfnMapping(this, "AmiMap");
+                foreach (var entry in amiMap) foreach (var item in entry.Value) cfnMapping.SetValue(entry.Key, item.Key, item.Value);
+            }
 
             // Resources
             var groundStationS3DataDeliveryBucket = new CfnBucket(this, "GroundStationS3DataDeliveryBucket", new CfnBucketProps
@@ -478,7 +482,7 @@ namespace GroundStationStack
             {
                 DisableApiTermination = false,
                 IamInstanceProfile = generalInstanceProfile.Ref,
-                ImageId = amiMap[Region]["ami"],
+                ImageId = Fn.FindInMap("AmiMap", Region, "ami"),
                 InstanceType = "c5.4xlarge",
                 KeyName = props.SshKeyName,
                 Monitoring = true,

@@ -56,6 +56,25 @@ impl CloudformationProgramIr {
             outputs: OutputInstruction::from(parse_tree.outputs, schema, &origins)?,
         })
     }
+
+    /// Whether a resource or output looks up the named mapping with a key that is only known at
+    /// deploy time. Such lookups are emitted as `Fn::FindInMap`, so the mapping has to be added to
+    /// the template as a `CfnMapping`.
+    pub fn has_deploy_time_lookup(&self, mapping: &str) -> bool {
+        self.resources.iter().any(|res| {
+            res.properties
+                .values()
+                .chain(res.metadata.iter())
+                .chain(res.update_policy.iter())
+                .any(|val| val.has_deploy_time_lookup(mapping))
+        }) || self.outputs.iter().any(|out| {
+            out.value.has_deploy_time_lookup(mapping)
+                || out
+                    .export
+                    .as_ref()
+                    .is_some_and(|val| val.has_deploy_time_lookup(mapping))
+        })
+    }
 }
 
 #[derive(Debug)]

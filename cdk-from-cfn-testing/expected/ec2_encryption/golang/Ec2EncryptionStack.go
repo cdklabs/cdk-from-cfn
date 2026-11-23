@@ -47,6 +47,15 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 	}
 	stack := cdk.NewStack(scope, &id, &sprops)
 
+	{
+		cfnMapping := cdk.NewCfnMapping(stack, jsii.String("RegionToAMI"), nil)
+		for topLevelKey, values := range regionToAmi {
+			for secondLevelKey, value := range values {
+				cfnMapping.SetValue(topLevelKey, secondLevelKey, value)
+			}
+		}
+	}
+
 	hasDatabase := props.DatabaseType == jsii.String("mysql")
 
 	isProduction := props.Environment == jsii.String("prod")
@@ -77,7 +86,7 @@ func NewEc2EncryptionStack(scope constructs.Construct, id string, props *Ec2Encr
 		stack,
 		jsii.String("MyApp"),
 		&ec2.CfnInstanceProps{
-			ImageId: regionToAmi[stack.Region()][jsii.String("AMI")],
+			ImageId: cdk.Fn_FindInMap(jsii.String("RegionToAMI"), stack.Region(), jsii.String("AMI"), nil),
 			InstanceType: jsii.String("t3.micro"),
 			Tags: &[]*cdk.CfnTag{
 				&cdk.CfnTag{

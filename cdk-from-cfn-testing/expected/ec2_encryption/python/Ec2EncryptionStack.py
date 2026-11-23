@@ -36,6 +36,7 @@ class Ec2EncryptionStack(Stack):
         'AMI': 'ami-0900fe555666598a2',
       },
     }
+    cdk.CfnMapping(self, 'RegionToAMI', mapping=regionToAmi)
 
     # Conditions
     has_database = props['databaseType'] == 'mysql'
@@ -54,7 +55,7 @@ class Ec2EncryptionStack(Stack):
         )
 
     myApp = ec2.CfnInstance(self, 'MyApp',
-          image_id = regionToAmi[self.region]['AMI'],
+          image_id = cdk.Fn.find_in_map('RegionToAMI', self.region, 'AMI'),
           instance_type = 't3.micro',
           tags = [
             {

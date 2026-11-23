@@ -184,7 +184,7 @@ impl Synthesizer for Python {
             }
         }
 
-        emit_mappings(&ctor, &ir.mappings);
+        emit_mappings(&ctor, &ir);
 
         if !ir.conditions.is_empty() {
             ctor.newline();
@@ -344,23 +344,31 @@ impl PythonCodeBuffer for CodeBuffer {
     }
 }
 
-fn emit_mappings(output: &CodeBuffer, mappings: &[MappingInstruction]) {
-    if mappings.is_empty() {
+fn emit_mappings(output: &CodeBuffer, ir: &CloudformationProgramIr) {
+    if ir.mappings.is_empty() {
         return;
     }
 
     output.newline();
     output.line("# Mappings");
 
-    for mapping in mappings {
-        let output = output.indent_with_options(IndentOptions {
+    for mapping in &ir.mappings {
+        let table = output.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(format!("{var} = {{", var = camel_case(&mapping.name)).into()),
             trailing: Some("}".into()),
             trailing_newline: true,
         });
 
-        emit_mapping_instruction(output, mapping);
+        emit_mapping_instruction(table, mapping);
+
+        if ir.has_deploy_time_lookup(&mapping.name) {
+            output.line(format!(
+                "cdk.CfnMapping(self, '{name}', mapping={var})",
+                name = mapping.name.escape_debug(),
+                var = camel_case(&mapping.name)
+            ));
+        }
     }
 }
 
@@ -816,6 +824,13 @@ fn emit_resource_ir(
             for item in list {
                 emit_resource_ir(context, &items, item, Some(",\n"));
             }
+        }
+        ResourceIr::Map(name, tlk, slk) if ResourceIr::is_deploy_time_lookup(tlk, slk) => {
+            output.text(format!("cdk.Fn.find_in_map('{}', ", name.escape_debug()));
+            emit_resource_ir(context, output, tlk, None);
+            output.text(", ");
+            emit_resource_ir(context, output, slk, None);
+            output.text(")")
         }
         ResourceIr::Map(name, tlk, slk) => {
             output.text(format!("{}[", camel_case(name)));

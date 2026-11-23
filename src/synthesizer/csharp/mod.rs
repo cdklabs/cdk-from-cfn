@@ -115,7 +115,7 @@ impl Synthesizer for CSharp<'_> {
         namespace.newline();
 
         // Description - comment before the stack class
-        if let Some(descr) = ir.description {
+        if let Some(descr) = &ir.description {
             namespace.line("/// <summary>");
             for description_line in descr.split('\n') {
                 namespace.line(format!("/// {description_line}"));
@@ -308,6 +308,23 @@ impl Synthesizer for CSharp<'_> {
                     }
                 }
                 map.line("},");
+            }
+
+            if ir.has_deploy_time_lookup(&mapping.name) {
+                let block = ctor.indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some("{".into()),
+                    trailing: Some("}".into()),
+                    trailing_newline: true,
+                });
+                block.line(format!(
+                    "var cfnMapping = new CfnMapping(this, \"{}\");",
+                    mapping.name.escape_debug()
+                ));
+                block.line(format!(
+                    "foreach (var entry in {}) foreach (var item in entry.Value) cfnMapping.SetValue(entry.Key, item.Key, item.Value);",
+                    camel_case(&mapping.name)
+                ));
             }
         }
 
@@ -787,6 +804,16 @@ impl ResourceIr {
                     }
                 }
                 output.text("\"");
+                Ok(())
+            }
+            ResourceIr::Map(table, top_level_key, second_level_key)
+                if ResourceIr::is_deploy_time_lookup(top_level_key, second_level_key) =>
+            {
+                output.text(format!("Fn.FindInMap(\"{}\", ", table.escape_debug()));
+                top_level_key.emit_csharp(output, schema, class_type)?;
+                output.text(", ");
+                second_level_key.emit_csharp(output, schema, class_type)?;
+                output.text(")");
                 Ok(())
             }
             ResourceIr::Map(table, top_level_key, second_level_key) => {
