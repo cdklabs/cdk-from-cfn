@@ -20,7 +20,7 @@ jobs:
       # Dependabot keeps this tag current, and each generator release ships the
       # latest @aws-cdk/aws-service-spec.
       - name: Regenerate the patched CDK schema
-        uses: cdklabs/cdk-patched-schema-generator@v0.0.321
+        uses: cdklabs/cdk-patched-schema-generator@v0.0.324
         with:
           output-path: src/specification
 
