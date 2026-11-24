@@ -6,8 +6,10 @@ on:
       - reopened
       - ready_for_review
       - edited
+      - labeled
     branches:
       - main
+      - release
 jobs:
   enableAutoQueue:
     name: "Set AutoQueue on PR #${{ github.event.number }}"
@@ -22,4 +24,5 @@ jobs:
           GH_TOKEN: ${{ secrets.PROJEN_GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.number }}
-        run: gh pr merge --auto --squash "$PR_NUMBER" --repo "$GH_REPO"
+          MERGE_METHOD: ${{ contains(github.event.pull_request.labels.*.name, 'pr/no-squash') && 'merge' || 'squash' }}
+        run: gh pr merge --auto "--$MERGE_METHOD" "$PR_NUMBER" --repo "$GH_REPO"
