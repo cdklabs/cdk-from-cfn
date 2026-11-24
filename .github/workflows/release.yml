@@ -1,67 +1,65 @@
 # .github/workflows/release.yml
-name: Release from release branch
+# The file name must stay release.yml, npm Trusted Publishing is configured for it.
+name: Release
 
 on:
   workflow_dispatch: {}
-  push:
-    branches:
-      - release
+  schedule:
+    - cron: 0 0 * * *
 
-env:
-  RELEASE_BRANCH: release
-  MERGEBACK_BRANCH: github-actions/mergeback
+concurrency:
+  group: release
 
 permissions:
   contents: read
 
 jobs:
-  create_mergeback:
-    name: Create the merge-back PR
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ env.RELEASE_BRANCH }}
-          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: Prepare git identity
-        run: |
-          git config --global user.email "aws-cdk-dev+cdklabs@amazon.com"
-          git config --global user.name "cdklabs-automation"
-
-      - name: Create merge-back commit
-        # We would use a pull request, but the merge require forces a squash merge
-        # and we want a history-preserving merge here. So we do a bypassing commit to main instead.
-        run: |
-          git fetch origin main
-          git checkout main
-          git merge origin/${{ env.RELEASE_BRANCH }} -m "chore: merge-back"
-          git push origin main
-
-  release_to_npm:
+  release:
     name: Release to NPM
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: read
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ env.RELEASE_BRANCH }}
-          token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
+          ref: main
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: lts/*
 
+      # Every release is tagged, so the highest vX.Y.Z tag is the current
+      # version. If there are no commits after it, there is nothing new to release.
+      - name: Determine version
+        id: version
+        run: |-
+          tag=$(git tag --list 'v[0-9]*' --sort=v:refname | tail -n 1)
+          if [ -z "$tag" ]; then
+            echo "::error::No vX.Y.Z release tag found"
+            exit 1
+          fi
+          current=${tag#v}
+          IFS=. read -r major minor _ <<< "$current"
+          next="$major.$((minor + 1)).0"
+          if [ -z "$(git rev-list -n1 "$tag..HEAD")" ]; then
+            echo "No commits since $tag, skipping release"
+            echo "release=false" >> $GITHUB_OUTPUT
+          else
+            echo "Releasing v$next (previous: $tag)"
+            echo "release=true" >> $GITHUB_OUTPUT
+          fi
+          echo "next=$next" >> $GITHUB_OUTPUT
+
       - name: 🦀 Install Rust
+        if: steps.version.outputs.release == 'true'
         uses: actions-rust-lang/setup-rust-toolchain@v2
 
       - name: ⚡ Cache
+        if: steps.version.outputs.release == 'true'
         uses: actions/cache@v6
         with:
           path: |
@@ -74,33 +72,29 @@ jobs:
             ${{ runner.os }}-cargo
 
       - name: Install wasm-pack
+        if: steps.version.outputs.release == 'true'
         uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-pack
 
-      - name: Prepare Release
+      - name: Build
+        if: steps.version.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.next }}
         run: |-
           wasm-pack build --all-features --target=nodejs --out-name=index
-
-      - name: Determine build version
-        id: build
-        run: |-
-          echo "name=$(node -p 'require("./pkg/package.json").name')" >> $GITHUB_OUTPUT
-          echo "version=$(node -p 'require("./pkg/package.json").version')" >> $GITHUB_OUTPUT
-
-      - name: Check if ${{ steps.build.outputs.name }}@${{ steps.build.outputs.version }} is already published
-        id: published
-        run: |-
-          npm_view=$(npm view ${{ steps.build.outputs.name }}@${{ steps.build.outputs.version }} 2> /dev/null || true)
-          if [ -z "${npm_view}" ]; then
-            echo "published=false" >> $GITHUB_OUTPUT
-          else
-            echo "published=true" >> $GITHUB_OUTPUT
-          fi
+          cd pkg && npm pkg set "version=$VERSION"
 
       - name: Release
-        if: steps.published.outputs.published == 'false'
+        if: steps.version.outputs.release == 'true'
         run: |-
-          # Publish
           npm --version
           cd pkg && npm publish --tag latest
+
+      - name: Tag release
+        if: steps.version.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.next }}
+        run: |-
+          git tag "v$VERSION"
+          git push origin "refs/tags/v$VERSION"
