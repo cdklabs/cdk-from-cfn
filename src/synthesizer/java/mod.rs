@@ -1034,7 +1034,7 @@ fn emit_java(
             if text.lines().count() > 1 {
                 output.text(format!("\"\"\"\n{text}\"\"\""))
             } else {
-                output.text(format!("\"{text}\""))
+                output.text(format!("\"{}\"", escape_java_string(&text)))
             }
             Ok(())
         }
@@ -1231,7 +1231,9 @@ fn emit_java(
             let mut part = parts.iter().peekable();
             while let Some(p) = part.next() {
                 match p {
-                    ResourceIr::String(lit) => output.text(format!("\"{}\"", lit.clone())),
+                    ResourceIr::String(lit) => {
+                        output.text(format!("\"{}\"", escape_java_string(lit)))
+                    }
                     other => emit_java(other.clone(), output, class, schema, class_type)?,
                 }
                 if part.peek().is_some() {
@@ -1252,6 +1254,18 @@ fn name(key: &str) -> String {
         .chars()
         .filter(|c| c.is_alphanumeric())
         .collect()
+}
+
+/// Escapes a string so it can be embedded in a single-line Java `"..."` literal.
+///
+/// Unlike `str::escape_debug`, this leaves single quotes untouched, since
+/// they need no escaping inside a double-quoted Java string.
+fn escape_java_string(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
 }
 
 pub struct JavaConstructorParameter {
