@@ -6,7 +6,6 @@ on:
   merge_group:
     branches:
       - main
-      - release
 name: status-checks
 
 permissions:
