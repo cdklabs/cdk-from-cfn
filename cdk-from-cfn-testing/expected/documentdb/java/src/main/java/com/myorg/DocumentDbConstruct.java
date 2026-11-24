@@ -57,6 +57,7 @@ class DocumentDbConstruct extends Construct {
                 : CfnParameter.Builder.create(this, "MasterUser")
                         .type("String")
                         .defaultValue("MainUser")
+                        .description("The database admin account username")
                         .noEcho(true)
                         .build()
                         .getValueAsString();
@@ -66,6 +67,7 @@ class DocumentDbConstruct extends Construct {
                 : CfnParameter.Builder.create(this, "MasterPassword")
                         .type("String")
                         .defaultValue("password")
+                        .description("The database admin account password")
                         .noEcho(true)
                         .build()
                         .getValueAsString();

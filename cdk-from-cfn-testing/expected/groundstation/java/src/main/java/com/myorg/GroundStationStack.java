@@ -58,6 +58,7 @@ class GroundStationStack extends Stack {
                 : CfnParameter.Builder.create(this, "SshKeyName")
                         .type("AWS::EC2::KeyPair::KeyName")
                         .defaultValue("")
+                        .description("Name of the ssh key used to access ec2 hosts. Set this up ahead of time.")
                         .build()
                         .getValueAsString();
 
@@ -66,6 +67,7 @@ class GroundStationStack extends Stack {
                 : CfnParameter.Builder.create(this, "VpcId")
                         .type("AWS::EC2::VPC::Id")
                         .defaultValue("")
+                        .description("VPC to launch instances in.")
                         .build()
                         .getValueAsString();
 
@@ -74,6 +76,7 @@ class GroundStationStack extends Stack {
                 : CfnParameter.Builder.create(this, "SubnetId")
                         .type("AWS::EC2::Subnet::Id")
                         .defaultValue("")
+                        .description("Subnet to launch instances in")
                         .build()
                         .getValueAsString();
 

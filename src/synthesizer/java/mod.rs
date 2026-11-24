@@ -300,6 +300,9 @@ impl<'a> Java<'a> {
                     });
                     prop_details.line(format!(".type(\"{}\")", prop.constructor_type));
                     prop_details.line(format!(".defaultValue(\"{v}\")"));
+                    if let Some(v) = &prop.description {
+                        prop_details.line(format!(".description(\"{}\")", escape_java_string(v)));
+                    }
                     if let Some(v) = &prop.no_echo {
                         prop_details.line(format!(".noEcho({v})"))
                     }

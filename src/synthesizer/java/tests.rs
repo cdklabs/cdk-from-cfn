@@ -516,6 +516,46 @@ fn test_stack_mode_with_props() {
     );
 }
 
+#[test]
+fn test_cfn_parameter_description() {
+    let cfn: CloudformationParseTree = serde_json::from_str(
+        r#"{
+            "Parameters": {
+                "Password": {
+                    "Type": "String",
+                    "Default": "secret",
+                    "NoEcho": "true",
+                    "Description": "The \"admin\" password"
+                },
+                "Vpc": {
+                    "Type": "AWS::EC2::VPC::Id",
+                    "Default": "",
+                    "Description": "VPC to use"
+                }
+            },
+            "Resources": {
+                "Bucket": { "Type": "AWS::S3::Bucket" }
+            }
+        }"#,
+    )
+    .unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains(".description(\"The \\\"admin\\\" password\")"),
+        "CfnParameter should keep the escaped description:\n{code}"
+    );
+    assert!(
+        code.contains(".description(\"VPC to use\")"),
+        "AWS-typed CfnParameter should have a description:\n{code}"
+    );
+}
+
 // --- Custom Resource Tests ---
 
 const CUSTOM_RESOURCE_BASIC_TEMPLATE: &str = r#"{
