@@ -17,7 +17,8 @@ pub fn none() {
                 mappings: IndexMap::default(),
                 outputs: IndexMap::default(),
                 parameters: IndexMap::default(),
-                resources: IndexMap::default()
+                resources: IndexMap::default(),
+                rules: IndexMap::default(),
             })
         )
         .unwrap(),

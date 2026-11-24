@@ -33,7 +33,21 @@ pub use errors::*;
 #[doc(inline)]
 pub use util::Hasher;
 
-#[derive(Debug, serde::Deserialize)]
+/// Placeholder for an entry in a CloudFormation template's `Rules` section.
+///
+/// Only rule logical IDs are inspected so CDK-generated rules (such as
+/// `CheckBootstrapVersion`) can be recognized and skipped explicitly.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Rule;
+
+impl<'de> Deserialize<'de> for Rule {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        serde::de::IgnoredAny::deserialize(deserializer)?;
+        Ok(Self)
+    }
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct CloudformationParseTree {
     pub description: Option<String>,
@@ -55,6 +69,9 @@ pub struct CloudformationParseTree {
     pub parameters: IndexMap<String, Parameter, Hasher>,
 
     pub resources: IndexMap<String, ResourceAttributes, Hasher>,
+
+    #[serde(default)]
+    pub rules: IndexMap<String, Rule, Hasher>,
 }
 
 fn string_or_seq_string<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>

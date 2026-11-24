@@ -9,9 +9,17 @@ use crate::ir::importer::ImportInstruction;
 use crate::ir::mappings::MappingInstruction;
 use crate::ir::outputs::OutputInstruction;
 use crate::ir::resources::ResourceInstruction;
+use crate::parser::resource::ResourceValue;
 use crate::{CloudformationParseTree, Error};
 
 use self::reference::{Origin, PseudoParameter};
+
+const CDK_METADATA_RESOURCE_TYPE: &str = "AWS::CDK::Metadata";
+const CDK_METADATA_AVAILABLE_CONDITION: &str = "CDKMetadataAvailable";
+const CDK_PATH_METADATA_KEY: &str = "aws:cdk:path";
+const BOOTSTRAP_VERSION_PARAMETER: &str = "BootstrapVersion";
+const CDK_SKIP_MARKER: &str = "[cdk:skip]";
+const CHECK_BOOTSTRAP_VERSION_RULE: &str = "CheckBootstrapVersion";
 
 pub mod conditions;
 pub mod constructor;
@@ -40,9 +48,10 @@ impl CloudformationProgramIr {
     // because there could be incorrect semantics, Result::Error can only happen on semantic error,
     // not parsing errors.
     pub fn from(
-        parse_tree: CloudformationParseTree,
+        mut parse_tree: CloudformationParseTree,
         schema: &Schema,
     ) -> Result<CloudformationProgramIr, Error> {
+        strip_cdk_generated_elements(&mut parse_tree);
         let origins = ReferenceOrigins::new(&parse_tree);
 
         Ok(CloudformationProgramIr {
@@ -122,3 +131,61 @@ impl ReferenceOrigins {
             .unwrap_or(false)
     }
 }
+
+/// Removes CDK-synthesizer-generated elements from a CloudFormation parse tree
+/// before translating it into IR, logging a skip message to stderr for each
+/// removed element so the target CDK app's own synthesizer can manage them.
+fn strip_cdk_generated_elements(parse_tree: &mut CloudformationParseTree) {
+    let skip_bootstrap_param = parse_tree
+        .parameters
+        .get(BOOTSTRAP_VERSION_PARAMETER)
+        .and_then(|param| param.description.as_deref())
+        .is_some_and(|desc| desc.trim_end().ends_with(CDK_SKIP_MARKER));
+    if skip_bootstrap_param {
+        parse_tree
+            .parameters
+            .shift_remove(BOOTSTRAP_VERSION_PARAMETER);
+        eprintln!("Skipping CDK-generated parameter '{BOOTSTRAP_VERSION_PARAMETER}'.");
+    }
+
+    if parse_tree
+        .rules
+        .shift_remove(CHECK_BOOTSTRAP_VERSION_RULE)
+        .is_some()
+    {
+        eprintln!("Skipping CDK-generated rule '{CHECK_BOOTSTRAP_VERSION_RULE}'.");
+    }
+
+    if parse_tree
+        .conditions
+        .shift_remove(CDK_METADATA_AVAILABLE_CONDITION)
+        .is_some()
+    {
+        eprintln!("Skipping CDK-generated condition '{CDK_METADATA_AVAILABLE_CONDITION}'.");
+    }
+
+    parse_tree.resources.retain(|name, attrs| {
+        if attrs.resource_type == CDK_METADATA_RESOURCE_TYPE {
+            eprintln!(
+                "Skipping CDK-generated resource '{name}' of type '{CDK_METADATA_RESOURCE_TYPE}'."
+            );
+            return false;
+        }
+
+        if let Some(ResourceValue::Object(metadata)) = &mut attrs.metadata {
+            if metadata.shift_remove(CDK_PATH_METADATA_KEY).is_some() {
+                eprintln!(
+                    "Skipping CDK-generated metadata '{CDK_PATH_METADATA_KEY}' on resource '{name}'."
+                );
+            }
+            if metadata.is_empty() {
+                attrs.metadata = None;
+            }
+        }
+
+        true
+    });
+}
+
+#[cfg(test)]
+mod tests;
