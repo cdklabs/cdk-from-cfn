@@ -11,11 +11,12 @@ cargo install cdk-from-cfn
 ## Usage
 
 ```console
-cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --stack-name <STACK_NAME> [--as <stack|construct>]
+cdk-from-cfn [INPUT] [OUTPUT] --language <LANGUAGE> --name <NAME> [--as <stack|construct>]
 ```
 
 - `INPUT` is the input file path (STDIN by default).
 - `OUTPUT` is the output file path; if not specified, output will be printed on your command line (STDOUT by default).
+- `--name` (optional, `-s` for short) sets the name of the generated stack or construct class (`NoctStack` by default). `--stack-name` is a deprecated alias of `--name` and prints a warning.
 - `--as` (optional) specifies the output type: `stack` (default) or `construct`. Use `construct` to generate a reusable CDK construct instead of a standalone stack.
 
 ### Class Type Option

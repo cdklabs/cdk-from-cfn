@@ -80,7 +80,7 @@ class GroundStationStack extends Stack {
 
         this.addTransform("AWS::Serverless-2016-10-31");
         // Mappings
-        final CfnMapping amiMap = new CfnMapping(this, "amiMap");
+        final CfnMapping amiMap = new CfnMapping(this, "AmiMap");
         amiMap.setValue("eu-north-1", "ami", "ami-0abb1aa57ecf6a060");
         amiMap.setValue("eu-west-1", "ami", "ami-082af980f9f5514f8");
         amiMap.setValue("me-south-1", "ami", "ami-0687a5f8dac57444e");

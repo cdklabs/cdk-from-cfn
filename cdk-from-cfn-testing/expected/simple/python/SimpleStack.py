@@ -16,7 +16,7 @@ class SimpleStack(Stack):
     # Applying default props
     props = {
       'bucketNamePrefix': kwargs.get('bucketNamePrefix', 'bucket'),
-      'logDestinationBucketName': cdk.CfnParameter(self, 'logDestinationBucketName', 
+      'logDestinationBucketName': cdk.CfnParameter(self, 'LogDestinationBucketName', 
         type = 'AWS::SSM::Parameter::Value<String>',
         default = str(kwargs.get('logDestinationBucketName', '/logging/bucket/name')),
       ),

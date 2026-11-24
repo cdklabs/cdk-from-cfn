@@ -279,3 +279,140 @@ fn test_cdk_from_cfn_construct_trait() {
         code
     );
 }
+
+/// Test that --name sets the name of the generated class and is not deprecated
+#[test]
+fn name_option_sets_the_generated_class_name() {
+    let (exit_code, stdout, stderr) = run_cli_with_args(
+        bin(),
+        &["-", "--language", "typescript", "--name", "TestStack"],
+        Some(TEST_TEMPLATE),
+    );
+
+    assert_eq!(exit_code, Some(0), "CLI should exit successfully");
+
+    let output = String::from_utf8(stdout).expect("Output should be valid UTF-8");
+    assert!(
+        output.contains("TestStackProps extends cdk.StackProps"),
+        "--name should name the generated class. Output:\n{}",
+        output
+    );
+
+    let error = String::from_utf8(stderr).expect("Stderr should be valid UTF-8");
+    assert!(
+        !error.contains("deprecated"),
+        "--name should not print a deprecation warning. Stderr:\n{}",
+        error
+    );
+}
+
+/// Test that --name names a construct when combined with --as construct
+#[test]
+fn name_option_names_a_construct() {
+    let (exit_code, stdout, _stderr) = run_cli_with_args(
+        bin(),
+        &[
+            "-",
+            "--language",
+            "typescript",
+            "--name",
+            "TestConstruct",
+            "--as",
+            "construct",
+        ],
+        Some(TEST_TEMPLATE),
+    );
+
+    assert_eq!(exit_code, Some(0), "CLI should exit successfully");
+
+    let output = String::from_utf8(stdout).expect("Output should be valid UTF-8");
+    assert!(
+        output.contains("interface TestConstructProps"),
+        "--name should name the generated construct. Output:\n{}",
+        output
+    );
+}
+
+/// Test that the short flag -s keeps working without a warning
+#[test]
+fn name_option_short_flag_still_works() {
+    let (exit_code, stdout, stderr) = run_cli_with_args(
+        bin(),
+        &["-", "--language", "typescript", "-s", "TestStack"],
+        Some(TEST_TEMPLATE),
+    );
+
+    assert_eq!(exit_code, Some(0), "CLI should exit successfully");
+
+    let output = String::from_utf8(stdout).expect("Output should be valid UTF-8");
+    assert!(
+        output.contains("TestStackProps extends cdk.StackProps"),
+        "-s should name the generated class. Output:\n{}",
+        output
+    );
+
+    let error = String::from_utf8(stderr).expect("Stderr should be valid UTF-8");
+    assert!(
+        !error.contains("deprecated"),
+        "-s should not print a deprecation warning. Stderr:\n{}",
+        error
+    );
+}
+
+/// Test that the deprecated --stack-name still works but points to --name
+#[test]
+fn name_option_stack_name_is_deprecated_but_works() {
+    let (exit_code, stdout, stderr) = run_cli_with_args(
+        bin(),
+        &["-", "--language", "typescript", "--stack-name", "TestStack"],
+        Some(TEST_TEMPLATE),
+    );
+
+    assert_eq!(exit_code, Some(0), "CLI should exit successfully");
+
+    let output = String::from_utf8(stdout).expect("Output should be valid UTF-8");
+    assert!(
+        output.contains("TestStackProps extends cdk.StackProps"),
+        "--stack-name should still name the generated class. Output:\n{}",
+        output
+    );
+
+    let error = String::from_utf8(stderr).expect("Stderr should be valid UTF-8");
+    assert!(
+        error.contains("--stack-name") && error.contains("deprecated") && error.contains("--name"),
+        "--stack-name should warn that it is deprecated in favor of --name. Stderr:\n{}",
+        error
+    );
+}
+
+/// Test that --name and the deprecated --stack-name cannot be combined
+#[test]
+fn name_option_conflicts_with_deprecated_stack_name() {
+    let (exit_code, stdout, stderr) = run_cli_with_args(
+        bin(),
+        &[
+            "-",
+            "--language",
+            "typescript",
+            "--name",
+            "One",
+            "--stack-name",
+            "Two",
+        ],
+        Some(TEST_TEMPLATE),
+    );
+
+    assert_ne!(
+        exit_code,
+        Some(0),
+        "CLI should reject --name together with --stack-name"
+    );
+    assert!(stdout.is_empty(), "No code should be generated");
+
+    let error = String::from_utf8(stderr).expect("Stderr should be valid UTF-8");
+    assert!(
+        error.contains("cannot be used with"),
+        "Error message should explain the conflict. Stderr:\n{}",
+        error
+    );
+}
