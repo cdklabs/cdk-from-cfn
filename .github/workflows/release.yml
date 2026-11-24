@@ -32,20 +32,24 @@ jobs:
         with:
           node-version: lts/*
 
-      # npm is the source of truth for the current version. Every release is
-      # tagged, so if there are no commits after the current version's tag,
-      # there is nothing new to release.
+      # Every release is tagged, so the highest vX.Y.Z tag is the current
+      # version. If there are no commits after it, there is nothing new to release.
       - name: Determine version
         id: version
         run: |-
-          current=$(npm view cdk-from-cfn version)
+          tag=$(git tag --list 'v[0-9]*' --sort=v:refname | tail -n 1)
+          if [ -z "$tag" ]; then
+            echo "::error::No vX.Y.Z release tag found"
+            exit 1
+          fi
+          current=${tag#v}
           IFS=. read -r major minor _ <<< "$current"
           next="$major.$((minor + 1)).0"
-          if git rev-parse -q --verify "refs/tags/v$current" > /dev/null && [ -z "$(git rev-list -n1 "v$current..HEAD")" ]; then
-            echo "No commits since v$current, skipping release"
+          if [ -z "$(git rev-list -n1 "$tag..HEAD")" ]; then
+            echo "No commits since $tag, skipping release"
             echo "release=false" >> $GITHUB_OUTPUT
           else
-            echo "Releasing v$next (previous: v$current)"
+            echo "Releasing v$next (previous: $tag)"
             echo "release=true" >> $GITHUB_OUTPUT
           fi
           echo "next=$next" >> $GITHUB_OUTPUT
