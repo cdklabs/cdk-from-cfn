@@ -251,25 +251,14 @@ impl Synthesizer for Golang<'_> {
                 ClassType::Stack => "stack",
                 ClassType::Construct => "construct",
             };
-            let block = ctor.indent_with_options(IndentOptions {
-                indent: INDENT,
-                leading: Some("{".into()),
-                trailing: Some("}".into()),
-                trailing_newline: true,
-            });
-            block.line(format!(
-                "cfnMapping := cdk.NewCfnMapping({scope_var}, jsii.String({:?}), nil)",
+            let var = golang_identifier(&mapping.name, IdentifierKind::Unexported);
+            ctor.line(format!(
+                "{var}CfnMapping := cdk.NewCfnMapping({scope_var}, jsii.String({:?}), nil)",
                 mapping.name
             ));
-            let outer = block.indent_with_options(IndentOptions {
+            let outer = ctor.indent_with_options(IndentOptions {
                 indent: INDENT,
-                leading: Some(
-                    format!(
-                        "for topLevelKey, values := range {} {{",
-                        golang_identifier(&mapping.name, IdentifierKind::Unexported)
-                    )
-                    .into(),
-                ),
+                leading: Some(format!("for topLevelKey, values := range {var} {{").into()),
                 trailing: Some("}".into()),
                 trailing_newline: true,
             });
@@ -280,7 +269,9 @@ impl Synthesizer for Golang<'_> {
                     trailing: Some("}".into()),
                     trailing_newline: true,
                 })
-                .line("cfnMapping.SetValue(topLevelKey, secondLevelKey, value)");
+                .line(format!(
+                    "{var}CfnMapping.SetValue(topLevelKey, secondLevelKey, value)"
+                ));
             ctor.newline();
         }
 
@@ -1089,7 +1080,10 @@ impl GolangEmitter for ResourceIr {
                 }
             }
             Self::Map(table, tlk, slk) if ResourceIr::is_deploy_time_lookup(tlk, slk) => {
-                output.text(format!("cdk.Fn_FindInMap(jsii.String({table:?}), "));
+                output.text(format!(
+                    "{}CfnMapping.FindInMap(",
+                    golang_identifier(table, IdentifierKind::Unexported)
+                ));
                 tlk.emit_golang(context, output, None)?;
                 output.text(", ");
                 slk.emit_golang(context, output, None)?;

@@ -42,12 +42,10 @@ func NewEc2EncryptionConstruct(scope constructs.Construct, id string, props *Ec2
 
 	construct := constructs.NewConstruct(scope, &id)
 
-	{
-		cfnMapping := cdk.NewCfnMapping(construct, jsii.String("RegionToAMI"), nil)
-		for topLevelKey, values := range regionToAmi {
-			for secondLevelKey, value := range values {
-				cfnMapping.SetValue(topLevelKey, secondLevelKey, value)
-			}
+	regionToAmiCfnMapping := cdk.NewCfnMapping(construct, jsii.String("RegionToAMI"), nil)
+	for topLevelKey, values := range regionToAmi {
+		for secondLevelKey, value := range values {
+			regionToAmiCfnMapping.SetValue(topLevelKey, secondLevelKey, value)
 		}
 	}
 
@@ -81,7 +79,7 @@ func NewEc2EncryptionConstruct(scope constructs.Construct, id string, props *Ec2
 		construct,
 		jsii.String("MyApp"),
 		&ec2.CfnInstanceProps{
-			ImageId: cdk.Fn_FindInMap(jsii.String("RegionToAMI"), cdk.Stack_Of(construct).Region(), jsii.String("AMI"), nil),
+			ImageId: regionToAmiCfnMapping.FindInMap(cdk.Stack_Of(construct).Region(), jsii.String("AMI"), nil),
 			InstanceType: jsii.String("t3.micro"),
 			Tags: &[]*cdk.CfnTag{
 				&cdk.CfnTag{

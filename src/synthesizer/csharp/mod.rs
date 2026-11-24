@@ -311,19 +311,13 @@ impl Synthesizer for CSharp<'_> {
             }
 
             if ir.has_deploy_time_lookup(&mapping.name) {
-                let block = ctor.indent_with_options(IndentOptions {
-                    indent: INDENT,
-                    leading: Some("{".into()),
-                    trailing: Some("}".into()),
-                    trailing_newline: true,
-                });
-                block.line(format!(
-                    "var cfnMapping = new CfnMapping(this, \"{}\");",
+                let var = camel_case(&mapping.name);
+                ctor.line(format!(
+                    "var {var}CfnMapping = new CfnMapping(this, \"{}\");",
                     mapping.name.escape_debug()
                 ));
-                block.line(format!(
-                    "foreach (var entry in {}) foreach (var item in entry.Value) cfnMapping.SetValue(entry.Key, item.Key, item.Value);",
-                    camel_case(&mapping.name)
+                ctor.line(format!(
+                    "foreach (var entry in {var}) foreach (var item in entry.Value) {var}CfnMapping.SetValue(entry.Key, item.Key, item.Value);"
                 ));
             }
         }
@@ -809,7 +803,7 @@ impl ResourceIr {
             ResourceIr::Map(table, top_level_key, second_level_key)
                 if ResourceIr::is_deploy_time_lookup(top_level_key, second_level_key) =>
             {
-                output.text(format!("Fn.FindInMap(\"{}\", ", table.escape_debug()));
+                output.text(format!("{}CfnMapping.FindInMap(", camel_case(table)));
                 top_level_key.emit_csharp(output, schema, class_type)?;
                 output.text(", ");
                 second_level_key.emit_csharp(output, schema, class_type)?;

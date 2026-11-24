@@ -471,3 +471,61 @@ fn test_cfn_custom_resource_no_type_override() {
     // DeletionPolicy should still work
     assert!(code.contains("cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.RETAIN"));
 }
+
+const FIND_IN_MAP_TEMPLATE: &str = r#"{
+    "Parameters": {
+        "Stage": { "Type": "String", "Default": "dev" }
+    },
+    "Mappings": {
+        "EnvMap": {
+            "dev": { "Size": 1 },
+            "prod": { "Size": 3 }
+        },
+        "RegionMapping": {
+            "us-east-1": { "Name": "east" },
+            "us-west-2": { "Name": "west" }
+        }
+    },
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "DelaySeconds": { "Fn::FindInMap": ["EnvMap", { "Ref": "Stage" }, "Size"] },
+                "QueueName": { "Fn::FindInMap": ["RegionMapping", { "Ref": "AWS::Region" }, "Name"] }
+            }
+        }
+    }
+}"#;
+
+fn synthesize_find_in_map(class_type: ClassType) -> String {
+    let cfn: CloudformationParseTree = serde_json::from_str(FIND_IN_MAP_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "FindInMap", class_type)
+        .unwrap();
+    String::from_utf8(output).unwrap()
+}
+
+#[test]
+fn find_in_map_with_parameter_key_uses_dictionary() {
+    let code = synthesize_find_in_map(ClassType::Stack);
+    assert!(code.contains("delaySeconds: envMap[props.stage!]['Size'],"));
+    assert!(!code.contains("envMapCfnMapping"));
+}
+
+#[test]
+fn find_in_map_with_token_key_uses_cfn_mapping() {
+    let code = synthesize_find_in_map(ClassType::Stack);
+    assert!(code.contains(
+        "const regionMappingCfnMapping = new cdk.CfnMapping(this, 'RegionMapping', { mapping: regionMapping });"
+    ));
+    assert!(code.contains("queueName: regionMappingCfnMapping.findInMap(this.region, 'Name'),"));
+
+    // In a construct the CfnMapping gets a generated logical id, so lookups must go through the
+    // CfnMapping object rather than a hard-coded mapping name.
+    let code = synthesize_find_in_map(ClassType::Construct);
+    assert!(code.contains(
+        "queueName: regionMappingCfnMapping.findInMap(cdk.Stack.of(this).region, 'Name'),"
+    ));
+    assert!(!code.contains("Fn.findInMap"));
+}

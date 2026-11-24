@@ -54,15 +54,24 @@ pub enum ResourceIr {
 
 impl ResourceIr {
     /// Whether a `Fn::FindInMap` lookup with these keys can only be resolved at deploy time, because
-    /// at least one key is not a literal string (for example `AWS::Region`).
+    /// at least one key is a token (for example `AWS::Region`, a resource attribute or a
+    /// `CfnParameter`). Literal strings and plain parameters, which become props, are known when
+    /// the CDK app runs.
     pub fn is_deploy_time_lookup(
         top_level_key: &ResourceIr,
         second_level_key: &ResourceIr,
     ) -> bool {
-        !matches!(
-            (top_level_key, second_level_key),
-            (ResourceIr::String(_), ResourceIr::String(_))
-        )
+        fn is_synth_time(key: &ResourceIr) -> bool {
+            matches!(
+                key,
+                ResourceIr::String(_)
+                    | ResourceIr::Ref(Reference {
+                        origin: Origin::Parameter,
+                        ..
+                    })
+            )
+        }
+        !(is_synth_time(top_level_key) && is_synth_time(second_level_key))
     }
 
     /// Whether this value contains a deploy-time lookup into the named mapping.

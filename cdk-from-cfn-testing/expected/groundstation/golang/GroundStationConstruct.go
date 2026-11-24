@@ -82,12 +82,10 @@ func NewGroundStationConstruct(scope constructs.Construct, id string, props *Gro
 
 	construct := constructs.NewConstruct(scope, &id)
 
-	{
-		cfnMapping := cdk.NewCfnMapping(construct, jsii.String("AmiMap"), nil)
-		for topLevelKey, values := range amiMap {
-			for secondLevelKey, value := range values {
-				cfnMapping.SetValue(topLevelKey, secondLevelKey, value)
-			}
+	amiMapCfnMapping := cdk.NewCfnMapping(construct, jsii.String("AmiMap"), nil)
+	for topLevelKey, values := range amiMap {
+		for secondLevelKey, value := range values {
+			amiMapCfnMapping.SetValue(topLevelKey, secondLevelKey, value)
 		}
 	}
 
@@ -449,7 +447,7 @@ func NewGroundStationConstruct(scope constructs.Construct, id string, props *Gro
 		&ec2.CfnInstanceProps{
 			DisableApiTermination: jsii.Bool(false),
 			IamInstanceProfile: generalInstanceProfile.Ref(),
-			ImageId: cdk.Fn_FindInMap(jsii.String("AmiMap"), cdk.Stack_Of(construct).Region(), jsii.String("ami"), nil),
+			ImageId: amiMapCfnMapping.FindInMap(cdk.Stack_Of(construct).Region(), jsii.String("ami"), nil),
 			InstanceType: jsii.String("c5.4xlarge"),
 			KeyName: props.SshKeyName,
 			Monitoring: jsii.Bool(true),

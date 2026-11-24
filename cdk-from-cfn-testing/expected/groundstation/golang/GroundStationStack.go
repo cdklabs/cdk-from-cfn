@@ -87,12 +87,10 @@ func NewGroundStationStack(scope constructs.Construct, id string, props *GroundS
 	}
 	stack := cdk.NewStack(scope, &id, &sprops)
 
-	{
-		cfnMapping := cdk.NewCfnMapping(stack, jsii.String("AmiMap"), nil)
-		for topLevelKey, values := range amiMap {
-			for secondLevelKey, value := range values {
-				cfnMapping.SetValue(topLevelKey, secondLevelKey, value)
-			}
+	amiMapCfnMapping := cdk.NewCfnMapping(stack, jsii.String("AmiMap"), nil)
+	for topLevelKey, values := range amiMap {
+		for secondLevelKey, value := range values {
+			amiMapCfnMapping.SetValue(topLevelKey, secondLevelKey, value)
 		}
 	}
 
@@ -454,7 +452,7 @@ func NewGroundStationStack(scope constructs.Construct, id string, props *GroundS
 		&ec2.CfnInstanceProps{
 			DisableApiTermination: jsii.Bool(false),
 			IamInstanceProfile: generalInstanceProfile.Ref(),
-			ImageId: cdk.Fn_FindInMap(jsii.String("AmiMap"), stack.Region(), jsii.String("ami"), nil),
+			ImageId: amiMapCfnMapping.FindInMap(stack.Region(), jsii.String("ami"), nil),
 			InstanceType: jsii.String("c5.4xlarge"),
 			KeyName: props.SshKeyName,
 			Monitoring: jsii.Bool(true),

@@ -127,7 +127,7 @@ export class GroundStationConstruct extends Construct {
         'ami': 'ami-0c5cdf1548242305d',
       },
     };
-    new cdk.CfnMapping(this, 'AmiMap', { mapping: amiMap });
+    const amiMapCfnMapping = new cdk.CfnMapping(this, 'AmiMap', { mapping: amiMap });
 
     // Resources
     const groundStationS3DataDeliveryBucket = new s3.CfnBucket(this, 'GroundStationS3DataDeliveryBucket', {
@@ -425,7 +425,7 @@ export class GroundStationConstruct extends Construct {
     const receiverInstance = new ec2.CfnInstance(this, 'ReceiverInstance', {
       disableApiTermination: false,
       iamInstanceProfile: generalInstanceProfile.ref,
-      imageId: cdk.Fn.findInMap('AmiMap', cdk.Stack.of(this).region, 'ami'),
+      imageId: amiMapCfnMapping.findInMap(cdk.Stack.of(this).region, 'ami'),
       instanceType: 'c5.4xlarge',
       keyName: props.sshKeyName!,
       monitoring: true,

@@ -364,7 +364,7 @@ fn emit_mappings(output: &CodeBuffer, ir: &CloudformationProgramIr) {
 
         if ir.has_deploy_time_lookup(&mapping.name) {
             output.line(format!(
-                "cdk.CfnMapping(self, '{name}', mapping={var})",
+                "{var}CfnMapping = cdk.CfnMapping(self, '{name}', mapping={var})",
                 name = mapping.name.escape_debug(),
                 var = camel_case(&mapping.name)
             ));
@@ -826,7 +826,7 @@ fn emit_resource_ir(
             }
         }
         ResourceIr::Map(name, tlk, slk) if ResourceIr::is_deploy_time_lookup(tlk, slk) => {
-            output.text(format!("cdk.Fn.find_in_map('{}', ", name.escape_debug()));
+            output.text(format!("{}CfnMapping.find_in_map(", camel_case(name)));
             emit_resource_ir(context, output, tlk, None);
             output.text(", ");
             emit_resource_ir(context, output, slk, None);

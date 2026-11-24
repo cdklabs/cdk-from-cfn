@@ -67,7 +67,7 @@ export class Ec2EncryptionConstruct extends Construct {
         'AMI': 'ami-0900fe555666598a2',
       },
     };
-    new cdk.CfnMapping(this, 'RegionToAMI', { mapping: regionToAmi });
+    const regionToAmiCfnMapping = new cdk.CfnMapping(this, 'RegionToAMI', { mapping: regionToAmi });
 
     // Conditions
     const hasDatabase = props.databaseType! === 'mysql';
@@ -86,7 +86,7 @@ export class Ec2EncryptionConstruct extends Construct {
     });
 
     const myApp = new ec2.CfnInstance(this, 'MyApp', {
-      imageId: cdk.Fn.findInMap('RegionToAMI', cdk.Stack.of(this).region, 'AMI'),
+      imageId: regionToAmiCfnMapping.findInMap(cdk.Stack.of(this).region, 'AMI'),
       instanceType: 't3.micro',
       tags: [
         {
