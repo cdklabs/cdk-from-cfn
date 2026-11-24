@@ -1231,7 +1231,9 @@ fn emit_java(
             let mut part = parts.iter().peekable();
             while let Some(p) = part.next() {
                 match p {
-                    ResourceIr::String(lit) => output.text(format!("\"{}\"", lit.clone())),
+                    ResourceIr::String(lit) => {
+                        output.text(format!("\"{}\"", escape_java_string(lit)))
+                    }
                     other => emit_java(other.clone(), output, class, schema, class_type)?,
                 }
                 if part.peek().is_some() {
