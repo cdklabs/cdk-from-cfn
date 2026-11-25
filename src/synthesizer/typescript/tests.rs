@@ -596,3 +596,97 @@ fn test_sub_string_with_variables_keeps_carriage_returns() {
         "unexpected output:\n{code}"
     );
 }
+
+const METADATA_SPECIAL_KEYS_TEMPLATE: &str = r#"{
+    "Resources": {
+        "MyBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "configSets": {
+                        "MountConfig": ["setup"]
+                    },
+                    "setup": {
+                        "packages": {
+                            "yum": {
+                                "nfs-utils": []
+                            }
+                        },
+                        "files": {
+                            "/home/ec2-user/post_nfsstat": {
+                                "mode": "000755"
+                            }
+                        }
+                    }
+                },
+                "CostCenter": 1337,
+                "cfn-lint": {
+                    "it's": "ignored",
+                    "": "empty-key"
+                }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_metadata_quotes_non_identifier_keys() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(METADATA_SPECIAL_KEYS_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("'AWS::CloudFormation::Init': {"), "{code}");
+    assert!(code.contains("configSets: {"), "{code}");
+    assert!(code.contains("'nfs-utils': ["), "{code}");
+    assert!(code.contains("'/home/ec2-user/post_nfsstat': {"), "{code}");
+    assert!(code.contains("CostCenter: 1337,"), "{code}");
+    assert!(code.contains("'cfn-lint': {"), "{code}");
+    assert!(code.contains("'it\\'s': 'ignored',"), "{code}");
+    assert!(code.contains("'': 'empty-key',"), "{code}");
+}
+
+const MAP_SPECIAL_KEYS_TEMPLATE: &str = r#"{
+    "Resources": {
+        "MyFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Code": {
+                    "S3Bucket": "my-bucket",
+                    "S3Key": "code.zip"
+                },
+                "Role": "arn:aws:iam::123456789012:role/lambda-role",
+                "Handler": "index.handler",
+                "Runtime": "nodejs20.x",
+                "Environment": {
+                    "Variables": {
+                        "SIMPLE_KEY": "ok",
+                        "hyphen-key": "val",
+                        "it's": "quoted",
+                        "": "empty"
+                    }
+                }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_map_property_quotes_and_escapes_special_keys() {
+    let cfn: CloudformationParseTree = serde_json::from_str(MAP_SPECIAL_KEYS_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(code.contains("'SIMPLE_KEY': 'ok',"), "{code}");
+    assert!(code.contains("'hyphen-key': 'val',"), "{code}");
+    assert!(code.contains("'it\\'s': 'quoted',"), "{code}");
+    assert!(code.contains("'': 'empty',"), "{code}");
+}

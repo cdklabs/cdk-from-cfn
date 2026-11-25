@@ -665,7 +665,7 @@ fn emit_resource_metadata(
     match metadata {
         ResourceIr::Object(_, entries) => {
             for (name, value) in entries {
-                output.text(format!("{name}: "));
+                output.text(format!("{}: ", format_ts_object_key(name)));
                 emit_resource_ir(context, &output, value, Some(",\n"));
             }
         }
@@ -720,13 +720,7 @@ fn emit_resource_ir(
             for (name, value) in entries {
                 match structure {
                     TypeReference::Primitive(_) | TypeReference::Map(_) => {
-                        if name.chars().all(|c| c.is_alphanumeric())
-                            && name.chars().next().unwrap().is_alphabetic()
-                        {
-                            obj.text(format!("{name}: "));
-                        } else {
-                            obj.text(format!("'{name}': "));
-                        }
+                        obj.text(format!("{}: ", format_ts_object_key(name)));
                     }
                     _ => {
                         obj.text(format!("{key}: ", key = pretty_name(name)));
@@ -1019,6 +1013,17 @@ static SUFFIX_FIXES: &[SuffixFix] = &[
         fix: "AZs",
     },
 ];
+
+fn format_ts_object_key(name: &str) -> String {
+    let mut chars = name.chars();
+    if chars.next().is_some_and(|first| {
+        first.is_ascii_alphabetic() && chars.all(|c| c.is_ascii_alphanumeric())
+    }) {
+        name.to_owned()
+    } else {
+        format!("'{}'", name.escape_debug())
+    }
+}
 
 fn pretty_name(name: &str) -> String {
     // hardcoded consts that always need love.
