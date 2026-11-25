@@ -76,7 +76,7 @@ class GroundStationConstruct extends Construct {
 
         Stack.of(this).addTransform("AWS::Serverless-2016-10-31");
         // Mappings
-        final CfnMapping amiMap = new CfnMapping(this, "amiMap");
+        final CfnMapping amiMap = new CfnMapping(this, "AmiMap");
         amiMap.setValue("eu-north-1", "ami", "ami-0abb1aa57ecf6a060");
         amiMap.setValue("eu-west-1", "ami", "ami-082af980f9f5514f8");
         amiMap.setValue("me-south-1", "ami", "ami-0687a5f8dac57444e");
@@ -155,10 +155,10 @@ class GroundStationConstruct extends Construct {
                                                 .build())
                                         .build())
                                 .demodulationConfig(CfnConfig.DemodulationConfigProperty.builder()
-                                        .unvalidatedJson("{ "type":"QPSK", "qpsk":{ "carrierFrequencyRecovery":{ "centerFrequency":{ "value":7812, "units":"MHz" }, "range":{ "value":250, "units":"kHz" } }, "symbolTimingRecovery":{ "symbolRate":{ "value":15, "units":"Msps" }, "range":{ "value":0.75, "units":"ksps" }, "matchedFilter":{ "type":"ROOT_RAISED_COSINE", "rolloffFactor":0.5 } } } }")
+                                        .unvalidatedJson("{ \"type\":\"QPSK\", \"qpsk\":{ \"carrierFrequencyRecovery\":{ \"centerFrequency\":{ \"value\":7812, \"units\":\"MHz\" }, \"range\":{ \"value\":250, \"units\":\"kHz\" } }, \"symbolTimingRecovery\":{ \"symbolRate\":{ \"value\":15, \"units\":\"Msps\" }, \"range\":{ \"value\":0.75, \"units\":\"ksps\" }, \"matchedFilter\":{ \"type\":\"ROOT_RAISED_COSINE\", \"rolloffFactor\":0.5 } } } }")
                                         .build())
                                 .decodeConfig(CfnConfig.DecodeConfigProperty.builder()
-                                        .unvalidatedJson("{ "edges":[ { "from":"I-Ingress", "to":"IQ-Recombiner" }, { "from":"Q-Ingress", "to":"IQ-Recombiner" }, { "from":"IQ-Recombiner", "to":"CcsdsViterbiDecoder" }, { "from":"CcsdsViterbiDecoder", "to":"NrzmDecoder" }, { "from":"NrzmDecoder", "to":"UncodedFramesEgress" } ], "nodeConfigs":{ "I-Ingress":{ "type":"CODED_SYMBOLS_INGRESS", "codedSymbolsIngress":{ "source":"I" } }, "Q-Ingress":{ "type":"CODED_SYMBOLS_INGRESS", "codedSymbolsIngress":{ "source":"Q" } }, "IQ-Recombiner":{ "type":"IQ_RECOMBINER" }, "CcsdsViterbiDecoder":{ "type":"CCSDS_171_133_VITERBI_DECODER", "ccsds171133ViterbiDecoder":{ "codeRate":"ONE_HALF" } }, "NrzmDecoder":{ "type":"NRZ_M_DECODER" }, "UncodedFramesEgress":{ "type":"UNCODED_FRAMES_EGRESS" } } }")
+                                        .unvalidatedJson("{ \"edges\":[ { \"from\":\"I-Ingress\", \"to\":\"IQ-Recombiner\" }, { \"from\":\"Q-Ingress\", \"to\":\"IQ-Recombiner\" }, { \"from\":\"IQ-Recombiner\", \"to\":\"CcsdsViterbiDecoder\" }, { \"from\":\"CcsdsViterbiDecoder\", \"to\":\"NrzmDecoder\" }, { \"from\":\"NrzmDecoder\", \"to\":\"UncodedFramesEgress\" } ], \"nodeConfigs\":{ \"I-Ingress\":{ \"type\":\"CODED_SYMBOLS_INGRESS\", \"codedSymbolsIngress\":{ \"source\":\"I\" } }, \"Q-Ingress\":{ \"type\":\"CODED_SYMBOLS_INGRESS\", \"codedSymbolsIngress\":{ \"source\":\"Q\" } }, \"IQ-Recombiner\":{ \"type\":\"IQ_RECOMBINER\" }, \"CcsdsViterbiDecoder\":{ \"type\":\"CCSDS_171_133_VITERBI_DECODER\", \"ccsds171133ViterbiDecoder\":{ \"codeRate\":\"ONE_HALF\" } }, \"NrzmDecoder\":{ \"type\":\"NRZ_M_DECODER\" }, \"UncodedFramesEgress\":{ \"type\":\"UNCODED_FRAMES_EGRESS\" } } }")
                                         .build())
                                 .build())
                         .build())
@@ -327,50 +327,7 @@ class GroundStationConstruct extends Construct {
                                         "Receiver",
                                         Stack.of(this).getStackName()))
                                 .build()))
-                .userData(Fn.base64("#!/bin/bash
-
-                exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-                echo `date +'%F %R:%S'` "INFO: Logging Setup" >&2
-
-                echo "Setting instance hostname"
-                export INSTANCE=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-                export HOSTNAME=$(aws ec2 describe-tags --filters "Name=resource-id,Values=$INSTANCE" "Name=key,Values=Name" --region=" + Stack.of(this).getRegion() + " --output=text |cut -f5)
-                echo $HOSTNAME > /etc/hostname
-                hostname $HOSTNAME
-
-                echo "Installing RT-STPS pre-reqs"
-                yum update -y && yum install -y wget java python3
-
-                GROUND_STATION_DIR="/opt/aws/groundstation"
-                GROUND_STATION_BIN_DIR="$GROUND_STATION_DIR/bin"
-                PROCESS_SCRIPT="$GROUND_STATION_BIN_DIR/rt-stps-process.sh"
-
-                echo "Creating $GROUND_STATION_BIN_DIR"
-                mkdir -p "$GROUND_STATION_BIN_DIR"
-
-                echo "Getting Assets from S3"
-                aws s3 cp --region " + Stack.of(this).getRegion() + " "s3://" + softwareS3Bucket + "/software/RT-STPS/rt-stps-process.sh" "$PROCESS_SCRIPT"
-                chmod +x "$PROCESS_SCRIPT"
-                chown ec2-user:ec2-user "$PROCESS_SCRIPT"
-
-                echo "Adding call to $PROCESS_SCRIPT into /etc/rc.local"
-                echo "TIMESTR=\$(date '+%Y%m%d-%H%M')" >> /etc/rc.local
-                echo "$PROCESS_SCRIPT " + satelliteName + " " + softwareS3Bucket + " " + groundStationS3DataDeliveryBucketName + " 2>&1 | tee $GROUND_STATION_BIN_DIR/data-capture_\$TIMESTR.log" >> /etc/rc.local
-                chmod +x /etc/rc.d/rc.local
-
-                echo "Creating /opt/aws/groundstation/bin/getSNSTopic.sh"
-                echo "export SNS_TOPIC=" + snsTopic.getRef() + "" > /opt/aws/groundstation/bin/getSNSTopic.sh
-                chmod +x /opt/aws/groundstation/bin/getSNSTopic.sh
-
-                echo "Sending completion SNS notification"
-                export MESSAGE="GroundStation setup is complete for Satellite: " + satelliteName + ".  The RT-STPS processor EC2 instance is all setup and ready to go! It will be automatically started after data from a satellite pass has been deposited in your S3 bucket.  Data will be processed using RT-STPS, then copied to the following S3 Bucket: " + groundStationS3DataDeliveryBucketName + ".  A summary of the contact will be emailed to " + notificationEmail + ". The EC2 instance will now be stopped."
-                aws sns publish --topic-arn " + snsTopic.getRef() + " --message "$MESSAGE" --region " + Stack.of(this).getRegion() + "
-
-                echo "Shutting down the EC2 instance"
-                shutdown -h now
-
-                exit 0
-                "))
+                .userData(Fn.base64("#!/bin/bash\n\nexec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\necho `date +'%F %R:%S'` \"INFO: Logging Setup\" >&2\n\necho \"Setting instance hostname\"\nexport INSTANCE=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\nexport HOSTNAME=$(aws ec2 describe-tags --filters \"Name=resource-id,Values=$INSTANCE\" \"Name=key,Values=Name\" --region=" + Stack.of(this).getRegion() + " --output=text |cut -f5)\necho $HOSTNAME > /etc/hostname\nhostname $HOSTNAME\n\necho \"Installing RT-STPS pre-reqs\"\nyum update -y && yum install -y wget java python3\n\nGROUND_STATION_DIR=\"/opt/aws/groundstation\"\nGROUND_STATION_BIN_DIR=\"$GROUND_STATION_DIR/bin\"\nPROCESS_SCRIPT=\"$GROUND_STATION_BIN_DIR/rt-stps-process.sh\"\n\necho \"Creating $GROUND_STATION_BIN_DIR\"\nmkdir -p \"$GROUND_STATION_BIN_DIR\"\n\necho \"Getting Assets from S3\"\naws s3 cp --region " + Stack.of(this).getRegion() + " \"s3://" + softwareS3Bucket + "/software/RT-STPS/rt-stps-process.sh\" \"$PROCESS_SCRIPT\"\nchmod +x \"$PROCESS_SCRIPT\"\nchown ec2-user:ec2-user \"$PROCESS_SCRIPT\"\n\necho \"Adding call to $PROCESS_SCRIPT into /etc/rc.local\"\necho \"TIMESTR=\\$(date '+%Y%m%d-%H%M')\" >> /etc/rc.local\necho \"$PROCESS_SCRIPT " + satelliteName + " " + softwareS3Bucket + " " + groundStationS3DataDeliveryBucketName + " 2>&1 | tee $GROUND_STATION_BIN_DIR/data-capture_\\$TIMESTR.log\" >> /etc/rc.local\nchmod +x /etc/rc.d/rc.local\n\necho \"Creating /opt/aws/groundstation/bin/getSNSTopic.sh\"\necho \"export SNS_TOPIC=" + snsTopic.getRef() + "\" > /opt/aws/groundstation/bin/getSNSTopic.sh\nchmod +x /opt/aws/groundstation/bin/getSNSTopic.sh\n\necho \"Sending completion SNS notification\"\nexport MESSAGE=\"GroundStation setup is complete for Satellite: " + satelliteName + ".  The RT-STPS processor EC2 instance is all setup and ready to go! It will be automatically started after data from a satellite pass has been deposited in your S3 bucket.  Data will be processed using RT-STPS, then copied to the following S3 Bucket: " + groundStationS3DataDeliveryBucketName + ".  A summary of the contact will be emailed to " + notificationEmail + ". The EC2 instance will now be stopped.\"\naws sns publish --topic-arn " + snsTopic.getRef() + " --message \"$MESSAGE\" --region " + Stack.of(this).getRegion() + "\n\necho \"Shutting down the EC2 instance\"\nshutdown -h now\n\nexit 0\n"))
                 .build();
 
         receiverInstance.addDependency(instanceSecurityGroup);

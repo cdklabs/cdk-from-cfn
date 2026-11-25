@@ -99,8 +99,9 @@ impl<'a> Java<'a> {
         map.line("// Mappings");
         for mapping in &ir.mappings {
             let name = camel_case(&mapping.name);
+            let id = &mapping.name;
             map.line(format!(
-                "final CfnMapping {name} = new CfnMapping(this, \"{name}\");"
+                "final CfnMapping {name} = new CfnMapping(this, \"{id}\");"
             ));
             for (key1, inner_mapping) in &mapping.map {
                 for (key2, value) in inner_mapping {
@@ -1033,7 +1034,7 @@ fn emit_java(
             if text.lines().count() > 1 {
                 output.text(format!("\"\"\"\n{text}\"\"\""))
             } else {
-                output.text(format!("\"{text}\""))
+                output.text(format!("\"{}\"", escape_java_string(&text)))
             }
             Ok(())
         }
@@ -1230,7 +1231,9 @@ fn emit_java(
             let mut part = parts.iter().peekable();
             while let Some(p) = part.next() {
                 match p {
-                    ResourceIr::String(lit) => output.text(format!("\"{}\"", lit.clone())),
+                    ResourceIr::String(lit) => {
+                        output.text(format!("\"{}\"", escape_java_string(lit)))
+                    }
                     other => emit_java(other.clone(), output, class, schema, class_type)?,
                 }
                 if part.peek().is_some() {
@@ -1251,6 +1254,18 @@ fn name(key: &str) -> String {
         .chars()
         .filter(|c| c.is_alphanumeric())
         .collect()
+}
+
+/// Escapes a string so it can be embedded in a single-line Java `"..."` literal.
+///
+/// Unlike `str::escape_debug`, this leaves single quotes untouched, since
+/// they need no escaping inside a double-quoted Java string.
+fn escape_java_string(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
 }
 
 pub struct JavaConstructorParameter {

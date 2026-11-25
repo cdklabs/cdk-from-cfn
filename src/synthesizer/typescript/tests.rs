@@ -529,3 +529,70 @@ fn find_in_map_with_token_key_uses_cfn_mapping() {
     ));
     assert!(!code.contains("Fn.findInMap"));
 }
+
+const SUB_SPECIAL_CHARACTERS_TEMPLATE: &str = r##"{
+    "Resources": {
+        "Topic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "DisplayName": {
+                    "Fn::Sub": "#!/bin/bash\n\necho `date` \\$(id) ${!Literal} ${AWS::Region}\n  indented\n"
+                }
+            }
+        }
+    }
+}"##;
+
+#[test]
+fn test_sub_string_keeps_special_characters_and_line_starts() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(SUB_SPECIAL_CHARACTERS_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains(
+            "`#!/bin/bash\n\necho \\`date\\` \\\\$(id) \\${Literal} ${this.region}\n  indented\n`"
+        ),
+        "unexpected output:\n{code}"
+    );
+}
+
+const SUB_WITH_VARIABLES_TEMPLATE: &str = r##"{
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue"
+        },
+        "Topic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "DisplayName": {
+                    "Fn::Sub": [
+                        "line1\r\n${QueueArn}\r\n",
+                        { "QueueArn": { "Fn::GetAtt": ["Queue", "Arn"] } }
+                    ]
+                }
+            }
+        }
+    }
+}"##;
+
+#[test]
+fn test_sub_string_with_variables_keeps_carriage_returns() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SUB_WITH_VARIABLES_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("`line1\\r\n${queue.attrArn}\\r\n`"),
+        "unexpected output:\n{code}"
+    );
+}

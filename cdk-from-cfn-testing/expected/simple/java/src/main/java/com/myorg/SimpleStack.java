@@ -58,26 +58,26 @@ class SimpleStack extends Stack {
         numberParam = Optional.ofNullable(numberParam).isPresent() ? numberParam
                 : 42;
         // Mappings
-        final CfnMapping booleans = new CfnMapping(this, "booleans");
+        final CfnMapping booleans = new CfnMapping(this, "Booleans");
         booleans.setValue("True", "true", true);
         booleans.setValue("False", "false", false);
 
-        final CfnMapping lists = new CfnMapping(this, "lists");
+        final CfnMapping lists = new CfnMapping(this, "Lists");
         lists.setValue("Candidates", "Empty", Arrays.asList(""));
         lists.setValue("Candidates", "Singleton", Arrays.asList("One"));
         lists.setValue("Candidates", "Pair", Arrays.asList("One", "Two"));
 
-        final CfnMapping numbers = new CfnMapping(this, "numbers");
+        final CfnMapping numbers = new CfnMapping(this, "Numbers");
         numbers.setValue("Prime", "Eleven", 11);
         numbers.setValue("Prime", "Thirteen", 13);
         numbers.setValue("Prime", "Seventeen", 17);
 
-        final CfnMapping strings = new CfnMapping(this, "strings");
+        final CfnMapping strings = new CfnMapping(this, "Strings");
         strings.setValue("Foos", "Foo1", "Foo1");
         strings.setValue("Foos", "Foo2", "Foo2");
         strings.setValue("Bars", "Bar", "Bar");
 
-        final CfnMapping table = new CfnMapping(this, "table");
+        final CfnMapping table = new CfnMapping(this, "Table");
         table.setValue("Values", "Boolean", true);
         table.setValue("Values", "Float", 3.14);
         table.setValue("Values", "List", Arrays.asList("1", "2", "3"));
