@@ -9,7 +9,6 @@ use crate::ir::reference::{Origin, PseudoParameter, Reference};
 use crate::ir::resources::{ResourceInstruction, ResourceIr, CFN_CUSTOM_RESOURCE};
 use crate::ir::CloudformationProgramIr;
 use crate::parser::lookup_table::MappingInnerValue;
-use crate::parser::resource::DeletionPolicy;
 use crate::Error;
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -301,6 +300,9 @@ impl<'a> Java<'a> {
                     });
                     prop_details.line(format!(".type(\"{}\")", prop.constructor_type));
                     prop_details.line(format!(".defaultValue(\"{v}\")"));
+                    if let Some(v) = &prop.description {
+                        prop_details.line(format!(".description(\"{}\")", escape_java_string(v)));
+                    }
                     if let Some(v) = &prop.no_echo {
                         prop_details.line(format!(".noEcho({v})"))
                     }
@@ -455,33 +457,11 @@ impl<'a> Java<'a> {
             extra_line = true;
         }
 
-        // Java high level stack resources uses `RemovalPolicy`, which is a higher level
-        // enum compared to CfnDeletionPolicy, like other languages. Below is the captured
-        // differences between RemovalPolicy and CfnDeletionPolicy. To see the difference:
-        //
-        // DeletionPolicy: https://docs.aws.amazon.com/cdk/api/v2/java/software/amazon/awscdk/CfnDeletionPolicy.html
-        // RemovalPolicy: https://docs.aws.amazon.com/cdk/api/v2/java/software/amazon/awscdk/RemovalPolicy.html
         if let Some(deletion_policy) = &resource.deletion_policy {
-            match deletion_policy {
-                DeletionPolicy::Delete => {
-                    writer.text(format!(
-                        "{res_name}.applyRemovalPolicy(RemovalPolicy.DESTROY){trailer}"
-                    ));
-                    extra_line = true;
-                }
-                DeletionPolicy::RetainExceptOnCreate => {
-                    writer.text(format!(
-                        "{res_name}.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE){trailer}"
-                    ));
-                    extra_line = true;
-                }
-                _ => {
-                    writer.text(format!(
-                        "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy}){trailer}"
-                    ));
-                    extra_line = true;
-                }
-            }
+            writer.text(format!(
+                "{res_name}.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.{deletion_policy}){trailer}"
+            ));
+            extra_line = true;
         }
 
         if let Some(update_policy) = &resource.update_policy {
@@ -979,25 +959,11 @@ fn emit_custom_resource(
         conditional_resources,
     );
 
-    // Handle DeletionPolicy (Java uses RemovalPolicy, same as standard resources)
+    // Handle DeletionPolicy
     if let Some(deletion_policy) = &resource.deletion_policy {
-        match deletion_policy {
-            DeletionPolicy::Delete => {
-                writer.text(format!(
-                    "{res_name}.applyRemovalPolicy(RemovalPolicy.DESTROY){trailer}"
-                ));
-            }
-            DeletionPolicy::RetainExceptOnCreate => {
-                writer.text(format!(
-                    "{res_name}.applyRemovalPolicy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE){trailer}"
-                ));
-            }
-            _ => {
-                writer.text(format!(
-                    "{res_name}.applyRemovalPolicy(RemovalPolicy.{deletion_policy}){trailer}"
-                ));
-            }
-        }
+        writer.text(format!(
+            "{res_name}.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.{deletion_policy}){trailer}"
+        ));
     }
 
     // Handle UpdatePolicy

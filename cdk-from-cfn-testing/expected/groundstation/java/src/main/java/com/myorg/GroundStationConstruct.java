@@ -54,6 +54,7 @@ class GroundStationConstruct extends Construct {
                 : CfnParameter.Builder.create(this, "SshKeyName")
                         .type("AWS::EC2::KeyPair::KeyName")
                         .defaultValue("")
+                        .description("Name of the ssh key used to access ec2 hosts. Set this up ahead of time.")
                         .build()
                         .getValueAsString();
 
@@ -62,6 +63,7 @@ class GroundStationConstruct extends Construct {
                 : CfnParameter.Builder.create(this, "VpcId")
                         .type("AWS::EC2::VPC::Id")
                         .defaultValue("")
+                        .description("VPC to launch instances in.")
                         .build()
                         .getValueAsString();
 
@@ -70,6 +72,7 @@ class GroundStationConstruct extends Construct {
                 : CfnParameter.Builder.create(this, "SubnetId")
                         .type("AWS::EC2::Subnet::Id")
                         .defaultValue("")
+                        .description("Subnet to launch instances in")
                         .build()
                         .getValueAsString();
 
@@ -95,7 +98,7 @@ class GroundStationConstruct extends Construct {
                 .bucketName(groundStationS3DataDeliveryBucketName)
                 .build();
 
-        groundStationS3DataDeliveryBucket.applyRemovalPolicy(RemovalPolicy.RETAIN);
+        groundStationS3DataDeliveryBucket.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.RETAIN);
 
         CfnRole groundStationS3DataDeliveryRole = CfnRole.Builder.create(this, "GroundStationS3DataDeliveryRole")
                 .assumeRolePolicyDocument(Map.of("Statement", Arrays.asList(

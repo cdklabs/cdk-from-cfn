@@ -61,6 +61,7 @@ class DocumentDbStack extends Stack {
                 : CfnParameter.Builder.create(this, "MasterUser")
                         .type("String")
                         .defaultValue("MainUser")
+                        .description("The database admin account username")
                         .noEcho(true)
                         .build()
                         .getValueAsString();
@@ -70,6 +71,7 @@ class DocumentDbStack extends Stack {
                 : CfnParameter.Builder.create(this, "MasterPassword")
                         .type("String")
                         .defaultValue("password")
+                        .description("The database admin account password")
                         .noEcho(true)
                         .build()
                         .getValueAsString();
@@ -84,7 +86,7 @@ class DocumentDbStack extends Stack {
                 .engineVersion("4.0.0")
                 .build();
 
-        dbCluster.applyRemovalPolicy(RemovalPolicy.DESTROY);
+        dbCluster.getCfnOptions().setDeletionPolicy(CfnDeletionPolicy.DELETE);
 
         CfnDBInstance dbInstance = CfnDBInstance.Builder.create(this, "DBInstance")
                 .dbClusterIdentifier(dbCluster.getRef())
