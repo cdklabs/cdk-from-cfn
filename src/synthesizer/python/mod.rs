@@ -867,21 +867,20 @@ fn emit_resource_ir(
             }
         },
         ResourceIr::Sub(parts) => {
+            // Everything inside the literal is written raw, so the surrounding
+            // indentation doesn't end up in the string.
             output.text("f\"\"\"");
             for part in parts {
                 match part {
-                    ResourceIr::String(lit) => {
-                        let escaped_lit = lit.replace('{', "{{").replace('}', "}}");
-                        output.text(escaped_lit);
-                    }
+                    ResourceIr::String(lit) => output.raw_text(escape_f_string_literal(lit)),
                     other => {
-                        output.text("{");
+                        output.raw_text("{");
                         emit_resource_ir(context, output, other, None);
-                        output.text("}");
+                        output.raw_text("}");
                     }
                 }
             }
-            output.text("\"\"\"")
+            output.raw_text("\"\"\"")
         }
 
         // References
@@ -890,6 +889,16 @@ fn emit_resource_ir(
     if let Some(trailer) = trailer {
         output.text(trailer.to_owned())
     }
+}
+
+/// Escapes text for the inside of a triple-quoted Python f-string. Every `"` is
+/// escaped so a literal can never end the string early.
+fn escape_f_string_literal(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('{', "{{")
+        .replace('}', "}}")
+        .replace('\r', "\\r")
 }
 
 pub fn capitalize(s: &str) -> String {

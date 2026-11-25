@@ -411,48 +411,48 @@ class GroundStationConstruct(Construct):
           ],
           user_data = cdk.Fn.base64(f"""#!/bin/bash
 
-          exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-          echo `date +'%F %R:%S'` "INFO: Logging Setup" >&2
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+echo `date +'%F %R:%S'` \"INFO: Logging Setup\" >&2
 
-          echo "Setting instance hostname"
-          export INSTANCE=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-          export HOSTNAME=$(aws ec2 describe-tags --filters "Name=resource-id,Values=$INSTANCE" "Name=key,Values=Name" --region={Stack.of(self).region} --output=text |cut -f5)
-          echo $HOSTNAME > /etc/hostname
-          hostname $HOSTNAME
+echo \"Setting instance hostname\"
+export INSTANCE=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+export HOSTNAME=$(aws ec2 describe-tags --filters \"Name=resource-id,Values=$INSTANCE\" \"Name=key,Values=Name\" --region={Stack.of(self).region} --output=text |cut -f5)
+echo $HOSTNAME > /etc/hostname
+hostname $HOSTNAME
 
-          echo "Installing RT-STPS pre-reqs"
-          yum update -y && yum install -y wget java python3
+echo \"Installing RT-STPS pre-reqs\"
+yum update -y && yum install -y wget java python3
 
-          GROUND_STATION_DIR="/opt/aws/groundstation"
-          GROUND_STATION_BIN_DIR="$GROUND_STATION_DIR/bin"
-          PROCESS_SCRIPT="$GROUND_STATION_BIN_DIR/rt-stps-process.sh"
+GROUND_STATION_DIR=\"/opt/aws/groundstation\"
+GROUND_STATION_BIN_DIR=\"$GROUND_STATION_DIR/bin\"
+PROCESS_SCRIPT=\"$GROUND_STATION_BIN_DIR/rt-stps-process.sh\"
 
-          echo "Creating $GROUND_STATION_BIN_DIR"
-          mkdir -p "$GROUND_STATION_BIN_DIR"
+echo \"Creating $GROUND_STATION_BIN_DIR\"
+mkdir -p \"$GROUND_STATION_BIN_DIR\"
 
-          echo "Getting Assets from S3"
-          aws s3 cp --region {Stack.of(self).region} "s3://{props['softwareS3Bucket']}/software/RT-STPS/rt-stps-process.sh" "$PROCESS_SCRIPT"
-          chmod +x "$PROCESS_SCRIPT"
-          chown ec2-user:ec2-user "$PROCESS_SCRIPT"
+echo \"Getting Assets from S3\"
+aws s3 cp --region {Stack.of(self).region} \"s3://{props['softwareS3Bucket']}/software/RT-STPS/rt-stps-process.sh\" \"$PROCESS_SCRIPT\"
+chmod +x \"$PROCESS_SCRIPT\"
+chown ec2-user:ec2-user \"$PROCESS_SCRIPT\"
 
-          echo "Adding call to $PROCESS_SCRIPT into /etc/rc.local"
-          echo "TIMESTR=\$(date '+%Y%m%d-%H%M')" >> /etc/rc.local
-          echo "$PROCESS_SCRIPT {props['satelliteName']} {props['softwareS3Bucket']} {props['groundStationS3DataDeliveryBucketName']} 2>&1 | tee $GROUND_STATION_BIN_DIR/data-capture_\$TIMESTR.log" >> /etc/rc.local
-          chmod +x /etc/rc.d/rc.local
+echo \"Adding call to $PROCESS_SCRIPT into /etc/rc.local\"
+echo \"TIMESTR=\\$(date '+%Y%m%d-%H%M')\" >> /etc/rc.local
+echo \"$PROCESS_SCRIPT {props['satelliteName']} {props['softwareS3Bucket']} {props['groundStationS3DataDeliveryBucketName']} 2>&1 | tee $GROUND_STATION_BIN_DIR/data-capture_\\$TIMESTR.log\" >> /etc/rc.local
+chmod +x /etc/rc.d/rc.local
 
-          echo "Creating /opt/aws/groundstation/bin/getSNSTopic.sh"
-          echo "export SNS_TOPIC={snsTopic.ref}" > /opt/aws/groundstation/bin/getSNSTopic.sh
-          chmod +x /opt/aws/groundstation/bin/getSNSTopic.sh
+echo \"Creating /opt/aws/groundstation/bin/getSNSTopic.sh\"
+echo \"export SNS_TOPIC={snsTopic.ref}\" > /opt/aws/groundstation/bin/getSNSTopic.sh
+chmod +x /opt/aws/groundstation/bin/getSNSTopic.sh
 
-          echo "Sending completion SNS notification"
-          export MESSAGE="GroundStation setup is complete for Satellite: {props['satelliteName']}.  The RT-STPS processor EC2 instance is all setup and ready to go! It will be automatically started after data from a satellite pass has been deposited in your S3 bucket.  Data will be processed using RT-STPS, then copied to the following S3 Bucket: {props['groundStationS3DataDeliveryBucketName']}.  A summary of the contact will be emailed to {props['notificationEmail']}. The EC2 instance will now be stopped."
-          aws sns publish --topic-arn {snsTopic.ref} --message "$MESSAGE" --region {Stack.of(self).region}
+echo \"Sending completion SNS notification\"
+export MESSAGE=\"GroundStation setup is complete for Satellite: {props['satelliteName']}.  The RT-STPS processor EC2 instance is all setup and ready to go! It will be automatically started after data from a satellite pass has been deposited in your S3 bucket.  Data will be processed using RT-STPS, then copied to the following S3 Bucket: {props['groundStationS3DataDeliveryBucketName']}.  A summary of the contact will be emailed to {props['notificationEmail']}. The EC2 instance will now be stopped.\"
+aws sns publish --topic-arn {snsTopic.ref} --message \"$MESSAGE\" --region {Stack.of(self).region}
 
-          echo "Shutting down the EC2 instance"
-          shutdown -h now
+echo \"Shutting down the EC2 instance\"
+shutdown -h now
 
-          exit 0
-          """),
+exit 0
+"""),
         )
     receiverInstance.add_dependency(instanceSecurityGroup)
     receiverInstance.add_dependency(generalInstanceProfile)
