@@ -57,28 +57,6 @@ Differences found:
       }
     }
 
-- Missing key: Mappings
-  Expected:
-    {
-      "RegionToAMI": {
-        "ap-southeast-1": {
-          "AMI": "ami-0c802847a7dd848c0"
-        },
-        "eu-west-1": {
-          "AMI": "ami-0c9c942bd7bf113a2"
-        },
-        "us-east-1": {
-          "AMI": "ami-0c02fb55956c7d316"
-        },
-        "us-east-2": {
-          "AMI": "ami-0900fe555666598a2"
-        },
-        "us-west-2": {
-          "AMI": "ami-008fe2fc65df48dac"
-        }
-      }
-    }
-
 - Missing key: Parameters
   Expected:
     {
@@ -133,19 +111,13 @@ Differences found:
       }
     }
 
-Value mismatch at Resources.MyApp.Properties.ImageId:
+Value mismatch at Resources.MyApp.Properties.ImageId.Fn::FindInMap[1]:
   Expected:
     {
-      "Fn::FindInMap": [
-        "RegionToAMI",
-        {
-          "Ref": "AWS::Region"
-        },
-        "AMI"
-      ]
+      "Ref": "AWS::Region"
     }
   Actual:
-    "ami-0c02fb55956c7d316"
+    "us-east-1"
 
 - Missing key: Resources.MyApp.Properties.SecurityGroups[0].Fn::If
   Expected:

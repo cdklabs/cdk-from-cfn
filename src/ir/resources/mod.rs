@@ -52,6 +52,66 @@ pub enum ResourceIr {
     Cidr(Box<ResourceIr>, Box<ResourceIr>, Box<ResourceIr>),
 }
 
+impl ResourceIr {
+    /// Whether a `Fn::FindInMap` lookup with these keys can only be resolved at deploy time, because
+    /// at least one key is a token (for example `AWS::Region`, a resource attribute or a
+    /// `CfnParameter`). Literal strings and plain parameters, which become props, are known when
+    /// the CDK app runs.
+    pub fn is_deploy_time_lookup(
+        top_level_key: &ResourceIr,
+        second_level_key: &ResourceIr,
+    ) -> bool {
+        fn is_synth_time(key: &ResourceIr) -> bool {
+            matches!(
+                key,
+                ResourceIr::String(_)
+                    | ResourceIr::Ref(Reference {
+                        origin: Origin::Parameter,
+                        ..
+                    })
+            )
+        }
+        !(is_synth_time(top_level_key) && is_synth_time(second_level_key))
+    }
+
+    /// Whether this value contains a deploy-time lookup into the named mapping.
+    pub fn has_deploy_time_lookup(&self, mapping: &str) -> bool {
+        match self {
+            Self::Map(name, tlk, slk) => {
+                (name == mapping && Self::is_deploy_time_lookup(tlk, slk))
+                    || tlk.has_deploy_time_lookup(mapping)
+                    || slk.has_deploy_time_lookup(mapping)
+            }
+            Self::Array(_, list) | Self::Join(_, list) | Self::Sub(list) => {
+                list.iter().any(|val| val.has_deploy_time_lookup(mapping))
+            }
+            Self::Object(_, props) => props
+                .values()
+                .any(|val| val.has_deploy_time_lookup(mapping)),
+            Self::If(_, when_true, when_false) => {
+                when_true.has_deploy_time_lookup(mapping)
+                    || when_false.has_deploy_time_lookup(mapping)
+            }
+            Self::Cidr(range, count, mask) => {
+                range.has_deploy_time_lookup(mapping)
+                    || count.has_deploy_time_lookup(mapping)
+                    || mask.has_deploy_time_lookup(mapping)
+            }
+            Self::Split(_, val)
+            | Self::Base64(val)
+            | Self::ImportValue(val)
+            | Self::GetAZs(val)
+            | Self::Select(_, val) => val.has_deploy_time_lookup(mapping),
+            Self::Null
+            | Self::Bool(_)
+            | Self::Number(_)
+            | Self::Double(_)
+            | Self::String(_)
+            | Self::Ref(_) => false,
+        }
+    }
+}
+
 // ResourceTranslationInputs is a place to store all the intermediate recursion
 // for resource types.
 #[derive(Clone)]

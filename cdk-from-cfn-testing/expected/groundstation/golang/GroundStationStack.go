@@ -87,6 +87,13 @@ func NewGroundStationStack(scope constructs.Construct, id string, props *GroundS
 	}
 	stack := cdk.NewStack(scope, &id, &sprops)
 
+	amiMapCfnMapping := cdk.NewCfnMapping(stack, jsii.String("AmiMap"), nil)
+	for topLevelKey, values := range amiMap {
+		for secondLevelKey, value := range values {
+			amiMapCfnMapping.SetValue(topLevelKey, secondLevelKey, value)
+		}
+	}
+
 	stack.AddTransform(jsii.String("AWS::Serverless-2016-10-31"))
 
 	groundStationS3DataDeliveryBucket := s3.NewCfnBucket(
@@ -445,7 +452,7 @@ func NewGroundStationStack(scope constructs.Construct, id string, props *GroundS
 		&ec2.CfnInstanceProps{
 			DisableApiTermination: jsii.Bool(false),
 			IamInstanceProfile: generalInstanceProfile.Ref(),
-			ImageId: amiMap[stack.Region()][jsii.String("ami")],
+			ImageId: amiMapCfnMapping.FindInMap(stack.Region(), jsii.String("ami"), nil),
 			InstanceType: jsii.String("c5.4xlarge"),
 			KeyName: props.SshKeyName,
 			Monitoring: jsii.Bool(true),

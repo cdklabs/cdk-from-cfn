@@ -243,6 +243,38 @@ impl Synthesizer for Golang<'_> {
         }
         ctor.newline();
 
+        for mapping in &ir.mappings {
+            if !ir.has_deploy_time_lookup(&mapping.name) {
+                continue;
+            }
+            let scope_var = match class_type {
+                ClassType::Stack => "stack",
+                ClassType::Construct => "construct",
+            };
+            let var = golang_identifier(&mapping.name, IdentifierKind::Unexported);
+            ctor.line(format!(
+                "{var}CfnMapping := cdk.NewCfnMapping({scope_var}, jsii.String({:?}), nil)",
+                mapping.name
+            ));
+            let outer = ctor.indent_with_options(IndentOptions {
+                indent: INDENT,
+                leading: Some(format!("for topLevelKey, values := range {var} {{").into()),
+                trailing: Some("}".into()),
+                trailing_newline: true,
+            });
+            outer
+                .indent_with_options(IndentOptions {
+                    indent: INDENT,
+                    leading: Some("for secondLevelKey, value := range values {".into()),
+                    trailing: Some("}".into()),
+                    trailing_newline: true,
+                })
+                .line(format!(
+                    "{var}CfnMapping.SetValue(topLevelKey, secondLevelKey, value)"
+                ));
+            ctor.newline();
+        }
+
         if !ir.transforms.is_empty() {
             for transform in &ir.transforms {
                 ctor.line(class_type.add_transform_call_golang(transform));
@@ -1046,6 +1078,16 @@ impl GolangEmitter for ResourceIr {
                 for item in list {
                     item.emit_golang(context, &items, Some(","))?;
                 }
+            }
+            Self::Map(table, tlk, slk) if ResourceIr::is_deploy_time_lookup(tlk, slk) => {
+                output.text(format!(
+                    "{}CfnMapping.FindInMap(",
+                    golang_identifier(table, IdentifierKind::Unexported)
+                ));
+                tlk.emit_golang(context, output, None)?;
+                output.text(", ");
+                slk.emit_golang(context, output, None)?;
+                output.text(", nil)");
             }
             Self::Map(table, tlk, slk) => {
                 output.text(format!(

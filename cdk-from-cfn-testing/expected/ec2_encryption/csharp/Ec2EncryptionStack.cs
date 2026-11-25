@@ -46,6 +46,8 @@ namespace Ec2EncryptionStack
                 ["ap-southeast-1"] = new Dictionary<string, string> {["AMI"] = "ami-0c802847a7dd848c0", },
                 ["us-east-2"] = new Dictionary<string, string> {["AMI"] = "ami-0900fe555666598a2", },
             };
+            var regionToAmiCfnMapping = new CfnMapping(this, "RegionToAMI");
+            foreach (var entry in regionToAmi) foreach (var item in entry.Value) regionToAmiCfnMapping.SetValue(entry.Key, item.Key, item.Value);
 
             // Conditions
             bool hasDatabase = props.DatabaseType == "mysql";
@@ -65,7 +67,7 @@ namespace Ec2EncryptionStack
             });
             var myApp = new CfnInstance(this, "MyApp", new CfnInstanceProps
             {
-                ImageId = regionToAmi[Region]["AMI"],
+                ImageId = regionToAmiCfnMapping.FindInMap(Region, "AMI"),
                 InstanceType = "t3.micro",
                 Tags = new []
                 {

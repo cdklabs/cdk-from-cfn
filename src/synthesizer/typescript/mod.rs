@@ -278,7 +278,7 @@ impl Synthesizer for Typescript {
             }
         }
 
-        emit_mappings(&ctor, &ir.mappings);
+        emit_mappings(&ctor, &ir);
 
         if !ir.conditions.is_empty() {
             ctor.newline();
@@ -787,6 +787,13 @@ fn emit_resource_ir(
                 emit_resource_ir(context, &items, item, Some(",\n"));
             }
         }
+        ResourceIr::Map(name, tlk, slk) if ResourceIr::is_deploy_time_lookup(tlk, slk) => {
+            output.text(format!("{}CfnMapping.findInMap(", pretty_name(name)));
+            emit_resource_ir(context, output, tlk, None);
+            output.text(", ");
+            emit_resource_ir(context, output, slk, None);
+            output.text(")")
+        }
         ResourceIr::Map(name, tlk, slk) => {
             output.text(format!("{}[", pretty_name(name)));
             emit_resource_ir(context, output, tlk, None);
@@ -855,15 +862,15 @@ fn escape_template_literal(text: &str) -> String {
         .replace('\r', "\\r")
 }
 
-fn emit_mappings(output: &CodeBuffer, mappings: &[MappingInstruction]) {
-    if mappings.is_empty() {
+fn emit_mappings(output: &CodeBuffer, ir: &CloudformationProgramIr) {
+    if ir.mappings.is_empty() {
         return;
     }
 
     output.newline();
     output.line("// Mappings");
 
-    for mapping in mappings {
+    for mapping in &ir.mappings {
         let item_type = match mapping.output_type() {
             OutputType::Consistent(inner_type) => match inner_type {
                 MappingInnerValue::Number(_) | MappingInnerValue::Float(_) => "number",
@@ -874,7 +881,7 @@ fn emit_mappings(output: &CodeBuffer, mappings: &[MappingInstruction]) {
             OutputType::Complex => "any",
         };
 
-        let output = output.indent_with_options(IndentOptions {
+        let table = output.indent_with_options(IndentOptions {
             indent: INDENT,
             leading: Some(
                 format!(
@@ -887,7 +894,15 @@ fn emit_mappings(output: &CodeBuffer, mappings: &[MappingInstruction]) {
             trailing_newline: true,
         });
 
-        emit_mapping_instruction(output, mapping);
+        emit_mapping_instruction(table, mapping);
+
+        if ir.has_deploy_time_lookup(&mapping.name) {
+            output.line(format!(
+                "const {var}CfnMapping = new cdk.CfnMapping(this, '{name}', {{ mapping: {var} }});",
+                name = mapping.name.escape_debug(),
+                var = pretty_name(&mapping.name)
+            ));
+        }
     }
 }
 

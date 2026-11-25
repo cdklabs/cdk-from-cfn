@@ -82,6 +82,7 @@ class GroundStationStack(Stack):
         'ami': 'ami-0c5cdf1548242305d',
       },
     }
+    amiMapCfnMapping = cdk.CfnMapping(self, 'AmiMap', mapping=amiMap)
 
     # Resources
     groundStationS3DataDeliveryBucket = s3.CfnBucket(self, 'GroundStationS3DataDeliveryBucket',
@@ -379,7 +380,7 @@ class GroundStationStack(Stack):
     receiverInstance = ec2.CfnInstance(self, 'ReceiverInstance',
           disable_api_termination = False,
           iam_instance_profile = generalInstanceProfile.ref,
-          image_id = amiMap[self.region]['ami'],
+          image_id = amiMapCfnMapping.find_in_map(self.region, 'ami'),
           instance_type = 'c5.4xlarge',
           key_name = props['sshKeyName'],
           monitoring = True,
