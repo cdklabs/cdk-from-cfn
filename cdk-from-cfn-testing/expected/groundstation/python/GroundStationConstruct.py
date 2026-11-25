@@ -27,17 +27,17 @@ class GroundStationConstruct(Construct):
         type = 'AWS::EC2::KeyPair::KeyName',
         default = str(kwargs.get('sshKeyName', '')),
         description = 'Name of the ssh key used to access ec2 hosts. Set this up ahead of time.',
-      ),
+      ).value_as_string,
       'vpcId': cdk.CfnParameter(self, 'VpcId', 
         type = 'AWS::EC2::VPC::Id',
         default = str(kwargs.get('vpcId', '')),
         description = 'VPC to launch instances in.',
-      ),
+      ).value_as_string,
       'subnetId': cdk.CfnParameter(self, 'SubnetId', 
         type = 'AWS::EC2::Subnet::Id',
         default = str(kwargs.get('subnetId', '')),
         description = 'Subnet to launch instances in',
-      ),
+      ).value_as_string,
     }
 
     # Transforms

@@ -174,6 +174,8 @@ macro_rules! skip {
 }
 
 impl SkipSynthList {
+    const I615_ALL_NUMBER_TO_STRING_COALESCING: Issue =
+        Issue::new(615, "numbers passed where strings are expected");
     const I626_GO_COMPILATION: Issue =
         Issue::new(626, "Go is an approximation at best. It does not compile");
     const I1022_CSHARP_MISSING_OUTPUTS: Issue = Issue::new(1022, "missing outputs section");
@@ -196,10 +198,6 @@ impl SkipSynthList {
     const I1029_JAVA_NAMING_COLLISION: Issue = Issue::new(
         1029,
         "parameter sharing name with condition causes conflict",
-    );
-    const I1153_TYPESCRIPT_FIND_IN_MAP_TOKEN_KEY: Issue = Issue::new(
-        1153,
-        "Fn::FindInMap with a token key is looked up at synth time",
     );
 
     /// Returns the skip list for a specific test case.
@@ -252,10 +250,10 @@ impl SkipSynthList {
                 skip!(Language::CSHARP, Self::I1028_ALL_SPECIAL_CHARACTER_HANDLING),
                 skip!(Language::GOLANG, Self::I1028_ALL_SPECIAL_CHARACTER_HANDLING),
                 skip!(Language::JAVA, Self::I1028_ALL_SPECIAL_CHARACTER_HANDLING),
-                skip!(Language::PYTHON, Self::I1028_ALL_SPECIAL_CHARACTER_HANDLING),
+                skip!(Language::PYTHON, Self::I615_ALL_NUMBER_TO_STRING_COALESCING),
                 skip!(
                     Language::TYPESCRIPT,
-                    Self::I1153_TYPESCRIPT_FIND_IN_MAP_TOKEN_KEY
+                    Self::I615_ALL_NUMBER_TO_STRING_COALESCING
                 ),
             ],
             TestName::ResourceWJsonTypeProperties => {

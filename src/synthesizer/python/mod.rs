@@ -118,9 +118,20 @@ impl Synthesizer for Python {
             });
             for param in have_default_or_special_type_params {
                 let name = &param.name;
-                if param.constructor_type.contains("AWS::")
-                    || param.no_echo.as_ref().is_some_and(|x| x == "true")
-                {
+                let no_echo = param
+                    .no_echo
+                    .as_ref()
+                    .is_some_and(|x| x.eq_ignore_ascii_case("true"));
+                if param.constructor_type.contains("AWS::") || no_echo {
+                    // References to NoEcho parameters already add `.value_as_string`,
+                    // so only the other CfnParameters are unwrapped here.
+                    let trailing = if no_echo {
+                        "),"
+                    } else if param.constructor_type.contains("List") {
+                        ").value_as_list,"
+                    } else {
+                        ").value_as_string,"
+                    };
                     let cfn_param = obj.indent_with_options(IndentOptions {
                         indent: INDENT,
                         leading: Some(
@@ -130,7 +141,7 @@ impl Synthesizer for Python {
                             )
                             .into(),
                         ),
-                        trailing: Some("),".into()),
+                        trailing: Some(trailing.into()),
                         trailing_newline: true,
                     });
                     cfn_param.line(format!("type = '{}',", param.constructor_type));

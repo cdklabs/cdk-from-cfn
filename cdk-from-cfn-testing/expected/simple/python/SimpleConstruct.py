@@ -19,7 +19,7 @@ class SimpleConstruct(Construct):
       'logDestinationBucketName': cdk.CfnParameter(self, 'LogDestinationBucketName', 
         type = 'AWS::SSM::Parameter::Value<String>',
         default = str(kwargs.get('logDestinationBucketName', '/logging/bucket/name')),
-      ),
+      ).value_as_string,
       'numberParam': kwargs.get('numberParam', 42),
     }
 
