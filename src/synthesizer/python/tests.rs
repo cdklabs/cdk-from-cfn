@@ -568,3 +568,196 @@ fn test_not_equals_with_parameter_reference() {
         "Should reference the parameter through props, got:\n{code}"
     );
 }
+
+const SUB_SPECIAL_CHARACTERS_TEMPLATE: &str = r##"{
+    "Resources": {
+        "Topic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "DisplayName": {
+                    "Fn::Sub": "#!/bin/bash\n\necho {} \\$(id) ${!Literal} ${AWS::Region}\n  indented \"quoted\""
+                }
+            }
+        }
+    }
+}"##;
+
+#[test]
+fn test_sub_string_keeps_special_characters_and_line_starts() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(SUB_SPECIAL_CHARACTERS_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains(
+            "f\"\"\"#!/bin/bash\n\necho {{}} \\\\$(id) ${{Literal}} {self.region}\n  indented \\\"quoted\\\"\"\"\""
+        ),
+        "unexpected output:\n{code}"
+    );
+}
+
+const SUB_WITH_VARIABLES_TEMPLATE: &str = r##"{
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue"
+        },
+        "Topic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "DisplayName": {
+                    "Fn::Sub": [
+                        "line1\r\n${QueueArn}\r\n",
+                        { "QueueArn": { "Fn::GetAtt": ["Queue", "Arn"] } }
+                    ]
+                }
+            }
+        }
+    }
+}"##;
+
+#[test]
+fn test_sub_string_with_variables_keeps_carriage_returns() {
+    let cfn: CloudformationParseTree = serde_json::from_str(SUB_WITH_VARIABLES_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("f\"\"\"line1\\r\n{queue.attr_arn}\\r\n\"\"\""),
+        "unexpected output:\n{code}"
+    );
+}
+
+const AWS_TYPED_PARAMETERS_TEMPLATE: &str = r#"{
+    "Parameters": {
+        "VpcId": { "Type": "AWS::EC2::VPC::Id", "Description": "vpc" },
+        "SubnetIds": { "Type": "List<AWS::EC2::Subnet::Id>", "Description": "subnets" }
+    },
+    "Resources": {
+        "SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "test",
+                "VpcId": { "Ref": "VpcId" }
+            }
+        },
+        "SubnetGroup": {
+            "Type": "AWS::RDS::DBSubnetGroup",
+            "Properties": {
+                "DBSubnetGroupDescription": "test",
+                "SubnetIds": { "Ref": "SubnetIds" }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_aws_typed_parameters_are_unwrapped() {
+    let cfn: CloudformationParseTree = serde_json::from_str(AWS_TYPED_PARAMETERS_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("description = 'vpc',\n      ).value_as_string,"),
+        "unexpected output:\n{code}"
+    );
+    assert!(
+        code.contains("description = 'subnets',\n      ).value_as_list,"),
+        "unexpected output:\n{code}"
+    );
+    assert!(
+        code.contains("vpc_id = props['vpcId'],"),
+        "unexpected output:\n{code}"
+    );
+    assert!(
+        code.contains("subnet_ids = props['subnetIds'],"),
+        "unexpected output:\n{code}"
+    );
+}
+
+const AWS_TYPED_NO_ECHO_PARAMETER_TEMPLATE: &str = r#"{
+    "Parameters": {
+        "TopicName": {
+            "Type": "AWS::SSM::Parameter::Value<String>",
+            "NoEcho": "True"
+        }
+    },
+    "Resources": {
+        "Topic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "TopicName": { "Ref": "TopicName" }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_aws_typed_no_echo_parameter_is_unwrapped_once() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(AWS_TYPED_NO_ECHO_PARAMETER_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("topic_name = props['topicName'].value_as_string,"),
+        "unexpected output:\n{code}"
+    );
+    assert_eq!(
+        code.matches(".value_as_string").count(),
+        1,
+        "unexpected output:\n{code}"
+    );
+}
+
+const NO_ECHO_STRING_PARAMETER_TEMPLATE: &str = r#"{
+    "Parameters": {
+        "TopicName": { "Type": "String", "NoEcho": "True", "Default": "abc" }
+    },
+    "Resources": {
+        "Topic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "TopicName": { "Ref": "TopicName" }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_no_echo_string_parameter_is_a_cfn_parameter() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(NO_ECHO_STRING_PARAMETER_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("'topicName': cdk.CfnParameter(self, 'TopicName',"),
+        "unexpected output:\n{code}"
+    );
+    assert_eq!(
+        code.matches(".value_as_string").count(),
+        1,
+        "unexpected output:\n{code}"
+    );
+}

@@ -118,9 +118,20 @@ impl Synthesizer for Python {
             });
             for param in have_default_or_special_type_params {
                 let name = &param.name;
-                if param.constructor_type.contains("AWS::")
-                    || param.no_echo.as_ref().is_some_and(|x| x == "true")
-                {
+                let no_echo = param
+                    .no_echo
+                    .as_ref()
+                    .is_some_and(|x| x.eq_ignore_ascii_case("true"));
+                if param.constructor_type.contains("AWS::") || no_echo {
+                    // References to NoEcho parameters already add `.value_as_string`,
+                    // so only the other CfnParameters are unwrapped here.
+                    let trailing = if no_echo {
+                        "),"
+                    } else if param.constructor_type.contains("List") {
+                        ").value_as_list,"
+                    } else {
+                        ").value_as_string,"
+                    };
                     let cfn_param = obj.indent_with_options(IndentOptions {
                         indent: INDENT,
                         leading: Some(
@@ -130,7 +141,7 @@ impl Synthesizer for Python {
                             )
                             .into(),
                         ),
-                        trailing: Some("),".into()),
+                        trailing: Some(trailing.into()),
                         trailing_newline: true,
                     });
                     cfn_param.line(format!("type = '{}',", param.constructor_type));
@@ -867,21 +878,20 @@ fn emit_resource_ir(
             }
         },
         ResourceIr::Sub(parts) => {
+            // Everything inside the literal is written raw, so the surrounding
+            // indentation doesn't end up in the string.
             output.text("f\"\"\"");
             for part in parts {
                 match part {
-                    ResourceIr::String(lit) => {
-                        let escaped_lit = lit.replace('{', "{{").replace('}', "}}");
-                        output.text(escaped_lit);
-                    }
+                    ResourceIr::String(lit) => output.raw_text(escape_f_string_literal(lit)),
                     other => {
-                        output.text("{");
+                        output.raw_text("{");
                         emit_resource_ir(context, output, other, None);
-                        output.text("}");
+                        output.raw_text("}");
                     }
                 }
             }
-            output.text("\"\"\"")
+            output.raw_text("\"\"\"")
         }
 
         // References
@@ -890,6 +900,16 @@ fn emit_resource_ir(
     if let Some(trailer) = trailer {
         output.text(trailer.to_owned())
     }
+}
+
+/// Escapes text for the inside of a triple-quoted Python f-string. Every `"` is
+/// escaped so a literal can never end the string early.
+fn escape_f_string_literal(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('{', "{{")
+        .replace('}', "}}")
+        .replace('\r', "\\r")
 }
 
 pub fn capitalize(s: &str) -> String {
