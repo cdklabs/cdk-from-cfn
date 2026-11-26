@@ -141,7 +141,7 @@ class SimpleConstruct(Construct):
     cdk.CfnOutput(self, 'CfnOutputIsLarge', 
       key = 'IsLarge',
       description = 'Whether this is a large region or not',
-      value = str(self.is_large),
+      value = str(self.is_large).lower(),
     )
 
 

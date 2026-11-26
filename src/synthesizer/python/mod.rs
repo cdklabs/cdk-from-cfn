@@ -284,7 +284,21 @@ fn emit_cfn_output(
         output.text("export_name = ");
         emit_resource_ir(context, &output, export, Some(",\n"));
     }
-    output.line(format!("value = str(self.{var_name}),"));
+    // str() spells booleans `True` and `False`, but CloudFormation and the TypeScript output use
+    // `true` and `false`. Other values can be tokens, which must not be lowercased.
+    if is_boolean(&op.value) {
+        output.line(format!("value = str(self.{var_name}).lower(),"));
+    } else {
+        output.line(format!("value = str(self.{var_name}),"));
+    }
+}
+
+fn is_boolean(value: &ResourceIr) -> bool {
+    match value {
+        ResourceIr::Bool(_) => true,
+        ResourceIr::If(_, if_true, if_false) => is_boolean(if_true) && is_boolean(if_false),
+        _ => false,
+    }
 }
 
 impl ImportInstruction {
