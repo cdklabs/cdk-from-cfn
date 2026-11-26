@@ -761,3 +761,52 @@ fn test_no_echo_string_parameter_is_a_cfn_parameter() {
         "unexpected output:\n{code}"
     );
 }
+
+// --- Output Tests ---
+
+const BOOLEAN_OUTPUTS_TEMPLATE: &str = r#"{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Conditions": {
+        "IsUsEast1": { "Fn::Equals": [{ "Ref": "AWS::Region" }, "us-east-1"] }
+    },
+    "Resources": {
+        "Queue": { "Type": "AWS::SQS::Queue" }
+    },
+    "Outputs": {
+        "IsLarge": { "Value": { "Fn::If": ["IsUsEast1", true, false] } },
+        "Enabled": { "Value": true },
+        "EnabledInUsEast1": { "Condition": "IsUsEast1", "Value": true },
+        "Mixed": { "Value": { "Fn::If": ["IsUsEast1", true, { "Ref": "AWS::Region" }] } },
+        "QueueName": { "Value": { "Fn::GetAtt": ["Queue", "QueueName"] } }
+    }
+}"#;
+
+#[test]
+fn test_boolean_outputs_are_lowercase_strings() {
+    let cfn: CloudformationParseTree = serde_json::from_str(BOOLEAN_OUTPUTS_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("value = str(self.is_large).lower(),"),
+        "got:\n{code}"
+    );
+    assert!(
+        code.contains("value = str(self.enabled).lower(),"),
+        "got:\n{code}"
+    );
+    assert!(
+        code.contains("value = str(self.enabled_in_us_east1).lower(),"),
+        "got:\n{code}"
+    );
+    // Only values that are always booleans are lowercased: the other values can be tokens.
+    assert!(code.contains("value = str(self.mixed),"), "got:\n{code}");
+    assert!(
+        code.contains("value = str(self.queue_name),"),
+        "got:\n{code}"
+    );
+}

@@ -183,10 +183,6 @@ impl SkipSynthList {
         1023,
         "missing cfn options: metadata, dependencies, update policy, and deletion policy",
     );
-    const I1025_PYTHON_PARAMETER_CASING: Issue = Issue::new(
-        1025,
-        "parameter casing issue - camelCase instead of PascalCase",
-    );
     const I1026_JAVA_MAPPING_CASING: Issue =
         Issue::new(1026, "mapping key casing - camelCase instead of PascalCase");
     const I1027_CSHARP_LAMBDA_SPACING: Issue =
@@ -268,7 +264,6 @@ impl SkipSynthList {
             TestName::Simple => vec![
                 skip!(Language::CSHARP, Self::I1023_CSHARP_MISSING_CFN_OPTIONS),
                 skip!(Language::JAVA, Self::I1026_JAVA_MAPPING_CASING),
-                skip!(Language::PYTHON, Self::I1025_PYTHON_PARAMETER_CASING),
                 skip!(Language::GOLANG, Self::I626_GO_COMPILATION),
             ],
             TestName::CustomResource => {
