@@ -416,3 +416,182 @@ fn name_option_conflicts_with_deprecated_stack_name() {
         error
     );
 }
+
+const CDK_DEPLOYED_TEMPLATE: &str = r#"{
+    "Parameters": {
+        "BootstrapVersion": {
+            "Type": "AWS::SSM::Parameter::Value<String>",
+            "Default": "/cdk-bootstrap/hnb659fds/version",
+            "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+        }
+    },
+    "Conditions": {
+        "CDKMetadataAvailable": {
+            "Fn::Or": [
+                { "Fn::Equals": [{ "Ref": "AWS::Region" }, "us-east-1"] },
+                { "Fn::Equals": [{ "Ref": "AWS::Region" }, "us-west-2"] }
+            ]
+        }
+    },
+    "Resources": {
+        "AppQueueFD3F4958": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "VisibilityTimeout": 300
+            },
+            "Metadata": {
+                "aws:cdk:path": "AppStack/AppQueue/Resource"
+            }
+        },
+        "CustomMetaQueue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "VisibilityTimeout": 60
+            },
+            "Metadata": {
+                "aws:cdk:path": "AppStack/CustomMetaQueue/Resource",
+                "Owner": "platform"
+            }
+        },
+        "CDKMetadata": {
+            "Type": "AWS::CDK::Metadata",
+            "Properties": {
+                "Analytics": "v2:deflate64:H4sIAAAAAAAA/zPSMzQ10DNQ"
+            },
+            "Metadata": {
+                "aws:cdk:path": "AppStack/CDKMetadata/Default"
+            },
+            "Condition": "CDKMetadataAvailable"
+        }
+    },
+    "Rules": {
+        "CheckBootstrapVersion": {
+            "Assertions": [
+                {
+                    "Assert": {
+                        "Fn::Not": [
+                            {
+                                "Fn::Contains": [
+                                    ["1", "2", "3", "4", "5"],
+                                    { "Ref": "BootstrapVersion" }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+}"#;
+
+/// Test that CDK-generated elements are skipped cleanly and logged to stderr
+#[test]
+fn cli_skips_cdk_generated_elements_and_logs_messages() {
+    let (exit_code, stdout, stderr) = run_cli_with_args(
+        bin(),
+        &["-", "--language", "typescript", "--name", "AppStack"],
+        Some(CDK_DEPLOYED_TEMPLATE),
+    );
+
+    assert_eq!(exit_code, Some(0), "CLI should exit successfully");
+
+    let output = String::from_utf8(stdout).expect("Output should be valid UTF-8");
+    assert!(
+        output.contains("AppQueueFD3F4958"),
+        "User resource should be generated. Output:\n{}",
+        output
+    );
+    assert!(
+        output.contains("Owner: 'platform'"),
+        "User metadata should be preserved when aws:cdk:path is stripped. Output:\n{}",
+        output
+    );
+    for omitted in [
+        "CDKMetadata",
+        "AWS::CDK::Metadata",
+        "CDKMetadataAvailable",
+        "cdkMetadataAvailable",
+        "aws:cdk:path",
+        "BootstrapVersion",
+        "bootstrapVersion",
+        "CheckBootstrapVersion",
+    ] {
+        assert!(
+            !output.contains(omitted),
+            "Generated output must omit {omitted}. Output:\n{}",
+            output
+        );
+    }
+
+    // Verify AppQueueFD3F4958 specifically has no empty cfnOptions.metadata block
+    assert!(
+        !output.contains("appQueueFd3f4958.cfnOptions.metadata"),
+        "Resource with only aws:cdk:path must not emit empty metadata. Output:\n{}",
+        output
+    );
+
+    let stderr_str = String::from_utf8(stderr).expect("Stderr should be valid UTF-8");
+    for expected in [
+        "AWS::CDK::Metadata",
+        "CDKMetadata",
+        "CDKMetadataAvailable",
+        "aws:cdk:path",
+        "BootstrapVersion",
+        "CheckBootstrapVersion",
+    ] {
+        assert!(
+            stderr_str.contains(expected),
+            "Stderr should report skipping {expected}. Stderr:\n{}",
+            stderr_str
+        );
+    }
+}
+
+/// Test that YAML CDK-deployed templates with short tags in Rules are handled cleanly
+#[test]
+fn cli_skips_cdk_generated_elements_in_yaml_template() {
+    let yaml = r#"
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment. [cdk:skip]
+Resources:
+  AppQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      aws:cdk:path: AppStack/AppQueue/Resource
+    Properties:
+      VisibilityTimeout: 300
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:abc
+Rules:
+  CheckBootstrapVersion:
+    Assertions:
+      - Assert: !Not [!Contains [["1", "2", "3"], !Ref BootstrapVersion]]
+        AssertDescription: CDK bootstrap stack version 4 required.
+"#;
+
+    let (exit_code, stdout, stderr) = run_cli_with_args(
+        bin(),
+        &["-", "--language", "typescript", "--name", "YamlStack"],
+        Some(yaml),
+    );
+
+    assert_eq!(exit_code, Some(0), "CLI should exit successfully");
+
+    let output = String::from_utf8(stdout).expect("Output should be valid UTF-8");
+    assert!(output.contains("AppQueue"));
+    assert!(!output.contains("CDKMetadata"));
+    assert!(!output.contains("aws:cdk:path"));
+    assert!(!output.contains("BootstrapVersion"));
+    assert!(!output.contains("bootstrapVersion"));
+
+    let stderr_str = String::from_utf8(stderr).expect("Stderr should be valid UTF-8");
+    assert!(stderr_str.contains("BootstrapVersion"));
+    assert!(stderr_str.contains("CheckBootstrapVersion"));
+    assert!(stderr_str.contains("AWS::CDK::Metadata"));
+    assert!(stderr_str.contains("aws:cdk:path"));
+}
