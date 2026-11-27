@@ -459,7 +459,7 @@ func NewGroundStationStack(scope constructs.Construct, id string, props *GroundS
 			NetworkInterfaces: &[]interface{}{
 				&NetworkInterfaceProperty{
 					NetworkInterfaceId: receiverInstanceNetworkInterfacePublic.Ref(),
-					DeviceIndex: jsii.Number(0),
+					DeviceIndex: jsii.String("0"),
 					DeleteOnTermination: jsii.Bool(false),
 				},
 			},

@@ -387,7 +387,7 @@ class GroundStationStack(Stack):
           network_interfaces = [
             {
               'networkInterfaceId': receiverInstanceNetworkInterfacePublic.ref,
-              'deviceIndex': 0,
+              'deviceIndex': '0',
               'deleteOnTermination': False,
             },
           ],

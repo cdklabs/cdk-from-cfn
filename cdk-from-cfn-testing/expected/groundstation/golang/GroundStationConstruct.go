@@ -454,7 +454,7 @@ func NewGroundStationConstruct(scope constructs.Construct, id string, props *Gro
 			NetworkInterfaces: &[]interface{}{
 				&NetworkInterfaceProperty{
 					NetworkInterfaceId: receiverInstanceNetworkInterfacePublic.Ref(),
-					DeviceIndex: jsii.Number(0),
+					DeviceIndex: jsii.String("0"),
 					DeleteOnTermination: jsii.Bool(false),
 				},
 			},
