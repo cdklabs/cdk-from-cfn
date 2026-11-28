@@ -900,3 +900,62 @@ fn test_cfn_parameter_keeps_logical_id() {
         "unexpected output:\n{code}"
     );
 }
+
+fn rendered(output: CodeBuffer) -> String {
+    let mut bytes = Vec::new();
+    output.write(&mut bytes).unwrap();
+    String::from_utf8(bytes).unwrap()
+}
+
+#[test]
+fn test_resource_ir_string_escapes_quotes_and_backslashes() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::String(r#"say "hi" C:\temp"#.into());
+    resource_ir
+        .emit_csharp(&output, &schema, ClassType::Stack)
+        .unwrap();
+    assert_eq!(rendered(output), r#""say \"hi\" C:\\temp""#);
+}
+
+#[test]
+fn test_resource_ir_multiline_string_doubles_quotes() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::String("echo \"a\"\necho b".into());
+    resource_ir
+        .emit_csharp(&output, &schema, ClassType::Stack)
+        .unwrap();
+    assert_eq!(rendered(output), "@\"echo \"\"a\"\"\necho b\"");
+}
+
+#[test]
+fn test_resource_ir_sub_escapes_literals() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    let resource_ir = ResourceIr::Sub(vec![ResourceIr::String("{\"k\": \"v\"}\nnext".into())]);
+    resource_ir
+        .emit_csharp(&output, &schema, ClassType::Stack)
+        .unwrap();
+    assert_eq!(rendered(output), r#"$"{{\"k\": \"v\"}}\nnext""#);
+}
+
+#[test]
+fn test_condition_ir_str_escapes_quotes() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    ConditionIr::Str(r#"a"b"#.into()).emit_csharp(&output, &schema, ClassType::Stack);
+    assert_eq!(rendered(output), r#""a\"b""#);
+}
+
+#[test]
+fn test_condition_ir_split_emits_a_string_literal() {
+    let output = CodeBuffer::default();
+    let schema = Cow::Borrowed(Schema::builtin());
+    ConditionIr::Split("-".into(), Box::new(ConditionIr::Str("a-b".into()))).emit_csharp(
+        &output,
+        &schema,
+        ClassType::Stack,
+    );
+    assert_eq!(rendered(output), r#""a-b".Split('-')"#);
+}

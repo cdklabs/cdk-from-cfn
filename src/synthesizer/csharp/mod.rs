@@ -216,7 +216,7 @@ impl Synthesizer for CSharp<'_> {
                         ));
                     };
                     if let Some(v) = &param.description {
-                        cfn_param.line(format!("Description = \"{v}\","));
+                        cfn_param.line(format!("Description = \"{}\",", escape_csharp_string(v)));
                     };
                     if let Some(v) = &param.no_echo {
                         cfn_param.line(format!("NoEcho = {v},"));
@@ -288,22 +288,33 @@ impl Synthesizer for CSharp<'_> {
 
             for (key, inner) in &mapping.map {
                 map.text(format!(
-                    "[\"{key}\"] = new Dictionary<string, {leaf_type}> {{"
+                    "[\"{key}\"] = new Dictionary<string, {leaf_type}> {{",
+                    key = escape_csharp_string(key)
                 ));
                 for (inner_key, inner_value) in inner {
                     match inner_value {
                         MappingInnerValue::Bool(_)
                         | MappingInnerValue::Float(_)
                         | MappingInnerValue::Number(_) => {
-                            map.text(format!("[\"{inner_key}\"] = {inner_value}, "));
+                            map.text(format!(
+                                "[\"{}\"] = {inner_value}, ",
+                                escape_csharp_string(inner_key)
+                            ));
                         }
                         MappingInnerValue::String(s) => {
-                            map.text(format!("[\"{inner_key}\"] = \"{s}\", "));
+                            map.text(format!(
+                                "[\"{}\"] = \"{}\", ",
+                                escape_csharp_string(inner_key),
+                                escape_csharp_string(s)
+                            ));
                         }
                         MappingInnerValue::List(l) => {
-                            map.text(format!("[\"{inner_key}\"] = new string[] {{"));
+                            map.text(format!(
+                                "[\"{}\"] = new string[] {{",
+                                escape_csharp_string(inner_key)
+                            ));
                             for list_item in l {
-                                map.text(format!("\"{list_item}\", "));
+                                map.text(format!("\"{}\", ", escape_csharp_string(list_item)));
                             }
                             map.text("}, ");
                         }
@@ -517,7 +528,7 @@ impl ConditionIr {
     fn emit_csharp(&self, output: &CodeBuffer, _schema: &Schema, class_type: ClassType) {
         match self {
             ConditionIr::Ref(reference) => reference.emit_csharp(output, class_type),
-            ConditionIr::Str(str) => output.text(format!("\"{str}\"")),
+            ConditionIr::Str(str) => output.text(format!("\"{}\"", escape_csharp_string(str))),
             ConditionIr::Condition(condition) => output.text(camel_case(condition)),
 
             ConditionIr::And(list) => {
@@ -558,7 +569,7 @@ impl ConditionIr {
             }
             ConditionIr::Split(sep, str) => match str.as_ref() {
                 ConditionIr::Str(str) => {
-                    output.text(format!("'{str}'", str = str.escape_debug()));
+                    output.text(format!("\"{}\"", escape_csharp_string(str)));
                     output.text(format!(".Split('{sep}')", sep = sep.escape_debug()))
                 }
                 other => {
@@ -650,9 +661,9 @@ impl ResourceIr {
             }
             ResourceIr::String(str) => {
                 if str.lines().count() > 1 {
-                    output.text(format!("@\"{str}\""));
+                    output.text(format!("@\"{}\"", str.replace('"', "\"\"")));
                 } else {
-                    output.text(format!("\"{str}\""));
+                    output.text(format!("\"{}\"", escape_csharp_string(str)));
                 };
                 Ok(())
             }
@@ -715,7 +726,7 @@ impl ResourceIr {
                         trailing_newline: false,
                     });
                     for (name, val) in properties {
-                        object_block.text(format!("{{ \"{name}\", "));
+                        object_block.text(format!("{{ \"{}\", ", escape_csharp_string(name)));
                         val.emit_csharp(&object_block, schema, class_type)?;
                         object_block.text("},");
                         object_block.newline();
@@ -730,7 +741,7 @@ impl ResourceIr {
                         trailing_newline: false,
                     });
                     for (name, val) in properties {
-                        object_block.text(format!("{{ \"{name}\", "));
+                        object_block.text(format!("{{ \"{}\", ", escape_csharp_string(name)));
                         val.emit_csharp(&object_block, schema, class_type)?;
                         object_block.text("},");
                         object_block.newline();
@@ -772,7 +783,7 @@ impl ResourceIr {
             }
             ResourceIr::Split(sep, str) => match str.as_ref() {
                 ResourceIr::String(str) => {
-                    output.text(format!("\"{str}\"", str = str.escape_debug()));
+                    output.text(format!("\"{}\"", escape_csharp_string(str)));
                     output.text(format!(".Split('{sep}')", sep = sep.escape_debug()));
                     Ok(())
                 }
@@ -791,7 +802,11 @@ impl ResourceIr {
                 output.text("$\"");
                 for part in parts {
                     match part {
-                        ResourceIr::String(lit) => output.text(lit.clone()),
+                        ResourceIr::String(lit) => output.text(
+                            escape_csharp_string(lit)
+                                .replace('{', "{{")
+                                .replace('}', "}}"),
+                        ),
                         other => {
                             output.text("{");
                             other.emit_csharp(output, schema, class_type)?;
@@ -950,6 +965,26 @@ impl OutputInstruction {
 
         Ok(())
     }
+}
+
+/// Escapes a string so it can be embedded in a regular C# `"..."` literal.
+///
+/// Unlike `str::escape_debug`, this only produces escape sequences that C#
+/// understands (`escape_debug` writes `\u{..}` for some characters).
+fn escape_csharp_string(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    for c in text.chars() {
+        match c {
+            '\\' => escaped.push_str("\\\\"),
+            '"' => escaped.push_str("\\\""),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            '\t' => escaped.push_str("\\t"),
+            '\0' => escaped.push_str("\\0"),
+            c => escaped.push(c),
+        }
+    }
+    escaped
 }
 
 #[cfg(test)]
