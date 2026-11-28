@@ -239,6 +239,20 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
             }
         }
 
+        // CloudFormation accepts a number or boolean where a string is expected, but the CDK
+        // types don't.
+        if let Some(TypeReference::Primitive(Primitive::String)) = self.value_type {
+            match resource_value {
+                ResourceValue::Bool(b) => return Ok(ResourceIr::String(b.to_string())),
+                ResourceValue::Number(n) => return Ok(ResourceIr::String(n.to_string())),
+                // Debug keeps the fraction of a whole number, so 2.0 stays "2.0".
+                ResourceValue::Double(d) => {
+                    return Ok(ResourceIr::String(format!("{:?}", f64::from(d))))
+                }
+                _ => {}
+            }
+        }
+
         match resource_value {
             ResourceValue::Null => Ok(ResourceIr::Null),
             ResourceValue::Bool(b) => Ok(ResourceIr::Bool(b)),
@@ -497,6 +511,7 @@ impl<'a, 'b> ResourceTranslator<'a, 'b> {
                     } => {
                         let rt = self.with_value_type(TypeReference::Primitive(Primitive::String));
                         let ip_block_str = rt.translate(ip_block)?;
+                        let rt = self.with_value_type(TypeReference::Primitive(Primitive::Number));
                         let count_str = rt.translate(count)?;
                         let cidr_bits_str = rt.translate(cidr_bits)?;
                         Ok(ResourceIr::Cidr(

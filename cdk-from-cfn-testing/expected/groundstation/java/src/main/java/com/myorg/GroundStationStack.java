@@ -316,7 +316,7 @@ class GroundStationStack extends Stack {
                 .networkInterfaces(Arrays.asList(
                         CfnInstance.NetworkInterfaceProperty.builder()
                                 .networkInterfaceId(receiverInstanceNetworkInterfacePublic.getRef())
-                                .deviceIndex(0)
+                                .deviceIndex("0")
                                 .deleteOnTermination(false)
                                 .build()))
                 .blockDeviceMappings(Arrays.asList(

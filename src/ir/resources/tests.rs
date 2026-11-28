@@ -235,6 +235,108 @@ fn test_number_parse_error() {
 }
 
 #[test]
+fn test_scalar_where_string_expected() {
+    let origins = ReferenceOrigins {
+        origins: HashMap::default(),
+    };
+    let translator = ResourceTranslator {
+        schema: Schema::builtin(),
+        origins: &origins,
+        value_type: Some(TypeReference::Primitive(Primitive::String)),
+    };
+    for (resource_value, expected) in [
+        (ResourceValue::Number(0), "0"),
+        (ResourceValue::Number(-8080), "-8080"),
+        (ResourceValue::Double(WrapperF64::new(1.5)), "1.5"),
+        (ResourceValue::Double(WrapperF64::new(2.0)), "2.0"),
+        (ResourceValue::Bool(true), "true"),
+    ] {
+        let result = translator.translate(resource_value).unwrap();
+        assert_eq!(ResourceIr::String(expected.into()), result);
+    }
+}
+
+#[test]
+fn test_scalar_property_where_string_expected() {
+    let origins = ReferenceOrigins {
+        origins: HashMap::default(),
+    };
+    let property_type = TypeReference::Named("AWS::EC2::Instance.NetworkInterface".into());
+    let translator = ResourceTranslator {
+        schema: Schema::builtin(),
+        origins: &origins,
+        value_type: Some(property_type.clone()),
+    };
+    let mut properties = IndexMap::default();
+    properties.insert("DeviceIndex".to_string(), ResourceValue::Number(0));
+    properties.insert(
+        "DeleteOnTermination".to_string(),
+        ResourceValue::Bool(false),
+    );
+
+    let result = translator
+        .translate(ResourceValue::Object(properties))
+        .unwrap();
+
+    let mut expected = IndexMap::default();
+    expected.insert("DeviceIndex".to_string(), ResourceIr::String("0".into()));
+    expected.insert("DeleteOnTermination".to_string(), ResourceIr::Bool(false));
+    assert_eq!(ResourceIr::Object(property_type, expected), result);
+}
+
+#[test]
+fn test_find_in_map_number_key() {
+    let origins = ReferenceOrigins {
+        origins: HashMap::default(),
+    };
+    let translator = ResourceTranslator {
+        schema: Schema::builtin(),
+        origins: &origins,
+        value_type: Some(TypeReference::Primitive(Primitive::String)),
+    };
+    let resource_value = ResourceValue::IntrinsicFunction(Box::new(IntrinsicFunction::FindInMap {
+        map_name: "PortMap".into(),
+        top_level_key: ResourceValue::Number(1),
+        second_level_key: ResourceValue::String("Port".into()),
+    }));
+    let result = translator.translate(resource_value).unwrap();
+    assert_eq!(
+        ResourceIr::Map(
+            "PortMap".into(),
+            Box::new(ResourceIr::String("1".into())),
+            Box::new(ResourceIr::String("Port".into())),
+        ),
+        result
+    );
+}
+
+#[test]
+fn test_cidr_keeps_numbers_where_string_expected() {
+    let origins = ReferenceOrigins {
+        origins: HashMap::default(),
+    };
+    let translator = ResourceTranslator {
+        schema: Schema::builtin(),
+        origins: &origins,
+        value_type: Some(TypeReference::Primitive(Primitive::String)),
+    };
+    let resource_value = ResourceValue::IntrinsicFunction(Box::new(IntrinsicFunction::Cidr {
+        ip_block: ResourceValue::String("10.0.0.0/16".into()),
+        count: ResourceValue::Number(6),
+        cidr_bits: ResourceValue::Number(8),
+    }));
+    let result = translator.translate(resource_value).unwrap();
+    assert_eq!(
+        ResourceIr::Cidr(
+            Box::new(ResourceIr::String("10.0.0.0/16".into())),
+            Box::new(ResourceIr::Number(6)),
+            Box::new(ResourceIr::Number(8)),
+        ),
+        result
+    );
+}
+
+#[test]
 fn test_sub_excess_map_error() {
     let origins = ReferenceOrigins {
         origins: HashMap::default(),

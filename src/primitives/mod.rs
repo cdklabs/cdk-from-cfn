@@ -39,6 +39,12 @@ impl From<f64> for WrapperF64 {
     }
 }
 
+impl From<WrapperF64> for f64 {
+    fn from(num: WrapperF64) -> Self {
+        num.0
+    }
+}
+
 impl From<u64> for WrapperF64 {
     fn from(num: u64) -> Self {
         WrapperF64::new(num as f64)

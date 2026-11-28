@@ -489,7 +489,7 @@ namespace GroundStationStack
                     new CfnInstance.NetworkInterfaceProperty
                     {
                         NetworkInterfaceId = receiverInstanceNetworkInterfacePublic.Ref,
-                        DeviceIndex = 0,
+                        DeviceIndex = "0",
                         DeleteOnTermination = false,
                     },
                 },

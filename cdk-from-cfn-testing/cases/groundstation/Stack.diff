@@ -1,0 +1,450 @@
+Differences found:
+- Missing key: Metadata
+  Expected:
+    {
+      "AWS::CloudFormation::Interface": {
+        "ParameterGroups": [
+          {
+            "Label": {
+              "default": "RT-STPS instance configuration"
+            },
+            "Parameters": [
+              "SatelliteName",
+              "GroundStationS3DataDeliveryBucketName",
+              "SoftwareS3Bucket",
+              "VpcId",
+              "SubnetId",
+              "SSHCidrBlock",
+              "SSHKeyName",
+              "NotificationEmail"
+            ]
+          }
+        ]
+      }
+    }
+
+Value mismatch at Outputs.SnsTopicArn.Export.Name:
+  Expected:
+    {
+      "Fn::Sub": "${AWS::StackName}-SnsTopicArn"
+    }
+  Actual:
+    "cdk-from-cfn-e2e-test-GroundStationStack-SnsTopicArn"
+
+- Missing key: Parameters.GroundStationS3DataDeliveryBucketName
+  Expected:
+    {
+      "AllowedPattern": "^aws-groundstation-[a-z0-9-.]+",
+      "Default": "aws-groundstation-s3dd-your-bucket",
+      "Description": "This bucket will be created. Data will be delivered to this S3 bucket. Name must start with \"aws-groundstation-\"",
+      "Type": "String"
+    }
+
+- Missing key: Parameters.NotificationEmail
+  Expected:
+    {
+      "AllowedPattern": "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$",
+      "ConstraintDescription": "Must be a valid email adress",
+      "Default": "someone@somewhere.com",
+      "Description": "Email address to receive contact updates",
+      "Type": "String"
+    }
+
+- Missing key: Parameters.SSHCidrBlock
+  Expected:
+    {
+      "AllowedPattern": "((\\d{1,3})\\.){3}\\d{1,3}/\\d{1,2}",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x, for example \"15.16.17.18/16\".",
+      "Default": "15.16.17.18/32",
+      "Description": "The CIDR Block that the security group will allow ssh access to an instance. The CIDR Block has the form x.x.x.x/x.",
+      "Type": "String"
+    }
+
+- Missing key: Parameters.SSHKeyName
+  Expected:
+    {
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair.",
+      "Default": "",
+      "Description": "Name of the ssh key used to access ec2 hosts. Set this up ahead of time.",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    }
+
+- Missing key: Parameters.SatelliteName
+  Expected:
+    {
+      "AllowedValues": [
+        "JPSS1"
+      ],
+      "Default": "JPSS1",
+      "Description": "Used for data processing task",
+      "Type": "String"
+    }
+
+- Missing key: Parameters.SoftwareS3Bucket
+  Expected:
+    {
+      "Default": "your-software-bucket",
+      "Description": "RT-STPS Software",
+      "Type": "String"
+    }
+
++ Extra key: Parameters.SshKeyName
+  Actual:
+    {
+      "Default": "",
+      "Description": "Name of the ssh key used to access ec2 hosts. Set this up ahead of time.",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    }
+
+Value mismatch at Resources.GeneralInstanceProfile.DependsOn:
+  Expected:
+    "InstanceRole"
+  Actual:
+    [
+      "InstanceRole"
+    ]
+
+Value mismatch at Resources.GroundStationS3DataDeliveryBucket.Properties.BucketName:
+  Expected:
+    {
+      "Ref": "GroundStationS3DataDeliveryBucketName"
+    }
+  Actual:
+    "aws-groundstation-s3dd-your-bucket"
+
+Value mismatch at Resources.GroundStationS3DataDeliveryIamPolicy.Properties.PolicyDocument.Statement[0].Resource[0]:
+  Expected:
+    {
+      "Fn::Join": [
+        "",
+        [
+          "arn:aws:s3:::",
+          {
+            "Ref": "GroundStationS3DataDeliveryBucketName"
+          }
+        ]
+      ]
+    }
+  Actual:
+    "arn:aws:s3:::aws-groundstation-s3dd-your-bucket"
+
+Value mismatch at Resources.GroundStationS3DataDeliveryIamPolicy.Properties.PolicyDocument.Statement[1].Resource[0]:
+  Expected:
+    {
+      "Fn::Join": [
+        "",
+        [
+          "arn:aws:s3:::",
+          {
+            "Ref": "GroundStationS3DataDeliveryBucketName"
+          },
+          "/*"
+        ]
+      ]
+    }
+  Actual:
+    "arn:aws:s3:::aws-groundstation-s3dd-your-bucket/*"
+
+- Missing key: Resources.GroundStationS3DataDeliveryRole.Properties.AssumeRolePolicyDocument.Statement[0].Condition.ArnLike.aws:SourceArn.Fn::Sub
+  Expected:
+    "arn:aws:groundstation:${AWS::Region}:${AWS::AccountId}:config/s3-recording/*"
+
++ Extra key: Resources.GroundStationS3DataDeliveryRole.Properties.AssumeRolePolicyDocument.Statement[0].Condition.ArnLike.aws:SourceArn.Fn::Join
+  Actual:
+    [
+      "",
+      [
+        "arn:aws:groundstation:",
+        {
+          "Ref": "AWS::Region"
+        },
+        ":",
+        {
+          "Ref": "AWS::AccountId"
+        },
+        ":config/s3-recording/*"
+      ]
+    ]
+
+- Missing key: Resources.GroundStationS3ddLambdaRolePolicy.Properties.PolicyDocument.Statement[0].Resource[0].Fn::Sub
+  Expected:
+    [
+      "arn:aws:ec2:${Region}:${Account}:instance/${Instance}",
+      {
+        "Account": {
+          "Ref": "AWS::AccountId"
+        },
+        "Instance": {
+          "Ref": "ReceiverInstance"
+        },
+        "Region": {
+          "Ref": "AWS::Region"
+        }
+      }
+    ]
+
++ Extra key: Resources.GroundStationS3ddLambdaRolePolicy.Properties.PolicyDocument.Statement[0].Resource[0].Fn::Join
+  Actual:
+    [
+      "",
+      [
+        "arn:aws:ec2:",
+        {
+          "Ref": "AWS::Region"
+        },
+        ":",
+        {
+          "Ref": "AWS::AccountId"
+        },
+        ":instance/",
+        {
+          "Ref": "ReceiverInstance"
+        }
+      ]
+    ]
+
+Value mismatch at Resources.GroundStationS3ddLambdaRolePolicy.Properties.PolicyDocument.Statement[3].Resource[0]:
+  Expected:
+    {
+      "Fn::Join": [
+        "",
+        [
+          "arn:aws:s3:::",
+          {
+            "Ref": "GroundStationS3DataDeliveryBucketName"
+          },
+          "/*"
+        ]
+      ]
+    }
+  Actual:
+    "arn:aws:s3:::aws-groundstation-s3dd-your-bucket/*"
+
+Value mismatch at Resources.GroundStationS3ddLambdaRolePolicy.Properties.PolicyDocument.Statement[4].Resource[0]:
+  Expected:
+    {
+      "Fn::Join": [
+        "",
+        [
+          "arn:aws:s3:::",
+          {
+            "Ref": "GroundStationS3DataDeliveryBucketName"
+          }
+        ]
+      ]
+    }
+  Actual:
+    "arn:aws:s3:::aws-groundstation-s3dd-your-bucket"
+
+Value mismatch at Resources.InstanceRoleS3Policy.Properties.PolicyDocument.Statement[0].Resource:
+  Expected:
+    {
+      "Fn::Join": [
+        "",
+        [
+          "arn:aws:s3:::",
+          {
+            "Ref": "SoftwareS3Bucket"
+          },
+          "/*"
+        ]
+      ]
+    }
+  Actual:
+    "arn:aws:s3:::your-software-bucket/*"
+
+Value mismatch at Resources.InstanceRoleS3Policy.Properties.PolicyDocument.Statement[1].Resource:
+  Expected:
+    {
+      "Fn::Join": [
+        "",
+        [
+          "arn:aws:s3:::",
+          "space-solutions-",
+          "eu-west-1",
+          "/*"
+        ]
+      ]
+    }
+  Actual:
+    "arn:aws:s3:::space-solutions-eu-west-1/*"
+
+Value mismatch at Resources.InstanceRoleS3Policy.Properties.PolicyDocument.Statement[3].Resource:
+  Expected:
+    {
+      "Fn::Join": [
+        "",
+        [
+          "arn:aws:s3:::",
+          {
+            "Ref": "SoftwareS3Bucket"
+          }
+        ]
+      ]
+    }
+  Actual:
+    "arn:aws:s3:::your-software-bucket"
+
+Value mismatch at Resources.InstanceRoleS3Policy.Properties.PolicyDocument.Statement[4].Resource:
+  Expected:
+    {
+      "Fn::Join": [
+        "",
+        [
+          "arn:aws:s3:::",
+          "space-solutions-",
+          "eu-west-1",
+          "/*"
+        ]
+      ]
+    }
+  Actual:
+    "arn:aws:s3:::space-solutions-eu-west-1/*"
+
+Value mismatch at Resources.InstanceSecurityGroup.Properties.SecurityGroupIngress[0].CidrIp:
+  Expected:
+    {
+      "Ref": "SSHCidrBlock"
+    }
+  Actual:
+    "15.16.17.18/32"
+
+Value mismatch at Resources.LambdaFunctionStartRtstps.Properties.Code.S3Bucket:
+  Expected:
+    {
+      "Ref": "SoftwareS3Bucket"
+    }
+  Actual:
+    "your-software-bucket"
+
+Value mismatch at Resources.ReceiverInstance.DependsOn[0]:
+  Expected:
+    "InstanceSecurityGroup"
+  Actual:
+    "GeneralInstanceProfile"
+
+Value mismatch at Resources.ReceiverInstance.DependsOn[1]:
+  Expected:
+    "GeneralInstanceProfile"
+  Actual:
+    "InstanceSecurityGroup"
+
+Value mismatch at Resources.ReceiverInstance.Properties.KeyName.Ref:
+  Expected:
+    "SSHKeyName"
+  Actual:
+    "SshKeyName"
+
+Value mismatch at Resources.ReceiverInstance.Properties.NetworkInterfaces[0].DeviceIndex:
+  Expected:
+    0
+  Actual:
+    "0"
+
+Value mismatch at Resources.ReceiverInstance.Properties.Tags[0].Value:
+  Expected:
+    {
+      "Fn::Join": [
+        "-",
+        [
+          "Receiver",
+          {
+            "Ref": "AWS::StackName"
+          }
+        ]
+      ]
+    }
+  Actual:
+    "Receiver-cdk-from-cfn-e2e-test-GroundStationStack"
+
+- Missing key: Resources.ReceiverInstance.Properties.UserData.Fn::Base64.Fn::Sub
+  Expected:
+    [
+      "#!/bin/bash\n\nexec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\necho `date +'%F %R:%S'` \"INFO: Logging Setup\" >&2\n\necho \"Setting instance hostname\"\nexport INSTANCE=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\nexport HOSTNAME=$(aws ec2 describe-tags --filters \"Name=resource-id,Values=$INSTANCE\" \"Name=key,Values=Name\" --region=${AWS::Region} --output=text |cut -f5)\necho $HOSTNAME > /etc/hostname\nhostname $HOSTNAME\n\necho \"Installing RT-STPS pre-reqs\"\nyum update -y && yum install -y wget java python3\n\nGROUND_STATION_DIR=\"/opt/aws/groundstation\"\nGROUND_STATION_BIN_DIR=\"$GROUND_STATION_DIR/bin\"\nPROCESS_SCRIPT=\"$GROUND_STATION_BIN_DIR/rt-stps-process.sh\"\n\necho \"Creating $GROUND_STATION_BIN_DIR\"\nmkdir -p \"$GROUND_STATION_BIN_DIR\"\n\necho \"Getting Assets from S3\"\naws s3 cp --region ${AWS::Region} \"s3://${SoftwareS3Bucket}/software/RT-STPS/rt-stps-process.sh\" \"$PROCESS_SCRIPT\"\nchmod +x \"$PROCESS_SCRIPT\"\nchown ec2-user:ec2-user \"$PROCESS_SCRIPT\"\n\necho \"Adding call to $PROCESS_SCRIPT into /etc/rc.local\"\necho \"TIMESTR=\\$(date '+%Y%m%d-%H%M')\" >> /etc/rc.local\necho \"$PROCESS_SCRIPT ${SatelliteName} ${SoftwareS3Bucket} ${GroundStationS3DataDeliveryBucketName} 2>&1 | tee $GROUND_STATION_BIN_DIR/data-capture_\\$TIMESTR.log\" >> /etc/rc.local\nchmod +x /etc/rc.d/rc.local\n\necho \"Creating /opt/aws/groundstation/bin/getSNSTopic.sh\"\necho \"export SNS_TOPIC=${SNSTopicArn}\" > /opt/aws/groundstation/bin/getSNSTopic.sh\nchmod +x /opt/aws/groundstation/bin/getSNSTopic.sh\n\necho \"Sending completion SNS notification\"\nexport MESSAGE=\"GroundStation setup is complete for Satellite: ${SatelliteName}.  The RT-STPS processor EC2 instance is all setup and ready to go! It will be automatically started after data from a satellite pass has been deposited in your S3 bucket.  Data will be processed using RT-STPS, then copied to the following S3 Bucket: ${GroundStationS3DataDeliveryBucketName}.  A summary of the contact will be emailed to ${NotificationEmail}. The EC2 instance will now be stopped.\"\naws sns publish --topic-arn ${SNSTopicArn} --message \"$MESSAGE\" --region ${AWS::Region}\n\necho \"Shutting down the EC2 instance\"\nshutdown -h now\n\nexit 0\n",
+      {
+        "SNSTopicArn": {
+          "Ref": "snsTopic"
+        }
+      }
+    ]
+
++ Extra key: Resources.ReceiverInstance.Properties.UserData.Fn::Base64.Fn::Join
+  Actual:
+    [
+      "",
+      [
+        "#!/bin/bash\n\nexec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\necho `date +'%F %R:%S'` \"INFO: Logging Setup\" >&2\n\necho \"Setting instance hostname\"\nexport INSTANCE=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\nexport HOSTNAME=$(aws ec2 describe-tags --filters \"Name=resource-id,Values=$INSTANCE\" \"Name=key,Values=Name\" --region=",
+        {
+          "Ref": "AWS::Region"
+        },
+        " --output=text |cut -f5)\necho $HOSTNAME > /etc/hostname\nhostname $HOSTNAME\n\necho \"Installing RT-STPS pre-reqs\"\nyum update -y && yum install -y wget java python3\n\nGROUND_STATION_DIR=\"/opt/aws/groundstation\"\nGROUND_STATION_BIN_DIR=\"$GROUND_STATION_DIR/bin\"\nPROCESS_SCRIPT=\"$GROUND_STATION_BIN_DIR/rt-stps-process.sh\"\n\necho \"Creating $GROUND_STATION_BIN_DIR\"\nmkdir -p \"$GROUND_STATION_BIN_DIR\"\n\necho \"Getting Assets from S3\"\naws s3 cp --region ",
+        {
+          "Ref": "AWS::Region"
+        },
+        " \"s3://your-software-bucket/software/RT-STPS/rt-stps-process.sh\" \"$PROCESS_SCRIPT\"\nchmod +x \"$PROCESS_SCRIPT\"\nchown ec2-user:ec2-user \"$PROCESS_SCRIPT\"\n\necho \"Adding call to $PROCESS_SCRIPT into /etc/rc.local\"\necho \"TIMESTR=\\$(date '+%Y%m%d-%H%M')\" >> /etc/rc.local\necho \"$PROCESS_SCRIPT JPSS1 your-software-bucket aws-groundstation-s3dd-your-bucket 2>&1 | tee $GROUND_STATION_BIN_DIR/data-capture_\\$TIMESTR.log\" >> /etc/rc.local\nchmod +x /etc/rc.d/rc.local\n\necho \"Creating /opt/aws/groundstation/bin/getSNSTopic.sh\"\necho \"export SNS_TOPIC=",
+        {
+          "Ref": "snsTopic"
+        },
+        "\" > /opt/aws/groundstation/bin/getSNSTopic.sh\nchmod +x /opt/aws/groundstation/bin/getSNSTopic.sh\n\necho \"Sending completion SNS notification\"\nexport MESSAGE=\"GroundStation setup is complete for Satellite: JPSS1.  The RT-STPS processor EC2 instance is all setup and ready to go! It will be automatically started after data from a satellite pass has been deposited in your S3 bucket.  Data will be processed using RT-STPS, then copied to the following S3 Bucket: aws-groundstation-s3dd-your-bucket.  A summary of the contact will be emailed to someone@somewhere.com. The EC2 instance will now be stopped.\"\naws sns publish --topic-arn ",
+        {
+          "Ref": "snsTopic"
+        },
+        " --message \"$MESSAGE\" --region ",
+        {
+          "Ref": "AWS::Region"
+        },
+        "\n\necho \"Shutting down the EC2 instance\"\nshutdown -h now\n\nexit 0\n"
+      ]
+    ]
+
+Value mismatch at Resources.S3RecordingConfig.Properties.ConfigData.S3RecordingConfig.BucketArn:
+  Expected:
+    {
+      "Fn::Join": [
+        "",
+        [
+          "arn:aws:s3:::",
+          {
+            "Ref": "GroundStationS3DataDeliveryBucketName"
+          }
+        ]
+      ]
+    }
+  Actual:
+    "arn:aws:s3:::aws-groundstation-s3dd-your-bucket"
+
+Value mismatch at Resources.SnppJpssDemodDecodeMissionProfile.Properties.DataflowEdges[0].Source.Fn::Join[0]:
+  Expected:
+    "/"
+  Actual:
+    ""
+
+Value mismatch at Resources.SnppJpssDemodDecodeMissionProfile.Properties.DataflowEdges[0].Source.Fn::Join[1][1]:
+  Expected:
+    "UncodedFramesEgress"
+  Actual:
+    "/UncodedFramesEgress"
+
+Value mismatch at Resources.snsTopic.Properties.DisplayName:
+  Expected:
+    {
+      "Fn::Join": [
+        "-",
+        [
+          "GS-S3-Data-Delivery",
+          {
+            "Ref": "SatelliteName"
+          }
+        ]
+      ]
+    }
+  Actual:
+    "GS-S3-Data-Delivery-JPSS1"
+
+Value mismatch at Resources.snsTopic.Properties.Subscription[0].Endpoint:
+  Expected:
+    {
+      "Ref": "NotificationEmail"
+    }
+  Actual:
+    "someone@somewhere.com"

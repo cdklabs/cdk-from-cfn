@@ -431,7 +431,7 @@ export class GroundStationStack extends cdk.Stack {
       networkInterfaces: [
         {
           networkInterfaceId: receiverInstanceNetworkInterfacePublic.ref,
-          deviceIndex: 0,
+          deviceIndex: '0',
           deleteOnTermination: false,
         },
       ],

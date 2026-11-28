@@ -432,7 +432,7 @@ export class GroundStationConstruct extends Construct {
       networkInterfaces: [
         {
           networkInterfaceId: receiverInstanceNetworkInterfacePublic.ref,
-          deviceIndex: 0,
+          deviceIndex: '0',
           deleteOnTermination: false,
         },
       ],
