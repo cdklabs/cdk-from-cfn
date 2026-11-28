@@ -60,14 +60,9 @@ Value mismatch at Outputs.SnsTopicArn.Export.Name:
       "Type": "String"
     }
 
-- Missing key: Parameters.SSHKeyName
+- Missing key: Parameters.SSHKeyName.ConstraintDescription
   Expected:
-    {
-      "ConstraintDescription": "must be the name of an existing EC2 KeyPair.",
-      "Default": "",
-      "Description": "Name of the ssh key used to access ec2 hosts. Set this up ahead of time.",
-      "Type": "AWS::EC2::KeyPair::KeyName"
-    }
+    "must be the name of an existing EC2 KeyPair."
 
 - Missing key: Parameters.SatelliteName
   Expected:
@@ -86,14 +81,6 @@ Value mismatch at Outputs.SnsTopicArn.Export.Name:
       "Default": "your-software-bucket",
       "Description": "RT-STPS Software",
       "Type": "String"
-    }
-
-+ Extra key: Parameters.SshKeyName
-  Actual:
-    {
-      "Default": "",
-      "Description": "Name of the ssh key used to access ec2 hosts. Set this up ahead of time.",
-      "Type": "AWS::EC2::KeyPair::KeyName"
     }
 
 Value mismatch at Resources.GeneralInstanceProfile.DependsOn:
@@ -328,12 +315,6 @@ Value mismatch at Resources.ReceiverInstance.DependsOn[1]:
     "GeneralInstanceProfile"
   Actual:
     "InstanceSecurityGroup"
-
-Value mismatch at Resources.ReceiverInstance.Properties.KeyName.Ref:
-  Expected:
-    "SSHKeyName"
-  Actual:
-    "SshKeyName"
 
 Value mismatch at Resources.ReceiverInstance.Properties.NetworkInterfaces[0].DeviceIndex:
   Expected:
