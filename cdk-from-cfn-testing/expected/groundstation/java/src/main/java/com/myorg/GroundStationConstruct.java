@@ -51,7 +51,7 @@ class GroundStationConstruct extends Construct {
                 : "15.16.17.18/32";
         sshKeyName = Optional.ofNullable(sshKeyName).isPresent()
                 ? sshKeyName
-                : CfnParameter.Builder.create(this, "SshKeyName")
+                : CfnParameter.Builder.create(this, "SSHKeyName")
                         .type("AWS::EC2::KeyPair::KeyName")
                         .defaultValue("")
                         .description("Name of the ssh key used to access ec2 hosts. Set this up ahead of time.")

@@ -135,11 +135,8 @@ impl Synthesizer for Python {
                     let cfn_param = obj.indent_with_options(IndentOptions {
                         indent: INDENT,
                         leading: Some(
-                            format!(
-                                "'{name}': cdk.CfnParameter(self, '{}', ",
-                                pascal_case(&param.name)
-                            )
-                            .into(),
+                            format!("'{name}': cdk.CfnParameter(self, '{}', ", param.logical_id)
+                                .into(),
                         ),
                         trailing: Some(trailing.into()),
                         trailing_newline: true,

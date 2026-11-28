@@ -34,6 +34,7 @@ fn test_constructor_from() {
     assert_eq!(constructor.inputs.len(), 2);
 
     assert_eq!(constructor.inputs[0].name, "param1");
+    assert_eq!(constructor.inputs[0].logical_id, "param1");
     assert_eq!(
         constructor.inputs[0].description,
         Some("description1".to_string())
@@ -46,6 +47,7 @@ fn test_constructor_from() {
     assert_eq!(constructor.inputs[0].allowed_values, None);
 
     assert_eq!(constructor.inputs[1].name, "param2");
+    assert_eq!(constructor.inputs[1].logical_id, "param2");
     assert_eq!(
         constructor.inputs[1].description,
         Some("description2".to_string())
@@ -59,6 +61,7 @@ fn test_constructor_from() {
 fn test_constructor_parameter() {
     let param = ConstructorParameter {
         name: "Param1".to_string(),
+        logical_id: "Param1".to_string(),
         description: Some("description1".to_string()),
         constructor_type: "String".to_string(),
         default_value: Some("default1".to_string()),
