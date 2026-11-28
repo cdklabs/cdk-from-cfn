@@ -153,7 +153,7 @@ fn zip_test_snapshots() -> io::Result<()> {
         if dir_path.exists() {
             for entry in WalkDir::new(dir_path).into_iter().filter_map(|e| e.ok()) {
                 let path = entry.path();
-                let name = format!("{}/{}", dir_name, path.strip_prefix(dir_path).unwrap().to_str().unwrap());
+                let name = format!("{}/{}", dir_name, path.strip_prefix(dir_path).unwrap().to_str().unwrap().replace('\\', "/"));
 
                 if path.is_file() {
                     zip.start_file(&name, options)?;

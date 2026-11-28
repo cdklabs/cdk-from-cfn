@@ -114,7 +114,7 @@ impl Paths {
     /// # Returns
     /// Path to the test's actual output directory
     pub fn actual_dir_path(normalized: &str) -> PathBuf {
-        Self::actual_dir().join(normalized)
+        Self::actual_dir().join(normalized.replace("::", "_"))
     }
 
     /// Returns the application file path for a test and language.
@@ -201,11 +201,12 @@ impl Paths {
     /// # Returns
     /// ZIP archive path to the application writer template
     pub fn zip_app_writer_path(lang: &str) -> String {
-        PathBuf::from(Self::BOILERPLATE_DIR)
-            .join(lang)
-            .join(format!("{}.template", Language::app_name(lang)))
-            .to_string_lossy()
-            .to_string()
+        format!(
+            "{}/{}/{}.template",
+            Self::BOILERPLATE_DIR,
+            lang,
+            Language::app_name(lang)
+        )
     }
 
     /// Returns the ZIP path for expected output directory.
@@ -217,13 +218,7 @@ impl Paths {
     /// # Returns
     /// ZIP archive path to the expected output directory
     pub fn zip_expected_dir(test: &str, lang: &str) -> String {
-        format!(
-            "{}/",
-            PathBuf::from(Self::EXPECTED_DIR)
-                .join(test)
-                .join(lang)
-                .display()
-        )
+        format!("{}/{}/{}/", Self::EXPECTED_DIR, test, lang)
     }
 
     /// Returns the ZIP path for a test case file.
@@ -235,11 +230,7 @@ impl Paths {
     /// # Returns
     /// ZIP archive path to the test case file
     pub fn zip_case_path(test: &str, file: &str) -> String {
-        PathBuf::from(Self::CASES_DIR)
-            .join(test)
-            .join(file)
-            .display()
-            .to_string()
+        format!("{}/{}/{}", Self::CASES_DIR, test, file)
     }
 
     /// Returns the ZIP path for boilerplate files directory.
