@@ -217,7 +217,7 @@ impl Synthesizer for Typescript {
                         leading: Some(
                             format!(
                                 "{name}: new cdk.CfnParameter(this, '{}', {{",
-                                pascal_case(&param.name)
+                                param.logical_id
                             )
                             .into(),
                         ),

@@ -71,7 +71,7 @@ namespace GroundStationStack
             props.SatelliteName ??= "JPSS1";
             props.SoftwareS3Bucket ??= "your-software-bucket";
             props.SshCidrBlock ??= "15.16.17.18/32";
-            props.SshKeyName = new CfnParameter(this, "SshKeyName", new CfnParameterProps
+            props.SshKeyName = new CfnParameter(this, "SSHKeyName", new CfnParameterProps
             {
                 Type = "AWS::EC2::KeyPair::KeyName",
                 Default = props.SshKeyName ?? "",

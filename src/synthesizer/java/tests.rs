@@ -556,6 +556,42 @@ fn test_cfn_parameter_description() {
     );
 }
 
+const PARAMETER_LOGICAL_IDS_TEMPLATE: &str = r#"{
+    "Parameters": {
+        "SSHKeyName": { "Type": "AWS::EC2::KeyPair::KeyName", "Default": "my-key" },
+        "DBPassword": { "Type": "String", "NoEcho": "true", "Default": "secret" }
+    },
+    "Resources": {
+        "Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "KeyName": { "Ref": "SSHKeyName" }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_cfn_parameter_keeps_logical_id() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(PARAMETER_LOGICAL_IDS_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("java", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains(": CfnParameter.Builder.create(this, \"SSHKeyName\")"),
+        "unexpected output:\n{code}"
+    );
+    assert!(
+        code.contains(": CfnParameter.Builder.create(this, \"DBPassword\")"),
+        "unexpected output:\n{code}"
+    );
+}
+
 // --- Custom Resource Tests ---
 
 const CUSTOM_RESOURCE_BASIC_TEMPLATE: &str = r#"{

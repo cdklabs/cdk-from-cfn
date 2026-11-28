@@ -762,6 +762,42 @@ fn test_no_echo_string_parameter_is_a_cfn_parameter() {
     );
 }
 
+const PARAMETER_LOGICAL_IDS_TEMPLATE: &str = r#"{
+    "Parameters": {
+        "SSHKeyName": { "Type": "AWS::EC2::KeyPair::KeyName", "Default": "my-key" },
+        "DBPassword": { "Type": "String", "NoEcho": "true", "Default": "secret" }
+    },
+    "Resources": {
+        "Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "KeyName": { "Ref": "SSHKeyName" }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_cfn_parameter_keeps_logical_id() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(PARAMETER_LOGICAL_IDS_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("python", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("'sshKeyName': cdk.CfnParameter(self, 'SSHKeyName', "),
+        "unexpected output:\n{code}"
+    );
+    assert!(
+        code.contains("'dbPassword': cdk.CfnParameter(self, 'DBPassword', "),
+        "unexpected output:\n{code}"
+    );
+}
+
 // --- Output Tests ---
 
 const BOOLEAN_OUTPUTS_TEMPLATE: &str = r#"{

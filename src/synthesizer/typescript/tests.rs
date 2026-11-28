@@ -690,3 +690,39 @@ fn test_map_property_quotes_and_escapes_special_keys() {
     assert!(code.contains("'it\\'s': 'quoted',"), "{code}");
     assert!(code.contains("'': 'empty',"), "{code}");
 }
+
+const PARAMETER_LOGICAL_IDS_TEMPLATE: &str = r#"{
+    "Parameters": {
+        "SSHKeyName": { "Type": "AWS::EC2::KeyPair::KeyName", "Default": "my-key" },
+        "DBPassword": { "Type": "String", "NoEcho": "true", "Default": "secret" }
+    },
+    "Resources": {
+        "Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "KeyName": { "Ref": "SSHKeyName" }
+            }
+        }
+    }
+}"#;
+
+#[test]
+fn test_cfn_parameter_keeps_logical_id() {
+    let cfn: CloudformationParseTree =
+        serde_json::from_str(PARAMETER_LOGICAL_IDS_TEMPLATE).unwrap();
+    let ir = CloudformationProgramIr::from(cfn, Schema::builtin()).unwrap();
+
+    let mut output = Vec::new();
+    ir.synthesize("typescript", &mut output, "TestStack", ClassType::Stack)
+        .unwrap();
+    let code = String::from_utf8(output).unwrap();
+
+    assert!(
+        code.contains("sshKeyName: new cdk.CfnParameter(this, 'SSHKeyName', {"),
+        "unexpected output:\n{code}"
+    );
+    assert!(
+        code.contains("dbPassword: new cdk.CfnParameter(this, 'DBPassword', {"),
+        "unexpected output:\n{code}"
+    );
+}

@@ -67,7 +67,7 @@ export class GroundStationStack extends cdk.Stack {
       satelliteName: props.satelliteName ?? 'JPSS1',
       softwareS3Bucket: props.softwareS3Bucket ?? 'your-software-bucket',
       sshCidrBlock: props.sshCidrBlock ?? '15.16.17.18/32',
-      sshKeyName: new cdk.CfnParameter(this, 'SshKeyName', {
+      sshKeyName: new cdk.CfnParameter(this, 'SSHKeyName', {
         type: 'AWS::EC2::KeyPair::KeyName',
         default: props.sshKeyName?.toString() ?? '',
         description: 'Name of the ssh key used to access ec2 hosts. Set this up ahead of time.',

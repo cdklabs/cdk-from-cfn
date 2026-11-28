@@ -126,6 +126,7 @@ impl<'a> Java<'a> {
 
             v.push(JavaConstructorParameter {
                 name: input.name.clone(),
+                logical_id: input.logical_id.clone(),
                 description: input.description.clone(),
                 java_type: java_type.into(),
                 constructor_type: if java_type == "Boolean" {
@@ -291,7 +292,7 @@ impl<'a> Java<'a> {
                         leading: Some(
                             format!(
                                 ": CfnParameter.Builder.create(this, \"{}\")",
-                                pascal_case(&prop.name)
+                                prop.logical_id
                             )
                             .into(),
                         ),
@@ -1236,6 +1237,7 @@ fn escape_java_string(text: &str) -> String {
 
 pub struct JavaConstructorParameter {
     pub name: String,
+    pub logical_id: String,
     pub description: Option<String>,
     pub constructor_type: String,
     pub java_type: String,

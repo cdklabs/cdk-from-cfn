@@ -16,6 +16,7 @@ impl Constructor {
                 .into_iter()
                 .map(|(name, param)| ConstructorParameter {
                     name: camel_case(&name),
+                    logical_id: name,
                     description: param.description,
                     constructor_type: match param.parameter_type {
                         crate::parser::parameters::ParameterType::String => {
@@ -52,6 +53,7 @@ impl Constructor {
 #[derive(Debug, Default)]
 pub struct ConstructorParameter {
     pub name: String,
+    pub logical_id: String,
     pub description: Option<String>,
     pub constructor_type: String,
     pub default_value: Option<String>,

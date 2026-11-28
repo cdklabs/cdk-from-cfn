@@ -188,7 +188,9 @@ impl Synthesizer for CSharp<'_> {
                         indent: INDENT,
                         leading: Some(
                             format!(
-                                "props.{name} = new CfnParameter(this, \"{name}\", new CfnParameterProps\n{{")
+                                "props.{name} = new CfnParameter(this, \"{}\", new CfnParameterProps\n{{",
+                                param.logical_id
+                            )
                             .into(),
                         ),
                         trailing: Some(format!("}}).{value_as};").into()),

@@ -23,7 +23,7 @@ class GroundStationConstruct(Construct):
       'satelliteName': kwargs.get('satelliteName', 'JPSS1'),
       'softwareS3Bucket': kwargs.get('softwareS3Bucket', 'your-software-bucket'),
       'sshCidrBlock': kwargs.get('sshCidrBlock', '15.16.17.18/32'),
-      'sshKeyName': cdk.CfnParameter(self, 'SshKeyName', 
+      'sshKeyName': cdk.CfnParameter(self, 'SSHKeyName', 
         type = 'AWS::EC2::KeyPair::KeyName',
         default = str(kwargs.get('sshKeyName', '')),
         description = 'Name of the ssh key used to access ec2 hosts. Set this up ahead of time.',
